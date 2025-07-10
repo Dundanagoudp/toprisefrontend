@@ -123,11 +123,12 @@
   --new-10: #C72920;
   --new-50: #c72920 ;
 
+
       /* Active state colors - red/pink theme */
     --sidebar-active-background: 0 100% 97%;
     --sidebar-active-foreground: 0 84% 60%;
     --sidebar-active-border: 0 84% 60%;
-  
+
 }
 
 .dark {
@@ -261,14 +262,8 @@
 }
 
 
-@layer utilities {
-  .font-redhat {
-    font-family: 'Red Hat Display', sans-serif;
-  }
-  .font-poppins {
-    font-family: 'Poppins', sans-serif;
-  }
-}
+
+
 
 /* Custom active state styles for sidebar nav menu items */
 .sidebar-menu-active {
@@ -291,3 +286,4 @@
 .sidebar-menu-item:hover svg {
   color: hsl(0 84% 60%);
 }
+
