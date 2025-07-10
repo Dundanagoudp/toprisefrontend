@@ -278,7 +278,7 @@
 
 /* Hover effects for nav menu items */
 .sidebar-menu-item:hover {
-  background-color: rgba(199, 41, 32, 0.10);
+  background-color: hsl(0 100% 97%);
   color: hsl(0 84% 60%);
   border-radius: 6px;
 }
