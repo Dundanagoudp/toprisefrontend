@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import addSquare from "../../../../../public/assets/addSquare.svg";
 import uploadFile from "../../../../../public/assets/uploadFile.svg";
+
 import {
   Table,
   TableBody,
@@ -123,6 +124,7 @@ export default function ProductManagement() {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
+
    <div className="w-full">
       <Card className="shadow-sm ">
         {/* Header */}
@@ -301,5 +303,7 @@ export default function ProductManagement() {
         </CardContent>
       </Card>
     </div>
+
+   
   );
 }

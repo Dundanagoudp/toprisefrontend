@@ -13,6 +13,7 @@ const apiClient = axios.create({
   timeout: 45000, 
 })
 
+
 apiClient.interceptors.request.use(
   (config) => {
     const token = Cookies.get("token"); 
@@ -25,6 +26,7 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
 
 
 apiClient.interceptors.response.use(
@@ -48,7 +50,7 @@ apiClient.interceptors.response.use(
     
     if (error.code === 'ECONNABORTED') {
       console.error("Request timeout - the server took too long to respond")
-    
+
     }
     
     return Promise.reject(error)
