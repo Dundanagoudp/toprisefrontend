@@ -23,6 +23,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import addSquare from "../../../../../public/assets/addSquare.svg";
+import uploadFile from "../../../../../public/assets/uploadFile.svg";
 import {
   Table,
   TableBody,
@@ -121,8 +123,8 @@ export default function ProductManagement() {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4">
-      <Card className="shadow-sm border border-gray-200">
+   <div className="w-full">
+      <Card className="shadow-sm ">
         {/* Header */}
         <CardHeader className="space-y-6">
           {/* Search and Actions Row */}
@@ -173,31 +175,27 @@ export default function ProductManagement() {
             {/* Right Side - Action Buttons */}
             <div className="flex items-center gap-3 w-full lg:w-auto">
               <Button
-                variant="outline"
-                className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-lg px-4 py-2 min-w-[120px] justify-center"
+                variant="default"
+                className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
               >
-                <FileUp className="h-4 w-4 text-[#408EFD]" />
+                 <Image src={uploadFile} alt="Add" className="h-4 w-4" />
                 <span className="text-[#408EFD] b3">Upload</span>
               </Button>
 
               <Button
-                className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-lg px-4 py-2 min-w-[140px] justify-center"
-                variant="outline"
+                className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
+                variant="default"
               >
-                <Plus className="h-4 w-4" />
+                <Image src={addSquare} alt="Add" className="h-4 w-4" />
                 <span className="b3 font-RedHat">Add Product</span>
               </Button>
             </div>
           </div>
 
           {/* Page Title and Description */}
-          <div className="space-y-2 gap-y-9">
-            <CardTitle className=" text-black text-2xl font-(--font-red-hat)  ">
-              Product
-            </CardTitle>
-            <CardDescription className="b4 text-gray-600">
-              Manage your products and view inventory
-            </CardDescription>
+          <div className="space-y-2">
+            <CardTitle className="b1 text-black text-2xl font-semibold">Product</CardTitle>
+            <CardDescription className="b4 text-gray-600">Manage your products and view inventory</CardDescription>
           </div>
         </CardHeader>
 
@@ -207,12 +205,8 @@ export default function ProductManagement() {
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left">
-                    Image
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px]">
-                    Name
-                  </TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left">Image</TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px]">Name</TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[150px]">
                     Category
                   </TableHead>
@@ -222,9 +216,7 @@ export default function ProductManagement() {
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px]">
                     Brand
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px]">
-                    Type
-                  </TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px]">Type</TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
                     Status
                   </TableHead>
@@ -253,53 +245,33 @@ export default function ProductManagement() {
                       </div>
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      <div className="font-medium text-gray-900 b2 font-redhat">
-                        {product.name}
-                      </div>
+                      <div className="font-medium text-gray-900 b2 font-redhat">{product.name}</div>
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      <span className="text-gray-700 b2 font-redHat">
-                        {product.category}
-                      </span>
+                      <span className="text-gray-700 b2 font-redHat">{product.category}</span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      <span className="text-gray-700 b2">
-                        {product.subCategory}
-                      </span>
+                      <span className="text-gray-700 b2">{product.subCategory}</span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <span className="text-gray-700 b2">{product.brand}</span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      <span className="text-gray-700 b2">
-                        {product.productType}
-                      </span>
+                      <span className="text-gray-700 b2">{product.productType}</span>
                     </TableCell>
-                    <TableCell className="px-6 py-4">
-                      {getStatusBadge(product.status)}
-                    </TableCell>
+                    <TableCell className="px-6 py-4">{getStatusBadge(product.status)}</TableCell>
                     <TableCell className="px-6 py-4 text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 hover:bg-gray-100"
-                          >
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">Open menu</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem className="cursor-pointer">
-                            Edit Product
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            Duplicate
-                          </DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer">Edit Product</DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer">View Details</DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer">Duplicate</DropdownMenuItem>
                           <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
                             Delete
                           </DropdownMenuItem>
@@ -315,22 +287,12 @@ export default function ProductManagement() {
           {/* Footer - Pagination */}
           <div className="px-6 py-4 border-t border-gray-200 bg-gray-50/30">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-gray-500 order-2 sm:order-1">
-                Showing 1-5 of 32 products
-              </p>
+              <p className="text-sm text-gray-500 order-2 sm:order-1">Showing 1-5 of 32 products</p>
               <div className="flex items-center gap-2 order-1 sm:order-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-w-[80px] hover:bg-gray-100 bg-transparent"
-                >
+                <Button variant="outline" size="sm" className="min-w-[80px] hover:bg-gray-100 bg-transparent">
                   Previous
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-w-[80px] hover:bg-gray-100 bg-transparent"
-                >
+                <Button variant="outline" size="sm" className="min-w-[80px] hover:bg-gray-100 bg-transparent">
                   Next
                 </Button>
               </div>
