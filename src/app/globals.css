@@ -122,6 +122,12 @@
   --new-500: #6e1712;
   --new-10: #C72920;
   --new-50: #c72920 ;
+
+      /* Active state colors - red/pink theme */
+    --sidebar-active-background: 0 100% 97%;
+    --sidebar-active-foreground: 0 84% 60%;
+    --sidebar-active-border: 0 84% 60%;
+  
 }
 
 .dark {
@@ -262,4 +268,26 @@
   .font-poppins {
     font-family: 'Poppins', sans-serif;
   }
+}
+
+/* Custom active state styles for sidebar nav menu items */
+.sidebar-menu-active {
+  background-color: hsl(0 100% 97%) !important;
+  color: hsl(0 84% 60%) !important;
+  border-radius: 6px;
+}
+
+.sidebar-menu-active svg {
+  color: hsl(0 84% 60%) !important;
+}
+
+/* Hover effects for nav menu items */
+.sidebar-menu-item:hover {
+  background-color: rgba(199, 41, 32, 0.10);
+  color: hsl(0 84% 60%);
+  border-radius: 6px;
+}
+
+.sidebar-menu-item:hover svg {
+  color: hsl(0 84% 60%);
 }

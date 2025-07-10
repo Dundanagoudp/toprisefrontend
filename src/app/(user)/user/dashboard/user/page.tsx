@@ -17,7 +17,7 @@ import {
 export default function Page() {
   return (
     <div>
-      {/* Main dashboard content goes here */}
+      {/* User management content goes here */}
     </div>
   )
 }
