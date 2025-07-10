@@ -2,22 +2,14 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
   Bot,
-  Command,
   Frame,
   GalleryVerticalEnd,
   LayoutDashboard,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
+  LogOut,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
   Sidebar,
@@ -26,7 +18,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { title } from "process"
+import { Button } from "@/components/ui/button"
+import { usePathname } from "next/navigation"
 
 // This is sample data.
 const data = {
@@ -45,43 +38,51 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
-      icon:LayoutDashboard,
-      isActive: true,
+      url: "/user/dashboard",
+      icon: LayoutDashboard,
     },
     {
-      title:"Product Management",
+      title: "Product Management",
       url: "/user/dashboard/product",
       icon: Frame,
-      isActive: false,
-      items: [
-        {
-          title: "Products",
-          url: "/user/dashboard/product",
-        }
-      ],
     },
     {
-      title:"User Management",
-      url: "/user/dashboard/user-management",
+      title: "User Management",
+      url: "/user/dashboard/user",
       icon: Bot,
-      isActive: false,
     }
   ],
-
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname();
+  // Removed debug logs
+
+  // Map navMain to set isActive dynamically
+  const navItems = data.navMain.map(item => ({
+    ...item,
+    isActive:
+      pathname === item.url ||
+      (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
+  }));
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-destructive font-normal text-base gap-2"
+          onClick={() => alert('Logout clicked!')}
+        >
+          <LogOut className="w-5 h-5" />
+          Logout
+        </Button>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
