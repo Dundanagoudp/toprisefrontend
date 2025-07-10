@@ -51,9 +51,15 @@ const data = {
     },
     {
       title:"Product Management",
-      url: "/user/dashboard/product-management",
+      url: "/user/dashboard/product",
       icon: Frame,
       isActive: false,
+      items: [
+        {
+          title: "Products",
+          url: "/user/dashboard/product",
+        }
+      ],
     },
     {
       title:"User Management",
