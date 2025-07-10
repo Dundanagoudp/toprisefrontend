@@ -12,10 +12,11 @@ import {
 
 export function DynamicBreadcrumb() {
   const pathname = usePathname();
-  const segments = pathname.replace(/^\/+/g, '').split('/');
-  if (segments[0] !== 'admin' || segments[1] !== 'dashboard') return null;
+  const segments = pathname.replace(/^\/+/, '').split('/');
+  // Show breadcrumb for /user/dashboard and its subpages
+  if (segments[0] !== 'user' || segments[1] !== 'dashboard') return null;
   const items = [
-    { label: 'Admin Panel', href: '/user/dashboard' },
+    { label: 'Dashboard', href: '/user/dashboard' },
     ...segments.slice(2).map((seg, idx) => {
       const label = seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const href = '/user/dashboard/' + segments.slice(2, 2 + idx + 1).join('/');
@@ -26,7 +27,7 @@ export function DynamicBreadcrumb() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem className="hidden md:block">
-          <BreadcrumbLink href="/user/dashboard">Admin Panel</BreadcrumbLink>
+          <BreadcrumbLink href="/user/dashboard">Dashboard</BreadcrumbLink>
         </BreadcrumbItem>
         {items.length > 1 && <BreadcrumbSeparator className="hidden md:block" />}
         {items.slice(1).map((item, idx) => (
