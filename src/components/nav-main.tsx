@@ -11,7 +11,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -30,15 +29,13 @@ export function NavMain({
     }[]
   }[]
 }) {
-  const { state } = useSidebar();
-  const expanded = state === "expanded";
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
-      <SidebarMenu className={expanded ? "pt-4 pb-4" : undefined}>
+      <SidebarMenu>
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive} className="group/collapsible">
-            <SidebarMenuItem className={expanded ? "py-2" : undefined}>
+            <SidebarMenuItem>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton
                   asChild
