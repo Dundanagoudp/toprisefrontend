@@ -122,6 +122,7 @@
   --new-500: #6e1712;
   --new-10: #C72920;
   --new-50: #c72920 ;
+   --font-red-hat: 'Red Hat Display', sans-serif;
 }
 
 .dark {
@@ -254,12 +255,3 @@
   letter-spacing: 0px;
 }
 
-
-@layer utilities {
-  .font-redhat {
-    font-family: 'Red Hat Display', sans-serif;
-  }
-  .font-poppins {
-    font-family: 'Poppins', sans-serif;
-  }
-}
