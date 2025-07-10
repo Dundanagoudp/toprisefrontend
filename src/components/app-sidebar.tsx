@@ -17,6 +17,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
@@ -56,6 +57,8 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const { state } = useSidebar();
+  const expanded = state === "expanded";
   // Removed debug logs
 
   // Map navMain to set isActive dynamically
@@ -81,7 +84,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           onClick={() => alert('Logout clicked!')}
         >
           <LogOut className="w-5 h-5" />
-          Logout
+          {expanded && "Logout"}
         </Button>
       </SidebarFooter>
       <SidebarRail />
