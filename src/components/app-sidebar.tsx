@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter } from "next/navigation"
-import TicketIcon,{ BoxIcon } from "./ui/TicketIcon"
+import TicketIcon,{ BoxIcon ,DashboardIcon,userIcon} from "./ui/TicketIcon"
 
 // This is sample data.
 const data = {
@@ -43,7 +43,7 @@ const data = {
     {
       title: "Dashboard",
       url: "/user/dashboard",
-      icon: LayoutDashboard,
+      icon: DashboardIcon,
     },
     {
       title: "Product Management",
@@ -53,7 +53,7 @@ const data = {
     {
       title: "User Management",
       url: "/user/dashboard/user",
-      icon: Bot,
+      icon: userIcon,
     },
     {
       title: "Pricing & Margin Management",
@@ -91,8 +91,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={navItems} />
+      <SidebarContent >
+        <NavMain items={navItems}  />
       </SidebarContent>
       <SidebarFooter>
         <Button
