@@ -3,7 +3,7 @@ export interface LoginRequest {
   email: string;
   password: string;
 }
-//change
+//changes
 export interface User {
   data: {
     user: {
