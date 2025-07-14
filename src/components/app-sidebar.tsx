@@ -9,8 +9,11 @@ import {
   LogOut,
 } from "lucide-react"
 
+import Image from "next/image"
 import { NavMain } from "@/components/nav-main"
 import { TeamSwitcher } from "@/components/team-switcher"
+import Cookies from "js-cookie"
+
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +23,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 // This is sample data.
 const data = {
@@ -56,9 +59,18 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+
+  const router = useRouter()
   const pathname = usePathname();
   const { state } = useSidebar();
   const expanded = state === "expanded";
+  const handleLogout = () => {
+    Cookies.remove('token');
+  Cookies.remove('role');
+  Cookies.remove('lastlogin');
+  router.replace('/login');
+  }
+
   // Removed debug logs
 
   // Map navMain to set isActive dynamically
@@ -81,7 +93,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <Button
           variant="ghost"
           className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-destructive font-normal text-base gap-2"
-          onClick={() => alert('Logout clicked!')}
+
+          onClick={handleLogout}
+
         >
           <LogOut className="w-5 h-5" />
           {expanded && "Logout"}
