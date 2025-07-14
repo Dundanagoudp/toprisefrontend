@@ -1,9 +1,17 @@
-import apiClient from "@/apiClient"
-import { LoginRequest, LoginResponse } from "@/types/auth-types"
+import { ApiResponse } from "@/types/apiReponses-Types";
+import { User,LoginRequest } from "@/types/auth-types";
+import apiClient from "@/apiClient";
 
-export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
-  const response = await apiClient.post("/users/api/users/loginWeb", data, {
+
+export async function loginUser(data: LoginRequest): Promise<ApiResponse<User>> {
+     const response = await apiClient.post("/users/api/users/loginWeb", data, {
     withCredentials: true,
-  })
-  return response.data
+  });
+
+  return{
+    success: response.data.success,
+    data: response.data,
+  }
+
+
 }
