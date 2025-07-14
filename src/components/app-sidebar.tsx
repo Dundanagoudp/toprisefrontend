@@ -1,0 +1,102 @@
+"use client"
+
+import * as React from "react"
+import {
+  Bot,
+  Frame,
+  GalleryVerticalEnd,
+  LayoutDashboard,
+  LogOut,
+} from "lucide-react"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { NavMain } from "@/components/nav-main"
+import { TeamSwitcher } from "@/components/team-switcher"
+import Cookies from "js-cookie"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+  useSidebar,
+} from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { usePathname } from "next/navigation"
+
+// This is sample data.
+const data = {
+  user: {
+    name: "shadcn",
+    email: "m@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  },
+  teams: [
+    {
+      name: "Toprise",
+      logo: GalleryVerticalEnd,
+      plan: "Enterprise",
+    },
+  ],
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/user/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Product Management",
+      url: "/user/dashboard/product",
+      icon: Frame,
+    },
+    {
+      title: "User Management",
+      url: "/user/dashboard/user",
+      icon: Bot,
+    }
+  ],
+}
+
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const router = useRouter()
+  const pathname = usePathname();
+  const { state } = useSidebar();
+  const expanded = state === "expanded";
+  const handleLogout = () => {
+    Cookies.remove('token');
+  Cookies.remove('role');
+  Cookies.remove('lastlogin');
+  router.replace('/login');
+  }
+  // Removed debug logs
+
+  // Map navMain to set isActive dynamically
+  const navItems = data.navMain.map(item => ({
+    ...item,
+    isActive:
+      pathname === item.url ||
+      (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
+  }));
+
+  return (
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <TeamSwitcher teams={data.teams} />
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain items={navItems} />
+      </SidebarContent>
+      <SidebarFooter>
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-destructive font-normal text-base gap-2"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-5 h-5" />
+          {expanded && "Logout"}
+        </Button>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  )
+}
