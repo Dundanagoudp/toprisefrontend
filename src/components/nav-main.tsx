@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronRight, type LucideIcon } from "lucide-react"
+import type { ElementType } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   SidebarGroup,
@@ -22,7 +23,7 @@ export function NavMain({
   items: {
     title: string
     url: string
-    icon?: LucideIcon
+    icon?: ElementType
     isActive?: boolean
     items?: {
       title: string
@@ -51,7 +52,7 @@ export function NavMain({
                 >
                   <Link href={item.url}>
                     {item.icon && <item.icon className="w-4 h-4" />}
-                    <span>{item.title}</span>
+                    <span className="font-red-hat">{item.title}</span>
                     {item.items && item.items.length > 0 && (
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     )}

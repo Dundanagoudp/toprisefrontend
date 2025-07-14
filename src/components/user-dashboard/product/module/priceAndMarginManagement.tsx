@@ -21,11 +21,11 @@ import {
   FileUp,
   PlusIcon,
 } from "lucide-react";
+import { EditIcon } from "@/components/ui/TicketIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import addSquare from "../../../../../public/assets/addSquare.svg";
-import uploadFile from "../../../../../public/assets/uploadFile.svg";
 
 import {
   Table,
@@ -50,50 +50,50 @@ const products = [
     id: 1,
     image: "/placeholder.svg?height=40&width=40",
     name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
+    sku: "TOP-BRK-000453",
+    currentSellingPrice: "₹1,099.00",
+    BaseCost: "₹899.00",
+    Margin: "10.0%",
     status: "Active",
   },
   {
     id: 2,
     image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
+    name: "Rear Brake Shoe - Alto 800 2018 Petrol",
+    sku: "TOP-BRK-000454",
+    currentSellingPrice: "₹850.00",
+    BaseCost: "₹650.00",
+    Margin: "15.0%",
     status: "Disable",
   },
   {
     id: 3,
     image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
+    name: "Air Filter - WagonR 2015 CNG",
+    sku: "TOP-FIL-000123",
+    currentSellingPrice: "₹450.00",
+    BaseCost: "₹300.00",
+    Margin: "20.0%",
     status: "Active",
   },
   {
     id: 4,
     image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
+    name: "Oil Filter - Dzire 2017 Diesel",
+    sku: "TOP-FIL-000124",
+    currentSellingPrice: "₹300.00",
+    BaseCost: "₹200.00",
+    Margin: "18.0%",
     status: "Pending",
   },
   {
     id: 5,
     image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
+    name: "Spark Plug - Celerio 2019 Petrol",
+    sku: "TOP-IGN-000001",
+    currentSellingPrice: "₹150.00",
+    BaseCost: "₹100.00",
+    Margin: "25.0%",
     status: "Active",
   },
 ];
@@ -123,14 +123,29 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-export default function ProductManagement() {
+export default function PriceAndMarginManagement() {
   const route = useRouter();
   const payload = getTokenPayload();
   const isAllowed = payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
 
-  
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const allProductIds = products.map((product) => product.id);
+      setSelectedProductIds(allProductIds);
+    } else {
+      setSelectedProductIds([]);
+    }
+  };
 
+  const handleSelectProduct = (event: React.ChangeEvent<HTMLInputElement>, id: number) => {
+    if (event.target.checked) {
+      setSelectedProductIds((prev) => [...prev, id]);
+    } else {
+      setSelectedProductIds((prev) => prev.filter((productId) => productId !== id));
+    }
+  };
 
   useEffect(() => {
     const response = getProducts();
@@ -140,8 +155,8 @@ export default function ProductManagement() {
       console.error("Error fetching products:", error);
     });
   }, []);
-  const handleAddProduct = () => {
-    route.push(`/user/dashboard/product/Addproduct`);
+  const handleEditProdcut = () => {
+    route.push(`/user/dashboard/PricingMarginMangement/edit`);
   };
 
   return (
@@ -181,14 +196,14 @@ export default function ProductManagement() {
                       variant="outline"
                       className="flex items-center gap-2 bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px]"
                     >
-                      <span className="b3">Requests</span>
+                      <span className="b3">Role</span>
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-                    <DropdownMenuItem>All Requests</DropdownMenuItem>
-                    <DropdownMenuItem>Pending Requests</DropdownMenuItem>
-                    <DropdownMenuItem>Approved Requests</DropdownMenuItem>
+                    <DropdownMenuItem>SuperAdmin</DropdownMenuItem>
+                    <DropdownMenuItem>Invetory Admin</DropdownMenuItem>
+                    <DropdownMenuItem>Admin</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -197,33 +212,18 @@ export default function ProductManagement() {
             {/* Right Side - Action Buttons */}
             <div className="flex items-center gap-3 w-full lg:w-auto">
               <Button
-                variant="default"
-                className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
-              >
-                <Image src={uploadFile} alt="Add" className="h-4 w-4" />
-                <span className="text-[#408EFD] b3">Upload</span>
-              </Button>
-              <Button
                 className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
                 variant="default"
-                onClick={handleAddProduct}
-                // disabled={!isAllowed}
+                onClick={handleEditProdcut}
+                                 
               >
-                <Image src={addSquare} alt="Add" className="h-4 w-4" />
-                <span className="b3 font-RedHat">Add Product</span>
+                <EditIcon/> 
+                <span className="b3 font-RedHat">Edit</span>
               </Button>
             </div>
           </div>
 
-          {/* Page Title and Description */}
-          <div className="space-y-2">
-            <CardTitle className="b1 text-black text-2xl font-semibold">
-              Product
-            </CardTitle>
-            <CardDescription className="b4 text-gray-600">
-              Manage your products and view inventory
-            </CardDescription>
-          </div>
+    
         </CardHeader>
 
         {/* Product Table */}
@@ -233,22 +233,25 @@ export default function ProductManagement() {
               <TableHeader>
                 <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left">
+                    <input type="checkbox" />
+                  </TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left">
                     Image
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px]">
                     Name
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[150px]">
-                    Category
+                    SKU
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[150px]">
-                    Sub Category
+                    Current Selling Price
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px]">
-                    Brand
+                    Base Cost
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px]">
-                    Type
+                    Margin
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
                     Status
@@ -267,6 +270,9 @@ export default function ProductManagement() {
                     }`}
                   >
                     <TableCell className="px-6 py-4">
+                      <input type="checkbox" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
                       <div className="w-16 h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                         <Image
                           src={product.image || "/placeholder.svg"}
@@ -284,20 +290,20 @@ export default function ProductManagement() {
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <span className="text-gray-700 b2 font-redHat">
-                        {product.category}
+                        {product.sku}
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <span className="text-gray-700 b2">
-                        {product.subCategory}
+                        {product.currentSellingPrice}
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      <span className="text-gray-700 b2">{product.brand}</span>
+                      <span className="text-gray-700 b2">{product.BaseCost}</span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <span className="text-gray-700 b2">
-                        {product.productType}
+                        {product.Margin}
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4">

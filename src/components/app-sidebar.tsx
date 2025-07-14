@@ -9,7 +9,6 @@ import {
   LogOut,
 } from "lucide-react"
 
-import Image from "next/image"
 import { NavMain } from "@/components/nav-main"
 import { TeamSwitcher } from "@/components/team-switcher"
 import Cookies from "js-cookie"
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter } from "next/navigation"
+import TicketIcon,{ BoxIcon } from "./ui/TicketIcon"
 
 // This is sample data.
 const data = {
@@ -48,12 +48,17 @@ const data = {
     {
       title: "Product Management",
       url: "/user/dashboard/product",
-      icon: Frame,
+      icon: BoxIcon,
     },
     {
       title: "User Management",
       url: "/user/dashboard/user",
       icon: Bot,
+    },
+    {
+      title: "Pricing & Margin Management",
+      url: "/user/dashboard/PricingMarginMangement",
+      icon: TicketIcon,
     }
   ],
 }
