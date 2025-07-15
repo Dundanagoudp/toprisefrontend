@@ -6,6 +6,7 @@ export interface ProductResponse {
 
 export interface Product {
   available_dealers: AvailableDealers;
+  Qc_status: string;
   _id: string;
   sku_code: string;
   manufacturer_part_name: string;
