@@ -80,7 +80,7 @@ export default function AddProducts() {
           </div>
         </CardHeader>
         <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="px-4">
+          <CardContent className="px-4  border border-gray-200 rounded-md p-2">
             <CardTitle className="text-red-600 text-xl font-semibold">
               Product Classification
             </CardTitle>
@@ -188,7 +188,7 @@ export default function AddProducts() {
               </div>
             </div>
           </CardContent>
-          <CardContent className="px-4 mt-6">
+          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md p-2">
             <CardTitle className="text-red-600 text-xl font-semibold">
               Vehicle Compatibility
             </CardTitle>
@@ -284,7 +284,7 @@ export default function AddProducts() {
               </div>
             </div>
           </CardContent>
-          <CardContent className="px-4 mt-6">
+          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md p-2">
             <CardTitle className="text-red-600 text-xl font-semibold">
               Media & Documentation
             </CardTitle>
@@ -349,7 +349,7 @@ export default function AddProducts() {
               </div>
             </div>
           </CardContent>
-          <CardContent className="px-4 mt-6">
+          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md p-2">
             <CardTitle className="text-red-600 text-xl font-semibold">
               Pricing details
             </CardTitle>
@@ -393,7 +393,7 @@ export default function AddProducts() {
               </div>
             </div>
           </CardContent>
-          <CardContent className="px-4 mt-6">
+          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md p-2">
             <CardTitle className="text-red-600 text-xl font-semibold">
               Return & Availbility
             </CardTitle>
