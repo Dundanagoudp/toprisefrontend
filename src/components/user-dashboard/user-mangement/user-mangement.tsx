@@ -11,10 +11,12 @@ import Image from "next/image"
 import addSquare from "../../../../public/assets/addSquare.svg";
 import uploadFile from "../../../../public/assets/uploadFile.svg";
 import { useRouter } from "next/navigation";
+import FileUploadModal from "./module/Employee-upload";
 
 
 export default function Usermangement() {
   const [activeTab, setActiveTab] = useState("employee")
+  const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const router = useRouter();
 
   return (
@@ -24,23 +26,23 @@ export default function Usermangement() {
         <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-4 md:mb-6">User Management</h1>
 
         {/* Tabs - Connected design */}
-        <div className="inline-flex rounded-lg bg-gray-200 p-1 mb-4 md:mb-6">
+        <div className="inline-flex mb-4 md:mb-6 border-b border-gray-200">
           <button
             onClick={() => setActiveTab("employee")}
-            className={`px-4 md:px-6 py-2.5 rounded-md font-medium text-sm whitespace-nowrap transition-all duration-200 ${
+            className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
               activeTab === "employee"
-                ? "bg-red-600 text-white shadow-sm"
-                : "bg-transparent text-gray-600 hover:text-gray-800"
+                ? "border-[#C72920] text-[#C72920]"
+                : "border-transparent text-gray-500 hover:text-[#C72920]"
             }`}
           >
             Employee
           </button>
           <button
             onClick={() => setActiveTab("dealer")}
-            className={`px-4 md:px-6 py-2.5 rounded-md font-medium text-sm whitespace-nowrap transition-all duration-200 ${
+            className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
               activeTab === "dealer"
-                ? "bg-red-600 text-white shadow-sm"
-                : "bg-transparent text-gray-600 hover:text-gray-800"
+                ? "border-[#C72920] text-[#C72920]"
+                : "border-transparent text-gray-500 hover:text-[#C72920]"
             }`}
           >
             Dealer
@@ -78,6 +80,7 @@ export default function Usermangement() {
 <Button
                 variant="default"
                 className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
+                onClick={() => setUploadModalOpen(true)}
               >
                 <Image src={uploadFile} alt="Add" className="h-4 w-4" />
                 <span className="text-[#408EFD] b3">Upload</span>
@@ -106,6 +109,10 @@ export default function Usermangement() {
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {activeTab === "employee" ? <Employeetable /> : <Dealertable />}
       </div>
+      <FileUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+      />
     </div>
   )
 }
