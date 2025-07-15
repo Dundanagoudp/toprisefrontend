@@ -50,7 +50,7 @@ export default function Viewemployee() {
           {/* Personal & Contact Information */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-red-600 font-semibold text-lg">Personal & Contact Information</CardTitle>
+              <CardTitle className="text-black-600 font-semibold text-lg">Personal & Contact Information</CardTitle>
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 {employeeDetails.status}
               </span>
@@ -93,7 +93,7 @@ export default function Viewemployee() {
           {/* Login & Status */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Login & Status</CardTitle>
+              <CardTitle className="text-black-600 font-semibold text-lg">Login & Status</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
               <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export default function Viewemployee() {
           {/* Notes & Admin Controls */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Notes & Admin Controls</CardTitle>
+              <CardTitle className="text-black-600 font-semibold text-lg">Notes & Admin Controls</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4">
               <div className="flex flex-col">
@@ -146,7 +146,7 @@ export default function Viewemployee() {
           {/* Role & Access Permissions */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Role & Access Permissions</CardTitle>
+              <CardTitle className="text-black-600 font-semibold text-lg">Role & Access Permissions</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
               <div className="flex flex-col">
@@ -167,7 +167,7 @@ export default function Viewemployee() {
           {/* Operational Scope Mapping */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Operational Scope Mapping</CardTitle>
+              <CardTitle className="text-black-600 font-semibold text-lg">Operational Scope Mapping</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
               <div className="flex flex-col">
@@ -184,7 +184,7 @@ export default function Viewemployee() {
           {/* Assignment & Task Visibility */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Assignment & Task Visibility</CardTitle>
+              <CardTitle className="text-black-600 font-semibold text-lg">Assignment & Task Visibility</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
               <div className="flex flex-col">
