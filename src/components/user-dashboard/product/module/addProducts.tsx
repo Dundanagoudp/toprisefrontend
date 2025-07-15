@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -44,18 +44,22 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"; 
+import { addProduct } from "@/service/product-Service";
 
 export default function AddProducts() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
+
   const onSubmit = (data: FormValues) => {
     console.log("Form Data:", data);
+    addProduct(data);
   };
 
   return (
@@ -80,8 +84,8 @@ export default function AddProducts() {
           </div>
         </CardHeader>
         <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="px-4  border border-gray-200 rounded-md p-2">
-            <CardTitle className="text-red-600 text-xl font-semibold">
+          <CardContent className="px-4  border border-gray-200 rounded-md shadow-sm">
+            <CardTitle className="text-red-600 text-xl font-semibold mt-4">
               Product Classification
             </CardTitle>
             <CardDescription className="text-gray-600">
@@ -147,16 +151,15 @@ export default function AddProducts() {
                 <Label htmlFor="is-universal" className="text-sm font-medium">
                   Is Universal
                 </Label>
-                <select
-                  id="is-universal"
-                  className="rounded-[8px] p-6 w-full border border-gray-300"
-                  {...register("isUniversal")}
-                  defaultValue="no"
-                >
-                  <option value="">Select</option>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <Select onValueChange={(value) => setValue("isUniversal", value)} defaultValue="no">
+                  <SelectTrigger id="is-universal" className="rounded-[8px] p-6 w-full border border-gray-300">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
                 {errors.isUniversal && (
                   <span className="text-red-500 text-sm">
                     {errors.isUniversal.message}
@@ -165,21 +168,20 @@ export default function AddProducts() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
               <div className="space-y-2">
                 <Label htmlFor="is-consumable" className="text-sm font-medium">
                   Is Consumable
                 </Label>
-                <select
-                  id="is-consumable"
-                  className="rounded-[8px] p-6 w-full border border-gray-300"
-                  {...register("isConsumable")}
-                  defaultValue="no"
-                >
-                  <option value="">Select</option>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <Select onValueChange={(value) => setValue("isConsumable", value)} defaultValue="no">
+                  <SelectTrigger id="is-consumable" className="rounded-[8px] p-6 w-full border border-gray-300">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
                 {errors.isConsumable && (
                   <span className="text-red-500 text-sm">
                     {errors.isConsumable.message}
@@ -188,8 +190,8 @@ export default function AddProducts() {
               </div>
             </div>
           </CardContent>
-          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md p-2">
-            <CardTitle className="text-red-600 text-xl font-semibold">
+          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md shadow-sm">
+            <CardTitle className="text-red-600 text-xl font-semibold mt-4">
               Vehicle Compatibility
             </CardTitle>
             <CardDescription className="text-gray-600">
@@ -265,8 +267,8 @@ export default function AddProducts() {
                 )}
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mt-4">
-              <div className="flex flex-col gap-2 w-full sm:w-5/12">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 my-4 ">
+              <div className="flex flex-col gap-2 w-full sm:w-5/12 ">
                 <Label htmlFor="FitmentNotes" className="text-sm font-medium">
                   Fitment Notes
                 </Label>
@@ -284,8 +286,8 @@ export default function AddProducts() {
               </div>
             </div>
           </CardContent>
-          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md p-2">
-            <CardTitle className="text-red-600 text-xl font-semibold">
+          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md shadow-sm">
+            <CardTitle className="text-red-600 text-xl font-semibold mt-4">
               Media & Documentation
             </CardTitle>
             <CardDescription className="text-gray-600">
@@ -327,7 +329,7 @@ export default function AddProducts() {
                 )}
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mt-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 my-4">
               <div className="flex flex-col gap-2 w-full sm:w-5/12">
                 <Label
                   htmlFor="BrouchureAvailable"
@@ -349,15 +351,15 @@ export default function AddProducts() {
               </div>
             </div>
           </CardContent>
-          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md p-2">
-            <CardTitle className="text-red-600 text-xl font-semibold">
+          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md shadow-sm">
+            <CardTitle className="text-red-600 text-xl font-semibold mt-4">
               Pricing details
             </CardTitle>
             <CardDescription className="text-gray-600">
               Provide the pricing and tax information required for listing and
               billing.
             </CardDescription>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mt-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 my-4">
               <div className="flex flex-col gap-2 w-full sm:w-5/12">
                 <Label htmlFor="MRP" className="text-sm font-medium">
                   MRP (with GST)
@@ -393,15 +395,15 @@ export default function AddProducts() {
               </div>
             </div>
           </CardContent>
-          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md p-2">
-            <CardTitle className="text-red-600 text-xl font-semibold">
+          <CardContent className="px-4 mt-6 border border-gray-200 rounded-md shadow-sm">
+            <CardTitle className="text-red-600 text-xl font-semibold mt-4">
               Return & Availbility
             </CardTitle>
             <CardDescription className="text-gray-600">
               Define product return eligibility and applicable return
               conditions.
             </CardDescription>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mt-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 my-4">
               <div className="flex flex-col gap-2 w-full sm:w-5/12">
                 <Label htmlFor="return" className="text-sm font-medium">
                   Returnable

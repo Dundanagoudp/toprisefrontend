@@ -10,3 +10,13 @@ export async function getProducts(): Promise<ProductResponse> {
     throw error; 
   }
 }
+
+export async function addProduct(productData: any): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/category/products/v1/createProduct`, productData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to add product:", error);
+    throw error; 
+  }
+} 
