@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getTokenPayload } from "@/utils/cookies";
+import image from "next/image";
 import {
   Search,
   Filter,
@@ -26,6 +27,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import addSquare from "../../../../../public/assets/addSquare.svg";
 import uploadFile from "../../../../../public/assets/uploadFile.svg";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationLink,
+} from "@/components/ui/pagination";
 
 import {
   Table,
@@ -43,60 +52,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEffect } from "react";
 import Image from "next/image";
-import {  getProducts } from "@/service/product-Service";
+import { getProducts } from "@/service/product-Service";
+import React from "react";
 
-const products = [
-  {
-    id: 1,
-    image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
-    status: "Active",
-  },
-  {
-    id: 2,
-    image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
-    status: "Disable",
-  },
-  {
-    id: 3,
-    image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
-    status: "Active",
-  },
-  {
-    id: 4,
-    image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
-    status: "Pending",
-  },
-  {
-    id: 5,
-    image: "/placeholder.svg?height=40&width=40",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    category: "Braking System",
-    subCategory: "Brake Pads",
-    brand: "Bosch",
-    productType: "Aftermarket",
-    status: "Active",
-  },
-];
+// Product type for table
+type Product = {
+  id: string;
+  image: string;
+  name: string;
+  category: string;
+  subCategory: string;
+  brand: string;
+  productType: string;
+  qcStatus: string;
+};
+
+
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -128,24 +99,84 @@ export default function ProductManagement() {
   const payload = getTokenPayload();
   const isAllowed = payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
   const [searchQuery, setSearchQuery] = useState("");
+  const [productList, setProductList] = useState<Product[]>([]);
+  const [selectedTab, setSelectedTab] = useState("Created");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage] = useState(10); // You can make this dynamic if needed
+  const [totalProducts, setTotalProducts] = useState(0);
+   const cardsPerPage = 10
 
-  
+  // Filter products based on selected tab
+  const filteredProducts = React.useMemo(() => {
+    if (selectedTab === "Created") return productList;
+    return productList.filter((product) => product.qcStatus === selectedTab);
+  }, [selectedTab, productList]);
 
 
+  // Fetch products from API and map to table structure
   useEffect(() => {
-    const response = getProducts();
-    response.then((data) => {
-      console.log("Fetched Products:", data);
-    }).catch((error) => {
-      console.error("Error fetching products:", error);
-    });
-  }, []);
+    const fetchProducts = async () => {
+      try {
+        const response = await getProducts();
+        console.log("API Response:", response);
+        const data = response.data; // Assuming the actual product data is in a 'data' property
+        if (Array.isArray(data)) {
+          const mapped = data.map((item) => ({
+            id: item._id,
+            image: item.model.model_image ,
+            name: item.product_name || item.manufacturer_part_name || "-",
+            category: item.category?.category_name || "-",
+            subCategory: item.sub_category?.subcategory_name || "-",
+            brand: item.brand?.brand_name || "-",
+            productType: item.product_type || "-",
+            qcStatus: item.Qc_status ||  "Pending",
+          }));
+          setProductList(mapped);
+          setTotalProducts(response.data.length || 0); // Assuming API returns totalCount
+        } else {
+          setProductList([]);
+          setTotalProducts(0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+        setProductList([]);
+        setTotalProducts(0);
+      }
+    };
+    fetchProducts();
+  }, [currentPage, productsPerPage]);
+
+  const totalPages = Math.ceil(filteredProducts.length / cardsPerPage);
+  const paginatedData = filteredProducts.slice(
+    (currentPage - 1) * cardsPerPage,
+    currentPage * cardsPerPage
+  )
   const handleAddProduct = () => {
     route.push(`/user/dashboard/product/Addproduct`);
   };
 
+  // Handler for QC status change
+  const handleQCStatusChange = (id: string, newStatus: string) => {
+    setProductList((prev) =>
+      prev.map((product) =>
+        product.id === id ? { ...product, qcStatus: newStatus } : product
+      )
+    );
+  };
+
+
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
   return (
     <div className="w-full">
+  
       <Card className="shadow-sm rounded-none ">
         {/* Header */}
         <CardHeader className="space-y-6">
@@ -207,7 +238,7 @@ export default function ProductManagement() {
                 className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
                 variant="default"
                 onClick={handleAddProduct}
-                // disabled={!isAllowed}
+              // disabled={!isAllowed}
               >
                 <Image src={addSquare} alt="Add" className="h-4 w-4" />
                 <span className="b3 font-RedHat">Add Product</span>
@@ -224,6 +255,22 @@ export default function ProductManagement() {
               Manage your products and view inventory
             </CardDescription>
           </div>
+              {/* Tab Bar */}
+      <div className="flex border-b border-gray-200 mb-2">
+        {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
+          <button
+            key={tab}
+            className={`px-4 py-2 text-sm font-medium focus:outline-none ${
+              selectedTab === tab
+                ? 'text-[#C72920] border-b-2 border-[#C72920]'
+                : 'text-gray-500'
+            }`}
+            onClick={() => setSelectedTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
         </CardHeader>
 
         {/* Product Table */}
@@ -251,7 +298,7 @@ export default function ProductManagement() {
                     Type
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
-                    Status
+                    QC Status
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px]">
                     Action
@@ -259,12 +306,11 @@ export default function ProductManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product, index) => (
+                {paginatedData.map((product, index) => (
                   <TableRow
                     key={product.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                    }`}
+                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                      }`}
                   >
                     <TableCell className="px-6 py-4">
                       <div className="w-16 h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
@@ -301,7 +347,7 @@ export default function ProductManagement() {
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      {getStatusBadge(product.status)}
+                      {getStatusBadge(product.qcStatus)}
                     </TableCell>
                     <TableCell className="px-6 py-4 text-center">
                       <DropdownMenu>
@@ -338,29 +384,37 @@ export default function ProductManagement() {
           </div>
 
           {/* Footer - Pagination */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50/30">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-gray-500 order-2 sm:order-1">
-                Showing 1-5 of 32 products
-              </p>
-              <div className="flex items-center gap-2 order-1 sm:order-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-w-[80px] hover:bg-gray-100 bg-transparent"
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="min-w-[80px] hover:bg-gray-100 bg-transparent"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            { totalPages > 1 && (
+          <div className="flex justify-center mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <PaginationItem key={idx + 1}>
+                    <PaginationLink
+                      isActive={currentPage === idx + 1}
+                      onClick={() => setCurrentPage(idx + 1)}
+                      className="cursor-pointer"
+                    >
+                      {idx + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
+        )}
         </CardContent>
       </Card>
     </div>
