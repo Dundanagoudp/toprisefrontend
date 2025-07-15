@@ -8,39 +8,40 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { UploadCloud } from "lucide-react" // Using Lucide icons for placeholders
+import { UploadCloud } from "lucide-react"
 
-export default function Addemployee() {
+export default function EditEmployee() {
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      employeeId: "",
-      fullName: "",
-      department: "",
-      designation: "",
-      mobileNumber: "",
-      email: "",
-      role: "",
-      roleDescription: "",
-      accessLevel: "",
-      assignedDealer: "",
-      assignedRegion: "",
-      remarks: "",
-      auditTrail: "Role changed on 2025-06-01 by USR019", // Example pre-filled
-      sendLoginInvite: false,
-      temporaryPassword: "",
-      currentStatus: "",
-      lastLogin: "2025-06-25 12:43", // Example pre-filled
-      createdBy: "USR001", // Example pre-filled
-      assignedOrdersPicklists: "ORD-9032", // Example pre-filled
-      slaType: "",
-      slaMaxDispatchTime: "",
+      // Pre-fill with example data for editing
+      employeeId: "EMP203",
+      fullName: "Victoria",
+      department: "Fulfillment",
+      designation: "Sr. Fulfillment Agent",
+      mobileNumber: "+91 98765 43210",
+      email: "mahesh@toprise.in",
+      role: "manager", // Example existing role
+      roleDescription: "Manages fulfillment operations",
+      accessLevel: "full",
+      assignedDealer: "dealer1",
+      assignedRegion: "north",
+      remarks: "Temporarily suspended due to leave",
+      auditTrail: "Role changed on 2025-06-01 by USR019",
+      sendLoginInvite: true,
+      temporaryPassword: "password123", // Pre-filled if invite was sent
+      currentStatus: "active",
+      lastLogin: "2025-06-25 12:43",
+      createdBy: "USR001",
+      assignedOrdersPicklists: "ORD-9032, ORD-9044",
+      slaType: "type1",
+      slaMaxDispatchTime: "24",
     },
   })
 
   const onSubmit = (data: EmployeeFormValues) => {
-    console.log(data)
-    // Handle form submission, e.g., send to API
+    console.log("Updating employee:", data)
+    // Handle form submission for update, e.g., send to API
   }
 
   const sendLoginInvite = form.watch("sendLoginInvite")
@@ -50,24 +51,24 @@ export default function Addemployee() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Add employee</h1>
-          <p className="text-sm text-gray-500">Add your employee details</p>
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Edit Employee</h1>
+          <p className="text-sm text-gray-500">Update employee details</p>
         </div>
         <Button
           type="submit"
-          form="add-employee-form"
+          form="edit-employee-form"
           className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
         >
-          Save
+          Update
         </Button>
       </div>
 
-      <form id="add-employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form id="edit-employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Personal & Contact Information */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-red-600 font-semibold text-lg">Personal & Contact Information</CardTitle>
-            <p className="text-sm text-gray-500">Basic information to uniquely identify the dealer in the system.</p>
+            <p className="text-sm text-gray-500">Basic information to uniquely identify the employee in the system.</p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -114,6 +115,7 @@ export default function Addemployee() {
                   <SelectItem value="tech">Tech</SelectItem>
                   <SelectItem value="logistics">Logistics</SelectItem>
                   <SelectItem value="warehouse">Warehouse</SelectItem>
+                  <SelectItem value="fulfillment">Fulfillment</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.department && (
@@ -209,6 +211,7 @@ export default function Addemployee() {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="employee">Employee</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="fulfillment">Fulfillment Staff</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.role && (
@@ -241,6 +244,7 @@ export default function Addemployee() {
                   <SelectItem value="full">Full Access</SelectItem>
                   <SelectItem value="limited">Limited Access</SelectItem>
                   <SelectItem value="read-only">Read Only</SelectItem>
+                  <SelectItem value="view-orders">View Orders</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.accessLevel && (
@@ -271,6 +275,7 @@ export default function Addemployee() {
                 <SelectContent>
                   <SelectItem value="dealer1">Dealer 1</SelectItem>
                   <SelectItem value="dealer2">Dealer 2</SelectItem>
+                  <SelectItem value="DLR102">DLR102</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -288,6 +293,7 @@ export default function Addemployee() {
                 <SelectContent>
                   <SelectItem value="north">North</SelectItem>
                   <SelectItem value="south">South</SelectItem>
+                  <SelectItem value="maharashtra">Maharashtra</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -438,6 +444,7 @@ export default function Addemployee() {
                 <SelectContent>
                   <SelectItem value="type1">Type 1</SelectItem>
                   <SelectItem value="type2">Type 2</SelectItem>
+                  <SelectItem value="Standard / Priority">Standard / Priority</SelectItem>
                 </SelectContent>
               </Select>
             </div>
