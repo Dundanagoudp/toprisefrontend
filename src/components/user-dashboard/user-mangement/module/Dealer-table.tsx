@@ -3,6 +3,16 @@ import { MoreHorizontal, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { useState } from "react"
 
 const dealerData = [
   {
@@ -80,6 +90,16 @@ const dealerData = [
 ]
 
 export default function Dealertable() {
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+  const totalItems = dealerData.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const paginatedData = dealerData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page)
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[800px]">
@@ -100,7 +120,7 @@ export default function Dealertable() {
           </tr>
         </thead>
         <tbody>
-          {dealerData.map((dealer, index) => (
+          {paginatedData.map((dealer, index) => (
             <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="p-3 md:p-4">
                 <Checkbox />
@@ -149,6 +169,30 @@ export default function Dealertable() {
           ))}
         </tbody>
       </table>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center p-3 md:p-4 border-t border-gray-200 gap-2">
+        <span className="text-sm text-gray-500 md:text-left text-center w-full md:w-auto">
+          Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} dealers
+        </span>
+        <div className="flex justify-center md:justify-end w-full md:w-auto">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious href="#" onClick={() => handlePageChange(currentPage - 1)} aria-disabled={currentPage === 1} />
+              </PaginationItem>
+              {[...Array(totalPages)].map((_, i) => (
+                <PaginationItem key={i}>
+                  <PaginationLink href="#" isActive={currentPage === i + 1} onClick={() => handlePageChange(i + 1)}>
+                    {i + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext href="#" onClick={() => handlePageChange(currentPage + 1)} aria-disabled={currentPage === totalPages} />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      </div>
     </div>
   )
 }
