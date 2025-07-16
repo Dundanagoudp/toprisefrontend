@@ -13,6 +13,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 const dealerData = [
   {
@@ -95,6 +96,7 @@ export default function Dealertable() {
   const totalItems = dealerData.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const paginatedData = dealerData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const router = useRouter();
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page)
@@ -159,9 +161,9 @@ export default function Dealertable() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/edit-dealer/${dealer.dealerName}`)}>Edit</DropdownMenuItem>
                     <DropdownMenuItem>Delete</DropdownMenuItem>
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/dealerview?id=${dealer.dealerName}`)}>View Details</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </td>
