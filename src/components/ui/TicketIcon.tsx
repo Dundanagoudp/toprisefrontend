@@ -21,4 +21,5 @@ export const DashboardIcon = () => (
   <Image src={widget} alt='user' width={24} height={24} />
 );
 
+
 export default TicketIcon;

@@ -1,5 +1,5 @@
 import { ApiResponse } from "@/types/apiReponses-Types";
-import { User,LoginRequest } from "@/types/auth-types";
+import { User,LoginRequest } from "@/types/auth-Types";
 import apiClient from "@/apiClient";
 
 
