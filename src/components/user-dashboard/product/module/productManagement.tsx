@@ -94,6 +94,20 @@ const getStatusBadge = (status: string) => {
   }
 };
 
+// Helper to get color classes for status
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Approved":
+      return "text-green-500";
+    case "Rejected":
+      return "text-red-500";
+    case "Created":
+      return "text-gray-700";
+    default:
+      return "text-gray-700";
+  }
+};
+
 export default function ProductManagement() {
   const route = useRouter();
   const payload = getTokenPayload();
@@ -347,7 +361,28 @@ export default function ProductManagement() {
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      {getStatusBadge(product.qcStatus)}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={`min-w-[120px] flex justify-between items-center ${getStatusColor(product.qcStatus)} border border-gray-300`}
+                          >
+                            <span className={`font-medium ${getStatusColor(product.qcStatus)}`}>{product.qcStatus}</span>
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {["Created", "Approved", "Rejected"].map((status) => (
+                            <DropdownMenuItem
+                              key={status}
+                              onClick={() => handleQCStatusChange(product.id, status)}
+                              className={`cursor-pointer ${getStatusColor(status)} ${product.qcStatus === status ? 'font-bold' : ''}`}
+                            >
+                              {status}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                     <TableCell className="px-6 py-4 text-center">
                       <DropdownMenu>

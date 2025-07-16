@@ -13,6 +13,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 const employeeData = [
   {
@@ -73,6 +74,7 @@ export default function Employeetable() {
   const totalItems = employeeData.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const paginatedData = employeeData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const router = useRouter();
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page)
@@ -126,9 +128,9 @@ export default function Employeetable() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem>Full Access</DropdownMenuItem>
-                    <DropdownMenuItem>Limited Access</DropdownMenuItem>
-                    <DropdownMenuItem>Read Only</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/edit-employee/${employee.id}`)}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem>Delete</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/employeeview?id=${employee.id}`)}>View Details</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </td>
@@ -149,9 +151,9 @@ export default function Employeetable() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/edit-employee/${employee.id}`)}>Edit</DropdownMenuItem>
                     <DropdownMenuItem>Delete</DropdownMenuItem>
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/view-employee/${employee.id}`)}>View Details</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </td>
