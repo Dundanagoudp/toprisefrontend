@@ -102,13 +102,13 @@ export default function Dealertable() {
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
               <Checkbox />
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Dealer ID</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Legal Name</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Trade Name</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Email/Phone</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Contact Person</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Role</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Status</th>
+            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Category</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"></th>
           </tr>
         </thead>
@@ -119,7 +119,6 @@ export default function Dealertable() {
               <td className="p-3 md:p-4">
                 <Checkbox />
               </td>
-              <td className="p-3 md:p-4 text-gray-600 text-sm">{dealer.dealerId}</td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">{dealer.legal_name}</td>
               <td className="p-3 md:p-4 font-medium text-gray-900 text-sm">{dealer.trade_name}</td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">
@@ -136,6 +135,18 @@ export default function Dealertable() {
               </td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">{dealer.user_id.role}</td>
               <td className="p-3 md:p-4">{getStatusBadge(dealer.is_active)}</td>
+              <td className="p-3 md:p-4 text-gray-600 text-sm">
+                <div className="flex flex-wrap gap-1">
+                  {dealer.categories_allowed.map((categoryId, idx) => {
+                    const category = categories.find(cat => cat._id === categoryId)
+                    return (
+                      <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                        {category ? category.category_name : categoryId}
+                      </span>
+                    )
+                  })}
+                </div>
+              </td>
               <td className="p-3 md:p-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

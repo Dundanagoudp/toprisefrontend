@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { UploadCloud } from "lucide-react" // Using Lucide icons for placeholders
+import { UploadCloud } from "lucide-react" 
 
 export default function Addemployee() {
   const form = useForm<EmployeeFormValues>({
@@ -99,28 +99,6 @@ export default function Addemployee() {
               )}
             </div>
             <div>
-              <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
-                Department
-              </label>
-              <Select
-                onValueChange={(value) => form.setValue("department", value)}
-                value={form.watch("department")} // Make it a controlled component
-              >
-                <SelectTrigger className="w-full bg-gray-50 border-gray-200">
-                  <SelectValue placeholder="Department name" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="tech">Tech</SelectItem>
-                  <SelectItem value="logistics">Logistics</SelectItem>
-                  <SelectItem value="warehouse">Warehouse</SelectItem>
-                </SelectContent>
-              </Select>
-              {form.formState.errors.department && (
-                <p className="text-red-500 text-xs mt-1">{form.formState.errors.department.message}</p>
-              )}
-            </div>
-            <div>
               <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-1">
                 Designation
               </label>
@@ -200,7 +178,7 @@ export default function Addemployee() {
               </label>
               <Select
                 onValueChange={(value) => form.setValue("role", value)}
-                value={form.watch("role")} // Make it a controlled component
+                value={form.watch("role")} 
               >
                 <SelectTrigger className="w-full bg-gray-50 border-gray-200">
                   <SelectValue placeholder="Select Role" />
@@ -216,23 +194,12 @@ export default function Addemployee() {
               )}
             </div>
             <div>
-              <label htmlFor="roleDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                Role Description
-              </label>
-              <Input
-                id="roleDescription"
-                placeholder="Role description"
-                {...form.register("roleDescription")}
-                className="bg-gray-50 border-gray-200"
-              />
-            </div>
-            <div>
               <label htmlFor="accessLevel" className="block text-sm font-medium text-gray-700 mb-1">
                 Access Level
               </label>
               <Select
                 onValueChange={(value) => form.setValue("accessLevel", value)}
-                value={form.watch("accessLevel")} // Make it a controlled component
+                value={form.watch("accessLevel")} 
               >
                 <SelectTrigger className="w-full bg-gray-50 border-gray-200">
                   <SelectValue placeholder="Select Access Level" />
@@ -263,7 +230,7 @@ export default function Addemployee() {
               </label>
               <Select
                 onValueChange={(value) => form.setValue("assignedDealer", value)}
-                value={form.watch("assignedDealer")} // Make it a controlled component
+                value={form.watch("assignedDealer")} 
               >
                 <SelectTrigger className="w-full bg-gray-50 border-gray-200">
                   <SelectValue placeholder="Select Assigned Dealer" />
@@ -310,17 +277,6 @@ export default function Addemployee() {
                 placeholder="Enter Remarks"
                 {...form.register("remarks")}
                 className="bg-gray-50 border-gray-200"
-              />
-            </div>
-            <div>
-              <label htmlFor="auditTrail" className="block text-sm font-medium text-gray-700 mb-1">
-                Audit Trail
-              </label>
-              <Input
-                id="auditTrail"
-                value={form.getValues("auditTrail")}
-                disabled
-                className="bg-gray-50 border-gray-200 text-gray-500"
               />
             </div>
           </CardContent>
@@ -392,66 +348,7 @@ export default function Addemployee() {
                 className="bg-gray-50 border-gray-200 text-gray-500"
               />
             </div>
-            <div>
-              <label htmlFor="createdBy" className="block text-sm font-medium text-gray-700 mb-1">
-                Created By
-              </label>
-              <Input
-                id="createdBy"
-                value={form.getValues("createdBy")}
-                disabled
-                className="bg-gray-50 border-gray-200 text-gray-500"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Assignment & Task Visibility */}
-        <Card className="border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">Assignment & Task Visibility</CardTitle>
-            <p className="text-sm text-gray-500">Primary contact and communication details.</p>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="assignedOrdersPicklists" className="block text-sm font-medium text-gray-700 mb-1">
-                Assigned Orders / Picklists
-              </label>
-              <Input
-                id="assignedOrdersPicklists"
-                value={form.getValues("assignedOrdersPicklists")}
-                disabled
-                className="bg-gray-50 border-gray-200 text-gray-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="slaType" className="block text-sm font-medium text-gray-700 mb-1">
-                SLA Type
-              </label>
-              <Select
-                onValueChange={(value) => form.setValue("slaType", value)}
-                value={form.watch("slaType")} // Make it a controlled component
-              >
-                <SelectTrigger className="w-full bg-gray-50 border-gray-200">
-                  <SelectValue placeholder="Select SLA Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="type1">Type 1</SelectItem>
-                  <SelectItem value="type2">Type 2</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label htmlFor="slaMaxDispatchTime" className="block text-sm font-medium text-gray-700 mb-1">
-                SLA Max Dispatch Time
-              </label>
-              <Input
-                id="slaMaxDispatchTime"
-                placeholder="Enter Time"
-                {...form.register("slaMaxDispatchTime")}
-                className="bg-gray-50 border-gray-200"
-              />
-            </div>
           </CardContent>
         </Card>
       </form>
