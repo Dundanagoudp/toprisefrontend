@@ -9,32 +9,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { UploadCloud } from "lucide-react" 
+import Image from "next/image"
+import { useState } from "react"
 
 export default function Addemployee() {
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSelectedImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setSelectedImage(null)
+      setImagePreview(null)
+    }
+  }
+
+  const removeImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    // Clear the file input value to allow selecting the same file again
+    const input = document.getElementById("uploadImage") as HTMLInputElement
+    if (input) {
+      input.value = ""
+    }
+  }
+
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      employeeId: "",
       fullName: "",
-      department: "",
-      designation: "",
       mobileNumber: "",
       email: "",
       role: "",
-      roleDescription: "",
       accessLevel: "",
       assignedDealer: "",
       assignedRegion: "",
-      remarks: "",
-      auditTrail: "Role changed on 2025-06-01 by USR019", // Example pre-filled
       sendLoginInvite: false,
       temporaryPassword: "",
       currentStatus: "",
       lastLogin: "2025-06-25 12:43", // Example pre-filled
-      createdBy: "USR001", // Example pre-filled
-      assignedOrdersPicklists: "ORD-9032", // Example pre-filled
-      slaType: "",
-      slaMaxDispatchTime: "",
     },
   })
 
@@ -71,20 +91,6 @@ export default function Addemployee() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-1">
-                Employee ID
-              </label>
-              <Input
-                id="employeeId"
-                placeholder="Enter Employee ID"
-                {...form.register("employeeId")}
-                className="bg-gray-50 border-gray-200"
-              />
-              {form.formState.errors.employeeId && (
-                <p className="text-red-500 text-xs mt-1">{form.formState.errors.employeeId.message}</p>
-              )}
-            </div>
-            <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
                 Full Name
               </label>
@@ -99,30 +105,41 @@ export default function Addemployee() {
               )}
             </div>
             <div>
-              <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-1">
-                Designation
-              </label>
-              <Input
-                id="designation"
-                placeholder="Enter Designation"
-                {...form.register("designation")}
-                className="bg-gray-50 border-gray-200"
-              />
-              {form.formState.errors.designation && (
-                <p className="text-red-500 text-xs mt-1">{form.formState.errors.designation.message}</p>
-              )}
-            </div>
-            <div className="md:col-span-2">
               <label htmlFor="uploadImage" className="block text-sm font-medium text-gray-700 mb-1">
                 Upload Image
               </label>
-              <Button
-                variant="outline"
-                className="w-full flex items-center justify-center gap-2 py-6 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-              >
-                <UploadCloud className="w-5 h-5" />
-                Upload Image
-              </Button>
+              <div className="flex flex-col gap-2">
+                <input
+                  id="uploadImage"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+                <label htmlFor="uploadImage">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full flex items-center justify-center gap-2 py-6 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <UploadCloud className="w-5 h-5" />
+                      {selectedImage ? "Change Image" : "Upload Image"}
+                    </span>
+                  </Button>
+                </label>
+                <span className="text-xs text-gray-500">Allowed file types: JPG, PNG, GIF. Max size: 2MB.</span>
+                {imagePreview && (
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="relative w-20 h-20 rounded overflow-hidden border">
+                      <Image src={imagePreview} alt="Preview" fill style={{objectFit: 'cover'}} />
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={removeImage} className="text-red-500 border border-red-200">
+                      Remove
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -261,26 +278,6 @@ export default function Addemployee() {
           </CardContent>
         </Card>
 
-        {/* Notes & Admin Controls */}
-        <Card className="border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">Notes & Admin Controls</CardTitle>
-            <p className="text-sm text-gray-500">Primary contact and communication details.</p>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="remarks" className="block text-sm font-medium text-gray-700 mb-1">
-                Remarks
-              </label>
-              <Input
-                id="remarks"
-                placeholder="Enter Remarks"
-                {...form.register("remarks")}
-                className="bg-gray-50 border-gray-200"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Login & Status */}
         <Card className="border-gray-200 shadow-sm">
