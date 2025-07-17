@@ -1,37 +1,41 @@
-import { z } from "zod"
+import * as z from "zod"
+
+const addressSchema = z.object({
+  street: z.string().min(1, "Street is required"),
+  city: z.string().min(1, "City is required"),
+  pincode: z.string().min(1, "Pincode is required"),
+  state: z.string().min(1, "State is required"),
+})
+
+const contactPersonSchema = z.object({
+  name: z.string().min(1, "Contact person name is required"),
+  email: z.string().email("Invalid email format"),
+  phone_number: z.string().min(10, "Phone number must be at least 10 digits"),
+})
+
+const assignedEmployeeSchema = z.object({
+  assigned_user: z.string().min(1, "Assigned user is required"),
+  status: z.enum(["Active", "Inactive"]).default("Active"),
+})
 
 export const dealerSchema = z.object({
-  dealerId: z.string().min(1, { message: "Dealer ID is required." }),
-  legalName: z.string().min(1, { message: "Legal Name is required." }),
-  tradeName: z.string().min(1, { message: "Trade Name is required." }),
-
-  gstin: z.string().optional(),
-  pan: z.string().optional(),
-  state: z.string().optional(),
-  pincode: z.string().optional(),
-
-  address: z.string().min(1, { message: "Address is required." }),
-  contactPerson: z.string().min(1, { message: "Contact Person is required." }),
-  mobileNumber: z
-    .string()
-    .min(10, { message: "Mobile Number must be at least 10 digits." })
-    .max(15, { message: "Mobile Number cannot exceed 15 digits." }),
-  email: z.string().email({ message: "Invalid email address." }),
-
-  isActive: z.string().min(1, { message: "Please specify if dealer is active." }),
-  productCategoriesAllowed: z.string().optional(),
-  uploadAccessEnabled: z.string().min(1, { message: "Please specify upload access." }),
-  certifications: z.string().optional(),
-
-  defaultMargin: z.string().optional(),
-  slaType: z.string().optional(),
-  slaMaxDispatchTime: z.string().optional(),
-
-  lastUploadDate: z.string().optional(), // Read-only
-  lastFulfillmentDate: z.string().optional(), // Read-only
-
-  assignedTopriseEmployee: z.string().optional(),
-  onboardingDate: z.string().optional(),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  phone_Number: z.string().min(10, "Phone number must be at least 10 digits"),
+  legal_name: z.string().min(1, "Legal name is required"),
+  trade_name: z.string().min(1, "Trade name is required"),
+  GSTIN: z.string().min(15, "GSTIN must be 15 characters").max(15, "GSTIN must be 15 characters"),
+  Pan: z.string().min(10, "PAN must be 10 characters").max(10, "PAN must be 10 characters"),
+  Address: addressSchema,
+  contact_person: contactPersonSchema,
+  categories_allowed: z.array(z.string()).min(1, "At least one category must be selected"),
+  upload_access_enabled: z.boolean().default(true),
+  default_margin: z.number().min(0, "Margin must be positive").max(100, "Margin cannot exceed 100%"),
+  last_fulfillment_date: z.string(),
+  assigned_Toprise_employee: z.array(assignedEmployeeSchema).min(1, "At least one employee must be assigned"),
+  SLA_type: z.string().min(1, "SLA type is required"),
+  dealer_dispatch_time: z.number().min(1, "Dispatch time must be at least 1 hour"),
+  onboarding_date: z.string(),
   remarks: z.string().optional(),
 })
 
