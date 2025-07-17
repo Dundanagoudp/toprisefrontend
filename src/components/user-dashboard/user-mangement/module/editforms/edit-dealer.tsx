@@ -139,7 +139,9 @@ export default function EditDealer() {
     setIsLoading(true)
     try {
       const safeData = { ...data, remarks: data.remarks ?? "" }
+      console.log('Submitting dealer update:', safeData)
       const response = await updateDealerById(dealerId, safeData)
+      console.log('Update API response:', response)
       if (response.success) {
         toast({
           title: "Success",
@@ -148,6 +150,7 @@ export default function EditDealer() {
         router.push("/user/dashboard/user")
       }
     } catch (error) {
+      console.error('Update error:', error)
       toast({
         title: "Error",
         description: "Failed to update dealer. Please try again.",
@@ -204,25 +207,7 @@ export default function EditDealer() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="dealer@example.com" {...field} className="bg-gray-50 border-gray-200" disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter new password (leave blank to keep current)"
-                        {...field}
-                        className="bg-gray-50 border-gray-200"
-                      />
+                      <Input placeholder="dealer@example.com" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -579,7 +564,19 @@ export default function EditDealer() {
                   <FormItem>
                     <FormLabel>Onboarding Date *</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input
+                        type="date"
+                        value={(() => {
+                          if (!field.value) return "";
+                          if (typeof field.value === "string") return field.value.split("T")[0];
+                          if (typeof field.value === "object" && field.value !== null && typeof (field.value as Date).toISOString === "function") {
+                            return (field.value as Date).toISOString().split("T")[0];
+                          }
+                          return "";
+                        })()}
+                        onChange={e => field.onChange(e.target.value)}
+                        className="bg-gray-50 border-gray-200"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
