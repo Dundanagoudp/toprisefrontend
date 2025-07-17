@@ -20,6 +20,19 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`; 
     }
+        // Handle FormData requests
+    if (config.data instanceof FormData) {
+      config.headers["Content-Type"] = "multipart/form-data"
+    }
+
+    // Handle GET requests with body data
+    if (config.method === "get" && config.data) {
+      config.headers["Content-Type"] = "application/json"
+      console.log("GET Request with body:", {
+        url: config.url,
+        data: config.data,
+      })
+    }
     return config;
   },
   (error) => {
