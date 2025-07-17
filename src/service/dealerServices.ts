@@ -66,3 +66,5 @@ export async function getAllCategories(): Promise<ApiResponse<Category[]>> {
     throw error
   }
 }
+
+// Update Address info for user 

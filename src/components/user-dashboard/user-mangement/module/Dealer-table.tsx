@@ -155,10 +155,10 @@ export default function Dealertable() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => router.push(`/user-management/edit-dealer/${dealer._id}`)}>
+                    <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/edit-dealer/${dealer._id}`)}>
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push(`/user-management/view-dealer?id=${dealer._id}`)}>
+                    <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/dealerview/${dealer._id}`)}>
                       View Details
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
