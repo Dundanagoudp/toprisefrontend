@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import {
   Card,
   CardContent,
@@ -54,6 +54,8 @@ import { useEffect } from "react";
 import Image from "next/image";
 import { getProducts } from "@/service/product-Service";
 import React from "react";
+import UploadBulkCard from "./uploadBulk";
+import { useRouter } from "next/navigation";
 
 // Product type for table
 type Product = {
@@ -109,8 +111,9 @@ const getStatusColor = (status: string) => {
 };
 
 export default function ProductManagement() {
-  const route = useRouter();
+  
   const payload = getTokenPayload();
+  const route = useRouter();
   const isAllowed = payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
   const [searchQuery, setSearchQuery] = useState("");
   const [productList, setProductList] = useState<Product[]>([]);
@@ -118,6 +121,7 @@ export default function ProductManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(10); // You can make this dynamic if needed
   const [totalProducts, setTotalProducts] = useState(0);
+const [isModalOpen, setIsModalOpen] = useState(false);
    const cardsPerPage = 10
 
   // Filter products based on selected tab
@@ -167,6 +171,10 @@ export default function ProductManagement() {
   )
   const handleAddProduct = () => {
     route.push(`/user/dashboard/product/Addproduct`);
+  };
+  const handleUploadBulk = () => {
+    
+    setIsModalOpen(true)
   };
 
   // Handler for QC status change
@@ -244,9 +252,11 @@ export default function ProductManagement() {
               <Button
                 variant="default"
                 className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
+               onClick={handleUploadBulk}
               >
                 <Image src={uploadFile} alt="Add" className="h-4 w-4" />
                 <span className="text-[#408EFD] b3">Upload</span>
+                
               </Button>
               <Button
                 className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
@@ -452,6 +462,10 @@ export default function ProductManagement() {
         )}
         </CardContent>
       </Card>
+      <UploadBulkCard
+      isOpen={isModalOpen} 
+      onClose={() => setIsModalOpen(false)} />
+ 
     </div>
   );
 }

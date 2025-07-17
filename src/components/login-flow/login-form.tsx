@@ -8,12 +8,16 @@ import { loginUser } from "@/service/auth-service";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { User } from "@/types/auth-types";
+import { LoginResponse, User } from "@/types/auth-Types";
+import { useAppDispatch, useAppSelector } from "@/store/hook";
+import { loginRequest, loginSuccess } from "@/store/slice/auth/authSlice";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const auth = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,16 +33,12 @@ export function LoginForm({
     e: React.FormEvent<HTMLFormElement>
   ): Promise<void> => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    dispatch(loginSuccess({ email, password }));
     try {
-      const response = (await loginUser({ email, password })) as { data: User };
+       const response = await loginUser({ email, password }) as LoginResponse;
 
-      if (response.data) {
-        const {
-          token,
-          user: { role, last_login },
-        } = response.data.data;
+      if (response.success && response.data) {
+      const { token, role, last_login } = response.data;
 
         Cookies.set("role", role, {
           expires: 1,
@@ -49,16 +49,12 @@ export function LoginForm({
           expires: 1,
           path: "/",
         });
-
+        dispatch(loginSuccess(response.data));
         router.replace("/user/dashboard");
-      } else {
-        setError("Login failed");
-      }
+      } 
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
   return (
