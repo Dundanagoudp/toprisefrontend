@@ -75,11 +75,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state } = useSidebar();
   const expanded = state === "expanded";
   const handleLogout = () => {
-    dispatch(logoutAction());
+    
     Cookies.remove('token');
   Cookies.remove('role');
   Cookies.remove('lastlogin');
   router.replace('/login');
+  //dispatch(logoutAction());
   }
 
   // Removed debug logs
