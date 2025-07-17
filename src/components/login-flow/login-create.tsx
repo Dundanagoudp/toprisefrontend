@@ -3,17 +3,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAppDispatch, useAppSelector } from "@/store/hook"
-import { loginRequest,loginSuccess } from "@/store/slice/auth/authSlice"
 
 export function SignupPage({
-
-
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const auth = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
