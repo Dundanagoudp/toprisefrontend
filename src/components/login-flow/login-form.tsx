@@ -8,21 +8,21 @@ import { loginUser } from "@/service/auth-service";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { LoginResponse, User } from "@/types/auth-Types";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loginRequest, loginSuccess } from "@/store/slice/auth/authSlice";
+import { useAppDispatch,useAppSelector } from "@/store/hooks";
+import { loginSuccess } from "@/store/slice/auth/authSlice";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const auth = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const dispatch = useAppDispatch();
+
 
   /**
    * Handles the form submission for the login form.
@@ -33,12 +33,14 @@ export function LoginForm({
     e: React.FormEvent<HTMLFormElement>
   ): Promise<void> => {
     e.preventDefault();
-    dispatch(loginSuccess({ email, password }));
+    setLoading(true);
+    setError(null);
     try {
-       const response = await loginUser({ email, password }) as LoginResponse;
-
-      if (response.success && response.data) {
-      const { token, role, last_login } = response.data;
+      const response = await loginUser({ email, password });
+      dispatch(loginSuccess({ email, password }));
+      if ( response.data) {
+        const { token, user } = response.data;
+        const { role, last_login } = user;
 
         Cookies.set("role", role, {
           expires: 1,
@@ -51,10 +53,14 @@ export function LoginForm({
         });
         dispatch(loginSuccess(response.data));
         router.replace("/user/dashboard");
-      } 
+      } else {
+        setError("Login failed");
+      }
     } catch (err) {
-      
+      setError("Something went wrong. Please try again.");
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
   return (
