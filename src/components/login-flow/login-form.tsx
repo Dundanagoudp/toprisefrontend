@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { LoginResponse, User } from "@/types/auth-Types";
-import { useAppDispatch, useAppSelector } from "@/store/hook";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginRequest, loginSuccess } from "@/store/slice/auth/authSlice";
 
 export function LoginForm({

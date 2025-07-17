@@ -6,9 +6,12 @@ import {
   Frame,
   GalleryVerticalEnd,
   LayoutDashboard,
-  LogOut,
+   LogOutIcon as LogOut,
+   LogOutIcon,
+ 
 } from "lucide-react"
-
+import { useAppDispatch, useAppSelector } from "@/store/hooks"
+import {LogOut as logoutAction } from "../store/slice/auth/authSlice"
 import { NavMain } from "@/components/nav-main"
 import { TeamSwitcher } from "@/components/team-switcher"
 import Cookies from "js-cookie"
@@ -66,10 +69,13 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const router = useRouter()
+  const dispatch = useAppDispatch()
+  const auth = useAppSelector((state) => state.auth)
   const pathname = usePathname();
   const { state } = useSidebar();
   const expanded = state === "expanded";
   const handleLogout = () => {
+    dispatch(logoutAction());
     Cookies.remove('token');
   Cookies.remove('role');
   Cookies.remove('lastlogin');
@@ -102,7 +108,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           onClick={handleLogout}
 
         >
-          <LogOut className="w-5 h-5" />
+          <LogOutIcon className="w-5 h-5" />
           {expanded && "Logout"}
         </Button>
       </SidebarFooter>
