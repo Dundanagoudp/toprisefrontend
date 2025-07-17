@@ -11,10 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Badge } from "@/components/ui/badge"
 import { Plus, X } from "lucide-react"
-import { createDealer, getAllUsers } from "@/service/dealerServices"
+import { createDealer, getAllUsers, getAllCategories } from "@/service/dealerServices"
 import { useToast } from "@/hooks/use-toast"
-import { useState, useEffect } from "react"
-import type { User } from "@/types/dealer-types"
+import { useState, useEffect, Fragment, useRef } from "react"
+import type { User, Category } from "@/types/dealer-types"
 import { useRouter } from "next/navigation"
 
 export default function AddDealer() {
@@ -23,11 +23,10 @@ export default function AddDealer() {
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
-  const [newCategory, setNewCategory] = useState("")
-  const [categories, setCategories] = useState<string[]>([])
+  const [allCategories, setAllCategories] = useState<Category[]>([])
 
   const form = useForm<DealerFormValues>({
-    resolver: zodResolver(dealerSchema) as any, // Add 'as any' to resolve the type inference issue
+    resolver: zodResolver(dealerSchema) as any, 
     defaultValues: {
       email: "",
       password: "",
@@ -61,6 +60,7 @@ export default function AddDealer() {
 
   useEffect(() => {
     fetchUsers()
+    fetchCategories()
   }, [])
 
   const fetchUsers = async () => {
@@ -82,19 +82,20 @@ export default function AddDealer() {
     }
   }
 
-  const addCategory = () => {
-    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
-      const updatedCategories = [...categories, newCategory.trim()]
-      setCategories(updatedCategories)
-      form.setValue("categories_allowed", updatedCategories)
-      setNewCategory("")
+  const fetchCategories = async () => {
+    try {
+      const categoriesResponse = await getAllCategories()
+      if (categoriesResponse.success) {
+        setAllCategories(categoriesResponse.data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load categories. Please refresh the page.",
+        variant: "destructive",
+      })
     }
-  }
-
-  const removeCategory = (categoryToRemove: string) => {
-    const updatedCategories = categories.filter((cat) => cat !== categoryToRemove)
-    setCategories(updatedCategories)
-    form.setValue("categories_allowed", updatedCategories)
   }
 
   const onSubmit = async (data: DealerFormValues) => {
@@ -395,47 +396,16 @@ export default function AddDealer() {
             <CardContent className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Categories Allowed *</label>
-
-                {/* Add Category Input */}
-                <div className="flex gap-2 mb-4">
-                  <Input
-                    placeholder="Enter category name"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    className="bg-gray-50 border-gray-200"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault()
-                        addCategory()
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={addCategory}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {/* Display Added Categories */}
-                {categories.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {categories.map((category, index) => (
-                      <Badge key={index} className="flex items-center gap-1 bg-black text-white px-3 py-1 rounded-md">
-                        {category}
-                        <X className="w-3 h-3 cursor-pointer text-white" onClick={() => removeCategory(category)} />
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
+                {/* Multi-select Dropdown */}
+                <MultiSelectDropdown
+                  options={allCategories}
+                  selected={form.watch("categories_allowed")}
+                  onChange={(selected) => form.setValue("categories_allowed", selected)}
+                />
                 {form.formState.errors.categories_allowed && (
                   <p className="text-red-500 text-xs mt-1">{form.formState.errors.categories_allowed.message}</p>
                 )}
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -504,6 +474,24 @@ export default function AddDealer() {
                         placeholder="72"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
+                        className="bg-gray-50 border-gray-200"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="last_fulfillment_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Fulfillment Date</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        value={field.value ? field.value.split("T")[0] : ""}
+                        onChange={e => field.onChange(new Date(e.target.value).toISOString())}
                         className="bg-gray-50 border-gray-200"
                       />
                     </FormControl>
@@ -586,6 +574,90 @@ export default function AddDealer() {
           </Card>
         </form>
       </Form>
+    </div>
+  )
+}
+
+function MultiSelectDropdown({ options, selected, onChange }: {
+  options: Category[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [open])
+
+  const filtered = options.filter(cat => cat.category_name.toLowerCase().includes(search.toLowerCase()))
+
+  return (
+    <div className="relative" ref={ref}>
+      <div
+        className="flex flex-wrap gap-2 border border-gray-200 rounded px-2 py-1 bg-white min-h-[42px] cursor-pointer"
+        onClick={() => setOpen(v => !v)}
+      >
+        {selected.length === 0 && <span className="text-gray-400">Select categories...</span>}
+        {selected.map(id => {
+          const cat = options.find(c => c._id === id)
+          return cat ? (
+            <span key={id} className="flex items-center bg-red-600 text-white rounded px-2 py-0.5 text-xs">
+              {cat.category_name}
+              <button
+                type="button"
+                className="ml-1 text-white hover:text-gray-200"
+                onClick={e => {
+                  e.stopPropagation()
+                  onChange(selected.filter(sid => sid !== id))
+                }}
+              >
+                ×
+              </button>
+            </span>
+          ) : null
+        })}
+      </div>
+      {open && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-60 overflow-auto">
+          <input
+            className="w-full px-2 py-1 border-b border-gray-100 focus:outline-none"
+            placeholder="Search categories..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            autoFocus
+          />
+          {filtered.length === 0 && <div className="p-2 text-gray-400">No categories found</div>}
+          {filtered.map(cat => (
+            <div
+              key={cat._id}
+              className={`px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center ${selected.includes(cat._id) ? "bg-gray-100" : ""}`}
+              onClick={e => {
+                e.stopPropagation()
+                if (selected.includes(cat._id)) {
+                  onChange(selected.filter(id => id !== cat._id))
+                } else {
+                  onChange([...selected, cat._id])
+                }
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(cat._id)}
+                readOnly
+                className="mr-2"
+              />
+              {cat.category_name}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
