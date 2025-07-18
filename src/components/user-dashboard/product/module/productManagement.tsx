@@ -29,6 +29,7 @@ import {
   MoreHorizontal,
   FileUp,
   PlusIcon,
+  Pencil, // <-- Add this import
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,8 @@ import React from "react";
 import UploadBulkCard from "./uploadBulk";
 import { useRouter } from "next/navigation";
 import Emptydata from "./Emptydata";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 // Product type for table
 type Product = {
@@ -144,7 +147,6 @@ export default function ProductManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const cardsPerPage = 10;
 
-
   const filteredProducts = React.useMemo(() => {
     if (selectedTab === "Created") return products;
     if (selectedTab === "Pending") return products.filter((product) => product.liveStatus === "Pending");
@@ -193,6 +195,53 @@ export default function ProductManagement() {
     (currentPage - 1) * cardsPerPage,
     currentPage * cardsPerPage
   );
+
+  // Selection state and handlers (moved below paginatedData)
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState("");
+
+  // Helper: check if all visible products are selected
+  const allSelected = paginatedData.length > 0 && paginatedData.every((p) => selectedProducts.includes(p.id));
+  // Helper: check if some are selected
+  const someSelected = selectedProducts.length > 0;
+
+  // Select single handler
+  const handleSelectOne = (id: string) => {
+    setSelectedProducts((prev) => {
+      let newSelected;
+      if (prev.includes(id)) {
+        newSelected = prev.filter((pid) => pid !== id);
+      } else {
+        newSelected = [...prev, id];
+      }
+      // If only one product is selected, clear selection
+      if (newSelected.length === 1) {
+        return [];
+      }
+      return newSelected;
+    });
+  };
+  // Select all handler
+  const handleSelectAll = () => {
+    let newSelected;
+    if (allSelected) {
+      newSelected = selectedProducts.filter(id => !paginatedData.some(p => p.id === id));
+    } else {
+      newSelected = [
+        ...selectedProducts,
+        ...paginatedData.filter(p => !selectedProducts.includes(p.id)).map(p => p.id)
+      ];
+    }
+    // If only one product is selected, clear selection
+    if (newSelected.length === 1) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(newSelected);
+    }
+  };
+  // Clear selection on tab/page change
+  useEffect(() => { setSelectedProducts([]); }, [selectedTab, currentPage]);
+
   const handleAddProduct = () => {
     route.push(`/user/dashboard/product/Addproduct`);
   };
@@ -228,9 +277,9 @@ export default function ProductManagement() {
       <Card className="shadow-sm rounded-none ">
         {/* Header */}
         <CardHeader className="space-y-6">
-          {/* Search and Actions Row */}
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            {/* Left Side - Search and Filters */}
+          {/* Top Row: Search/Filters/Requests (left), Upload/Add Product (right) */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 w-full">
+            {/* Left: Search, Filters, Requests */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
               {/* Search Bar */}
               <div className="relative w-full sm:w-80 lg:w-96">
@@ -244,39 +293,23 @@ export default function ProductManagement() {
                   />
                 </div>
               </div>
-
               {/* Filter Buttons */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 bg-transparent border-gray-300 hover:bg-gray-50 min-w-[100px]"
-                >
-                  <span className="b3 font-poppins">Filters</span>
-                </Button>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2 bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px]"
-                    >
-                      <span className="b3">Requests</span>
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem>All Requests</DropdownMenuItem>
-                    <DropdownMenuItem>Pending Requests</DropdownMenuItem>
-                    <DropdownMenuItem>Approved Requests</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 bg-transparent border-gray-300 hover:bg-gray-50 min-w-[100px]"
+              >
+                <span className="b3 font-poppins">Filters</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
+              >
+                <span className="b3 font-poppins">Requests</span>
+              </Button>
             </div>
-
-            {/* Right Side - Action Buttons */}
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-              {(auth?.role === "Super-admin" ||
-                auth?.role === "Inventory-admin") && (
+            {/* Right: Upload, Add Product */}
+            <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+              {(auth?.role === "Super-admin" || auth?.role === "Inventory-admin") && (
                 <>
                   <Button
                     variant="default"
@@ -290,7 +323,6 @@ export default function ProductManagement() {
                     className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
                     variant="default"
                     onClick={handleAddProduct}
-                    // disabled={!isAllowed}
                   >
                     <Image src={addSquare} alt="Add" className="h-4 w-4" />
                     <span className="b3 font-RedHat">Add Product</span>
@@ -299,51 +331,45 @@ export default function ProductManagement() {
               )}
             </div>
           </div>
-
-          {/* Page Title and Description */}
-          <div className="space-y-2">
-            <CardTitle className="b1 text-black text-2xl font-semibold">
-              Product
-            </CardTitle>
-            <CardDescription className="b4 text-gray-600">
-              Manage your products and view inventory
-            </CardDescription>
+          {/* Second Row: Tabs (left), Bulk Edit + Created dropdown (right) */}
+          <div className="flex flex-row items-center justify-between w-full mt-2">
+            {/* Tab Bar */}
+            <div className="flex border-b border-gray-200" aria-label="Product status tabs">
+              {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
+                <button
+                  key={tab}
+                  className={`px-4 py-2 text-sm font-medium focus:outline-none ${
+                    selectedTab === tab
+                      ? 'text-[#C72920] border-b-2 border-[#C72920]'
+                      : 'text-gray-500'
+                  }`}
+                  onClick={() => setSelectedTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+            {/* Bulk Edit & Created dropdown */}
+            {selectedProducts.length > 1 && (
+              <div className="flex items-center gap-2">
+                <Button className="bg-gray-200 text-black flex items-center gap-2" variant="outline">
+                  <Pencil className="w-5 h-5" />
+                  Bulk Edit
+                </Button>
+                <Select value={selectedTab} onValueChange={setSelectedTab}>
+                  <SelectTrigger className="min-w-[120px]">
+                    <SelectValue placeholder="Created" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Created">Created</SelectItem>
+                    <SelectItem value="Approved">Approved</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
-              {/* Tab Bar */}
-      <div className="mb-2">
-        {/* Desktop: normal tab bar */}
-        <div className="hidden lg:flex border-b border-gray-200" aria-label="Product status tabs">
-          {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
-            <button
-              key={tab}
-              className={`px-4 py-2 text-sm font-medium focus:outline-none ${
-                selectedTab === tab
-                  ? 'text-[#C72920] border-b-2 border-[#C72920]'
-                  : 'text-gray-500'
-              }`}
-              onClick={() => setSelectedTab(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-        {/* Mobile/Tablet: horizontal scrollable tab bar */}
-        <div className="flex lg:hidden overflow-x-auto border-b border-gray-200 gap-2 no-scrollbar" aria-label="Product status tabs">
-          {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
-            <button
-              key={tab}
-              className={`flex-shrink-0 px-4 py-2 text-sm font-medium focus:outline-none whitespace-nowrap ${
-                selectedTab === tab
-                  ? 'text-[#C72920] border-b-2 border-[#C72920]'
-                  : 'text-gray-500'
-              }`}
-              onClick={() => setSelectedTab(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
         </CardHeader>
 
         {/* Product Table */}
@@ -352,6 +378,9 @@ export default function ProductManagement() {
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
+                  <TableHead className="px-4 py-4 w-8">
+                    <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} aria-label="Select all" />
+                  </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left">
                     Image
                   </TableHead>
@@ -391,6 +420,13 @@ export default function ProductManagement() {
                       index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                     }`}
                   >
+                    <TableCell className="px-4 py-4 w-8">
+                      <Checkbox
+                        checked={selectedProducts.includes(product.id)}
+                        onCheckedChange={() => handleSelectOne(product.id)}
+                        aria-label="Select row"
+                      />
+                    </TableCell>
                     <TableCell className="px-6 py-4">
                       <div className="w-16 h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                         <Image
