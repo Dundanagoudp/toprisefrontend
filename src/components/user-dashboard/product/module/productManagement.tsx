@@ -56,6 +56,7 @@ import { getProducts } from "@/service/product-Service";
 import React from "react";
 import UploadBulkCard from "./uploadBulk";
 import { useRouter } from "next/navigation";
+import Emptydata from "./Emptydata";
 
 // Product type for table
 type Product = {
@@ -280,20 +281,39 @@ const [isModalOpen, setIsModalOpen] = useState(false);
             </CardDescription>
           </div>
               {/* Tab Bar */}
-      <div className="flex border-b border-gray-200 mb-2">
-        {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
-          <button
-            key={tab}
-            className={`px-4 py-2 text-sm font-medium focus:outline-none ${
-              selectedTab === tab
-                ? 'text-[#C72920] border-b-2 border-[#C72920]'
-                : 'text-gray-500'
-            }`}
-            onClick={() => setSelectedTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="mb-2">
+        {/* Desktop: normal tab bar */}
+        <div className="hidden lg:flex border-b border-gray-200" aria-label="Product status tabs">
+          {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
+            <button
+              key={tab}
+              className={`px-4 py-2 text-sm font-medium focus:outline-none ${
+                selectedTab === tab
+                  ? 'text-[#C72920] border-b-2 border-[#C72920]'
+                  : 'text-gray-500'
+              }`}
+              onClick={() => setSelectedTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        {/* Mobile/Tablet: horizontal scrollable tab bar */}
+        <div className="flex lg:hidden overflow-x-auto border-b border-gray-200 gap-2 no-scrollbar" aria-label="Product status tabs">
+          {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
+            <button
+              key={tab}
+              className={`flex-shrink-0 px-4 py-2 text-sm font-medium focus:outline-none whitespace-nowrap ${
+                selectedTab === tab
+                  ? 'text-[#C72920] border-b-2 border-[#C72920]'
+                  : 'text-gray-500'
+              }`}
+              onClick={() => setSelectedTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
         </CardHeader>
 
