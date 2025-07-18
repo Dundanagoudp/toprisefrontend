@@ -549,44 +549,51 @@ export default function ProductManagement() {
 
           {/* Footer - Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      className={
-                        currentPage === 1
-                          ? "pointer-events-none opacity-50"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: totalPages }).map((_, idx) => (
-                    <PaginationItem key={idx + 1}>
-                      <PaginationLink
-                        isActive={currentPage === idx + 1}
-                        onClick={() => setCurrentPage(idx + 1)}
-                        className="cursor-pointer"
-                      >
-                        {idx + 1}
-                      </PaginationLink>
+            <div className="flex justify-between items-center mt-8 px-6 pb-6">
+              {/* Left: Showing X-Y of Z products (single line, no wrap) */}
+              <div className="text-sm text-gray-600 whitespace-nowrap">
+                {`Showing ${(currentPage - 1) * cardsPerPage + 1}-${Math.min(currentPage * cardsPerPage, filteredProducts.length)} of ${filteredProducts.length} products`}
+              </div>
+              {/* Pagination Controls - tightly grouped and right-aligned */}
+              <div className="flex items-center gap-1">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
                     </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() =>
-                        setCurrentPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      className={
-                        currentPage === totalPages
-                          ? "pointer-events-none opacity-50"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+                    {Array.from({ length: totalPages }).map((_, idx) => (
+                      <PaginationItem key={idx + 1}>
+                        <PaginationLink
+                          isActive={currentPage === idx + 1}
+                          onClick={() => setCurrentPage(idx + 1)}
+                          className="cursor-pointer"
+                        >
+                          {idx + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             </div>
           )}
         </CardContent>
