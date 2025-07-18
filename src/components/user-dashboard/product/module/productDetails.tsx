@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pencil } from "lucide-react"
 import { Productcard } from "./productCard"
+import { getProducts } from "@/service/product-Service"
 
 export default function ViewProductDetails() {
   const [status, setStatus] = React.useState("Approved")
@@ -23,6 +24,18 @@ export default function ViewProductDetails() {
         return "text-gray-600 bg-gray-50 border-gray-200"
     }
   }
+  React.useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await getProducts();
+        console.log("getProducts API response:", response);
+      } catch (error) {
+        console.error("getProducts API error:", error);
+      }
+    };
+    fetchProducts();
+  }, []);
+  
 
   return (
     <div className="min-h-screen bg-(neutral-100)-50">

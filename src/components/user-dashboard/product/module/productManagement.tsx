@@ -183,6 +183,12 @@ export default function ProductManagement() {
   const handleAddProduct = () => {
     route.push(`/user/dashboard/product/Addproduct`)
   }
+  const handleEditProduct = (id: string) => {
+    route.push(`/user/dashboard/product/productedit/${id}`)
+  }
+    const handleViewProduct = (id: string) => {
+    route.push(`/user/dashboard/product/product-details/${id}`)
+  }
 
   const handleUploadBulk = () => {
     setIsModalOpen(true)
@@ -443,9 +449,10 @@ export default function ProductManagement() {
                     key={product.id}
                     className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
                       index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                    }`}
+                    } cursor-pointer`}
+                    onClick={() => handleViewProduct(product.id)}
                   >
-                    <TableCell className="px-4 py-4 w-8">
+                    <TableCell className="px-4 py-4 w-8" onClick={e => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedProducts.includes(product.id)}
                         onCheckedChange={() => handleSelectOne(product.id)}
@@ -486,7 +493,7 @@ export default function ProductManagement() {
                       <span className={`b2 ${getStatusColor(product.qcStatus)}`}>{product.qcStatus}</span>
                     </TableCell>
                     {selectedTab !== "Created" && (
-                      <TableCell className="px-6 py-4">
+                      <TableCell className="px-6 py-4" onClick={e => e.stopPropagation()}>
                         {selectedTab === "Rejected" ? (
                           <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
                         ) : (
@@ -512,7 +519,7 @@ export default function ProductManagement() {
                         )}
                       </TableCell>
                     )}
-                    <TableCell className="px-6 py-4 text-center">
+                    <TableCell className="px-6 py-4 text-center" onClick={e => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
@@ -521,7 +528,7 @@ export default function ProductManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem className="cursor-pointer">Edit Product</DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => handleEditProduct(product.id)}>Edit Product</DropdownMenuItem>
                           <DropdownMenuItem className="cursor-pointer">View Details</DropdownMenuItem>
                           <DropdownMenuItem className="cursor-pointer">Duplicate</DropdownMenuItem>
                           <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
