@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { aproveProduct, deactivateProduct } from "@/service/product-Service"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Product type for table
 type Product = {
@@ -91,6 +92,9 @@ export default function ProductManagement() {
   const [productsPerPage] = useState(10)
   const [totalProducts, setTotalProducts] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [loadingTab, setLoadingTab] = useState(false)
+  const [addProductLoading, setAddProductLoading] = useState(false)
+  const [uploadBulkLoading, setUploadBulkLoading] = useState(false)
 
   const cardsPerPage = 10
 
@@ -133,6 +137,14 @@ export default function ProductManagement() {
 
     fetchProducts()
   }, [currentPage, productsPerPage, dispatch])
+
+  // Handle shimmer effect on tab change
+  useEffect(() => {
+    if (loadingTab) return
+    setLoadingTab(true)
+    const timer = setTimeout(() => setLoadingTab(false), 700)
+    return () => clearTimeout(timer)
+  }, [selectedTab])
 
   const totalPages = Math.ceil(filteredProducts.length / cardsPerPage)
   const paginatedData = filteredProducts.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)
@@ -181,11 +193,15 @@ export default function ProductManagement() {
   }, [selectedTab, currentPage])
 
   const handleAddProduct = () => {
+    setAddProductLoading(true)
     route.push(`/user/dashboard/product/Addproduct`)
+    setTimeout(() => setAddProductLoading(false), 1000) // Simulate loading
   }
 
   const handleUploadBulk = () => {
+    setUploadBulkLoading(true)
     setIsModalOpen(true)
+    setTimeout(() => setUploadBulkLoading(false), 1000) // Simulate loading
   }
 
   const handleQCStatusChange = (id: string, newStatus: string) => {
@@ -291,16 +307,22 @@ export default function ProductManagement() {
                     variant="default"
                     className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
                     onClick={handleUploadBulk}
+                    disabled={uploadBulkLoading}
                   >
-                    <FileUp className="h-4 w-4" />
+                    {uploadBulkLoading ? (
+                      <svg className="animate-spin h-5 w-5 text-[#408EFD]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    ) : <FileUp className="h-4 w-4" />}
                     <span className="text-[#408EFD] b3">Upload</span>
                   </Button>
                   <Button
                     className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
                     variant="default"
                     onClick={handleAddProduct}
+                    disabled={addProductLoading}
                   >
-                    <Plus className="h-4 w-4" />
+                    {addProductLoading ? (
+                      <svg className="animate-spin h-5 w-5 text-[#C72920]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    ) : <Plus className="h-4 w-4" />}
                     <span className="b3 font-RedHat">Add Product</span>
                   </Button>
                 </>
@@ -354,51 +376,66 @@ export default function ProductManagement() {
           {/* Mobile Card View for small screens */}
           <div className="block sm:hidden">
             <div className="space-y-4 p-4">
-              {paginatedData.map((product, index) => (
-                <Card key={product.id} className="p-4">
-                  <div className="flex items-start space-x-4">
-                    <Checkbox
-                      checked={selectedProducts.includes(product.id)}
-                      onCheckedChange={() => handleSelectOne(product.id)}
-                      aria-label="Select row"
-                    />
-                    <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        width={64}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 text-sm truncate">{product.name}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {product.category} • {product.brand}
+              {loadingTab
+                ? Array.from({ length: 3 }).map((_, idx) => (
+                    <Card key={idx} className="p-4">
+                      <div className="flex items-start space-x-4">
+                        <Skeleton className="w-5 h-5 rounded" />
+                        <Skeleton className="w-16 h-12 rounded-md" />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/2" />
+                          <Skeleton className="h-3 w-1/3" />
+                        </div>
+                        <Skeleton className="w-8 h-8 rounded" />
                       </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className={`text-xs ${getStatusColor(product.qcStatus)}`}>QC: {product.qcStatus}</span>
-                        {selectedTab !== "Created" && (
-                          <span className={`text-xs ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
-                        )}
+                    </Card>
+                  ))
+                : paginatedData.map((product, index) => (
+                    <Card key={product.id} className="p-4">
+                      <div className="flex items-start space-x-4">
+                        <Checkbox
+                          checked={selectedProducts.includes(product.id)}
+                          onCheckedChange={() => handleSelectOne(product.id)}
+                          aria-label="Select row"
+                        />
+                        <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                          <Image
+                            src={product.image || "/placeholder.svg"}
+                            alt={product.name}
+                            width={64}
+                            height={48}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 text-sm truncate">{product.name}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {product.category} • {product.brand}
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className={`text-xs ${getStatusColor(product.qcStatus)}`}>QC: {product.qcStatus}</span>
+                            {selectedTab !== "Created" && (
+                              <span className={`text-xs ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
+                            )}
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>Edit Product</DropdownMenuItem>
+                            <DropdownMenuItem>View Details</DropdownMenuItem>
+                            <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Edit Product</DropdownMenuItem>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </Card>
-              ))}
+                    </Card>
+                  ))}
             </div>
           </div>
 
@@ -438,100 +475,138 @@ export default function ProductManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedData.map((product, index) => (
-                  <TableRow
-                    key={product.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                    }`}
-                  >
-                    <TableCell className="px-4 py-4 w-8">
-                      <Checkbox
-                        checked={selectedProducts.includes(product.id)}
-                        onCheckedChange={() => handleSelectOne(product.id)}
-                        aria-label="Select row"
-                      />
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                        <Image
-                          src={product.image || "/placeholder.svg"}
-                          alt={product.name}
-                          width={80}
-                          height={64}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <div className="font-medium text-gray-900 b2 font-redhat">{product.name}</div>
-                      {/* Show category and brand on smaller screens */}
-                      <div className="text-xs text-gray-500 mt-1 md:hidden">
-                        {product.category} • {product.brand}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden md:table-cell">
-                      <span className="text-gray-700 b2 font-redHat">{product.category}</span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden lg:table-cell">
-                      <span className="text-gray-700 b2">{product.subCategory}</span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden md:table-cell">
-                      <span className="text-gray-700 b2">{product.brand}</span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden lg:table-cell">
-                      <span className="text-gray-700 b2">{product.productType}</span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <span className={`b2 ${getStatusColor(product.qcStatus)}`}>{product.qcStatus}</span>
-                    </TableCell>
-                    {selectedTab !== "Created" && (
-                      <TableCell className="px-6 py-4">
-                        {selectedTab === "Rejected" ? (
-                          <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
-                        ) : (
+                {loadingTab
+                  ? Array.from({ length: cardsPerPage }).map((_, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="px-4 py-4 w-8">
+                          <Skeleton className="w-5 h-5 rounded" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <Skeleton className="w-16 h-12 rounded-md" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <Skeleton className="h-4 w-3/4 mb-2" />
+                          <Skeleton className="h-3 w-1/2" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden md:table-cell">
+                          <Skeleton className="h-3 w-1/2" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden lg:table-cell">
+                          <Skeleton className="h-3 w-1/2" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden md:table-cell">
+                          <Skeleton className="h-3 w-1/2" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden lg:table-cell">
+                          <Skeleton className="h-3 w-1/2" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <Skeleton className="h-3 w-1/2" />
+                        </TableCell>
+                        {selectedTab !== "Created" && (
+                          <TableCell className="px-6 py-4">
+                            <Skeleton className="h-3 w-1/2" />
+                          </TableCell>
+                        )}
+                        <TableCell className="px-6 py-4 text-center">
+                          <Skeleton className="w-8 h-8 rounded" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : paginatedData.map((product, index) => (
+                      <TableRow
+                        key={product.id}
+                        className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                        }`}
+                      >
+                        <TableCell className="px-4 py-4 w-8">
+                          <Checkbox
+                            checked={selectedProducts.includes(product.id)}
+                            onCheckedChange={() => handleSelectOne(product.id)}
+                            aria-label="Select row"
+                          />
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                            <Image
+                              src={product.image || "/placeholder.svg"}
+                              alt={product.name}
+                              width={80}
+                              height={64}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <div className="font-medium text-gray-900 b2 font-redhat">{product.name}</div>
+                          {/* Show category and brand on smaller screens */}
+                          <div className="text-xs text-gray-500 mt-1 md:hidden">
+                            {product.category} • {product.brand}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden md:table-cell">
+                          <span className="text-gray-700 b2 font-redHat">{product.category}</span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden lg:table-cell">
+                          <span className="text-gray-700 b2">{product.subCategory}</span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden md:table-cell">
+                          <span className="text-gray-700 b2">{product.brand}</span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden lg:table-cell">
+                          <span className="text-gray-700 b2">{product.productType}</span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <span className={`b2 ${getStatusColor(product.qcStatus)}`}>{product.qcStatus}</span>
+                        </TableCell>
+                        {selectedTab !== "Created" && (
+                          <TableCell className="px-6 py-4">
+                            {selectedTab === "Rejected" ? (
+                              <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 px-3 hover:bg-gray-100">
+                                    <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  {selectedTab === "Approved" && (
+                                    <DropdownMenuItem className="cursor-pointer" onClick={() => handleDeactivateProduct(product.id)}>
+                                      Deactivate Product
+                                    </DropdownMenuItem>
+                                  )}
+                                  {selectedTab === "Pending" && (
+                                    <DropdownMenuItem className="cursor-pointer" onClick={() => handleApproveProduct(product.id)}>
+                                      Activate Product
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell className="px-6 py-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 px-3 hover:bg-gray-100">
-                                <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              {selectedTab === "Approved" && (
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleDeactivateProduct(product.id)}>
-                                  Deactivate Product
-                                </DropdownMenuItem>
-                              )}
-                              {selectedTab === "Pending" && (
-                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleApproveProduct(product.id)}>
-                                  Activate Product
-                                </DropdownMenuItem>
-                              )}
+                              <DropdownMenuItem className="cursor-pointer">Edit Product</DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer">View Details</DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer">Duplicate</DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
+                                Delete
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        )}
-                      </TableCell>
-                    )}
-                    <TableCell className="px-6 py-4 text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem className="cursor-pointer">Edit Product</DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">View Details</DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">Duplicate</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </TableCell>
+                      </TableRow>
+                    ))}
               </TableBody>
             </Table>
           </div>

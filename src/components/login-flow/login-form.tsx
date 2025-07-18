@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { useAppDispatch,useAppSelector } from "@/store/hooks";
 import { loginSuccess } from "@/store/slice/auth/authSlice";
+import { useToast } from "@/components/ui/toast";
 
 export function LoginForm({
   className,
@@ -22,6 +23,7 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const dispatch = useAppDispatch();
+  const { showToast } = useToast();
 
 
   /**
@@ -52,12 +54,13 @@ export function LoginForm({
           path: "/",
         });
         dispatch(loginSuccess({token, role, last_login}));
+        showToast("Successfully Login", "success");
         router.replace("/user/dashboard");
       } else {
-        setError("Login failed");
+        showToast("Login failed", "error");
       }
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      showToast("Something went wrong.", "error");
       console.error(err);
     } finally {
       setLoading(false);
@@ -107,12 +110,13 @@ export function LoginForm({
                 </a>
               </div>
 
-              {error && (
-                <p className="text-red-500 text-sm text-center">{error}</p>
-              )}
-
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Logging in..." : "Login"}
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    Logging in...
+                  </span>
+                ) : "Login"}
               </Button>
 
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
