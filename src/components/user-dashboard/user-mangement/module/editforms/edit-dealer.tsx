@@ -51,7 +51,7 @@ export default function EditDealer() {
       default_margin: 15,
       last_fulfillment_date: new Date().toISOString(),
       assigned_Toprise_employee: [],
-      SLA_type: "1",
+      SLA_type: "Standard",
       dealer_dispatch_time: 72,
       onboarding_date: new Date().toISOString().split("T")[0],
       remarks: "",
@@ -474,9 +474,18 @@ export default function EditDealer() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>SLA Type</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter SLA Type" {...field} className="bg-gray-50 border-gray-200" />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-gray-50 border-gray-200">
+                          <SelectValue placeholder="Select SLA Type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Standard">Standard</SelectItem>
+                        <SelectItem value="Priority">Priority</SelectItem>
+                        <SelectItem value="Limited">Limited</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

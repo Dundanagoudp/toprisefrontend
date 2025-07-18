@@ -51,7 +51,7 @@ export default function AddDealer() {
       default_margin: 15,
       last_fulfillment_date: new Date().toISOString(),
       assigned_Toprise_employee: [],
-      SLA_type: "1",
+      SLA_type: "Standard",
       dealer_dispatch_time: 72,
       onboarding_date: new Date().toISOString().split("T")[0], // Format as YYYY-MM-DD
       remarks: "",
@@ -109,7 +109,7 @@ export default function AddDealer() {
           title: "Success",
           description: "Dealer created successfully",
         })
-        router.push("/user-management")
+        router.push("/user/dashboard/user")
       }
     } catch (error) {
       console.error("Failed to create dealer:", error)
@@ -170,7 +170,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="dealer@example.com" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="email" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -201,7 +201,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Phone Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="9876543210" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="phone_Number" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -254,7 +254,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>GSTIN</FormLabel>
                     <FormControl>
-                      <Input placeholder="29ABCDE1234F2Z5" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="GSTIN" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -267,7 +267,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>PAN</FormLabel>
                     <FormControl>
-                      <Input placeholder="ABCDE1234F" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="Pan" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -329,7 +329,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Pincode</FormLabel>
                     <FormControl>
-                      <Input placeholder="560001" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="pincode" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -352,7 +352,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Contact Person Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Rahul Sharma" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="Name" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -365,7 +365,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Contact Person Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="rahul@abc.com" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="Email" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -378,7 +378,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Contact Person Phone</FormLabel>
                     <FormControl>
-                      <Input placeholder="9876543210" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="phone_number" {...field} className="bg-gray-50 border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -455,9 +455,18 @@ export default function AddDealer() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>SLA Type</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter SLA Type" {...field} className="bg-gray-50 border-gray-200" />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-gray-50 border-gray-200">
+                          <SelectValue placeholder="Select SLA Type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Standard">Standard</SelectItem>
+                        <SelectItem value="Priority">Priority</SelectItem>
+                        <SelectItem value="Limited">Limited</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
