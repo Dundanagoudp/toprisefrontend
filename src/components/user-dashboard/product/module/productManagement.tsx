@@ -11,13 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getTokenPayload } from "@/utils/cookies";
-import { 
-  fetchProductsWithLiveStatus, 
+import {
+  fetchProductsWithLiveStatus,
   updateProductLiveStatus,
   selectAllProducts,
   selectProductsByLiveStatus,
   selectProductsLoading,
-  selectProductsError 
+  selectProductsError,
 } from "@/store/slice/product/productLiveStatusSlice";
 import image from "next/image";
 import {
@@ -60,7 +60,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEffect } from "react";
 import Image from "next/image";
-import { getProducts } from "@/service/product-Service";
+import { aproveProduct, deactivateProduct, getProducts } from "@/service/product-Service";
 import React from "react";
 import UploadBulkCard from "./uploadBulk";
 import { useRouter } from "next/navigation";
@@ -143,17 +143,73 @@ export default function ProductManagement() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const cardsPerPage = 10;
-
+  // State to track selected product in Pending tab
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null
+  );
 
   const filteredProducts = React.useMemo(() => {
     if (selectedTab === "Created") return products;
-    if (selectedTab === "Pending") return products.filter((product) => product.liveStatus === "Pending");
-    if (selectedTab === "Approved") return products.filter((product) => product.liveStatus === "Approved");
-    if (selectedTab === "Rejected") return products.filter((product) => product.liveStatus === "Rejected");
+    if (selectedTab === "Pending")
+      return products.filter((product) => product.liveStatus === "Pending");
+    if (selectedTab === "Approved")
+      return products.filter((product) => product.liveStatus === "Approved");
+    if (selectedTab === "Rejected")
+      return products.filter((product) => product.liveStatus === "Rejected");
     return products;
   }, [selectedTab, products]);
 
 
+
+  const handleApproveProduct = async (productId: string) => {
+    try {
+      if (selectedTab === "Pending") {
+        const response = await aproveProduct(productId);
+        const updateRedux = updateProductLiveStatus({
+          id: productId,
+          liveStatus: "Approved",
+        });
+        dispatch(updateRedux);
+       
+        setTimeout(() => {
+          const approvedProducts = products.filter((p) => p.liveStatus === "Pending" && p.id !== productId);
+          const newTotal = approvedProducts.length;
+          const newTotalPages = Math.ceil(newTotal / cardsPerPage);
+          if (currentPage > newTotalPages && newTotalPages > 0) {
+            setCurrentPage(newTotalPages);
+          }
+        }, 0);
+       
+      }
+    } catch (error) {
+      console.error("Failed to approve product:", error);
+    }
+  };
+
+  const handleDeactivateProduct = async (productId: string) => {
+    try {
+      if (selectedTab === "Approved") {
+        const response = await deactivateProduct(productId);
+        const updateRedux = updateProductLiveStatus({
+          id: productId,
+          liveStatus: "Pending",
+        });
+        dispatch(updateRedux);
+       
+        setTimeout(() => {
+          const approvedProducts = products.filter((p) => p.liveStatus === "Approved" && p.id !== productId);
+          const newTotal = approvedProducts.length;
+          const newTotalPages = Math.ceil(newTotal / cardsPerPage);
+          if (currentPage > newTotalPages && newTotalPages > 0) {
+            setCurrentPage(newTotalPages);
+          }
+        }, 0);
+       
+      }
+    } catch (error) {
+      console.error("Failed to deactivate product:", error);
+    }
+  };
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -199,7 +255,6 @@ export default function ProductManagement() {
   const handleUploadBulk = () => {
     setIsModalOpen(true);
   };
-
 
   const handleQCStatusChange = (id: string, newStatus: string) => {
     // Update the product's QC status using Redux
@@ -309,41 +364,47 @@ export default function ProductManagement() {
               Manage your products and view inventory
             </CardDescription>
           </div>
-              {/* Tab Bar */}
-      <div className="mb-2">
-        {/* Desktop: normal tab bar */}
-        <div className="hidden lg:flex border-b border-gray-200" aria-label="Product status tabs">
-          {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
-            <button
-              key={tab}
-              className={`px-4 py-2 text-sm font-medium focus:outline-none ${
-                selectedTab === tab
-                  ? 'text-[#C72920] border-b-2 border-[#C72920]'
-                  : 'text-gray-500'
-              }`}
-              onClick={() => setSelectedTab(tab)}
+          {/* Tab Bar */}
+          <div className="mb-2">
+            {/* Desktop: normal tab bar */}
+            <div
+              className="hidden lg:flex border-b border-gray-200"
+              aria-label="Product status tabs"
             >
-              {tab}
-            </button>
-          ))}
-        </div>
-        {/* Mobile/Tablet: horizontal scrollable tab bar */}
-        <div className="flex lg:hidden overflow-x-auto border-b border-gray-200 gap-2 no-scrollbar" aria-label="Product status tabs">
-          {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
-            <button
-              key={tab}
-              className={`flex-shrink-0 px-4 py-2 text-sm font-medium focus:outline-none whitespace-nowrap ${
-                selectedTab === tab
-                  ? 'text-[#C72920] border-b-2 border-[#C72920]'
-                  : 'text-gray-500'
-              }`}
-              onClick={() => setSelectedTab(tab)}
+              {["Created", "Approved", "Pending", "Rejected"].map((tab) => (
+                <button
+                  key={tab}
+                  className={`px-4 py-2 text-sm font-medium focus:outline-none ${
+                    selectedTab === tab
+                      ? "text-[#C72920] border-b-2 border-[#C72920]"
+                      : "text-gray-500"
+                  }`}
+                  onClick={() => setSelectedTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+            {/* Mobile/Tablet: horizontal scrollable tab bar */}
+            <div
+              className="flex lg:hidden overflow-x-auto border-b border-gray-200 gap-2 no-scrollbar"
+              aria-label="Product status tabs"
             >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
+              {["Created", "Approved", "Pending", "Rejected"].map((tab) => (
+                <button
+                  key={tab}
+                  className={`flex-shrink-0 px-4 py-2 text-sm font-medium focus:outline-none whitespace-nowrap ${
+                    selectedTab === tab
+                      ? "text-[#C72920] border-b-2 border-[#C72920]"
+                      : "text-gray-500"
+                  }`}
+                  onClick={() => setSelectedTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
 
         {/* Product Table */}
@@ -389,7 +450,11 @@ export default function ProductManagement() {
                     key={product.id}
                     className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
                       index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                    }`}
+                    } ${selectedTab === "Pending" ? "cursor-pointer" : ""}`}
+                    onClick={() => {
+                      if (selectedTab === "Pending")
+                        setSelectedProductId(product.id);
+                    }}
                   >
                     <TableCell className="px-6 py-4">
                       <div className="w-16 h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
@@ -435,11 +500,13 @@ export default function ProductManagement() {
                     {selectedTab !== "Created" && (
                       <TableCell className="px-6 py-4">
                         {selectedTab === "Rejected" ? (
-                            <span
-                                  className={`b2 ${getStatusColor(product.liveStatus)}`}
-                                >
-                                  {product.liveStatus}
-                                </span>
+                          <span
+                            className={`b2 ${getStatusColor(
+                              product.liveStatus
+                            )}`}
+                          >
+                            {product.liveStatus}
+                          </span>
                         ) : (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -449,7 +516,9 @@ export default function ProductManagement() {
                                 className="h-8 px-3 hover:bg-gray-100"
                               >
                                 <span
-                                  className={`b2 ${getStatusColor(product.liveStatus)}`}
+                                  className={`b2 ${getStatusColor(
+                                    product.liveStatus
+                                  )}`}
                                 >
                                   {product.liveStatus}
                                 </span>
@@ -457,17 +526,19 @@ export default function ProductManagement() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               {selectedTab === "Approved" && (
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="cursor-pointer"
-                                  onClick={() => handleLiveStatusChange(product.id, "Inactive")}
+                                  onClick={() =>
+                                   handleDeactivateProduct(product.id)
+                                  }
                                 >
                                   Deactivate Product
                                 </DropdownMenuItem>
                               )}
                               {selectedTab === "Pending" && (
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="cursor-pointer"
-                                  onClick={() => handleLiveStatusChange(product.id, "Approved")}
+                                  onClick={() => handleApproveProduct(product.id)}
                                 >
                                   Activate Product
                                 </DropdownMenuItem>
