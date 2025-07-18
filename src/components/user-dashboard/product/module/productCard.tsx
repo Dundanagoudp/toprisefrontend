@@ -1,35 +1,33 @@
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+"use client"
 
-interface ProductcardProps {
-  title: string;
-  description: string;
-  data: {
-    label: string;
-    value: string;
-  }[];
+import type React from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
+interface ProductCardProps {
+  title: string
+  description: string
+  data: { label: string; value: string | React.ReactNode }[]
+  children?: React.ReactNode
 }
 
-export function Productcard({
-  title,
-  description,
-  data,
-}: ProductcardProps) {
-  
+export function Productcard({ title, description, data, children }: ProductCardProps) {
   return (
-    <Card>
-      <CardContent className="p-6">
-        <CardTitle className="text-lg font-bold mb-1 ">{title}</CardTitle>
-        <CardDescription className="text-sm text-gray-500 mb-4 font-medium">{description}</CardDescription>
-
-        <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+    <Card className="border border-gray-200 rounded-lg shadow-sm bg-white">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold text-gray-900">{title}</CardTitle>
+        <CardDescription className="text-sm text-gray-600">{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
           {data.map((item, index) => (
-            <div key={index}>
-              <CardTitle className=" text-gray-500 b3">{item.label}</CardTitle>
-              <CardDescription className="text-black font-semibold ">{item.value}</CardDescription>
+            <div key={index} className="space-y-1">
+              <div className="text-sm text-gray-600">{item.label}</div>
+              <div className="text-sm font-medium text-gray-900">{item.value}</div>
             </div>
           ))}
         </div>
+        {children}
       </CardContent>
     </Card>
-  );
+  )
 }

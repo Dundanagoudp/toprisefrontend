@@ -56,6 +56,7 @@ import { getProducts } from "@/service/product-Service";
 import React from "react";
 import UploadBulkCard from "./uploadBulk";
 import { useRouter } from "next/navigation";
+import Emptydata from "./Emptydata";
 
 // Product type for table
 type Product = {
