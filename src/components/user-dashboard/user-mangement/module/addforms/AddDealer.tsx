@@ -102,7 +102,7 @@ export default function AddDealer() {
     setIsLoading(true)
     try {
       // Ensure remarks is always a string
-      const safeData = { ...data, remarks: data.remarks ?? "" };
+      const safeData = { ...data, password: data.password ?? "", remarks: data.remarks ?? "" };
       const response = await createDealer(safeData)
       if (response.success) {
         toast({
