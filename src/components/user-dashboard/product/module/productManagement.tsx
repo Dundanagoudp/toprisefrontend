@@ -11,6 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getTokenPayload } from "@/utils/cookies";
+import { 
+  fetchProductsWithLiveStatus, 
+  updateProductLiveStatus,
+  selectAllProducts,
+  selectProductsByLiveStatus,
+  selectProductsLoading,
+  selectProductsError 
+} from "@/store/slice/product/productLiveStatusSlice";
 import image from "next/image";
 import {
   Search,
@@ -35,7 +43,7 @@ import {
   PaginationNext,
   PaginationLink,
 } from "@/components/ui/pagination";
-
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
   Table,
   TableBody,
@@ -67,9 +75,8 @@ type Product = {
   brand: string;
   productType: string;
   qcStatus: string;
+  liveStatus: string;
 };
-
-
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -105,33 +112,47 @@ const getStatusColor = (status: string) => {
       return "text-red-500";
     case "Created":
       return "text-gray-700";
+    case "Pending":
+      return "text-yellow-600";
+    case "Active":
+      return "text-green-500";
+    case "Inactive":
+      return "text-gray-500";
     default:
       return "text-gray-700";
   }
 };
 
 export default function ProductManagement() {
-  
   const payload = getTokenPayload();
+  const auth = useAppSelector((state) => state.auth.user);
+  const products = useAppSelector((state) => state.productLiveStatus.products);
+  const loading = useAppSelector((state) => state.productLiveStatus.loading);
+  const error = useAppSelector((state) => state.productLiveStatus.error);
+
+  const dispatch = useAppDispatch();
+
   const route = useRouter();
-  const isAllowed = payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
+  const isAllowed =
+    payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
   const [searchQuery, setSearchQuery] = useState("");
-  const [productList, setProductList] = useState<Product[]>([]);
   const [selectedTab, setSelectedTab] = useState("Created");
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(10); // You can make this dynamic if needed
   const [totalProducts, setTotalProducts] = useState(0);
-const [isModalOpen, setIsModalOpen] = useState(false);
-   const cardsPerPage = 10
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const cardsPerPage = 10;
 
-  // Filter products based on selected tab
+
   const filteredProducts = React.useMemo(() => {
-    if (selectedTab === "Created") return productList;
-    return productList.filter((product) => product.qcStatus === selectedTab);
-  }, [selectedTab, productList]);
+    if (selectedTab === "Created") return products;
+    if (selectedTab === "Pending") return products.filter((product) => product.liveStatus === "Pending");
+    if (selectedTab === "Approved") return products.filter((product) => product.liveStatus === "Approved");
+    if (selectedTab === "Rejected") return products.filter((product) => product.liveStatus === "Rejected");
+    return products;
+  }, [selectedTab, products]);
 
 
-  // Fetch products from API and map to table structure
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -141,52 +162,57 @@ const [isModalOpen, setIsModalOpen] = useState(false);
         if (Array.isArray(data)) {
           const mapped = data.map((item) => ({
             id: item._id,
-            image: item.model.model_image ,
+            image: item.model.model_image,
             name: item.product_name || item.manufacturer_part_name || "-",
             category: item.category?.category_name || "-",
             subCategory: item.sub_category?.subcategory_name || "-",
             brand: item.brand?.brand_name || "-",
             productType: item.product_type || "-",
-            qcStatus: item.Qc_status ||  "Pending",
+            qcStatus: item.Qc_status || "Pending",
+            liveStatus: item.live_status || "Pending",
           }));
-          setProductList(mapped);
+
+          // Dispatch the entire product list with liveStatus
+          dispatch(fetchProductsWithLiveStatus(mapped));
+
           setTotalProducts(response.data.length || 0); // Assuming API returns totalCount
         } else {
-          setProductList([]);
           setTotalProducts(0);
         }
       } catch (error) {
         console.error("Failed to fetch products:", error);
-        setProductList([]);
         setTotalProducts(0);
       }
     };
     fetchProducts();
-  }, [currentPage, productsPerPage]);
+  }, [currentPage, productsPerPage, dispatch]);
 
   const totalPages = Math.ceil(filteredProducts.length / cardsPerPage);
   const paginatedData = filteredProducts.slice(
     (currentPage - 1) * cardsPerPage,
     currentPage * cardsPerPage
-  )
+  );
   const handleAddProduct = () => {
     route.push(`/user/dashboard/product/Addproduct`);
   };
   const handleUploadBulk = () => {
-    
-    setIsModalOpen(true)
+    setIsModalOpen(true);
   };
 
-  // Handler for QC status change
+
   const handleQCStatusChange = (id: string, newStatus: string) => {
-    setProductList((prev) =>
-      prev.map((product) =>
-        product.id === id ? { ...product, qcStatus: newStatus } : product
-      )
+    // Update the product's QC status using Redux
+    // You can create a new action for this or handle it in the component
+    const updatedProducts = products.map((product) =>
+      product.id === id ? { ...product, qcStatus: newStatus } : product
     );
+    dispatch(fetchProductsWithLiveStatus(updatedProducts));
   };
 
-
+  const handleLiveStatusChange = (id: string, newStatus: string) => {
+    // Update the product's live status using Redux
+    dispatch(updateProductLiveStatus({ id, liveStatus: newStatus }));
+  };
 
   const handlePreviousPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -198,7 +224,6 @@ const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="w-full">
-  
       <Card className="shadow-sm rounded-none ">
         {/* Header */}
         <CardHeader className="space-y-6">
@@ -249,24 +274,28 @@ const [isModalOpen, setIsModalOpen] = useState(false);
 
             {/* Right Side - Action Buttons */}
             <div className="flex items-center gap-3 w-full lg:w-auto">
-              <Button
-                variant="default"
-                className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
-               onClick={handleUploadBulk}
-              >
-                <Image src={uploadFile} alt="Add" className="h-4 w-4" />
-                <span className="text-[#408EFD] b3">Upload</span>
-                
-              </Button>
-              <Button
-                className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
-                variant="default"
-                onClick={handleAddProduct}
-              // disabled={!isAllowed}
-              >
-                <Image src={addSquare} alt="Add" className="h-4 w-4" />
-                <span className="b3 font-RedHat">Add Product</span>
-              </Button>
+              {(auth?.role === "Super-admin" ||
+                auth?.role === "Inventory-admin") && (
+                <>
+                  <Button
+                    variant="default"
+                    className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
+                    onClick={handleUploadBulk}
+                  >
+                    <Image src={uploadFile} alt="Add" className="h-4 w-4" />
+                    <span className="text-[#408EFD] b3">Upload</span>
+                  </Button>
+                  <Button
+                    className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
+                    variant="default"
+                    onClick={handleAddProduct}
+                    // disabled={!isAllowed}
+                  >
+                    <Image src={addSquare} alt="Add" className="h-4 w-4" />
+                    <span className="b3 font-RedHat">Add Product</span>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -279,22 +308,22 @@ const [isModalOpen, setIsModalOpen] = useState(false);
               Manage your products and view inventory
             </CardDescription>
           </div>
-              {/* Tab Bar */}
-      <div className="flex border-b border-gray-200 mb-2">
-        {['Created', 'Approved', 'Pending', 'Rejected'].map((tab) => (
-          <button
-            key={tab}
-            className={`px-4 py-2 text-sm font-medium focus:outline-none ${
-              selectedTab === tab
-                ? 'text-[#C72920] border-b-2 border-[#C72920]'
-                : 'text-gray-500'
-            }`}
-            onClick={() => setSelectedTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+          {/* Tab Bar */}
+          <div className="flex border-b border-gray-200 mb-2">
+            {["Created", "Approved", "Pending", "Rejected"].map((tab) => (
+              <button
+                key={tab}
+                className={`px-4 py-2 text-sm font-medium focus:outline-none ${
+                  selectedTab === tab
+                    ? "text-[#C72920] border-b-2 border-[#C72920]"
+                    : "text-gray-500"
+                }`}
+                onClick={() => setSelectedTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </CardHeader>
 
         {/* Product Table */}
@@ -324,6 +353,11 @@ const [isModalOpen, setIsModalOpen] = useState(false);
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
                     QC Status
                   </TableHead>
+                  {selectedTab !== "Created" && (
+                    <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
+                      Product Status
+                    </TableHead>
+                  )}
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px]">
                     Action
                   </TableHead>
@@ -333,8 +367,9 @@ const [isModalOpen, setIsModalOpen] = useState(false);
                 {paginatedData.map((product, index) => (
                   <TableRow
                     key={product.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                      }`}
+                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                    }`}
                   >
                     <TableCell className="px-6 py-4">
                       <div className="w-16 h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
@@ -371,29 +406,57 @@ const [isModalOpen, setIsModalOpen] = useState(false);
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={`min-w-[120px] flex justify-between items-center ${getStatusColor(product.qcStatus)} border border-gray-300`}
-                          >
-                            <span className={`font-medium ${getStatusColor(product.qcStatus)}`}>{product.qcStatus}</span>
-                            <ChevronDown className="ml-2 h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {["Created", "Approved", "Rejected"].map((status) => (
-                            <DropdownMenuItem
-                              key={status}
-                              onClick={() => handleQCStatusChange(product.id, status)}
-                              className={`cursor-pointer ${getStatusColor(status)} ${product.qcStatus === status ? 'font-bold' : ''}`}
-                            >
-                              {status}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <span
+                        className={`b2 ${getStatusColor(product.qcStatus)}`}
+                      >
+                        {product.qcStatus}
+                      </span>
                     </TableCell>
+                    {selectedTab !== "Created" && (
+                      <TableCell className="px-6 py-4">
+                        {selectedTab === "Rejected" ? (
+                            <span
+                                  className={`b2 ${getStatusColor(product.liveStatus)}`}
+                                >
+                                  {product.liveStatus}
+                                </span>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-3 hover:bg-gray-100"
+                              >
+                                <span
+                                  className={`b2 ${getStatusColor(product.liveStatus)}`}
+                                >
+                                  {product.liveStatus}
+                                </span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {selectedTab === "Approved" && (
+                                <DropdownMenuItem 
+                                  className="cursor-pointer"
+                                  onClick={() => handleLiveStatusChange(product.id, "Inactive")}
+                                >
+                                  Deactivate Product
+                                </DropdownMenuItem>
+                              )}
+                              {selectedTab === "Pending" && (
+                                <DropdownMenuItem 
+                                  className="cursor-pointer"
+                                  onClick={() => handleLiveStatusChange(product.id, "Approved")}
+                                >
+                                  Activate Product
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="px-6 py-4 text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -429,43 +492,53 @@ const [isModalOpen, setIsModalOpen] = useState(false);
           </div>
 
           {/* Footer - Pagination */}
-            { totalPages > 1 && (
-          <div className="flex justify-center mt-8">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }).map((_, idx) => (
-                  <PaginationItem key={idx + 1}>
-                    <PaginationLink
-                      isActive={currentPage === idx + 1}
-                      onClick={() => setCurrentPage(idx + 1)}
-                      className="cursor-pointer"
-                    >
-                      {idx + 1}
-                    </PaginationLink>
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-8">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
                   </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
+                  {Array.from({ length: totalPages }).map((_, idx) => (
+                    <PaginationItem key={idx + 1}>
+                      <PaginationLink
+                        isActive={currentPage === idx + 1}
+                        onClick={() => setCurrentPage(idx + 1)}
+                        className="cursor-pointer"
+                      >
+                        {idx + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
       <UploadBulkCard
-      isOpen={isModalOpen} 
-      onClose={() => setIsModalOpen(false)} />
- 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }
