@@ -80,7 +80,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   Cookies.remove('role');
   Cookies.remove('lastlogin');
   router.replace('/login');
-  //dispatch(logoutAction());
+  dispatch(logoutAction());
   }
 
   // Removed debug logs
