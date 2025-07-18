@@ -57,9 +57,9 @@ export default function ViewProductDetails() {
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6 space-y-8">
         {/* Core Product Identity */}
-        <div className="mb-8">
+        <div>
           <Productcard
             title="Core Product Identity"
             description="the core identifiers that define the product's identity, brand, and origin."
@@ -77,7 +77,7 @@ export default function ViewProductDetails() {
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Vehicle Compatibility */}
           <Productcard
             title="Vehicle Compatibility"
@@ -107,7 +107,7 @@ export default function ViewProductDetails() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Media & Assets */}
           <Productcard
             title="Media & Assets"

@@ -20,9 +20,9 @@ export function Productcard({ title, description, data, children }: ProductCardP
       <CardContent className="pt-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
           {data.map((item, index) => (
-            <div key={index} className="space-y-1">
-              <div className="text-sm text-gray-600">{item.label}</div>
-              <div className="text-sm font-medium text-gray-900">{item.value}</div>
+            <div key={index} className="flex flex-row items-center justify-between gap-2 sm:block sm:space-y-1">
+              <div className="text-sm text-gray-600 flex-shrink-0">{item.label}</div>
+              <div className="text-sm font-medium text-gray-900 text-right sm:text-left break-words">{item.value}</div>
             </div>
           ))}
         </div>
