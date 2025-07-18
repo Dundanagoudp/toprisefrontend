@@ -197,6 +197,12 @@ export default function ProductManagement() {
     route.push(`/user/dashboard/product/Addproduct`)
     setTimeout(() => setAddProductLoading(false), 1000) // Simulate loading
   }
+  const handleEditProduct = (id: string) => {
+    route.push(`/user/dashboard/product/productedit/${id}`)
+  }
+    const handleViewProduct = (id: string) => {
+    route.push(`/user/dashboard/product/product-details/${id}`)
+  }
 
   const handleUploadBulk = () => {
     setUploadBulkLoading(true)
