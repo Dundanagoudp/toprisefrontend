@@ -20,7 +20,7 @@ const assignedEmployeeSchema = z.object({
 
 export const dealerSchema = z.object({
   email: z.string().email("Invalid email format"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
   phone_Number: z.string().min(10, "Phone number must be at least 10 digits"),
   legal_name: z.string().min(1, "Legal name is required"),
   trade_name: z.string().min(1, "Trade name is required"),
