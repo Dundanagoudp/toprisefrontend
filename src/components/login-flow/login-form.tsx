@@ -37,7 +37,7 @@ export function LoginForm({
     setError(null);
     try {
       const response = await loginUser({ email, password });
-      dispatch(loginSuccess({ email, password }));
+  
       if ( response.data) {
         const { token, user } = response.data;
         const { role, last_login } = user;
@@ -51,7 +51,7 @@ export function LoginForm({
           expires: 1,
           path: "/",
         });
-        dispatch(loginSuccess(response.data));
+        dispatch(loginSuccess({token, role, last_login}));
         router.replace("/user/dashboard");
       } else {
         setError("Login failed");
