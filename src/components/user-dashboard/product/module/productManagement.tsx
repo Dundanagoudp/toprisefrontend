@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { aproveProduct, deactivateProduct } from "@/service/product-Service"
 import { Skeleton } from "@/components/ui/skeleton"
+import uploadFile from "../../../../../public/assets/uploadFile.svg";
 
 // Product type for table
 type Product = {
@@ -99,12 +100,24 @@ export default function ProductManagement() {
   const cardsPerPage = 10
 
   const filteredProducts = React.useMemo(() => {
-    if (selectedTab === "Created") return products
-    if (selectedTab === "Pending") return products.filter((product) => product.liveStatus === "Pending")
-    if (selectedTab === "Approved") return products.filter((product) => product.liveStatus === "Approved")
-    if (selectedTab === "Rejected") return products.filter((product) => product.liveStatus === "Rejected")
-    return products
-  }, [selectedTab, products])
+    // First, filter by tab
+    let tabFiltered = products;
+    if (selectedTab === "Pending") tabFiltered = products.filter((product) => product.liveStatus === "Pending");
+    else if (selectedTab === "Approved") tabFiltered = products.filter((product) => product.liveStatus === "Approved");
+    else if (selectedTab === "Rejected") tabFiltered = products.filter((product) => product.liveStatus === "Rejected");
+    // Now, filter by search query
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.trim().toLowerCase();
+      tabFiltered = tabFiltered.filter((product) =>
+        product.name?.toLowerCase().includes(q) ||
+        product.category?.toLowerCase().includes(q) ||
+        product.brand?.toLowerCase().includes(q) ||
+        product.subCategory?.toLowerCase().includes(q) ||
+        product.productType?.toLowerCase().includes(q)
+      );
+    }
+    return tabFiltered;
+  }, [selectedTab, products, searchQuery]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -279,13 +292,13 @@ export default function ProductManagement() {
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3 w-full lg:w-auto">
               {/* Search Bar */}
               <div className="relative w-full sm:w-80 lg:w-96">
-                <div className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-3 py-2">
-                  <Search className="h-4 w-4 text-[#737373] flex-shrink-0" />
+                <div className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-4 py-0">
+                  <Search className="h-5 w-5 text-[#A3A3A3] flex-shrink-0" />
                   <Input
                     placeholder="Search Spare parts"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#737373] h-auto p-0"
+                    className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#A3A3A3] h-10 p-0 flex-1 outline-none shadow-none"
                   />
                 </div>
               </div>
@@ -317,7 +330,9 @@ export default function ProductManagement() {
                   >
                     {uploadBulkLoading ? (
                       <svg className="animate-spin h-5 w-5 text-[#408EFD]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
-                    ) : <FileUp className="h-4 w-4" />}
+                    ) : (
+                      <Image src={uploadFile} alt="Add" className="h-4 w-4" />
+                    )}
                     <span className="text-[#408EFD] b3">Upload</span>
                   </Button>
                   <Button
