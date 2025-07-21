@@ -93,6 +93,7 @@ export default function ProductManagement() {
   const [productsPerPage] = useState(10)
   const [totalProducts, setTotalProducts] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [bulkMode, setBulkMode] = useState<'upload' | 'edit'>('upload')
   const [loadingTab, setLoadingTab] = useState(false)
   const [addProductLoading, setAddProductLoading] = useState(false)
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false)
@@ -118,6 +119,42 @@ export default function ProductManagement() {
     }
     return tabFiltered;
   }, [selectedTab, products, searchQuery]);
+
+
+  const handleBulkEdit = () => {
+    setBulkMode('edit');
+    setIsModalOpen(true);
+  };
+
+ 
+  const handleBulkApprove = async () => {
+    if (selectedProducts.length === 0) return;
+    try {
+  
+      await Promise.all(selectedProducts.map(async (id) => {
+        await aproveProduct(id);
+        dispatch(updateProductLiveStatus({ id, liveStatus: "Approved" }));
+      }));
+
+      setSelectedProducts([]);
+    } catch (error) {
+      console.error("Bulk approve failed:", error);
+    }
+  };
+    const handleBulkDeactivate = async () => {
+    if (selectedProducts.length === 0) return;
+    try {
+    
+      await Promise.all(selectedProducts.map(async (id) => {
+        await deactivateProduct(id);
+        dispatch(updateProductLiveStatus({ id, liveStatus: "Pending" }));
+      }));
+ 
+      setSelectedProducts([]);
+    } catch (error) {
+      console.error("Bulk approve failed:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -185,21 +222,17 @@ export default function ProductManagement() {
   }
 
   const handleSelectAll = () => {
-    let newSelected
+    let newSelected: string[];
     if (allSelected) {
-      newSelected = selectedProducts.filter((id) => !paginatedData.some((p) => p.id === id))
+    
+      newSelected = [];
     } else {
-      newSelected = [
-        ...selectedProducts,
-        ...paginatedData.filter((p) => !selectedProducts.includes(p.id)).map((p) => p.id),
-      ]
+     
+      newSelected = filteredProducts.map((p) => p.id);
+      console.log("Selecting all products:", newSelected);
     }
-    if (newSelected.length === 1) {
-      setSelectedProducts([])
-    } else {
-      setSelectedProducts(newSelected)
-    }
-  }
+    setSelectedProducts(newSelected);
+  };
 
   useEffect(() => {
     setSelectedProducts([])
@@ -218,9 +251,10 @@ export default function ProductManagement() {
   }
 
   const handleUploadBulk = () => {
-    setUploadBulkLoading(true)
-    setIsModalOpen(true)
-    setTimeout(() => setUploadBulkLoading(false), 1000) // Simulate loading
+    setBulkMode('upload');
+    setUploadBulkLoading(true);
+    setIsModalOpen(true);
+    setTimeout(() => setUploadBulkLoading(false), 1000);// Simulate loading
   }
 
   const handleQCStatusChange = (id: string, newStatus: string) => {
@@ -372,11 +406,22 @@ export default function ProductManagement() {
             {/* Bulk Edit & Created dropdown */}
             {selectedProducts.length > 1 && (
               <div className="flex items-center gap-2 justify-start sm:justify-end">
-                <Button className="bg-gray-200 text-black flex items-center gap-2" variant="outline">
+                <Button className="bg-gray-200 text-black flex items-center gap-2" variant="outline" onClick={handleBulkEdit}>
                   <Pencil className="w-4 h-4" />
                   <span className="hidden sm:inline">Bulk Edit</span>
                 </Button>
-                <Select value={selectedTab} onValueChange={setSelectedTab}>
+                <Select
+                  value={selectedTab}
+                  onValueChange={async (val) => {
+                    setSelectedTab(val);
+                    if (val === "Approved" && selectedProducts.length > 0) {
+                      await handleBulkApprove();
+                    }
+                    if (val === "Pending" && selectedProducts.length > 0) {
+                      await handleBulkDeactivate();
+                    }
+                  }}
+                >
                   <SelectTrigger className="min-w-[120px]">
                     <SelectValue placeholder="Created" />
                   </SelectTrigger>
@@ -686,7 +731,7 @@ export default function ProductManagement() {
           )}
         </CardContent>
       </Card>
-      <UploadBulkCard isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <UploadBulkCard isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} mode={bulkMode} />
     </div>
   )
 }

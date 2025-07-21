@@ -1061,12 +1061,21 @@ export default function AddProducts() {
               <Label htmlFor="returnable" className="text-sm font-medium">
                 Returnable
               </Label>
-              <Input
-                id="returnable"
-                placeholder="Enter Returnable"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("returnable")}
-              />
+              <Select
+                onValueChange={(value) => setValue("returnable", value)}
+                defaultValue="no"
+              >
+                <SelectTrigger
+                  id="returnable"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
               {errors.returnable && (
                 <span className="text-red-500 text-sm">
                   {errors.returnable.message}
