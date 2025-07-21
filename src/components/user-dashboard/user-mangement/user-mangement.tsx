@@ -9,16 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Image from "next/image"
 import addSquare from "../../../../public/assets/addSquare.svg";
-import uploadFile from "../../../../public/assets/uploadFile.svg";
 import { useRouter } from "next/navigation";
-import FileUploadModal from "./module/Employee-upload";
 
 
 export default function Usermangement() {
   const [activeTab, setActiveTab] = useState("employee")
-  const [isUploadModalOpen, setUploadModalOpen] = useState(false);
-  const [uploadLoading, setUploadLoading] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [role, setRole] = useState("");
   const router = useRouter();
 
   return (
@@ -56,46 +54,29 @@ export default function Usermangement() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
             <div className="relative flex-1 max-w-full md:max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input placeholder="Search Spare parts" className="pl-10 bg-gray-50 border-gray-200 w-full" />
+              <Input
+                placeholder="Search Spare parts"
+                className="pl-10 bg-gray-50 border-gray-200 w-full"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
             </div>
-
             <div className="flex items-center gap-3">
-              <Button variant="outline" className="flex items-center gap-2 bg-transparent whitespace-nowrap">
-                <Filter className="w-4 h-4" />
-                Filters
-              </Button>
-
-              <Select defaultValue="role">
+              <Select value={role} onValueChange={setRole} defaultValue="all">
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="role">Role</SelectItem>
+                  <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="dealer">Dealer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="flex items-center gap-3 justify-end">
-            <Button
-              variant="default"
-              className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
-              onClick={async () => {
-                setUploadLoading(true);
-                setUploadModalOpen(true);
-                setTimeout(() => setUploadLoading(false), 1000); // Simulate loading
-              }}
-              disabled={uploadLoading}
-            >
-              {uploadLoading ? (
-                <svg className="animate-spin h-5 w-5 text-[#408EFD]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
-              ) : (
-                <Image src={uploadFile} alt="Add" className="h-4 w-4" />
-              )}
-              <span className="text-[#408EFD] b3">Upload</span>
-            </Button>
             <Button
               className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
               variant="default"
@@ -125,12 +106,10 @@ export default function Usermangement() {
 
       {/* Table Content - Mobile responsive */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        {activeTab === "employee" ? <Employeetable /> : <Dealertable />}
+        {activeTab === "employee"
+          ? <Employeetable />
+          : <Dealertable search={search} role={role === "all" ? "" : role} />}
       </div>
-      <FileUploadModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
-      />
     </div>
   )
 }
