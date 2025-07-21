@@ -109,6 +109,9 @@ export default function AddProducts() {
     },
   });
   const [submitLoading, setSubmitLoading] = useState(false);
+  // 1. Add state for image preview and file
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   useEffect(() => {
     const getCategoryOptions = async () => {
       try {
@@ -137,11 +140,23 @@ export default function AddProducts() {
     getSubCategoryOptions();
   }, []);
 
+  // 3. Update onSubmit to use FormData
   const onSubmit = async (data: FormValues) => {
     setSubmitLoading(true);
     try {
-      await addProduct(data);
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (key !== "images") {
+          formData.append(key, value ?? "");
+        }
+      });
+      if (imageFile) {
+        formData.append("images", imageFile);
+      }
+      await addProduct(formData); // expects FormData
       // Optionally show a toast or reset form here
+      setImageFile(null);
+      setImagePreview(null);
     } finally {
       setSubmitLoading(false);
     }
@@ -673,16 +688,36 @@ export default function AddProducts() {
               <Label htmlFor="images" className="text-sm font-medium">
                 Images
               </Label>
-              <Input
+              <input
                 id="images"
-                placeholder="Upload Image"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("images")}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setImageFile(file);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setImagePreview(reader.result as string);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setImagePreview(null);
+                  }
+                  setValue("images", file ? file.name : ""); // for validation
+                }}
               />
+              <Button
+                type="button"
+                className="bg-gray-50 border border-gray-200 rounded-[8px] p-4 w-full text-left text-gray-700 hover:bg-gray-100"
+                onClick={() => document.getElementById('images')?.click()}
+              >
+                {imageFile ? `Selected: ${imageFile.name}` : 'Choose Image'}
+              </Button>
+              {imagePreview && (
+                <img src={imagePreview} alt="Preview" className="mt-2 max-h-32 rounded border" />
+              )}
               {errors.images && (
-                <span className="text-red-500 text-sm">
-                  {errors.images.message}
-                </span>
+                <span className="text-red-500 text-sm">{errors.images.message}</span>
               )}
             </div>
             {/* Video URL */}
@@ -986,7 +1021,7 @@ export default function AddProducts() {
               )}
             </div>
             {/* SEO Description */}
-            <div className="space-y-2 col-span-full">
+            <div className="space-y-2">
               <Label htmlFor="seoDescription" className="text-sm font-medium">
                 SEO Description
               </Label>
