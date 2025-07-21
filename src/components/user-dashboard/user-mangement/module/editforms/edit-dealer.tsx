@@ -12,11 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
 import { getDealerById, updateDealerById, getAllUsers, getAllCategories } from "@/service/dealerServices"
-import { useToast } from "@/hooks/use-toast"
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 import type { User, Category } from "@/types/dealer-types"
 
 export default function EditDealer() {
-  const { toast } = useToast()
+  const { showToast } = useGlobalToast();
   const router = useRouter()
   const params = useParams()
   const dealerId = params?.id as string
@@ -73,11 +73,7 @@ export default function EditDealer() {
         setUsers(usersResponse.data)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load users. Please refresh the page.",
-        variant: "destructive",
-      })
+      showToast("Failed to load users. Please refresh the page.", "error");
     }
   }
 
@@ -88,11 +84,7 @@ export default function EditDealer() {
         setAllCategories(categoriesResponse.data)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load categories. Please refresh the page.",
-        variant: "destructive",
-      })
+      showToast("Failed to load categories. Please refresh the page.", "error");
     }
   }
 
@@ -114,23 +106,23 @@ export default function EditDealer() {
           Pan: d.Pan,
           Address: d.Address,
           contact_person: d.contact_person,
-          categories_allowed: d.categories_allowed,
+          categories_allowed: Array.isArray(d.categories_allowed)
+            ? d.categories_allowed.map((cat: any) =>
+                typeof cat === "string" ? cat : cat._id
+              )
+            : [],
           upload_access_enabled: d.upload_access_enabled,
           default_margin: d.default_margin,
           last_fulfillment_date: d.last_fulfillment_date,
           assigned_Toprise_employee: d.assigned_Toprise_employee,
           SLA_type: d.SLA_type,
-          dealer_dispatch_time: d.dealer_dispatch_time,
+          dealer_dispatch_time: typeof d.dealer_dispatch_time === "number" ? d.dealer_dispatch_time : 72,
           onboarding_date: d.onboarding_date,
           remarks: d.remarks ?? "",
         })
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load dealer data.",
-        variant: "destructive",
-      })
+      showToast("Failed to load dealer data.", "error");
     } finally {
       setIsLoadingData(false)
     }
@@ -144,19 +136,14 @@ export default function EditDealer() {
       const response = await updateDealerById(dealerId, safeData)
       console.log('Update API response:', response)
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Dealer updated successfully",
-        })
-        router.push("/user/dashboard/user")
+        showToast("Dealer updated successfully", "success");
+        setTimeout(() => {
+          router.push("/user/dashboard/user");
+        }, 2000);
       }
     } catch (error) {
       console.error('Update error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update dealer. Please try again.",
-        variant: "destructive",
-      })
+      showToast("Failed to update dealer. Please try again.", "error");
     } finally {
       setSubmitLoading(false)
     }
@@ -213,7 +200,12 @@ export default function EditDealer() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="dealer@example.com" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input
+                        placeholder="dealer@example.com"
+                        {...field}
+                        readOnly
+                        className="bg-gray-100 border-gray-200 cursor-not-allowed"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -226,7 +218,12 @@ export default function EditDealer() {
                   <FormItem>
                     <FormLabel>Phone Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="9876543210" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input
+                        placeholder="9876543210"
+                        {...field}
+                        readOnly
+                        className="bg-gray-100 border-gray-200 cursor-not-allowed"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
