@@ -85,3 +85,16 @@ export async function getModels(): Promise<ProductResponse> {
     throw error; 
   }
 }
+
+
+
+
+export async function getProductById(productId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/products/v1/get-ProductById/${productId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch product by ID:", error);
+    throw error; 
+  }
+}

@@ -115,7 +115,7 @@ export default function ProductManagement() {
         if (Array.isArray(data)) {
           const mapped = data.map((item) => ({
             id: item._id,
-            image: item.model.model_image,
+            image: item.images[0] || item.model.model_image,
             name: item.product_name || item.manufacturer_part_name || "-",
             category: item.category?.category_name || "-",
             subCategory: item.sub_category?.subcategory_name || "-",
@@ -544,7 +544,7 @@ export default function ProductManagement() {
                             />
                           </div>
                         </TableCell>
-                        <TableCell className="px-6 py-4">
+                        <TableCell className="px-6 py-4 cursor-pointer" onClick={() => handleViewProduct(product.id)}>
                           <div className="font-medium text-gray-900 b2 font-redhat">{product.name}</div>
                           {/* Show category and brand on smaller screens */}
                           <div className="text-xs text-gray-500 mt-1 md:hidden">

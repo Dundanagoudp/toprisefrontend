@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pencil } from "lucide-react"
 import { Productcard } from "./productCard"
-import { getProducts } from "@/service/product-Service"
+import { getProductById, getProducts } from "@/service/product-Service"
+import { useParams } from "next/navigation"
+import { Product } from "@/types/product-Types"
 
 export default function ViewProductDetails() {
   const [status, setStatus] = React.useState("Approved")
+  const [product, setProduct] = React.useState<Product | null>(null)
+  const id = useParams<{ id: string }>()
 
   const getStatusColor = (currentStatus: string) => {
     switch (currentStatus) {
@@ -27,7 +31,16 @@ export default function ViewProductDetails() {
   React.useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await getProducts();
+        const response = await getProductById(id.id);
+        // response is ProductResponse, which has data: Product[]
+        const data = response.data;
+        if (Array.isArray(data) && data.length > 0) {
+          setProduct(data[0]);
+        } else if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+          setProduct(data as Product);
+        } else {
+          setProduct(null);
+        }
         console.log("getProducts API response:", response);
       } catch (error) {
         console.error("getProducts API error:", error);
@@ -76,16 +89,16 @@ export default function ViewProductDetails() {
           <Productcard
             title="Core Product Identity"
             description="the core identifiers that define the product's identity, brand, and origin."
-            data={[
-              { label: "SKU Code", value: "TOP-BRK-000453" },
-              { label: "Manufacturer Part Number (MPN)", value: "BP-456M-VL" },
-              { label: "Product Name", value: "Front Brake Pad" },
-              { label: "Brand", value: "Bosch" },
-              { label: "Category", value: "Braking System" },
-              { label: "Sub-category", value: "Brake Pads" },
-              { label: "Product Type", value: "Aftermarket" },
-              { label: "HSN Code", value: "87083000" },
-            ]}
+            data={product ? [
+              { label: "SKU Code", value: product.sku_code || "-" },
+              { label: "Manufacturer Part Number (MPN)", value: product.manufacturer_part_name || "-" },
+              { label: "Product Name", value: product.product_name || "-" },
+              { label: "Brand", value: product.brand?.brand_name || "-" },
+              { label: "Category", value: product.category?.category_name || "-" },
+              { label: "Sub-category", value: product.sub_category?.subcategory_name || "-" },
+              { label: "Product Type", value: product.product_type || "-" },
+              { label: "HSN Code", value: product.hsn_code || "-" },
+            ] : []}
           />
         </div>
 
@@ -95,28 +108,27 @@ export default function ViewProductDetails() {
           <Productcard
             title="Vehicle Compatibility"
             description="The vehicle make, model, and variant the product is compatible with."
-            data={[
-              { label: "Make", value: "Maruti Suzuki" },
-              { label: "Model", value: "Swift" },
-              { label: "Year Range", value: "2015-2020" },
-              { label: "Variant", value: "ZXI, VXI Petrol" },
-              { label: "Fitment Notes", value: "Only for ABS variants" },
-              { label: "Is Universal", value: "False" },
-            ]}
+            data={product ? [
+              { label: "Make", value: Array.isArray(product.make) ? product.make.join(", ") : "-" },
+              { label: "Model", value: product.model?.model_name || "-" },
+              { label: "Year Range", value: Array.isArray(product.year_range) ? product.year_range.map(y => y.year_name).join(", ") : "-" },
+              { label: "Variant", value: Array.isArray(product.variant) ? product.variant.map(v => v.variant_name).join(", ") : "-" },
+              { label: "Fitment Notes", value: product.fitment_notes || "-" },
+              { label: "Is Universal", value: product.is_universal ? "True" : "False" },
+            ] : []}
           />
 
           {/* Technical Specifications */}
           <Productcard
             title="Technical Specifications"
             description="Relevant technical details to help users understand the product quality and features."
-            data={[
-              { label: "Key Specifications", value: "Ceramic, 18mm" },
-              { label: "Dimensions", value: "90 x 65 x 20" },
-              { label: "Weight", value: "0.45 kg" },
-              { label: "Certifications", value: "ISO 9001, ARAI Certified" },
-              { label: "Warranty", value: "12" },
-              { label: "Is Consumable", value: "True" },
-            ]}
+            data={product ? [
+              { label: "Key Specifications", value: product.key_specifications || "-" },
+              { label: "Dimensions", value: product.weight ? `${product.weight} kg` : "-" },
+              { label: "Certifications", value: product.certifications || "-" },
+              { label: "Warranty", value: product.warranty ? `${product.warranty} months` : "-" },
+              { label: "Is Consumable", value: product.is_consumable ? "True" : "False" },
+            ] : []}
           />
         </div>
 
@@ -129,24 +141,32 @@ export default function ViewProductDetails() {
           >
             <div className="col-span-2 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="aspect-video bg-gray-200 rounded-md" />
+                {product && product.images && product.images.length > 0 ? (
+                  <img src={product.images[0]} alt="Main" className="aspect-video bg-gray-200 rounded-md object-cover" />
+                ) : (
+                  <div className="aspect-video bg-gray-200 rounded-md" />
+                )}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="aspect-square bg-gray-200 rounded-md" />
-                  <div className="aspect-square bg-gray-200 rounded-md" />
-                  <div className="aspect-square bg-gray-200 rounded-md" />
-                  <div className="aspect-square bg-gray-200 rounded-md" />
+                  {product && product.images && product.images.length > 1 ? (
+                    product.images.slice(1, 5).map((img: string, idx: number) => (
+                      <img key={idx} src={img} alt={`img-${idx}`} className="aspect-square bg-gray-200 rounded-md object-cover" />
+                    ))
+                  ) : (
+                    Array.from({ length: 4 }).map((_, idx) => (
+                      <div key={idx} className="aspect-square bg-gray-200 rounded-md" />
+                    ))
+                  )}
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Video URL</span>
-                  <a href="#" className="text-sm font-medium text-blue-600 hover:underline">
-                    Youtube
-                  </a>
+                  {/* No videoUrl in Product, so show N/A */}
+                  <span className="text-sm text-gray-400">N/A</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Brochure Available</span>
-                  <span className="text-sm font-medium text-gray-900">True</span>
+                  <span className="text-sm font-medium text-gray-900">{product && product.brochure_available ? "True" : "False"}</span>
                 </div>
               </div>
             </div>
@@ -156,12 +176,12 @@ export default function ViewProductDetails() {
           <Productcard
             title="Pricing & Tax"
             description="The pricing and tax information required for listing and billing."
-            data={[
-              { label: "MRP (with GST)", value: "₹1,099.00" },
-              { label: "GST %", value: "18" },
-              { label: "Returnable", value: "True" },
-              { label: "Return Policy", value: "sdfghj'jhgfx" },
-            ]}
+            data={product ? [
+              { label: "MRP (with GST)", value: product.mrp_with_gst ? `₹${product.mrp_with_gst}` : "-" },
+              { label: "GST %", value: product.gst_percentage ? String(product.gst_percentage) : "-" },
+              { label: "Returnable", value: product.is_returnable ? "True" : "False" },
+              { label: "Return Policy", value: product.return_policy || "-" },
+            ] : []}
           />
         </div>
 
@@ -171,15 +191,15 @@ export default function ViewProductDetails() {
           <Productcard
             title="Dealer-Level Mapping & Routing"
             description="the core identifiers that define the product's identity, brand, and origin."
-            data={[
-              { label: "Available Dealers", value: "DLR102" },
-              { label: "Quantity per Dealer", value: "DLR102" },
-              { label: "Dealer Margin %", value: "DLR102" },
-              { label: "Dealer Priority Override", value: "DLR102" },
-              { label: "Stock Expiry Rule", value: "Front Brake Pad" },
-              { label: "Last Stock Update", value: "Bosch" },
-              { label: "Last Inquired At", value: "Aftermarket" },
-            ]}
+            data={product ? [
+              { label: "Available Dealers", value: product.available_dealers ? JSON.stringify(product.available_dealers) : "-" },
+              { label: "Quantity per Dealer", value: product.no_of_stock !== undefined ? String(product.no_of_stock) : "-" },
+              // Dealer Margin % not present in Product type
+              { label: "Dealer Priority Override", value: product.fulfillment_priority !== undefined ? String(product.fulfillment_priority) : "-" },
+              // Stock Expiry Rule not present in Product type
+              { label: "Last Stock Update", value: product.available_dealers?.last_stock_update || "-" },
+              { label: "Last Inquired At", value: product.last_stock_inquired || "-" },
+            ] : []}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -187,22 +207,22 @@ export default function ViewProductDetails() {
             <Productcard
               title="SEO & Search Optimization"
               description="The pricing and tax information required for listing and billing."
-              data={[
-                { label: "SEO Title", value: "lkjhxgfghjk" },
-                { label: "SEO Description", value: "qasdf" },
-                { label: "Search Tags", value: "swift pad, disc brake, brake pad petrol" },
-              ]}
+              data={product ? [
+                { label: "SEO Title", value: product.seo_title || "-" },
+                { label: "SEO Description", value: product.seo_description || "-" },
+                { label: "Search Tags", value: Array.isArray(product.search_tags) ? product.search_tags.join(", ") : "-" },
+              ] : []}
             />
 
             {/* Status, Audit & Metadata */}
             <Productcard
               title="Status, Audit & Metadata"
               description="The pricing and tax information required for listing and billing."
-              data={[
-                { label: "Created By", value: "USR102" },
-                { label: "Modified At / By", value: "2025-04-30 11:10 by USR204" },
-                { label: "Change Log", value: "{{field: 'Price', from: 999, to: 1099}}" },
-              ]}
+              data={product ? [
+                { label: "Created By", value: product.created_by || "-" },
+                { label: "Modified At / By", value: product.updated_at || "-" }
+             
+              ] : []}
             />
           </div>
         </div>
