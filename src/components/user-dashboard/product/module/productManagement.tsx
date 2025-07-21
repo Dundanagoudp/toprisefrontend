@@ -292,7 +292,7 @@ export default function ProductManagement() {
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3 w-full lg:w-auto">
               {/* Search Bar */}
               <div className="relative w-full sm:w-80 lg:w-96">
-                <div className="flex items-center gap-2 h-12 rounded-lg bg-[#EBEBEB] px-4 py-0">
+                <div className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-4 py-0">
                   <Search className="h-5 w-5 text-[#A3A3A3] flex-shrink-0" />
                   <Input
                     placeholder="Search Spare parts"
