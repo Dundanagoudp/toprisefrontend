@@ -85,6 +85,15 @@ export async function getModels(): Promise<ProductResponse> {
     throw error; 
   }
 }
+export async function getTypes(): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/types`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+    throw error; 
+  }
+}
 
 
 
@@ -95,6 +104,44 @@ export async function getProductById(productId: string): Promise<ProductResponse
     return response.data;
   } catch (error) {
     console.error("Failed to fetch product by ID:", error);
+    throw error; 
+  }
+}
+export async function getBrandByType(id: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/brands/brandByType/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+    throw error; 
+  }
+}
+
+export async function getModelByBrand(id: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/brands/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+    throw error; 
+  }
+}
+export async function getYearRange(): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/year`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch year range:", error);
+    throw error; 
+  }
+}
+
+export async function getvarientByModel(id: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/variants/model/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch varients:", error);
     throw error; 
   }
 }
