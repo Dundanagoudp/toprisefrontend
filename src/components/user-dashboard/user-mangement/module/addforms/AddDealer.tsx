@@ -12,13 +12,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Badge } from "@/components/ui/badge"
 import { Plus, X } from "lucide-react"
 import { createDealer, getAllUsers, getAllCategories } from "@/service/dealerServices"
-import { useToast } from "@/hooks/use-toast"
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useState, useEffect, Fragment, useRef } from "react"
 import type { User, Category } from "@/types/dealer-types"
 import { useRouter } from "next/navigation"
 
 export default function AddDealer() {
-  const { toast } = useToast()
+  const { showToast } = useGlobalToast();
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -73,11 +73,7 @@ export default function AddDealer() {
       }
     } catch (error) {
       console.error("Failed to fetch users:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load users. Please refresh the page.",
-        variant: "destructive",
-      })
+      showToast("Failed to load users. Please refresh the page.", "error");
     } finally {
       setIsLoadingData(false)
     }
@@ -91,11 +87,7 @@ export default function AddDealer() {
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load categories. Please refresh the page.",
-        variant: "destructive",
-      })
+      showToast("Failed to load categories. Please refresh the page.", "error");
     }
   }
 
@@ -106,19 +98,14 @@ export default function AddDealer() {
       const safeData = { ...data, password: data.password ?? "", remarks: data.remarks ?? "" };
       const response = await createDealer(safeData)
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Dealer created successfully",
-        })
-        router.push("/user/dashboard/user")
+        showToast("Dealer created successfully", "success");
+        setTimeout(() => {
+          router.push("/user/dashboard/user");
+        }, 2000);
       }
     } catch (error) {
       console.error("Failed to create dealer:", error)
-      toast({
-        title: "Error",
-        description: "Failed to create dealer. Please try again.",
-        variant: "destructive",
-      })
+      showToast("Failed to create dealer. Please try again.", "error");
     } finally {
       setSubmitLoading(false)
     }
@@ -138,30 +125,15 @@ export default function AddDealer() {
   }
 
   return (
-    <div className="flex-1 p-4 md:p-6 bg-gray-50 min-h-screen">
+    <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Add Dealer</h1>
-          <p className="text-sm text-gray-500">Add your dealer details</p>
-        </div>
-        <Button
-          type="submit"
-          form="add-dealer-form"
-          disabled={isLoading || submitLoading}
-          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
-        >
-          {(isLoading || submitLoading) ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
-              Saving...
-            </span>
-          ) : "Save"}
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Add Dealer</h1>
+        <p className="text-sm text-gray-500">Add your dealer details</p>
       </div>
 
       <Form {...form}>
-        <form id="add-dealer-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form id="add-dealer-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 relative pb-20">
           {/* Account Information */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
@@ -587,6 +559,21 @@ export default function AddDealer() {
               </div>
             </CardContent>
           </Card>
+          <div className="flex justify-end pt-4">
+            <Button
+              type="submit"
+              form="add-dealer-form"
+              disabled={isLoading || submitLoading}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
+            >
+              {(isLoading || submitLoading) ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                  Adding Dealer...
+                </span>
+              ) : "Add Dealer"}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>

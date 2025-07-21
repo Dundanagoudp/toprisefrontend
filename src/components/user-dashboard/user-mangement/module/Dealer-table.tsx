@@ -20,14 +20,32 @@ import { getAllCategories } from "@/service/dealerServices"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useRef } from "react"
 
-export default function Dealertable() {
+interface DealertableProps {
+  search?: string;
+  role?: string;
+}
+
+export default function Dealertable({ search = "", role = "" }: DealertableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [dealers, setDealers] = useState<Dealer[]>([])
   const [loading, setLoading] = useState(true)
   const itemsPerPage = 10
   const totalItems = dealers.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const paginatedData = dealers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  // Filter dealers by search and role
+  const filteredDealers = dealers.filter(dealer => {
+    const searchLower = search.toLowerCase();
+    const matchesSearch =
+      dealer.legal_name.toLowerCase().includes(searchLower) ||
+      dealer.trade_name.toLowerCase().includes(searchLower) ||
+      dealer.user_id.email.toLowerCase().includes(searchLower) ||
+      dealer.user_id.phone_Number.toLowerCase().includes(searchLower) ||
+      dealer.contact_person.name.toLowerCase().includes(searchLower) ||
+      dealer.contact_person.email.toLowerCase().includes(searchLower);
+    const matchesRole = !role || dealer.user_id.role?.toLowerCase() === role.toLowerCase();
+    return matchesSearch && matchesRole;
+  });
+  const paginatedData = filteredDealers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([])
   const [visibleCount, setVisibleCount] = useState(10)
@@ -115,9 +133,6 @@ export default function Dealertable() {
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">S. No.</th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-                <Checkbox />
-              </th>
               <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Legal Name</th>
               <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Trade Name</th>
               <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Email/Phone</th>
@@ -132,7 +147,6 @@ export default function Dealertable() {
             {[...Array(10)].map((_, idx) => (
               <tr key={idx} className="border-b border-gray-100">
                 <td className="p-3 md:p-4"><Skeleton className="h-4 w-8" /></td>
-                <td className="p-3 md:p-4"><Skeleton className="h-4 w-4 rounded" /></td>
                 <td className="p-3 md:p-4"><Skeleton className="h-4 w-24" /></td>
                 <td className="p-3 md:p-4"><Skeleton className="h-4 w-24" /></td>
                 <td className="p-3 md:p-4"><Skeleton className="h-4 w-28" /></td>
@@ -155,9 +169,6 @@ export default function Dealertable() {
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">S. No.</th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-              <Checkbox />
-            </th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Legal Name</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Trade Name</th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Email/Phone</th>
@@ -169,12 +180,9 @@ export default function Dealertable() {
           </tr>
         </thead>
         <tbody>
-          {dealers.slice(0, visibleCount).map((dealer, index) => (
+          {filteredDealers.slice(0, visibleCount).map((dealer, index) => (
             <tr key={dealer._id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="p-3 md:p-4 text-gray-600 text-sm">{index + 1}</td>
-              <td className="p-3 md:p-4">
-                <Checkbox />
-              </td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">{dealer.legal_name}</td>
               <td className="p-3 md:p-4 font-medium text-gray-900 text-sm">{dealer.trade_name}</td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">
@@ -217,7 +225,6 @@ export default function Dealertable() {
                     <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/dealerview/${dealer._id}`)}>
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </td>
@@ -227,7 +234,6 @@ export default function Dealertable() {
             [...Array(3)].map((_, idx) => (
               <tr key={"skeleton-" + idx} className="border-b border-gray-100">
                 <td className="p-3 md:p-4"><Skeleton className="h-4 w-8" /></td>
-                <td className="p-3 md:p-4"><Skeleton className="h-4 w-4 rounded" /></td>
                 <td className="p-3 md:p-4"><Skeleton className="h-4 w-24" /></td>
                 <td className="p-3 md:p-4"><Skeleton className="h-4 w-24" /></td>
                 <td className="p-3 md:p-4"><Skeleton className="h-4 w-28" /></td>
