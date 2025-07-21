@@ -12,13 +12,15 @@ import {
     DialogFooter,
   } from "@/components/ui/dialog";
 
+
 interface UploadBulkCardProps {
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'upload' | 'edit';
 }
 
 
-export default function UploadBulkCard ({ isOpen, onClose }: UploadBulkCardProps) {
+export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: UploadBulkCardProps) {
     
   const [imageZipFile, setImageZipFile] = useState<File | null>(null);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -52,46 +54,43 @@ export default function UploadBulkCard ({ isOpen, onClose }: UploadBulkCardProps
     onClose();
   };
     const handleUpload = async () => {
-    // Ensure both files are selected before uploading
-    if (!imageZipFile || !csvFile) {
-      setUploadMessage('Please select both the Image.zip and CSV files.');
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadMessage('');
-
-  
-    const formData = new FormData();
-    formData.append('imageZip', imageZipFile);
-    formData.append('dataFile', csvFile);
-
-    try {
-   
-      const response = await uploadBulkProducts(formData);
-      
-
-      if (response.data ) {
-       
-        setUploadMessage(response.message || 'Files uploaded successfully!');
-       
-        setImageZipFile(null);
-        setCsvFile(null);
-      } else {
-  
-    
-        setUploadMessage(response.message || 'Upload failed. Please try again.');
+      // Ensure both files are selected before uploading
+      if (!imageZipFile || !csvFile) {
+        setUploadMessage('Please select both the Image.zip and CSV files.');
+        return;
       }
-    } catch (error: any) { // Specify the type of error as any
-     
-      console.error('Error uploading files:', error);
-      // Set a more specific error message if available from the error object
-      const message = error.response?.data?.message || error.message || 'An error occurred during upload. Please check the console.';
-      setUploadMessage(message);
-    } finally {
-      setIsUploading(false);
-    }
-  };
+
+      setIsUploading(true);
+      setUploadMessage('');
+
+      const formData = new FormData();
+      formData.append('imageZip', imageZipFile);
+      formData.append('dataFile', csvFile);
+
+      try {
+        let response;
+        if (mode === 'edit') {
+          // response = await editUploadBulk(formData);
+          console.log('Editing bulk upload with formData:');
+        } else {
+          response = await uploadBulkProducts(formData);
+        }
+
+        if (response && response.data) {
+          setUploadMessage(response.message || (mode === 'edit' ? 'Files edited successfully!' : 'Files uploaded successfully!'));
+          setImageZipFile(null);
+          setCsvFile(null);
+        } else {
+          setUploadMessage(response?.message || (mode === 'edit' ? 'Edit failed. Please try again.' : 'Upload failed. Please try again.'));
+        }
+      } catch (error: any) {
+        console.error('Error uploading files:', error);
+        const message = error.response?.data?.message || error.message || 'An error occurred during upload. Please check the console.';
+        setUploadMessage(message);
+      } finally {
+        setIsUploading(false);
+      }
+    };
    const handleRemoveFile = (fileType: string) => {
     if (fileType === 'image') {
       setImageZipFile(null);
@@ -180,7 +179,7 @@ return (
       <DialogFooter className="flex justify-end gap-3 pt-4">
         <Button variant="outline" onClick={handleClose}>Cancel</Button>
         <Button className="bg-red-600 text-white hover:bg-red-700" disabled={!imageZipFile || !csvFile || isUploading} onClick={handleUpload}>
-            {isUploading ? 'Uploading...' : 'Upload'}
+            {isUploading ? (mode === 'edit' ? 'Editing...' : 'Uploading...') : (mode === 'edit' ? 'Edit Bulk' : 'Upload')}
         </Button>
       </DialogFooter>
     </DialogContent>
