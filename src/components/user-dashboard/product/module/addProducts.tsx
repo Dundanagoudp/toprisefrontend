@@ -22,9 +22,14 @@ import {
 } from "@/components/ui/select";
 import {
   addProduct,
+  getBrandByType,
   getCategories,
+  getModelByBrand,
   getModels,
   getSubCategories,
+  getTypes,
+  getvarientByModel,
+  getYearRange,
 } from "@/service/product-Service";
 import { useEffect, useState } from "react";
 
@@ -75,6 +80,7 @@ const schema = z.object({
   dealerPriorityOverride: z.string().optional(),
   stockExpiryRule: z.string().optional(),
   lastStockUpdate: z.string().optional(),
+  LastinquiredAt: z.string().optional(),
 
   // Status, Audit & Metadata
   active: z.string().optional(),
@@ -94,10 +100,20 @@ export default function AddProducts() {
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
   const [subCategoryOptions, setSubCategoryOptions] = useState<any[]>([]);
   const [modelOptions, setModelOptions] = useState<any[]>([]);
+  const [typeOptions, setTypeOptions] = useState<any[]>([]);
+  const [brandOptions, setBrandOptions] = useState<any[]>([]);
+  const [filteredBrandOptions, setFilteredBrandOptions] = useState<any[]>([]);
+  const [selectedProductTypeId, setSelectedProductTypeId] =
+    useState<string>("");
+  const [selectedbrandId, setSelectedBrandId] = useState<string>("");
+  const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
+  const [varientOptions, setVarientOptions] = useState<any[]>([]);
+  const [modelId, setModelId] = useState<string>("");
   const {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -122,13 +138,13 @@ export default function AddProducts() {
 
     getCategoryOptions();
   }, []);
+
   useEffect(() => {
     const getSubCategoryOptions = async () => {
       try {
         const response = await getSubCategories();
-       const model = await getModels();
+
         setSubCategoryOptions(response.data.map((category: any) => category));
-        setModelOptions(model.data.map((model: any) => model));
       } catch (error) {
         console.error("Failed to fetch category options:", error);
       }
@@ -137,11 +153,89 @@ export default function AddProducts() {
     getSubCategoryOptions();
   }, []);
 
+  useEffect(() => {
+    if (!selectedProductTypeId) {
+      setFilteredBrandOptions([]);
+      return;
+    }
+    const fetchBrandsByType = async () => {
+      try {
+        const response = await getBrandByType(selectedProductTypeId);
+        setFilteredBrandOptions(response.data.map((brand: any) => brand));
+      } catch (error) {
+        setFilteredBrandOptions([]);
+        console.error("Failed to fetch brands by type:", error);
+      }
+    };
+    fetchBrandsByType();
+  }, [selectedProductTypeId]);
+  useEffect(() => {
+    if (!selectedbrandId) {
+      setModelOptions([]);
+      return;
+    }
+    const fetchModelsByBrand = async () => {
+      try {
+        const response = await getModelByBrand(selectedbrandId);
+        setModelOptions(response.data.map((model: any) => model));
+        console.log("Model Options:", response.data);
+      } catch (error) {
+        setModelOptions([]);
+        console.error("Failed to fetch models by brand:", error);
+      }
+    };
+    fetchModelsByBrand();
+  }, [selectedbrandId]);
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const response = await getTypes();
+        setTypeOptions(response.data.map((type: any) => type));
+        console.log("Type Options:", response.data);
+      } catch (error) {
+        console.error("Failed to fetch type options:", error);
+      }
+    };
+    fetchTypes();
+  }, []);
+  useEffect(() => {
+    if (!modelId) {
+      setVarientOptions([]);
+    }
+    const fetchVarientByModel = async () => {
+      try {
+        const response = await getvarientByModel(modelId);
+        setVarientOptions(response.data.map((varient: any) => varient));
+        console.log("Varient Options:", response.data);
+      } catch (error) {
+        console.error("Failed to fetch varient options:", error);
+      }
+    };
+    fetchVarientByModel();
+  }, [modelId]);
+  useEffect(() => {
+    const fetchYearRange = async () => {
+      try {
+        const response = await getYearRange();
+        setYearRangeOptions(response.data.map((year: any) => year));
+        console.log("Year Range Options:", response.data);
+      } catch (error) {
+        console.error("Failed to fetch year range options:", error);
+      }
+    };
+    fetchYearRange();
+  }, []);
   const onSubmit = async (data: FormValues) => {
     setSubmitLoading(true);
     try {
-      await addProduct(data);
-      // Optionally show a toast or reset form here
+      console.log("Form Data:", data);
+      const response = await addProduct(data);
+      console.log('Product added:', response);
+      // Only reset the form if the product was added successfully
+      reset();
+    } catch (error) {
+      console.error('Failed to add product:', error);
     } finally {
       setSubmitLoading(false);
     }
@@ -342,7 +436,15 @@ export default function AddProducts() {
               <Label htmlFor="productType" className="text-sm font-medium">
                 Product Type
               </Label>
-              <Select onValueChange={(value) => setValue("productType", value)}>
+              <Select
+                onValueChange={(value) => {
+                  setValue("productType", value);
+                  const found = typeOptions.find(
+                    (cat: any) => cat.type_name === value
+                  );
+                  setSelectedProductTypeId(found?._id || "");
+                }}
+              >
                 <SelectTrigger
                   id="productType"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
@@ -350,9 +452,20 @@ export default function AddProducts() {
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OE">OE</SelectItem>
-                  <SelectItem value="OES">OES</SelectItem>
-                  <SelectItem value="AFTER MARKET">AFTER MARKET</SelectItem>
+                  {typeOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      Loading...
+                    </SelectItem>
+                  ) : (
+                    typeOptions.map((cat) => (
+                      <SelectItem
+                        key={cat._id || cat.type_name}
+                        value={cat.type_name}
+                      >
+                        {cat.type_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.productType && (
@@ -381,7 +494,15 @@ export default function AddProducts() {
               <Label htmlFor="make" className="text-sm font-medium">
                 Make
               </Label>
-              <Select onValueChange={(value) => setValue("make", value)}>
+              <Select
+                onValueChange={(value) => {
+                  setValue("make", value);
+                  const found = filteredBrandOptions.find(
+                    (cat: any) => cat.brand_name === value
+                  );
+                  setSelectedBrandId(found?._id || "");
+                }}
+              >
                 <SelectTrigger
                   id="make"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
@@ -389,8 +510,17 @@ export default function AddProducts() {
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="make1">Make 1</SelectItem>
-                  <SelectItem value="make2">Make 2</SelectItem>
+                  {filteredBrandOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      Please select Product Type first
+                    </SelectItem>
+                  ) : (
+                    filteredBrandOptions.map((option) => (
+                      <SelectItem key={option._id} value={option.brand_name}>
+                        {option.brand_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.make && (
@@ -399,12 +529,21 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
+
             {/* Model */}
             <div className="space-y-2">
               <Label htmlFor="model" className="text-sm font-medium">
                 Model
               </Label>
-              <Select onValueChange={(value) => setValue("model", value)}>
+              <Select
+                onValueChange={(value) => {
+                  setValue("model", value);
+                  const found = modelOptions.find(
+                    (cat: any) => cat.model_name === value
+                  );
+                  setModelId(found?._id || "");
+                }}
+              >
                 <SelectTrigger
                   id="model"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
@@ -412,21 +551,21 @@ export default function AddProducts() {
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                {modelOptions.length === 0 ? (
-                  <SelectItem value="loading" disabled>
-                    Loading...
-                  </SelectItem>
-                ) : (
-                  modelOptions.map((option) => (
-                    <SelectItem
-                      key={option._id || option.model_name}
-                      value={option.model_name}
-                    >
-                      {option.model_name}
+                  {selectedbrandId && modelOptions.length === 0 ? (
+                    <SelectItem value="no-models" disabled>
+                      No models found 
                     </SelectItem>
-                    
-                ))
-                )}
+                  ) : modelOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      Please select Make first
+                    </SelectItem>
+                  ) : (
+                    modelOptions.map((option) => (
+                      <SelectItem key={option._id} value={option.model_name}>
+                        {option.model_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.model && (
@@ -448,8 +587,17 @@ export default function AddProducts() {
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2020-2022">2020-2022</SelectItem>
-                  <SelectItem value="2023-2025">2023-2025</SelectItem>
+                  {yearRangeOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      Loading...
+                    </SelectItem>
+                  ) : (
+                    yearRangeOptions.map((option) => (
+                      <SelectItem key={option._id} value={option.year_name}>
+                        {option.year_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.yearRange && (
@@ -471,8 +619,19 @@ export default function AddProducts() {
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="variant1">Variant 1</SelectItem>
-                  <SelectItem value="variant2">Variant 2</SelectItem>
+                  {varientOptions.length === 0 && modelId.length === 0 ? (
+                    <SelectItem value="no-varient" disabled> Vairent not found </SelectItem>
+                  ) : varientOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      please select model first
+                    </SelectItem>
+                  ) : (
+                    varientOptions.map((option) => (
+                      <SelectItem key={option._id} value={option.variant_name}>
+                        {option.variant_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.variant && (
@@ -936,6 +1095,22 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
+                 <div className="space-y-2">
+              <Label htmlFor="LastinquiredAt" className="text-sm font-medium">
+                Last inquired At
+              </Label>
+              <Input
+                id="Enter "
+                placeholder="Enter Margin"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("LastinquiredAt")}
+              />
+              {errors.dealerMargin && (
+                <span className="text-red-500 text-sm">
+                  {errors.dealerMargin.message}
+                </span>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -1012,10 +1187,31 @@ export default function AddProducts() {
           >
             {submitLoading ? (
               <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  ></path>
+                </svg>
                 Adding...
               </span>
-            ) : "Add Product"}
+            ) : (
+              "Add Product"
+            )}
           </Button>
         </div>
       </form>
