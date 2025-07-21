@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter } from "next/navigation"
 import TicketIcon,{ BoxIcon ,DashboardIcon,userIcon} from "./ui/TicketIcon"
+import { title } from "process"
 
 // This is sample data.
 const data = {
@@ -62,6 +63,11 @@ const data = {
       title: "Pricing & Margin Management",
       url: "/user/dashboard/PricingMarginMangement",
       icon: TicketIcon,
+    },
+    {
+      title:"Order Management",
+      url: "/user/dashboard/order",
+      icon: Bot,
     }
   ],
 }

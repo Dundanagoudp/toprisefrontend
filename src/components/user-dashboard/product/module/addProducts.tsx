@@ -43,36 +43,37 @@ const schema = z.object({
   category: z.string().min(1, "Category is required"),
   subCategory: z.string().min(1, "Sub-category is required"),
   productType: z.string().min(1, "Product type is required"),
-
+  // Added fields
+  noOfStock: z.coerce.number().int({ message: "No. of Stock must be an integer" }),
+  sellingPrice: z.coerce.number().int({ message: "Selling Price must be an integer" }),
+  updatedBy: z.string().optional(),
+  fulfillmentPriority: z.coerce.number().int({ message: "Fulfillment Priority must be an integer" }).optional(),
+  adminNotes: z.string().optional(),
   // Vehicle Compatibility
   make: z.string().min(1, "Make is required"),
+  make2: z.string().optional(),
   model: z.string().min(1, "Model is required"),
   yearRange: z.string().optional(),
   variant: z.string().min(1, "Variant is required"),
   fitmentNotes: z.string().optional(),
   isUniversal: z.string().optional(),
   isConsumable: z.string().optional(),
-
   // Technical Specifications
   keySpecifications: z.string().optional(),
   dimensions: z.string().optional(),
   weight: z.string().optional(),
   certifications: z.string().optional(),
   warranty: z.string().optional(),
-
   // Media & Documentation
   images: z.string().optional(), // Assuming string for now, could be FileList later
   videoUrl: z.string().optional(),
   brouchureAvailable: z.string().optional(),
-
   // Pricing details
   mrp: z.string().min(1, "MRP is required"),
   gst: z.string().min(1, "GST is required"),
-
   // Return & Availability
   returnable: z.string().min(1, "Returnable is required"),
   returnPolicy: z.string().min(1, "Return Policy is required"),
-
   // Dealer-Level Mapping & Routing
   availableDealers: z.string().optional(),
   quantityPerDealer: z.string().optional(),
@@ -81,16 +82,15 @@ const schema = z.object({
   stockExpiryRule: z.string().optional(),
   lastStockUpdate: z.string().optional(),
   LastinquiredAt: z.string().optional(),
-
   // Status, Audit & Metadata
   active: z.string().optional(),
   createdBy: z.string().optional(),
   modifiedAtBy: z.string().optional(),
   changeLog: z.string().optional(),
-
   // SEO & Search Optimization
   seoTitle: z.string().optional(),
   searchTags: z.string().optional(),
+  searchTagsArray: z.array(z.string()).optional(),
   seoDescription: z.string().optional(),
 });
 
@@ -116,7 +116,7 @@ export default function AddProducts() {
     reset,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     defaultValues: {
       isUniversal: "no",
       isConsumable: "no",
@@ -234,12 +234,24 @@ export default function AddProducts() {
     try {
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
-        if (key !== "images") {
-          formData.append(key, value ?? "");
+        if (key !== "images" && key !== "searchTagsArray") {
+          // If value is an array, join as comma-separated string
+          if (Array.isArray(value)) {
+            formData.append(key, value.join(","));
+          } else if (typeof value === "number") {
+            formData.append(key, value.toString());
+          } else {
+            formData.append(key, value ?? "");
+          }
         }
       });
       if (imageFile) {
         formData.append("images", imageFile);
+      }
+      if (data.searchTagsArray && Array.isArray(data.searchTagsArray)) {
+        data.searchTagsArray.forEach((tag, idx) => {
+          formData.append(`searchTagsArray[${idx}]`, tag);
+        });
       }
       await addProduct(formData); // expects FormData
       // Optionally show a toast or reset form here
@@ -293,6 +305,26 @@ export default function AddProducts() {
               {errors.skuCode && (
                 <span className="text-red-500 text-sm">
                   {errors.skuCode.message}
+                </span>
+              )}
+            </div>
+            {/* No. of Stock */}
+            <div className="space-y-2">
+              <Label htmlFor="noOfStock" className="text-sm font-medium">
+                No. of Stock
+              </Label>
+              <Input
+                id="noOfStock"
+                type="number"
+                step="1"
+                min="0"
+                placeholder="Enter No. of Stock"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("noOfStock", { valueAsNumber: true })}
+              />
+              {errors.noOfStock && (
+                <span className="text-red-500 text-sm">
+                  {errors.noOfStock.message}
                 </span>
               )}
             </div>
@@ -501,7 +533,7 @@ export default function AddProducts() {
             {/* Make */}
             <div className="space-y-2">
               <Label htmlFor="make" className="text-sm font-medium">
-                Make
+                Make 1
               </Label>
               <Select
                 onValueChange={(value) => {
@@ -538,7 +570,23 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-
+            {/* Make 2 */}
+            <div className="space-y-2">
+              <Label htmlFor="make2" className="text-sm font-medium">
+                Make 2
+              </Label>
+              <Input
+                id="make2"
+                placeholder="Enter Make 2 (optional)"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("make2")}
+              />
+              {errors.make2 && (
+                <span className="text-red-500 text-sm">
+                  {errors.make2.message}
+                </span>
+              )}
+            </div>
             {/* Model */}
             <div className="space-y-2">
               <Label htmlFor="model" className="text-sm font-medium">
@@ -663,6 +711,26 @@ export default function AddProducts() {
               {errors.fitmentNotes && (
                 <span className="text-red-500 text-sm">
                   {errors.fitmentNotes.message}
+                </span>
+              )}
+            </div>
+            {/* Fulfillment Priority */}
+            <div className="space-y-2">
+              <Label htmlFor="fulfillmentPriority" className="text-sm font-medium">
+                Fulfillment Priority
+              </Label>
+              <Input
+                id="fulfillmentPriority"
+                type="number"
+                step="1"
+                min="0"
+                placeholder="Enter Fulfillment Priority"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("fulfillmentPriority", { valueAsNumber: true })}
+              />
+              {errors.fulfillmentPriority && (
+                <span className="text-red-500 text-sm">
+                  {errors.fulfillmentPriority.message}
                 </span>
               )}
             </div>
@@ -951,6 +1019,26 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
+            {/* Selling Price */}
+            <div className="space-y-2">
+              <Label htmlFor="sellingPrice" className="text-sm font-medium">
+                Selling Price
+              </Label>
+              <Input
+                id="sellingPrice"
+                type="number"
+                step="1"
+                min="0"
+                placeholder="Enter Selling Price"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("sellingPrice", { valueAsNumber: true })}
+              />
+              {errors.sellingPrice && (
+                <span className="text-red-500 text-sm">
+                  {errors.sellingPrice.message}
+                </span>
+              )}
+            </div>
             {/* GST % */}
             <div className="space-y-2">
               <Label htmlFor="gst" className="text-sm font-medium">
@@ -1124,19 +1212,20 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-                 <div className="space-y-2">
-              <Label htmlFor="LastinquiredAt" className="text-sm font-medium">
-                Last inquired At
+            {/* Admin Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="adminNotes" className="text-sm font-medium">
+                Admin Notes
               </Label>
               <Input
-                id="Enter "
-                placeholder="Enter Margin"
+                id="adminNotes"
+                placeholder="Enter Admin Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("LastinquiredAt")}
+                {...register("adminNotes")}
               />
-              {errors.dealerMargin && (
+              {errors.adminNotes && (
                 <span className="text-red-500 text-sm">
-                  {errors.dealerMargin.message}
+                  {errors.adminNotes.message}
                 </span>
               )}
             </div>
@@ -1172,20 +1261,20 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Search Tags */}
+            {/* Search Tags (comma separated) */}
             <div className="space-y-2">
-              <Label htmlFor="searchTags" className="text-sm font-medium">
-                Search Tags
+              <Label htmlFor="searchTagsArray" className="text-sm font-medium">
+                Search Tags (multiple, comma separated)
               </Label>
               <Input
-                id="searchTags"
-                placeholder="Enter Search Tags"
+                id="searchTagsArray"
+                placeholder="Enter tags separated by commas"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("searchTags")}
+                onChange={e => setValue("searchTagsArray", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
               />
-              {errors.searchTags && (
+              {errors.searchTagsArray && (
                 <span className="text-red-500 text-sm">
-                  {errors.searchTags.message}
+                  {errors.searchTagsArray.message}
                 </span>
               )}
             </div>
