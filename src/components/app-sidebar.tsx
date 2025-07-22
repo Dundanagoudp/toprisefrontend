@@ -3,6 +3,7 @@
 import * as React from "react"
 import {
   Bot,
+  Box,
   Frame,
   GalleryVerticalEnd,
   LayoutDashboard,
@@ -68,6 +69,11 @@ const data = {
       title:"Order Management",
       url: "/user/dashboard/order",
       icon: Bot,
+    },
+    {
+      title:"Return Claims",
+      url: "/user/dashboard/returnclaims",
+      icon: Box,
     }
   ],
 }
@@ -111,9 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <Button
           variant="ghost"
           className="w-full justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-destructive font-normal text-base gap-2"
-
           onClick={handleLogout}
-
         >
           <LogOutIcon className="w-5 h-5" />
           {expanded && "Logout"}
