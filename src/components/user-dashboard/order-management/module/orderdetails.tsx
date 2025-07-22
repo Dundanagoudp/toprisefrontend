@@ -413,7 +413,22 @@ export default function OrderDetailsView() {
 
                     {/* Step Content */}
                     <div className="flex-1 min-w-0 pb-6">
-                      <h3 className="font-semibold text-gray-900 mb-1">{step.title}</h3>
+                      <div className="flex items-center gap-1 mb-1">
+                        <h3 className="font-semibold text-gray-900">{step.title}</h3>
+                        {index === 0 && (
+                          <button
+                            type="button"
+                            aria-label="Edit Order Confirmation"
+                            style={{ marginLeft: 10, display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                            className="focus:outline-none focus:ring-2 focus:ring-red-200 rounded transition hover:scale-110"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E53935" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pen-line-icon" style={{ verticalAlign: 'middle' }}>
+                              <path d="M13 21h8" />
+                              <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-700 mb-1">{step.description}</p>
                       {step.time && <p className="text-xs text-gray-500 mb-2">{step.time}</p>}
 
