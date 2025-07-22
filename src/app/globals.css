@@ -334,9 +334,9 @@
   .xl\:max-w-5xl { max-width: 64rem; }
 }
 
-/* @media (width >= 40rem) {
+@media (width >= 40rem) {
   .sm\:max-w-lg {
-    max-width: 60rem;
+    max-width: 50rem;
   }
-} */
+}
 
