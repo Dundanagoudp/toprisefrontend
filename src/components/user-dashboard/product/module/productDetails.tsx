@@ -6,13 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pencil } from "lucide-react"
 import { Productcard } from "./productCard"
 import { getProductById, getProducts } from "@/service/product-Service"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { Product } from "@/types/product-Types"
 
 export default function ViewProductDetails() {
   const [status, setStatus] = React.useState("Approved")
   const [product, setProduct] = React.useState<Product | null>(null)
   const id = useParams<{ id: string }>()
+  const router = useRouter()
 
   const getStatusColor = (currentStatus: string) => {
     switch (currentStatus) {
@@ -27,6 +28,10 @@ export default function ViewProductDetails() {
       default:
         return "text-gray-600 bg-gray-50 border-gray-200"
     }
+  }
+
+  const handleEdit = (idObj: { id: string }) => {
+    router.push(`/user/dashboard/product/productedit/${idObj.id}`)
   }
   React.useEffect(() => {
     const fetchProducts = async () => {
@@ -74,6 +79,7 @@ export default function ViewProductDetails() {
             <Button
               variant="outline"
               className="flex items-center gap-2 bg-red-50 border-red-200 hover:bg-red-100 text-red-600"
+              onClick={() => handleEdit(id)}
             >
               <Pencil className="h-4 w-4" />
               Edit

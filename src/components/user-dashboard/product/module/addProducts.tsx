@@ -365,23 +365,7 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Brand */}
-            <div className="space-y-2">
-              <Label htmlFor="brand" className="text-sm font-medium">
-                Brand
-              </Label>
-              <Input
-                id="brand"
-                placeholder="Enter Brand"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("brand")}
-              />
-              {errors.brand && (
-                <span className="text-red-500 text-sm">
-                  {errors.brand.message}
-                </span>
-              )}
-            </div>
+
             {/* HSN Code */}
             <div className="space-y-2">
               <Label htmlFor="hsnCode" className="text-sm font-medium">
@@ -570,23 +554,7 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Make 2 */}
-            <div className="space-y-2">
-              <Label htmlFor="make2" className="text-sm font-medium">
-                Make 2
-              </Label>
-              <Input
-                id="make2"
-                placeholder="Enter Make 2 (optional)"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("make2")}
-              />
-              {errors.make2 && (
-                <span className="text-red-500 text-sm">
-                  {errors.make2.message}
-                </span>
-              )}
-            </div>
+
             {/* Model */}
             <div className="space-y-2">
               <Label htmlFor="model" className="text-sm font-medium">

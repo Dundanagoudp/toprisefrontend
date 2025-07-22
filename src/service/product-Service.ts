@@ -145,3 +145,19 @@ export async function getvarientByModel(id: string): Promise<ProductResponse> {
     throw error; 
   }
 }
+
+
+type FormValues = {
+
+  [key: string]: any;
+};
+
+export async function editProduct(productId: string, data: Partial<FormValues>): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.put(`/category/products/v1/updateProduct/${productId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to edit product:", error);
+    throw error; 
+  }
+}
