@@ -294,3 +294,9 @@
   color: var(--new-300) !important;
 }
 
+@media (width >= 40rem) {
+  .sm\:max-w-lg {
+    max-width: 50rem;
+  }
+}
+

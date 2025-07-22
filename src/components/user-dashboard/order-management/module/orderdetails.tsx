@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import DealerIdentification from "./order-popus/dealerIdentification"
+import { Textarea } from "@/components/ui/textarea"
+import DealerIdentification from "@/components/user-dashboard/order-management/module/order-popus/dealerIdentification" // Correct import path
+import CancelOrderModal from "@/components/user-dashboard/order-management/module/order-popus/cancelorder"
 
 interface ProductItem {
   id: string
@@ -91,9 +93,9 @@ const trackingSteps = [
 
 export default function OrderDetailsView() {
   const [loading, setLoading] = useState(true)
-  // Modal state for DealerIdentification
   const [dealerModalOpen, setDealerModalOpen] = useState(false)
-  const [selectedDealer, setSelectedDealer] = useState<any>(null)
+  const [selectedDealer, setSelectedDealer] = useState<any>(null) // State to hold dealer data for the modal
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
 
   // Simulate loading
   useEffect(() => {
@@ -106,7 +108,7 @@ export default function OrderDetailsView() {
 
   // Loading Skeleton Component
   const LoadingSkeleton = () => (
-    <div className="p-3 sm:p-4 lg:p-6 bg-gray-50 min-h-screen">
+    <div className="p-3 sm:p-4 lg:p-6 bg-(neutral-100)-50 min-h-screen">
       {/* Header Skeleton */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 lg:mb-8">
         <div>
@@ -194,40 +196,47 @@ export default function OrderDetailsView() {
               </div>
             </CardHeader>
             <CardContent>
-              {/* Table Skeleton */}
-              <div className="space-y-3">
-                {[...Array(4)].map((_, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-start gap-3 mb-3">
-                      <Skeleton className="w-10 h-10 lg:w-12 lg:h-12 rounded flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <Skeleton className="h-3 lg:h-4 w-32 lg:w-40 mb-1" />
-                        <div className="flex items-center gap-1 mb-2">
-                          <Skeleton className="h-3 w-12 lg:w-16" />
-                          <Skeleton className="h-3 w-8 lg:w-12" />
-                          <Skeleton className="w-3 h-3 lg:w-4 lg:h-4 rounded-full" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-6 lg:w-8" />
-                        <Skeleton className="h-3 w-8 lg:w-12" />
-                      </div>
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-6 lg:w-8" />
-                        <Skeleton className="h-3 w-6 lg:w-8" />
-                      </div>
-                      <div className="flex justify-between col-span-2">
-                        <Skeleton className="h-3 w-12 lg:w-16" />
-                        <Skeleton className="h-3 w-12 lg:w-16" />
-                      </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <Skeleton className="h-6 lg:h-8 w-12 lg:w-16" />
-                    </div>
-                  </div>
-                ))}
+              {/* Desktop Table Skeleton Only */}
+              <div className="w-full">
+                <table className="w-full table-fixed">
+                  <thead className="border-b border-gray-200">
+                    <tr>
+                      <th className="py-3 px-4"><Skeleton className="h-3 w-24" /></th>
+                      <th className="py-3 px-2"><Skeleton className="h-3 w-16" /></th>
+                      <th className="py-3 px-2"><Skeleton className="h-3 w-12" /></th>
+                      <th className="py-3 px-2"><Skeleton className="h-3 w-8" /></th>
+                      <th className="py-3 px-2"><Skeleton className="h-3 w-16" /></th>
+                      <th className="py-3 px-2"><Skeleton className="h-3 w-16" /></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...Array(4)].map((_, idx) => (
+                      <tr key={idx} className="border-b border-gray-100">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="w-8 h-8 rounded" />
+                            <Skeleton className="h-3 w-32" />
+                          </div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <Skeleton className="h-3 w-16" />
+                        </td>
+                        <td className="py-3 px-2">
+                          <Skeleton className="h-3 w-12" />
+                        </td>
+                        <td className="py-3 px-2">
+                          <Skeleton className="h-3 w-8" />
+                        </td>
+                        <td className="py-3 px-2">
+                          <Skeleton className="h-3 w-16" />
+                        </td>
+                        <td className="py-3 px-2">
+                          <Skeleton className="h-6 w-16 rounded" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
@@ -265,7 +274,8 @@ export default function OrderDetailsView() {
 
   // Handler to open modal with dealer data
   const handleDealerEyeClick = (dealerId: string) => {
-    // In real app, fetch dealer data by dealerId. Here, use mock data from mockProducts
+    // In a real app, you would fetch dealer data by dealerId from your backend.
+    // For now, we'll use a mock dealer data object.
     const dealer = {
       dealerId: dealerId,
       legalName: "Shree Auto Spares Pvt Ltd",
@@ -297,7 +307,15 @@ export default function OrderDetailsView() {
           </Badge>
           <Button
             variant="outline"
+            className="flex items-center gap-2 border-red-400 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-500 px-6 py-2 rounded-lg font-medium text-base h-10 shadow-none focus:ring-2 focus:ring-red-100"
+          >
+            <img src="/upload/upload.png" alt="Upload" className="w-5 h-5" />
+            Upload
+          </Button>
+          <Button
+            variant="outline"
             className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10"
+            onClick={() => setCancelModalOpen(true)}
           >
             Cancel Order
           </Button>
@@ -446,7 +464,10 @@ export default function OrderDetailsView() {
                                   <p className="text-xs font-medium text-gray-900 leading-tight truncate">
                                     {product.name}
                                   </p>
-                                  <Eye className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                                  <Eye
+                                    className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer"
+                                    onClick={() => handleDealerEyeClick(product.dealerId)}
+                                  />
                                 </div>
                               </div>
                             </div>
@@ -454,7 +475,10 @@ export default function OrderDetailsView() {
                           <td className="py-3 px-2 align-middle w-[15%]">
                             <div className="flex items-center gap-1">
                               <span className="text-xs text-gray-900 font-semibold truncate">{product.dealerId}</span>
-                              <Eye className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer" onClick={() => handleDealerEyeClick(product.dealerId)} />
+                              <Eye
+                                className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer"
+                                onClick={() => handleDealerEyeClick(product.dealerId)}
+                              />
                             </div>
                           </td>
                           <td className="py-3 px-2 text-xs text-gray-900 w-[12%]">₹{product.mrp.toFixed(2)}</td>
@@ -518,12 +542,18 @@ export default function OrderDetailsView() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-medium text-gray-900 text-sm truncate">{product.name}</h3>
-                          <Eye className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                          <Eye
+                            className="w-4 h-4 text-gray-500 flex-shrink-0 cursor-pointer"
+                            onClick={() => handleDealerEyeClick(product.dealerId)}
+                          />
                         </div>
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-xs sm:text-sm text-gray-600">Dealer ID:</span>
                           <span className="text-xs sm:text-sm text-gray-900 font-semibold">{product.dealerId}</span>
-                          <Eye className="w-4 h-4 text-gray-500 flex-shrink-0 cursor-pointer" onClick={() => handleDealerEyeClick(product.dealerId)} />
+                          <Eye
+                            className="w-4 h-4 text-gray-500 flex-shrink-0 cursor-pointer"
+                            onClick={() => handleDealerEyeClick(product.dealerId)}
+                          />
                         </div>
                       </div>
                     </div>
@@ -584,7 +614,7 @@ export default function OrderDetailsView() {
           </Card>
 
           {/* Update Orders Status Card */}
-          <Card className="border border-gray-200 shadow-sm mt-6 min-h-[400px]">
+          <Card className="border border-gray-200 shadow-sm">
             <CardHeader className="pb-3 lg:pb-4">
               <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Update Orders Status</CardTitle>
             </CardHeader>
@@ -620,12 +650,36 @@ export default function OrderDetailsView() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <label htmlFor="remark" className="text-xs sm:text-sm font-medium text-gray-900">
+                  Remark
+                </label>
+                <Textarea
+                  id="remark"
+                  placeholder="Add remarks here..."
+                  className="w-full bg-white border-gray-300 min-h-[80px]"
+                />
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button className="bg-red-600 text-white hover:bg-red-700 px-6 py-2 text-sm sm:text-base h-auto">
+                  Update
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
       {/* DealerIdentification Modal */}
-      <DealerIdentification isOpen={dealerModalOpen} onClose={() => setDealerModalOpen(false)} dealerData={selectedDealer} />
+      <DealerIdentification
+        isOpen={dealerModalOpen}
+        onClose={() => setDealerModalOpen(false)}
+        dealerData={selectedDealer}
+      />
+      {/* CancelOrder Modal */}
+      <CancelOrderModal
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+      />
     </div>
   )
 }
