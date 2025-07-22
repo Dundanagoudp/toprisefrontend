@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Textarea } from "@/components/ui/textarea"
 import DealerIdentification from "@/components/user-dashboard/order-management/module/order-popus/dealerIdentification" // Correct import path
 import CancelOrderModal from "@/components/user-dashboard/order-management/module/order-popus/cancelorder"
+import ProductPopupModal from "@/components/user-dashboard/order-management/module/order-popus/productdetails"
 
 interface ProductItem {
   id: string
@@ -96,6 +97,9 @@ export default function OrderDetailsView() {
   const [dealerModalOpen, setDealerModalOpen] = useState(false)
   const [selectedDealer, setSelectedDealer] = useState<any>(null) // State to hold dealer data for the modal
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  // Product modal state
+  const [productModalOpen, setProductModalOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
   // Simulate loading
   useEffect(() => {
@@ -293,6 +297,27 @@ export default function OrderDetailsView() {
     setDealerModalOpen(true)
   }
 
+  // Handler to open modal with product data
+  const handleProductEyeClick = (product: any) => {
+    setSelectedProduct({
+      productId: product.id,
+      productName: product.name,
+      category: "Braking", // You can update this if you have category info
+      brand: "Maruti Suzuki", // You can update this if you have brand info
+      description: "High-quality front brake pads designed for Swift 2016 Petrol models. Ensures optimal braking performance and durability.", // Update as needed
+      mrp: product.mrp,
+      gst: product.gst,
+      totalPrice: product.totalPrice,
+      stockQuantity: 150, // Update as needed
+      dealerPrice: 600.0, // Update as needed
+      lastUpdated: "2025-07-22 10:30 AM", // Update as needed
+      status: "Active", // Update as needed
+      image: product.image,
+      remarks: "Popular item, frequently restocked. Check for new models compatibility.", // Update as needed
+    })
+    setProductModalOpen(true)
+  }
+
   return (
     <div className="p-3 sm:p-4 lg:p-6 bg-(neutral-100)-50 min-h-screen">
       {/* Header */}
@@ -466,7 +491,7 @@ export default function OrderDetailsView() {
                                   </p>
                                   <Eye
                                     className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer"
-                                    onClick={() => handleDealerEyeClick(product.dealerId)}
+                                    onClick={() => handleProductEyeClick(product)}
                                   />
                                 </div>
                               </div>
@@ -544,7 +569,7 @@ export default function OrderDetailsView() {
                           <h3 className="font-medium text-gray-900 text-sm truncate">{product.name}</h3>
                           <Eye
                             className="w-4 h-4 text-gray-500 flex-shrink-0 cursor-pointer"
-                            onClick={() => handleDealerEyeClick(product.dealerId)}
+                            onClick={() => handleProductEyeClick(product)}
                           />
                         </div>
                         <div className="flex items-center gap-2 mb-2">
@@ -679,6 +704,11 @@ export default function OrderDetailsView() {
       <CancelOrderModal
         isOpen={cancelModalOpen}
         onClose={() => setCancelModalOpen(false)}
+      />
+      {/* Product Details Modal */}
+      <ProductPopupModal
+        isOpen={productModalOpen}
+        onClose={() => setProductModalOpen(false)}
       />
     </div>
   )
