@@ -35,45 +35,53 @@ import { useEffect, useState } from "react";
 
 const schema = z.object({
   // Core Product Identity
-  skuCode: z.string().min(1, "SKU Code is required"),
-  manufacturerPartNumber: z.string().optional(),
-  productName: z.string().min(1, "Product Name is required"),
+  sku_code: z.string().min(1, "SKU Code is required"),
+  manufacturer_part_name: z.string().optional(),
+  product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().optional(),
-  hsnCode: z.string().optional(),
+  hsn_code: z.string().optional(),
   category: z.string().min(1, "Category is required"),
-  subCategory: z.string().min(1, "Sub-category is required"),
-  productType: z.string().min(1, "Product type is required"),
+  sub_category: z.string().min(1, "Sub-category is required"),
+  product_type: z.string().min(1, "Product type is required"),
   // Added fields
-  noOfStock: z.coerce.number().int({ message: "No. of Stock must be an integer" }),
-  sellingPrice: z.coerce.number().int({ message: "Selling Price must be an integer" }),
+  no_of_stock: z.coerce
+    .number()
+    .int({ message: "No. of Stock must be an integer" }),
+  sellingPrice: z.coerce
+    .number()
+    .int({ message: "Selling Price must be an integer" }),
   updatedBy: z.string().optional(),
-  fulfillmentPriority: z.coerce.number().int({ message: "Fulfillment Priority must be an integer" }).optional(),
-  adminNotes: z.string().optional(),
+  fulfillment_priority: z.coerce
+    .number()
+    .int({ message: "Fulfillment Priority must be an integer" })
+    .optional(),
+  admin_notes: z.string().optional(),
   // Vehicle Compatibility
   make: z.string().min(1, "Make is required"),
   make2: z.string().optional(),
   model: z.string().min(1, "Model is required"),
-  yearRange: z.string().optional(),
+  year_range: z.string().optional(),
   variant: z.string().min(1, "Variant is required"),
-  fitmentNotes: z.string().optional(),
-  isUniversal: z.string().optional(),
-  isConsumable: z.string().optional(),
+  fitment_notes: z.string().optional(),
+  is_universal: z.string().optional(),
+  is_consumable: z.string().optional(),
   // Technical Specifications
   keySpecifications: z.string().optional(),
   dimensions: z.string().optional(),
   weight: z.string().optional(),
   certifications: z.string().optional(),
-  warranty: z.string().optional(),
+  warranty: z.number().optional(),
   // Media & Documentation
   images: z.string().optional(), // Assuming string for now, could be FileList later
   videoUrl: z.string().optional(),
-  brouchureAvailable: z.string().optional(),
+  brochure_available: z.string().optional(),
   // Pricing details
-  mrp: z.string().min(1, "MRP is required"),
-  gst: z.string().min(1, "GST is required"),
+  mrp_with_gst: z.number().min(1, "MRP is required"),
+  gst_percentage: z.number().min(1, "GST is required"),
+  selling_price: z.number().min(1, "Selling Price is required"),
   // Return & Availability
-  returnable: z.string().min(1, "Returnable is required"),
-  returnPolicy: z.string().min(1, "Return Policy is required"),
+  is_returnable: z.string().min(1, "Returnable is required"),
+  return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
   availableDealers: z.string().optional(),
   quantityPerDealer: z.string().optional(),
@@ -88,10 +96,10 @@ const schema = z.object({
   modifiedAtBy: z.string().optional(),
   changeLog: z.string().optional(),
   // SEO & Search Optimization
-  seoTitle: z.string().optional(),
+  seo_title: z.string().optional(),
   searchTags: z.string().optional(),
-  searchTagsArray: z.array(z.string()).optional(),
-  seoDescription: z.string().optional(),
+  search_tags: z.array(z.string()).optional(),
+  seo_description: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -118,9 +126,9 @@ export default function AddProducts() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
-      isUniversal: "no",
-      isConsumable: "no",
-      brouchureAvailable: "no",
+      is_universal: "no",
+      is_consumable: "no",
+      brochure_available: "no",
       active: "yes",
     },
   });
@@ -248,15 +256,19 @@ export default function AddProducts() {
       if (imageFile) {
         formData.append("images", imageFile);
       }
-      if (data.searchTagsArray && Array.isArray(data.searchTagsArray)) {
-        data.searchTagsArray.forEach((tag, idx) => {
-          formData.append(`searchTagsArray[${idx}]`, tag);
+      if (data.search_tags && Array.isArray(data.search_tags)) {
+        data.search_tags.forEach((tag, idx) => {
+          formData.append(`search_tags[${idx}]`, tag);
         });
       }
       await addProduct(formData); // expects FormData
       // Optionally show a toast or reset form here
       setImageFile(null);
       setImagePreview(null);
+    } catch (error) {
+      console.error("Failed to submit product:", error);
+      // Optionally show a toast or alert to the user
+      alert("Failed to submit product. Please try again.");
     } finally {
       setSubmitLoading(false);
     }
@@ -300,11 +312,11 @@ export default function AddProducts() {
                 id="skuCode"
                 placeholder="Enter Sku Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("skuCode")}
+                {...register("sku_code")}
               />
-              {errors.skuCode && (
+              {errors.sku_code && (
                 <span className="text-red-500 text-sm">
-                  {errors.skuCode.message}
+                  {errors.sku_code.message}
                 </span>
               )}
             </div>
@@ -320,11 +332,11 @@ export default function AddProducts() {
                 min="0"
                 placeholder="Enter No. of Stock"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("noOfStock", { valueAsNumber: true })}
+                {...register("no_of_stock", { valueAsNumber: true })}
               />
-              {errors.noOfStock && (
+              {errors.no_of_stock && (
                 <span className="text-red-500 text-sm">
-                  {errors.noOfStock.message}
+                  {errors.no_of_stock.message}
                 </span>
               )}
             </div>
@@ -340,11 +352,11 @@ export default function AddProducts() {
                 id="manufacturerPartNumber"
                 placeholder="Part Number"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("manufacturerPartNumber")}
+                {...register("manufacturer_part_name")}
               />
-              {errors.manufacturerPartNumber && (
+              {errors.manufacturer_part_name && (
                 <span className="text-red-500 text-sm">
-                  {errors.manufacturerPartNumber.message}
+                  {errors.manufacturer_part_name.message}
                 </span>
               )}
             </div>
@@ -357,11 +369,11 @@ export default function AddProducts() {
                 id="productName"
                 placeholder="Enter Product Name"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("productName")}
+                {...register("product_name")}
               />
-              {errors.productName && (
+              {errors.product_name && (
                 <span className="text-red-500 text-sm">
-                  {errors.productName.message}
+                  {errors.product_name.message}
                 </span>
               )}
             </div>
@@ -375,11 +387,11 @@ export default function AddProducts() {
                 id="hsnCode"
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("hsnCode")}
+                {...register("hsn_code")}
               />
-              {errors.hsnCode && (
+              {errors.hsn_code && (
                 <span className="text-red-500 text-sm">
-                  {errors.hsnCode.message}
+                  {errors.hsn_code.message}
                 </span>
               )}
             </div>
@@ -406,8 +418,8 @@ export default function AddProducts() {
                   ) : (
                     categoryOptions.map((cat) => (
                       <SelectItem
-                        key={cat._id || cat.category_name}
-                        value={cat.category_name}
+                        key={cat._id }
+                        value={cat._id }
                       >
                         {cat.category_name}
                       </SelectItem>
@@ -426,7 +438,7 @@ export default function AddProducts() {
               <Label htmlFor="subCategory" className="text-sm font-medium">
                 Sub-category
               </Label>
-              <Select onValueChange={(value) => setValue("subCategory", value)}>
+              <Select onValueChange={(value) => setValue("sub_category", value)}>
                 <SelectTrigger
                   id="subCategory"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
@@ -441,8 +453,8 @@ export default function AddProducts() {
                   ) : (
                     subCategoryOptions.map((cat) => (
                       <SelectItem
-                        key={cat._id || cat.subcategory_name}
-                        value={cat.subcategory_name}
+                        key={cat._id }
+                        value={cat._id }
                       >
                         {cat.subcategory_name}
                       </SelectItem>
@@ -450,9 +462,9 @@ export default function AddProducts() {
                   )}
                 </SelectContent>
               </Select>
-              {errors.subCategory && (
+              {errors.sub_category && (
                 <span className="text-red-500 text-sm">
-                  {errors.subCategory.message}
+                  {errors.sub_category.message}
                 </span>
               )}
             </div>
@@ -463,7 +475,7 @@ export default function AddProducts() {
               </Label>
               <Select
                 onValueChange={(value) => {
-                  setValue("productType", value);
+                  setValue("product_type", value);
                   const found = typeOptions.find(
                     (cat: any) => cat.type_name === value
                   );
@@ -484,8 +496,8 @@ export default function AddProducts() {
                   ) : (
                     typeOptions.map((cat) => (
                       <SelectItem
-                        key={cat._id || cat.type_name}
-                        value={cat.type_name}
+                        key={cat._id }
+                        value={cat._id }
                       >
                         {cat.type_name}
                       </SelectItem>
@@ -493,9 +505,9 @@ export default function AddProducts() {
                   )}
                 </SelectContent>
               </Select>
-              {errors.productType && (
+              {errors.product_type && (
                 <span className="text-red-500 text-sm">
-                  {errors.productType.message}
+                  {errors.product_type.message}
                 </span>
               )}
             </div>
@@ -516,12 +528,12 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Make */}
             <div className="space-y-2">
-              <Label htmlFor="make" className="text-sm font-medium">
-                Make 1
+              <Label htmlFor="brand" className="text-sm font-medium">
+                Brand
               </Label>
               <Select
                 onValueChange={(value) => {
-                  setValue("make", value);
+                  setValue("brand", value);
                   const found = filteredBrandOptions.find(
                     (cat: any) => cat.brand_name === value
                   );
@@ -529,7 +541,7 @@ export default function AddProducts() {
                 }}
               >
                 <SelectTrigger
-                  id="make"
+                  id="brand"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -541,7 +553,7 @@ export default function AddProducts() {
                     </SelectItem>
                   ) : (
                     filteredBrandOptions.map((option) => (
-                      <SelectItem key={option._id} value={option.brand_name}>
+                      <SelectItem key={option._id} value={option._id}>
                         {option.brand_name}
                       </SelectItem>
                     ))
@@ -578,7 +590,7 @@ export default function AddProducts() {
                 <SelectContent>
                   {selectedbrandId && modelOptions.length === 0 ? (
                     <SelectItem value="no-models" disabled>
-                      No models found 
+                      No models found
                     </SelectItem>
                   ) : modelOptions.length === 0 ? (
                     <SelectItem value="loading" disabled>
@@ -586,7 +598,7 @@ export default function AddProducts() {
                     </SelectItem>
                   ) : (
                     modelOptions.map((option) => (
-                      <SelectItem key={option._id} value={option.model_name}>
+                      <SelectItem key={option._id} value={option._id}>
                         {option.model_name}
                       </SelectItem>
                     ))
@@ -604,7 +616,7 @@ export default function AddProducts() {
               <Label htmlFor="yearRange" className="text-sm font-medium">
                 Year Range
               </Label>
-              <Select onValueChange={(value) => setValue("yearRange", value)}>
+              <Select onValueChange={(value) => setValue("year_range", value)}>
                 <SelectTrigger
                   id="yearRange"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
@@ -618,16 +630,16 @@ export default function AddProducts() {
                     </SelectItem>
                   ) : (
                     yearRangeOptions.map((option) => (
-                      <SelectItem key={option._id} value={option.year_name}>
+                      <SelectItem key={option._id} value={option._id}>
                         {option.year_name}
                       </SelectItem>
                     ))
                   )}
                 </SelectContent>
               </Select>
-              {errors.yearRange && (
+              {errors.year_range && (
                 <span className="text-red-500 text-sm">
-                  {errors.yearRange.message}
+                  {errors.year_range.message}
                 </span>
               )}
             </div>
@@ -645,14 +657,17 @@ export default function AddProducts() {
                 </SelectTrigger>
                 <SelectContent>
                   {varientOptions.length === 0 && modelId.length === 0 ? (
-                    <SelectItem value="no-varient" disabled> Vairent not found </SelectItem>
+                    <SelectItem value="no-varient" disabled>
+                      {" "}
+                      Vairent not found{" "}
+                    </SelectItem>
                   ) : varientOptions.length === 0 ? (
                     <SelectItem value="loading" disabled>
                       please select model first
                     </SelectItem>
                   ) : (
                     varientOptions.map((option) => (
-                      <SelectItem key={option._id} value={option.variant_name}>
+                      <SelectItem key={option._id} value={option._id}>
                         {option.variant_name}
                       </SelectItem>
                     ))
@@ -674,17 +689,20 @@ export default function AddProducts() {
                 id="fitmentNotes"
                 placeholder="Enter Fitment Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("fitmentNotes")}
+                {...register("fitment_notes")}
               />
-              {errors.fitmentNotes && (
+              {errors.fitment_notes && (
                 <span className="text-red-500 text-sm">
-                  {errors.fitmentNotes.message}
+                  {errors.fitment_notes.message}
                 </span>
               )}
             </div>
             {/* Fulfillment Priority */}
             <div className="space-y-2">
-              <Label htmlFor="fulfillmentPriority" className="text-sm font-medium">
+              <Label
+                htmlFor="fulfillmentPriority"
+                className="text-sm font-medium"
+              >
                 Fulfillment Priority
               </Label>
               <Input
@@ -694,11 +712,11 @@ export default function AddProducts() {
                 min="0"
                 placeholder="Enter Fulfillment Priority"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("fulfillmentPriority", { valueAsNumber: true })}
+                {...register("fulfillment_priority", { valueAsNumber: true })}
               />
-              {errors.fulfillmentPriority && (
+              {errors.fulfillment_priority && (
                 <span className="text-red-500 text-sm">
-                  {errors.fulfillmentPriority.message}
+                  {errors.fulfillment_priority.message}
                 </span>
               )}
             </div>
@@ -708,7 +726,7 @@ export default function AddProducts() {
                 Is Universal
               </Label>
               <Select
-                onValueChange={(value) => setValue("isUniversal", value)}
+                onValueChange={(value) => setValue("is_universal", value)}
                 defaultValue="no"
               >
                 <SelectTrigger
@@ -722,9 +740,9 @@ export default function AddProducts() {
                   <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.isUniversal && (
+              {errors.is_universal && (
                 <span className="text-red-500 text-sm">
-                  {errors.isUniversal.message}
+                  {errors.is_universal.message}
                 </span>
               )}
             </div>
@@ -817,18 +835,21 @@ export default function AddProducts() {
             {/* Warranty */}
             <div className="space-y-2">
               <Label htmlFor="warranty" className="text-sm font-medium">
-                Warranty
+              Warranty
               </Label>
               <Input
-                id="warranty"
-                placeholder="Enter Warranty"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("warranty")}
+              id="warranty"
+              type="number"
+              step="1"
+              min="0"
+              placeholder="Enter Warranty"
+              className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+              {...register("warranty", { valueAsNumber: true })}
               />
               {errors.warranty && (
-                <span className="text-red-500 text-sm">
-                  {errors.warranty.message}
-                </span>
+              <span className="text-red-500 text-sm">
+                {errors.warranty.message}
+              </span>
               )}
             </div>
             {/* Is Consumable */}
@@ -837,7 +858,7 @@ export default function AddProducts() {
                 Is Consumable
               </Label>
               <Select
-                onValueChange={(value) => setValue("isConsumable", value)}
+                onValueChange={(value) => setValue("is_consumable", value)}
                 defaultValue="no"
               >
                 <SelectTrigger
@@ -851,9 +872,9 @@ export default function AddProducts() {
                   <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.isConsumable && (
+              {errors.is_consumable && (
                 <span className="text-red-500 text-sm">
-                  {errors.isConsumable.message}
+                  {errors.is_consumable.message}
                 </span>
               )}
             </div>
@@ -881,13 +902,14 @@ export default function AddProducts() {
                 id="images"
                 type="file"
                 accept="image/*"
-                style={{ display: 'none' }}
-                onChange={e => {
+                style={{ display: "none" }}
+                onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   setImageFile(file);
                   if (file) {
                     const reader = new FileReader();
-                    reader.onloadend = () => setImagePreview(reader.result as string);
+                    reader.onloadend = () =>
+                      setImagePreview(reader.result as string);
                     reader.readAsDataURL(file);
                   } else {
                     setImagePreview(null);
@@ -898,15 +920,21 @@ export default function AddProducts() {
               <Button
                 type="button"
                 className="bg-gray-50 border border-gray-200 rounded-[8px] p-4 w-full text-left text-gray-700 hover:bg-gray-100"
-                onClick={() => document.getElementById('images')?.click()}
+                onClick={() => document.getElementById("images")?.click()}
               >
-                {imageFile ? `Selected: ${imageFile.name}` : 'Choose Image'}
+                {imageFile ? `Selected: ${imageFile.name}` : "Choose Image"}
               </Button>
               {imagePreview && (
-                <img src={imagePreview} alt="Preview" className="mt-2 max-h-32 rounded border" />
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="mt-2 max-h-32 rounded border"
+                />
               )}
               {errors.images && (
-                <span className="text-red-500 text-sm">{errors.images.message}</span>
+                <span className="text-red-500 text-sm">
+                  {errors.images.message}
+                </span>
               )}
             </div>
             {/* Video URL */}
@@ -935,7 +963,7 @@ export default function AddProducts() {
                 Brochure Available
               </Label>
               <Select
-                onValueChange={(value) => setValue("brouchureAvailable", value)}
+                onValueChange={(value) => setValue("brochure_available", value)}
                 defaultValue="no"
               >
                 <SelectTrigger
@@ -949,9 +977,9 @@ export default function AddProducts() {
                   <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.brouchureAvailable && (
+              {errors.brochure_available && (
                 <span className="text-red-500 text-sm">
-                  {errors.brouchureAvailable.message}
+                  {errors.brochure_available.message}
                 </span>
               )}
             </div>
@@ -977,13 +1005,14 @@ export default function AddProducts() {
               </Label>
               <Input
                 id="mrp"
+                type="number"
                 placeholder="Enter MRP"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("mrp")}
+                {...register("mrp_with_gst")}
               />
-              {errors.mrp && (
+              {errors.mrp_with_gst && (
                 <span className="text-red-500 text-sm">
-                  {errors.mrp.message}
+                  {errors.mrp_with_gst.message}
                 </span>
               )}
             </div>
@@ -1013,14 +1042,15 @@ export default function AddProducts() {
                 GST %
               </Label>
               <Input
-                id="gst"
+                id="gst_percentage"
+                type="number"
                 placeholder="Enter GST"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("gst")}
+                {...register("gst_percentage")}
               />
-              {errors.gst && (
+              {errors.gst_percentage && (
                 <span className="text-red-500 text-sm">
-                  {errors.gst.message}
+                  {errors.gst_percentage.message}
                 </span>
               )}
             </div>
@@ -1030,7 +1060,7 @@ export default function AddProducts() {
                 Returnable
               </Label>
               <Select
-                onValueChange={(value) => setValue("returnable", value)}
+                onValueChange={(value) => setValue("is_returnable", value)}
                 defaultValue="no"
               >
                 <SelectTrigger
@@ -1044,9 +1074,9 @@ export default function AddProducts() {
                   <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.returnable && (
+              {errors.is_returnable && (
                 <span className="text-red-500 text-sm">
-                  {errors.returnable.message}
+                  {errors.is_returnable.message}
                 </span>
               )}
             </div>
@@ -1059,11 +1089,11 @@ export default function AddProducts() {
                 id="returnPolicy"
                 placeholder="Enter Return Policy"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("returnPolicy")}
+                {...register("return_policy")}
               />
-              {errors.returnPolicy && (
+              {errors.return_policy && (
                 <span className="text-red-500 text-sm">
-                  {errors.returnPolicy.message}
+                  {errors.return_policy.message}
                 </span>
               )}
             </div>
@@ -1198,11 +1228,11 @@ export default function AddProducts() {
                 id="adminNotes"
                 placeholder="Enter Admin Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("adminNotes")}
+                {...register("admin_notes")}
               />
-              {errors.adminNotes && (
+              {errors.admin_notes && (
                 <span className="text-red-500 text-sm">
-                  {errors.adminNotes.message}
+                  {errors.admin_notes.message}
                 </span>
               )}
             </div>
@@ -1230,11 +1260,11 @@ export default function AddProducts() {
                 id="seoTitle"
                 placeholder="Enter SEO Title"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("seoTitle")}
+                {...register("seo_title")}
               />
-              {errors.seoTitle && (
+              {errors.seo_title && (
                 <span className="text-red-500 text-sm">
-                  {errors.seoTitle.message}
+                  {errors.seo_title.message}
                 </span>
               )}
             </div>
@@ -1247,11 +1277,19 @@ export default function AddProducts() {
                 id="searchTagsArray"
                 placeholder="Enter tags separated by commas"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                onChange={e => setValue("searchTagsArray", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                onChange={(e) =>
+                  setValue(
+                    "search_tags",
+                    e.target.value
+                      .split(",")
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                  )
+                }
               />
-              {errors.searchTagsArray && (
+              {errors.search_tags && (
                 <span className="text-red-500 text-sm">
-                  {errors.searchTagsArray.message}
+                  {errors.search_tags.message}
                 </span>
               )}
             </div>
@@ -1264,11 +1302,11 @@ export default function AddProducts() {
                 id="seoDescription"
                 placeholder="Enter SEO Description"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("seoDescription")}
+                {...register("seo_description")}
               />
-              {errors.seoDescription && (
+              {errors.seo_description && (
                 <span className="text-red-500 text-sm">
-                  {errors.seoDescription.message}
+                  {errors.seo_description.message}
                 </span>
               )}
             </div>
