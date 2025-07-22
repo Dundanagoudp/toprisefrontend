@@ -1,7 +1,6 @@
 "use client"
-
 import { useState, useEffect } from "react"
-import { Search, Filter, ChevronDown, Edit, Eye, MoreHorizontal } from "lucide-react"
+import { Search, Filter, ChevronDown, Edit, Eye, MoreHorizontal } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -9,14 +8,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationPrevious, 
   PaginationNext,
 } from "@/components/ui/pagination"
+import SearchFiltersModal from "./modules/modalpopus/searchfilters"
 
 interface ReturnClaim {
   returnId: string
@@ -101,6 +101,33 @@ const mockReturnClaims: ReturnClaim[] = [
     type: "Defective",
     status: "Approved",
   },
+    {
+    returnId: "RI12345",
+    orderId: "O56790",
+    product: "Brake Pad (Bosch)",
+    customer: "John Doe",
+    date: "2025-07-08",
+    type: "Not Compatible",
+    status: "Approved",
+  },
+  {
+    returnId: "RI12345",
+    orderId: "O56789",
+    product: "Defective",
+    customer: "John Doe",
+    date: "2025-07-08",
+    type: "Defective",
+    status: "Pending",
+  },
+  {
+    returnId: "RI12345",
+    orderId: "O56789",
+    product: "Defective",
+    customer: "John Doe",
+    date: "2025-07-08",
+    type: "Defective",
+    status: "Approved",
+  },
 ]
 
 export default function Returnclaims() {
@@ -122,7 +149,7 @@ export default function Returnclaims() {
     )
 
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8 // Adjusted items per page to match image
+  const itemsPerPage = 10 // Changed items per page to 10
   const totalPages = Math.ceil(filteredReturnClaims.length / itemsPerPage)
   const paginatedReturnClaims = filteredReturnClaims.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
@@ -246,7 +273,7 @@ export default function Returnclaims() {
 
   if (loading) {
     return (
-      <div className="p-4 lg:p-6 bg-neutral-50 min-h-screen">
+      <div className="p-4 lg:p-6 bg-(neutral-100)-50 min-h-screen">
         {/* Header Skeleton */}
         <div className="mb-8">
           <Skeleton className="h-8 w-64 mb-6" />
@@ -279,10 +306,15 @@ export default function Returnclaims() {
                 className="pl-10 bg-white border-gray-200 h-10"
               />
             </div>
-            <Button variant="outline" className="h-10 px-4 bg-white border-gray-200 w-full sm:w-auto">
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
+            {/* Replace Filters Button with SearchFiltersModal */}
+            <SearchFiltersModal
+              trigger={
+                <Button variant="outline" className="h-10 px-4 bg-white border-gray-200 w-full sm:w-auto">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters
+                </Button>
+              }
+            />
             <Select value={filterRole} onValueChange={setFilterRole}>
               <SelectTrigger className="w-full sm:w-32 h-10 bg-white border-gray-200">
                 <SelectValue placeholder="Role" />
@@ -304,6 +336,7 @@ export default function Returnclaims() {
           </div>
         </div>
       </div>
+
       {/* Desktop Table View */}
       <div className="hidden lg:block">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -373,48 +406,51 @@ export default function Returnclaims() {
         </div>
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <Pagination className="mt-6">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setCurrentPage((p) => Math.max(1, p - 1))
-                  }}
-                  aria-disabled={currentPage === 1}
-                  tabIndex={currentPage === 1 ? -1 : 0}
-                />
-              </PaginationItem>
-              {[...Array(totalPages)].map((_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink
+          <div className="flex justify-end mt-6"> {/* Right align pagination */}
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
                     href="#"
-                    isActive={currentPage === i + 1}
                     onClick={(e) => {
                       e.preventDefault()
-                      setCurrentPage(i + 1)
+                      setCurrentPage((p) => Math.max(1, p - 1))
                     }}
-                  >
-                    {i + 1}
-                  </PaginationLink>
+                    aria-disabled={currentPage === 1}
+                    tabIndex={currentPage === 1 ? -1 : 0}
+                  />
                 </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }}
-                  aria-disabled={currentPage === totalPages}
-                  tabIndex={currentPage === totalPages ? -1 : 0}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+                {[...Array(totalPages)].map((_, i) => (
+                  <PaginationItem key={i}>
+                    <PaginationLink
+                      href="#"
+                      isActive={currentPage === i + 1}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setCurrentPage(i + 1)
+                      }}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }}
+                    aria-disabled={currentPage === totalPages}
+                    tabIndex={currentPage === totalPages ? -1 : 0}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         )}
       </div>
+
       {/* Mobile/Tablet Card View */}
       <div className="lg:hidden space-y-4 font-red-hat">
         {paginatedReturnClaims.map((claim, index) => (
@@ -489,48 +525,51 @@ export default function Returnclaims() {
         ))}
         {/* Pagination Controls for Mobile */}
         {totalPages > 1 && (
-          <Pagination className="mt-6">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setCurrentPage((p) => Math.max(1, p - 1))
-                  }}
-                  aria-disabled={currentPage === 1}
-                  tabIndex={currentPage === 1 ? -1 : 0}
-                />
-              </PaginationItem>
-              {[...Array(totalPages)].map((_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink
+          <div className="flex justify-end mt-6"> {/* Right align pagination for mobile */}
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
                     href="#"
-                    isActive={currentPage === i + 1}
                     onClick={(e) => {
                       e.preventDefault()
-                      setCurrentPage(i + 1)
+                      setCurrentPage((p) => Math.max(1, p - 1))
                     }}
-                  >
-                    {i + 1}
-                  </PaginationLink>
+                    aria-disabled={currentPage === 1}
+                    tabIndex={currentPage === 1 ? -1 : 0}
+                  />
                 </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }}
-                  aria-disabled={currentPage === totalPages}
-                  tabIndex={currentPage === totalPages ? -1 : 0}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+                {[...Array(totalPages)].map((_, i) => (
+                  <PaginationItem key={i}>
+                    <PaginationLink
+                      href="#"
+                      isActive={currentPage === i + 1}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setCurrentPage(i + 1)
+                      }}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }}
+                    aria-disabled={currentPage === totalPages}
+                    tabIndex={currentPage === totalPages ? -1 : 0}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         )}
       </div>
+
       {/* Empty State */}
       {filteredReturnClaims.length === 0 && !loading && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
