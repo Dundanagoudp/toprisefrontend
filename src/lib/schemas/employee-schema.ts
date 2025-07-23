@@ -1,28 +1,15 @@
+// lib/schemas/employee-schema.ts
 import { z } from "zod"
 
 export const employeeSchema = z.object({
-  fullName: z.string().min(1, { message: "Full Name is required." }),
-  mobileNumber: z
-    .string()
-    .min(10, { message: "Mobile Number must be at least 10 digits." })
-    .max(15, { message: "Mobile Number cannot exceed 15 digits." }),
-  email: z.string().email({ message: "Invalid email address." }),
-  role: z.string().min(1, { message: "Role is required." }),
-  accessLevel: z.string().min(1, { message: "Access Level is required." }),
-  assignedDealer: z.string().optional(),
-  assignedRegion: z.string().optional(),
-  sendLoginInvite: z.boolean(),
-  temporaryPassword: z.string().optional(),
-  currentStatus: z.string().min(1, { message: "Current Status is required." }),
-  lastLogin: z.string().optional(), // This will be read-only
-}).superRefine((data, ctx) => {
-  if (data.sendLoginInvite && (!data.temporaryPassword || data.temporaryPassword.length < 6)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Temporary Password is required and must be at least 6 characters if login invite is sent.",
-      path: ["temporaryPassword"],
-    });
-  }
-});
+  email: z.string().email("Invalid email address"),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  mobileNumber: z.string().min(1, "Mobile Number is required"), 
+  role: z.string().min(1, "Role is required"), 
+  employeeId: z.string().min(1, "Employee ID is required"),
+  fullName: z.string().min(1, "Full Name is required"), 
+  // profile_image is handled separately as a File object, not part of the Zod schema for form inputs
+})
 
 export type EmployeeFormValues = z.infer<typeof employeeSchema>
