@@ -675,7 +675,7 @@ export default function OrderDetailsView() {
               </div>
 
               {/* Update Status Dropdown */}
-              <div className="space-y-2 min-h-[100px]">
+              <div className="space-y-2 ">
                 <label className="text-xs sm:text-sm font-medium text-gray-900 ">Update Order Status</label>
                 <Select>
                   <SelectTrigger className="w-full bg-white border-gray-300 h-9 sm:h-10">
@@ -691,12 +691,10 @@ export default function OrderDetailsView() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label htmlFor="remark" className="text-xs sm:text-sm font-medium text-gray-900">
-                  Remark
-                </label>
+
                 <Textarea
                   id="remark"
-                  placeholder="Add remarks here..."
+                  placeholder="Remark"
                   className="w-full bg-white border-gray-300 min-h-[80px]"
                 />
               </div>
