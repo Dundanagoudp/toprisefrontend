@@ -121,7 +121,7 @@ export async function getBrandByType(id: string): Promise<ProductResponse> {
 
 export async function getModelByBrand(id: string): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/category/api/brands/${id}`);
+    const response = await apiClient.get(`/category/api/model/brand/${id}`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories:", error);

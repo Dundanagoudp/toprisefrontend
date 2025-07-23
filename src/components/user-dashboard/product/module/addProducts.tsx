@@ -32,6 +32,8 @@ import {
   getYearRange,
 } from "@/service/product-Service";
 import { useEffect, useState } from "react";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
+
 
 const schema = z.object({
   // Core Product Identity
@@ -76,8 +78,8 @@ const schema = z.object({
   videoUrl: z.string().optional(),
   brochure_available: z.string().optional(),
   // Pricing details
-  mrp_with_gst: z.number().min(1, "MRP is required"),
-  gst_percentage: z.number().min(1, "GST is required"),
+  mrp_with_gst: z.string().min(1, "MRP is required"),
+  gst_percentage: z.string().min(1, "GST is required"),
   selling_price: z.number().min(1, "Selling Price is required"),
   // Return & Availability
   is_returnable: z.string().min(1, "Returnable is required"),
@@ -113,6 +115,7 @@ export default function AddProducts() {
   const [filteredBrandOptions, setFilteredBrandOptions] = useState<any[]>([]);
   const [selectedProductTypeId, setSelectedProductTypeId] =
     useState<string>("");
+  const { showToast } = useGlobalToast();
   const [selectedbrandId, setSelectedBrandId] = useState<string>("");
   const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
@@ -133,7 +136,6 @@ export default function AddProducts() {
     },
   });
   const [submitLoading, setSubmitLoading] = useState(false);
-  // 1. Add state for image preview and file
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   useEffect(() => {
@@ -154,7 +156,6 @@ export default function AddProducts() {
     const getSubCategoryOptions = async () => {
       try {
         const response = await getSubCategories();
-
         setSubCategoryOptions(response.data.map((category: any) => category));
       } catch (error) {
         console.error("Failed to fetch category options:", error);
@@ -163,15 +164,19 @@ export default function AddProducts() {
 
     getSubCategoryOptions();
   }, []);
-
+  useEffect(() => {
+    console.log("Selected Product Type ID:", selectedProductTypeId);
+  });
   useEffect(() => {
     if (!selectedProductTypeId) {
       setFilteredBrandOptions([]);
       return;
     }
+
     const fetchBrandsByType = async () => {
       try {
         const response = await getBrandByType(selectedProductTypeId);
+
         setFilteredBrandOptions(response.data.map((brand: any) => brand));
       } catch (error) {
         setFilteredBrandOptions([]);
@@ -181,17 +186,21 @@ export default function AddProducts() {
     fetchBrandsByType();
   }, [selectedProductTypeId]);
   useEffect(() => {
+    console.log("Selected Brand ID:", selectedbrandId);
+  },)
+  useEffect(() => {
     if (!selectedbrandId) {
       setModelOptions([]);
       return;
     }
+
     const fetchModelsByBrand = async () => {
       try {
         const response = await getModelByBrand(selectedbrandId);
         setModelOptions(response.data.map((model: any) => model));
-        console.log("Model Options:", response.data);
+  
       } catch (error) {
-        setModelOptions([]);
+   
         console.error("Failed to fetch models by brand:", error);
       }
     };
@@ -262,13 +271,12 @@ export default function AddProducts() {
         });
       }
       await addProduct(formData); // expects FormData
-      // Optionally show a toast or reset form here
+      showToast("Product created successfully ", "success");
       setImageFile(null);
       setImagePreview(null);
     } catch (error) {
       console.error("Failed to submit product:", error);
-      // Optionally show a toast or alert to the user
-      alert("Failed to submit product. Please try again.");
+      showToast("Failed to create product", "error");
     } finally {
       setSubmitLoading(false);
     }
@@ -417,10 +425,7 @@ export default function AddProducts() {
                     </SelectItem>
                   ) : (
                     categoryOptions.map((cat) => (
-                      <SelectItem
-                        key={cat._id }
-                        value={cat._id }
-                      >
+                      <SelectItem key={cat._id} value={cat._id}>
                         {cat.category_name}
                       </SelectItem>
                     ))
@@ -438,7 +443,9 @@ export default function AddProducts() {
               <Label htmlFor="subCategory" className="text-sm font-medium">
                 Sub-category
               </Label>
-              <Select onValueChange={(value) => setValue("sub_category", value)}>
+              <Select
+                onValueChange={(value) => setValue("sub_category", value)}
+              >
                 <SelectTrigger
                   id="subCategory"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
@@ -452,10 +459,7 @@ export default function AddProducts() {
                     </SelectItem>
                   ) : (
                     subCategoryOptions.map((cat) => (
-                      <SelectItem
-                        key={cat._id }
-                        value={cat._id }
-                      >
+                      <SelectItem key={cat._id} value={cat._id}>
                         {cat.subcategory_name}
                       </SelectItem>
                     ))
@@ -475,11 +479,9 @@ export default function AddProducts() {
               </Label>
               <Select
                 onValueChange={(value) => {
+             
                   setValue("product_type", value);
-                  const found = typeOptions.find(
-                    (cat: any) => cat.type_name === value
-                  );
-                  setSelectedProductTypeId(found?._id || "");
+                  setSelectedProductTypeId(value);
                 }}
               >
                 <SelectTrigger
@@ -495,10 +497,7 @@ export default function AddProducts() {
                     </SelectItem>
                   ) : (
                     typeOptions.map((cat) => (
-                      <SelectItem
-                        key={cat._id }
-                        value={cat._id }
-                      >
+                      <SelectItem key={cat._id} value={cat._id}>
                         {cat.type_name}
                       </SelectItem>
                     ))
@@ -534,10 +533,7 @@ export default function AddProducts() {
               <Select
                 onValueChange={(value) => {
                   setValue("brand", value);
-                  const found = filteredBrandOptions.find(
-                    (cat: any) => cat.brand_name === value
-                  );
-                  setSelectedBrandId(found?._id || "");
+                  setSelectedBrandId(value);
                 }}
               >
                 <SelectTrigger
@@ -574,11 +570,9 @@ export default function AddProducts() {
               </Label>
               <Select
                 onValueChange={(value) => {
+                  
                   setValue("model", value);
-                  const found = modelOptions.find(
-                    (cat: any) => cat.model_name === value
-                  );
-                  setModelId(found?._id || "");
+                  setModelId(value);
                 }}
               >
                 <SelectTrigger
@@ -835,21 +829,21 @@ export default function AddProducts() {
             {/* Warranty */}
             <div className="space-y-2">
               <Label htmlFor="warranty" className="text-sm font-medium">
-              Warranty
+                Warranty
               </Label>
               <Input
-              id="warranty"
-              type="number"
-              step="1"
-              min="0"
-              placeholder="Enter Warranty"
-              className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-              {...register("warranty", { valueAsNumber: true })}
+                id="warranty"
+                type="number"
+                step="1"
+                min="0"
+                placeholder="Enter Warranty"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("warranty", { valueAsNumber: true })}
               />
               {errors.warranty && (
-              <span className="text-red-500 text-sm">
-                {errors.warranty.message}
-              </span>
+                <span className="text-red-500 text-sm">
+                  {errors.warranty.message}
+                </span>
               )}
             </div>
             {/* Is Consumable */}
