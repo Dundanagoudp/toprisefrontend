@@ -2,56 +2,57 @@ import { ProductResponse } from "@/types/product-Types";
 import apiClient from "@/apiClient";
 
 export async function getProducts(): Promise<ProductResponse> {
-   try {
+  try {
     const response = await apiClient.get(`/category/products/v1`);
     return response.data;
   } catch (error) {
     console.error(" Failed to fetch products:", error);
-    throw error; 
+    throw error;
   }
 }
 
-export async function addProduct(productData: any): Promise<ProductResponse> {
-  try {
-    const response = await apiClient.post(`/category/products/v1/createProduct`, productData);
-    return response.data;
-  } catch (error) {
-    console.error("Failed to add product:", error);
-    throw error; 
-  }
-} 
 
-export async function uploadBulkProducts(formData: FormData): Promise<ProductResponse> {
+
+export async function uploadBulkProducts(
+  formData: FormData
+): Promise<ProductResponse> {
   try {
     const response = await apiClient.post(`/category/products/v1/`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk products:", error);
-    throw error; 
+    throw error;
   }
 }
-export async function aproveProduct(productId: string): Promise<ProductResponse> {
+export async function aproveProduct(
+  productId: string
+): Promise<ProductResponse> {
   try {
-    const response = await apiClient.patch(`/category/products/v1/approve/${productId}`);
+    const response = await apiClient.patch(
+      `/category/products/v1/approve/${productId}`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to approve product:", error);
-    throw error; 
+    throw error;
   }
 }
 
-
-export async function deactivateProduct(productId: string): Promise<ProductResponse> {
+export async function deactivateProduct(
+  productId: string
+): Promise<ProductResponse> {
   try {
-    const response = await apiClient.patch(`/category/products/v1/deactivate/${productId}`);
+    const response = await apiClient.patch(
+      `/category/products/v1/deactivate/${productId}`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to approve product:", error);
-    throw error; 
+    throw error;
   }
 }
 
@@ -61,11 +62,9 @@ export async function getCategories(): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories:", error);
-    throw error; 
+    throw error;
   }
 }
-
-
 
 export async function getSubCategories(): Promise<ProductResponse> {
   try {
@@ -73,7 +72,7 @@ export async function getSubCategories(): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories:", error);
-    throw error; 
+    throw error;
   }
 }
 export async function getModels(): Promise<ProductResponse> {
@@ -82,7 +81,7 @@ export async function getModels(): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories:", error);
-    throw error; 
+    throw error;
   }
 }
 export async function getTypes(): Promise<ProductResponse> {
@@ -91,29 +90,32 @@ export async function getTypes(): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories:", error);
-    throw error; 
+    throw error;
   }
 }
 
-
-
-
-export async function getProductById(productId: string): Promise<ProductResponse> {
+export async function getProductById(
+  productId: string
+): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/category/products/v1/get-ProductById/${productId}`);
+    const response = await apiClient.get(
+      `/category/products/v1/get-ProductById/${productId}`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to fetch product by ID:", error);
-    throw error; 
+    throw error;
   }
 }
 export async function getBrandByType(id: string): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/category/api/brands/brandByType/${id}`);
+    const response = await apiClient.get(
+      `/category/api/brands/brandByType/${id}`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories:", error);
-    throw error; 
+    throw error;
   }
 }
 
@@ -123,7 +125,7 @@ export async function getModelByBrand(id: string): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories:", error);
-    throw error; 
+    throw error;
   }
 }
 export async function getYearRange(): Promise<ProductResponse> {
@@ -132,7 +134,7 @@ export async function getYearRange(): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch year range:", error);
-    throw error; 
+    throw error;
   }
 }
 
@@ -142,22 +144,36 @@ export async function getvarientByModel(id: string): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch varients:", error);
-    throw error; 
+    throw error;
   }
 }
 
-
-type FormValues = {
-
-  [key: string]: any;
-};
-
-export async function editProduct(productId: string, data: Partial<FormValues>): Promise<ProductResponse> {
+export async function editProduct(
+  productId: string,
+  data: FormData | any
+): Promise<ProductResponse> {
   try {
-    const response = await apiClient.put(`/category/products/v1/updateProduct/${productId}`, data);
+    const response = await apiClient.put(
+      `/category/products/v1/updateProduct/${productId}`,
+      data
+      
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to edit product:", error);
-    throw error; 
+    throw error;
+  }
+}
+
+export async function addProduct(productData:FormData | any): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(
+      `/category/products/v1/createProduct`,
+      productData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to add product:", error);
+    throw error;
   }
 }

@@ -100,66 +100,11 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const dummyData: FormValues = {
-  skuCode: "TOP-BRK-000453",
-  manufacturerPartNumber: "BP-456M-VL",
-  productName: "Front Brake Pad",
-  brand: "Bosch",
-  hsnCode: "87083000",
-  category: "category1",
-  subCategory: "subCategory1",
-  productType: "type1",
-  // Added fields
-  noOfStock: 100,
-  sellingPrice: 1050,
-  updatedBy: "USR204",
-  fulfillmentPriority: 1,
-  adminNotes: "Admin notes here",
-  // Vehicle Compatibility
-  make: "make1",
-  make2: "Honda",
-  model: "model1",
-  yearRange: "2020-2022",
-  variant: "variant1",
-  fitmentNotes: "Fits most 2016-2020 Swift models.",
-  isUniversal: "no",
-  isConsumable: "no",
-  keySpecifications: "High performance, long life",
-  dimensions: "200x50x30mm",
-  weight: "1.2kg",
-  certifications: "ISO 9001",
-  warranty: "2 years",
-  images: "image1.jpg",
-  videoUrl: "https://youtu.be/example",
-  brouchureAvailable: "yes",
-  mrp: "1099",
-  gst: "18",
-  returnable: "yes",
-  returnPolicy: "30 days return",
-  availableDealers: "Dealer1, Dealer2",
-  quantityPerDealer: "100",
-  dealerMargin: "10",
-  dealerPriorityOverride: "",
-  stockExpiryRule: "6 months",
-  lastStockUpdate: "2024-05-01",
-  LastinquiredAt: "2024-12-01",
-  active: "yes",
-  createdBy: "USR102",
-  modifiedAtBy: "USR204",
-  changeLog: "Price updated from 999 to 1099",
-  seoTitle: "Swift Brake Pad",
-  searchTags: "swift pad, disc brake, brake pad petrol",
-  searchTagsArray: ["swift pad", "disc brake", "brake pad petrol"],
-  seoDescription: "High quality brake pad for Swift 2016-2020",
-};
-
 export default function ProductEdit() {
   // State for dropdown options
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
   const [subCategoryOptions, setSubCategoryOptions] = useState<any[]>([]);
   const [typeOptions, setTypeOptions] = useState<any[]>([]);
-  const [brandOptions, setBrandOptions] = useState<any[]>([]);
-  const [filteredBrandOptions, setFilteredBrandOptions] = useState<any[]>([]);
   const [modelOptions, setModelOptions] = useState<any[]>([]);
   const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
@@ -170,6 +115,8 @@ export default function ProductEdit() {
   const [selectedbrandId, setSelectedBrandId] = useState<string>("");
   const [modelId, setModelId] = useState<string>("");
   const id = useParams();
+  const [isLoadingBrands, setIsLoadingBrands] = useState(false);
+  const [brandOptions, setBrandOptions] = useState<any[]>([]);
 
   const {
     register,
@@ -180,22 +127,32 @@ export default function ProductEdit() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
-    defaultValues: dummyData,
   });
+  // State for image uploads and previews
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedImagePreviews, setSelectedImagePreviews] = useState<string[]>(
+    []
+  );
+  const [apiError, setApiError] = useState<string>("");
 
-  // If you want to simulate fetching, you could use useEffect to set values
-  useEffect(() => {
-    Object.entries(dummyData).forEach(([key, value]) => {
-      setValue(key as keyof FormValues, value as any);
-    });
-  }, [setValue]);
+  // Handle image file input change
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setSelectedImages(filesArray);
+      const previews = filesArray.map((file) => URL.createObjectURL(file));
+      setSelectedImagePreviews(previews);
+      // Update form value as array of file names or handle as needed
+      setValue("images", previews.join(","));
+    }
+  };
 
   // Fetch dropdown data
   useEffect(() => {
     const getCategoryOptions = async () => {
       try {
         const response = await getCategories();
-  
+
         setCategoryOptions(response.data.map((category: any) => category));
       } catch (error) {
         console.error("Failed to fetch category options:", error);
@@ -221,7 +178,7 @@ export default function ProductEdit() {
       try {
         const response = await getTypes();
         setTypeOptions(response.data.map((type: any) => type));
-        
+        console.log("Type Options:", response.data);
       } catch (error) {
         console.error("Failed to fetch type options:", error);
       }
@@ -234,7 +191,6 @@ export default function ProductEdit() {
       try {
         const response = await getYearRange();
         setYearRangeOptions(response.data.map((year: any) => year));
-       
       } catch (error) {
         console.error("Failed to fetch year range options:", error);
       }
@@ -245,21 +201,31 @@ export default function ProductEdit() {
   // Fetch brands when product type changes
   useEffect(() => {
     if (!selectedProductTypeId) {
-      setFilteredBrandOptions([]);
+      setBrandOptions([]);
       return;
     }
+
+    let isMounted = true;
     const fetchBrandsByType = async () => {
+      setIsLoadingBrands(true);
       try {
         const response = await getBrandByType(selectedProductTypeId);
         console.log("Brand Options:", response.data);
-        setFilteredBrandOptions(response.data.map((brand: any) => brand));
-        console.log("Filtered Brand Options:", response.data);
+        if (isMounted) {
+          setBrandOptions(response.data.map((brand: any) => brand));
+        }
       } catch (error) {
-        setFilteredBrandOptions([]);
+        if (isMounted) setBrandOptions([]);
         console.error("Failed to fetch brands by type:", error);
+      } finally {
+        if (isMounted) setIsLoadingBrands(false);
       }
     };
+
     fetchBrandsByType();
+    return () => {
+      isMounted = false;
+    };
   }, [selectedProductTypeId]);
 
   // Fetch models when brand changes
@@ -299,7 +265,7 @@ export default function ProductEdit() {
     fetchVarientByModel();
   }, [modelId]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchProducts = async () => {
       try {
         if (typeof id.id === "string") {
@@ -337,8 +303,8 @@ export default function ProductEdit() {
         productName: product.product_name || "",
         brand: product.brand?.brand_name || "",
         hsnCode: product.hsn_code || "",
-        category: product.category?.category_name || "",
-        subCategory: product.sub_category?.subcategory_name || "",
+        category: product.category?._id || "",
+        subCategory: product.sub_category?._id || "",
         productType: product.product_type || "",
         noOfStock: product.no_of_stock,
         sellingPrice: product.selling_price,
@@ -350,12 +316,12 @@ export default function ProductEdit() {
         model: product.model.model_name || "",
         yearRange:
           product.year_range && product.year_range.length > 0
-        ? product.year_range[0].year_name
-        : "",
+            ? product.year_range[0].year_name
+            : "",
         variant:
           product.variant && product.variant.length > 0
-        ? product.variant[0].variant_name
-        : "",
+            ? product.variant[0].variant_name
+            : "",
         fitmentNotes: product.fitment_notes || "",
         isUniversal: product.is_universal ? "yes" : "no",
         isConsumable: product.is_consumable ? "yes" : "no",
@@ -383,34 +349,158 @@ export default function ProductEdit() {
         searchTagsArray: product.search_tags || [],
         seoDescription: product.seo_description || "",
       });
-      // set dependent dropdown states
+      // Initialize image previews for existing images
+      if (product.images && Array.isArray(product.images)) {
+        setSelectedImagePreviews(product.images);
+      } else {
+        setSelectedImagePreviews([]);
+      }
+    }
+  }, [product, reset]);
+
+  // Set dependent dropdown IDs only when options and product are available
+  useEffect(() => {
+    if (product && typeOptions.length > 0) {
       const selectedTypeObj = typeOptions.find(
         (t) => t.type_name === product.product_type
       );
       setSelectedProductTypeId(selectedTypeObj?._id || "");
-      const selectedBrandObj = filteredBrandOptions.find(
-        (b) => b.brand_name === product.brand.brand_name
+    }
+  }, [product, typeOptions]);
+
+  useEffect(() => {
+    if (product && brandOptions.length > 0 && product.brand) {
+      const selectedBrandObj = brandOptions.find(
+        (b) => b.brand_name === product.brand?.brand_name
       );
       setSelectedBrandId(selectedBrandObj?._id || "");
+    }
+  }, [product, brandOptions]);
+
+  useEffect(() => {
+    if (product && modelOptions.length > 0 && product.model) {
       const selectedModelObj = modelOptions.find(
-        (m) => m.model_name === product.model.model_name
+        (m) => m.model_name === product.model?.model_name
       );
       setModelId(selectedModelObj?._id || "");
     }
-  }, [product, reset, typeOptions, filteredBrandOptions, modelOptions]);
+  }, [product, modelOptions]);
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
+    setApiError("");
+    console.log("Update button clicked", data);
     if (typeof id.id === "string") {
-      const response = editProduct(id.id, data);
+      const preparedData = {
+        ...data,
 
-      console.log("Updated Product Data:", data);
+        category:
+          categoryOptions.find((cat) => cat.category_name === data.category)
+            ?._id || data.category,
+        subCategory:
+          subCategoryOptions.find(
+            (sub) => sub.subcategory_name === data.subCategory
+          )?._id || data.subCategory,
+        productType:
+          typeOptions.find((type) => type.type_name === data.productType)
+            ?._id || data.productType,
+        brand:
+          selectedbrandId ||
+          brandOptions.find((brand) => brand.brand_name === data.brand)?._id,
+        model:
+          modelId ||
+          modelOptions.find((model) => model.model_name === data.model)?._id,
+
+        variant: (() => {
+          const found = varientOptions.find(
+            (v) => v.variant_name === data.variant
+          );
+          return found && found._id ? [found._id] : [];
+        })(),
+        yearRange:
+          yearRangeOptions.find((year) => year.year_name === data.yearRange)
+            ?._id || data.yearRange,
+      };
+
+      console.log("Prepared data with ObjectIds:", preparedData);
+
+      if (selectedImages.length === 0) {
+        // No images - send as JSON
+        console.log("Sending as JSON (no images)");
+        try {
+          const response = await editProduct(id.id, preparedData);
+          console.log("Edit Product Response:", response);
+          console.log("Updated Product Data:", preparedData);
+          setApiError("");
+        } catch (error: any) {
+          console.error("Failed to edit product (JSON):", error);
+          console.error(
+            "Error details:",
+            error.response?.data || error.message
+          );
+          setApiError(
+            error.response?.data?.message ||
+              error.message ||
+              "Failed to update product"
+          );
+        }
+      } else {
+        // Has images - send as FormData
+        console.log("Sending as FormData (with images)");
+        const formData = new FormData();
+
+        // Append all prepared fields except images
+        Object.entries(preparedData).forEach(([key, value]) => {
+          if (key !== "images" && value != null) {
+            if (Array.isArray(value)) {
+              value.forEach((v) => formData.append(key, v));
+            } else {
+              formData.append(key, value.toString());
+            }
+          }
+        });
+
+        // Append image files
+        selectedImages.forEach((file) => {
+          formData.append("images", file);
+        });
+
+        // Debug: Log FormData contents
+        console.log("FormData contents:");
+        for (let pair of formData.entries()) {
+          console.log(pair[0] + ": " + pair[1]);
+        }
+
+        try {
+          const response = await editProduct(id.id, formData);
+          console.log("Edit Product Response:", response);
+          console.log("Updated Product Data:", preparedData);
+          setApiError("");
+        } catch (error: any) {
+          console.error("Failed to edit product (FormData):", error);
+          console.error(
+            "Error details:",
+            error.response?.data || error.message
+          );
+          setApiError(
+            error.response?.data?.message ||
+              error.message ||
+              "Failed to update product"
+          );
+        }
+      }
     } else {
       console.error("Product ID is missing or invalid.");
+      setApiError("Product ID is missing or invalid.");
     }
   };
 
   return (
     <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen">
+      {apiError && (
+        <div className="mb-4 p-2 bg-red-100 text-red-800 rounded">
+          {apiError}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
@@ -444,7 +534,7 @@ export default function ProductEdit() {
                 Sku Code
               </Label>
               <Input
-                id="skuCode"
+                id="sku_code"
                 placeholder="Enter Sku Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("skuCode")}
@@ -461,7 +551,7 @@ export default function ProductEdit() {
                 No. of Stock
               </Label>
               <Input
-                id="noOfStock"
+                id="no_of_stock"
                 type="number"
                 step="1"
                 min="0"
@@ -484,7 +574,7 @@ export default function ProductEdit() {
                 Manufacturer Part Number (MPN)
               </Label>
               <Input
-                id="manufacturerPartNumber"
+                id="manufacturer_part_name"
                 placeholder="Part Number"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("manufacturerPartNumber")}
@@ -501,7 +591,7 @@ export default function ProductEdit() {
                 Product Name
               </Label>
               <Input
-                id="productName"
+                id="product_name"
                 placeholder="Enter Product Name"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("productName")}
@@ -520,7 +610,7 @@ export default function ProductEdit() {
                 HSN Code
               </Label>
               <Input
-                id="hsnCode"
+                id="hsn_code"
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("hsnCode")}
@@ -537,8 +627,8 @@ export default function ProductEdit() {
                 Category
               </Label>
               <Select
+                value={watch("category") || ""}
                 onValueChange={(value) => setValue("category", value)}
-                defaultValue={dummyData.category}
               >
                 <SelectTrigger
                   id="category"
@@ -553,10 +643,7 @@ export default function ProductEdit() {
                     </SelectItem>
                   ) : (
                     categoryOptions.map((cat) => (
-                      <SelectItem
-                        key={cat._id || cat.category_name}
-                        value={cat.category_name}
-                      >
+                      <SelectItem key={cat._id} value={cat._id}>
                         {cat.category_name}
                       </SelectItem>
                     ))
@@ -575,11 +662,11 @@ export default function ProductEdit() {
                 Sub-category
               </Label>
               <Select
+                value={watch("subCategory") || ""}
                 onValueChange={(value) => setValue("subCategory", value)}
-                defaultValue={dummyData.subCategory}
               >
                 <SelectTrigger
-                  id="subCategory"
+                  id="sub_category"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -591,10 +678,7 @@ export default function ProductEdit() {
                     </SelectItem>
                   ) : (
                     subCategoryOptions.map((cat) => (
-                      <SelectItem
-                        key={cat._id || cat.subcategory_name}
-                        value={cat.subcategory_name}
-                      >
+                      <SelectItem key={cat._id} value={cat._id}>
                         {cat.subcategory_name}
                       </SelectItem>
                     ))
@@ -613,18 +697,18 @@ export default function ProductEdit() {
                 Product Type
               </Label>
               <Select
+                value={watch("productType") || ""}
                 onValueChange={(value) => {
                   setValue("productType", value);
-                  // Find the selected type to get its ID for filtering brands
+
                   const selectedType = typeOptions.find(
                     (type) => type.type_name === value
                   );
                   setSelectedProductTypeId(selectedType?._id || "");
                 }}
-                defaultValue={dummyData.productType}
               >
                 <SelectTrigger
-                  id="productType"
+                  id="product_type"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -672,15 +756,15 @@ export default function ProductEdit() {
                 Brand
               </Label>
               <Select
+                value={watch("brand") || ""}
                 onValueChange={(value) => {
                   setValue("brand", value);
-                  // Find the selected brand to get its ID for filtering models
-                  const selectedBrand = filteredBrandOptions.find(
-                    (brand) => brand.brand_name === value
+
+                  const selectedBrand = brandOptions.find(
+                    (p) => p.brand_name === value
                   );
                   setSelectedBrandId(selectedBrand?._id || "");
                 }}
-                defaultValue={dummyData.brand}
               >
                 <SelectTrigger
                   id="brand"
@@ -688,15 +772,23 @@ export default function ProductEdit() {
                 >
                   <SelectValue placeholder="Select Product Type first" />
                 </SelectTrigger>
-                   <SelectContent>
-                  {filteredBrandOptions.length === 0 ? (
+                <SelectContent>
+                  {!selectedProductTypeId ? (
+                    <SelectItem value="no-type" disabled>
+                      Please select product type first
+                    </SelectItem>
+                  ) : isLoadingBrands ? (
                     <SelectItem value="loading" disabled>
-                      Please select Product Type first
+                      Loading brands...
+                    </SelectItem>
+                  ) : brandOptions.length === 0 ? (
+                    <SelectItem value="no-brands" disabled>
+                      No brands found
                     </SelectItem>
                   ) : (
-                    filteredBrandOptions.map((option) => (
-                      <SelectItem key={option._id} value={option.brand_name}>
-                        {option.brand_name}
+                    brandOptions.map((brand) => (
+                      <SelectItem key={brand._id} value={brand.brand_name}>
+                        {brand.brand_name}
                       </SelectItem>
                     ))
                   )}
@@ -708,16 +800,13 @@ export default function ProductEdit() {
                 </span>
               )}
             </div>
-            {/* Make */}
 
-            {/* Make 2 */}
-
-            {/* Model */}
             <div className="space-y-2">
               <Label htmlFor="model" className="text-sm font-medium">
                 Model
               </Label>
               <Select
+                value={watch("model") || ""}
                 onValueChange={(value) => {
                   setValue("model", value);
                   // Find the selected model to get its ID for filtering variants
@@ -726,7 +815,6 @@ export default function ProductEdit() {
                   );
                   setModelId(selectedModel?._id || "");
                 }}
-                defaultValue={dummyData.model}
               >
                 <SelectTrigger
                   id="model"
@@ -763,11 +851,11 @@ export default function ProductEdit() {
                 Year Range
               </Label>
               <Select
+                value={watch("yearRange") || ""}
                 onValueChange={(value) => setValue("yearRange", value)}
-                defaultValue={dummyData.yearRange}
               >
                 <SelectTrigger
-                  id="yearRange"
+                  id="year_range"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -801,8 +889,8 @@ export default function ProductEdit() {
                 Variant
               </Label>
               <Select
+                value={watch("variant") || ""}
                 onValueChange={(value) => setValue("variant", value)}
-                defaultValue={dummyData.variant}
               >
                 <SelectTrigger
                   id="variant"
@@ -839,7 +927,7 @@ export default function ProductEdit() {
                 Fitment Notes
               </Label>
               <Input
-                id="fitmentNotes"
+                id="fitment_notes"
                 placeholder="Enter Fitment Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("fitmentNotes")}
@@ -859,7 +947,7 @@ export default function ProductEdit() {
                 Fulfillment Priority
               </Label>
               <Input
-                id="fulfillmentPriority"
+                id="fulfillment_priority"
                 type="number"
                 step="1"
                 min="0"
@@ -879,11 +967,11 @@ export default function ProductEdit() {
                 Is Universal
               </Label>
               <Select
+                value={watch("isUniversal") || ""}
                 onValueChange={(value) => setValue("isUniversal", value)}
-                defaultValue={dummyData.isUniversal}
               >
                 <SelectTrigger
-                  id="isUniversal"
+                  id="is_universal"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -1007,11 +1095,11 @@ export default function ProductEdit() {
                 Is Consumable
               </Label>
               <Select
+                value={watch("isConsumable") || ""}
                 onValueChange={(value) => setValue("isConsumable", value)}
-                defaultValue={dummyData.isConsumable}
               >
                 <SelectTrigger
-                  id="isConsumable"
+                  id="is_consumable"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -1041,17 +1129,29 @@ export default function ProductEdit() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Images */}
+            {/* Images Upload with Preview */}
             <div className="space-y-2">
               <Label htmlFor="images" className="text-sm font-medium">
                 Images
               </Label>
-              <Input
+              <input
                 id="images"
-                placeholder="Upload Image"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("images")}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
               />
+              <div className="flex space-x-2 mt-2">
+                {selectedImagePreviews.map((src, idx) => (
+                  <img
+                    key={idx}
+                    src={src}
+                    alt={`Preview ${idx + 1}`}
+                    className="h-20 w-20 object-cover rounded"
+                  />
+                ))}
+              </div>
               {errors.images && (
                 <span className="text-red-500 text-sm">
                   {errors.images.message}
@@ -1084,8 +1184,8 @@ export default function ProductEdit() {
                 Brochure Available
               </Label>
               <Select
+                value={watch("brouchureAvailable") || ""}
                 onValueChange={(value) => setValue("brouchureAvailable", value)}
-                defaultValue={dummyData.brouchureAvailable}
               >
                 <SelectTrigger
                   id="brouchureAvailable"
@@ -1124,7 +1224,7 @@ export default function ProductEdit() {
                 MRP (with GST)
               </Label>
               <Input
-                id="mrp"
+                id="mrp_with_gst"
                 placeholder="Enter MRP"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("mrp")}
@@ -1141,7 +1241,7 @@ export default function ProductEdit() {
                 Selling Price
               </Label>
               <Input
-                id="sellingPrice"
+                id="selling_price"
                 type="number"
                 step="1"
                 min="0"
@@ -1161,7 +1261,7 @@ export default function ProductEdit() {
                 GST %
               </Label>
               <Input
-                id="gst"
+                id="gst_percentage"
                 placeholder="Enter GST"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("gst")}
@@ -1191,7 +1291,7 @@ export default function ProductEdit() {
             </div>
             {/* Return Policy */}
             <div className="space-y-2">
-              <Label htmlFor="returnPolicy" className="text-sm font-medium">
+              <Label htmlFor="return_policy" className="text-sm font-medium">
                 Return Policy
               </Label>
               <Input
@@ -1350,7 +1450,7 @@ export default function ProductEdit() {
                 Admin Notes
               </Label>
               <Input
-                id="adminNotes"
+                id="admin_notes"
                 placeholder="Enter Admin Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("adminNotes")}
@@ -1380,7 +1480,7 @@ export default function ProductEdit() {
                 SEO Title
               </Label>
               <Input
-                id="seoTitle"
+                id="seo_title"
                 placeholder="Enter SEO Title"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("seoTitle")}
@@ -1391,14 +1491,18 @@ export default function ProductEdit() {
                 </span>
               )}
             </div>
-     
+
             {/* Search Tags Array (Chips) */}
             <div className="space-y-2">
               <Label htmlFor="searchTagsArray" className="text-sm font-medium">
-                Search Tags 
+                Search Tags
               </Label>
               <TagsInput
-                value={Array.isArray(watch("searchTagsArray")) ? watch("searchTagsArray") : []}
+                value={
+                  Array.isArray(watch("searchTagsArray"))
+                    ? watch("searchTagsArray")
+                    : []
+                }
                 onChange={(tags: string[]) => setValue("searchTagsArray", tags)}
                 name="searchTagsArray"
                 placeHolder="Add tag and press enter"
@@ -1415,7 +1519,7 @@ export default function ProductEdit() {
                 SEO Description
               </Label>
               <Input
-                id="seoDescription"
+                id="seo_description"
                 placeholder="Enter SEO Description"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("seoDescription")}
