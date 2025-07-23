@@ -41,7 +41,7 @@ const schema = z.object({
   manufacturer_part_name: z.string().optional(),
   product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().optional(),
-  hsn_code: z.string().optional(),
+  hsn_code: z.number().optional(),
   category: z.string().min(1, "Category is required"),
   sub_category: z.string().min(1, "Sub-category is required"),
   product_type: z.string().min(1, "Product type is required"),
@@ -65,8 +65,8 @@ const schema = z.object({
   year_range: z.string().optional(),
   variant: z.string().min(1, "Variant is required"),
   fitment_notes: z.string().optional(),
-  is_universal: z.string().optional(),
-  is_consumable: z.string().optional(),
+  is_universal: z.boolean().optional(),
+  is_consumable: z.boolean().optional(),
   // Technical Specifications
   keySpecifications: z.string().optional(),
   dimensions: z.string().optional(),
@@ -78,11 +78,11 @@ const schema = z.object({
   videoUrl: z.string().optional(),
   brochure_available: z.string().optional(),
   // Pricing details
-  mrp_with_gst: z.string().min(1, "MRP is required"),
-  gst_percentage: z.string().min(1, "GST is required"),
+  mrp_with_gst: z.number().min(1, "MRP is required"),
+  gst_percentage: z.number().min(1, "GST is required"),
   selling_price: z.number().min(1, "Selling Price is required"),
   // Return & Availability
-  is_returnable: z.string().min(1, "Returnable is required"),
+  is_returnable: z.boolean(),
   return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
   availableDealers: z.string().optional(),
@@ -129,8 +129,8 @@ export default function AddProducts() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
-      is_universal: "no",
-      is_consumable: "no",
+      is_universal: false,
+      is_consumable: false,
       brochure_available: "no",
       active: "yes",
     },
@@ -258,7 +258,7 @@ export default function AddProducts() {
           } else if (typeof value === "number") {
             formData.append(key, value.toString());
           } else {
-            formData.append(key, value ?? "");
+            formData.append(key, typeof value === "boolean" ? String(value) : value ?? "");
           }
         }
       });
@@ -283,11 +283,11 @@ export default function AddProducts() {
   };
 
   return (
-    <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen">
+    <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen ">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 font-[Red Hat Display]">
             Add Product
           </h1>
           <p className="text-sm text-gray-500">Add your product description</p>
@@ -302,10 +302,10 @@ export default function AddProducts() {
         {/* Core Product Identity */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">
+            <CardTitle className="text-red-600 font-semibold text-lg font-[Red Hat Display]">
               Core Product Identity
             </CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 font-[Red Hat Display]">
               Classify the product for catalog structure, filterability, and
               business logic.
             </p>
@@ -313,7 +313,7 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Sku Code */}
             <div className="space-y-2">
-              <Label htmlFor="skuCode" className="text-sm font-medium">
+              <Label htmlFor="skuCode" className="text-sm font-medium font-[Red Hat Display]">
                 Sku Code
               </Label>
               <Input
@@ -720,7 +720,7 @@ export default function AddProducts() {
                 Is Universal
               </Label>
               <Select
-                onValueChange={(value) => setValue("is_universal", value)}
+                onValueChange={(value) => setValue("is_universal", value === "yes")}
                 defaultValue="no"
               >
                 <SelectTrigger
@@ -852,7 +852,7 @@ export default function AddProducts() {
                 Is Consumable
               </Label>
               <Select
-                onValueChange={(value) => setValue("is_consumable", value)}
+                onValueChange={(value) => setValue("is_consumable", value === "yes")}
                 defaultValue="no"
               >
                 <SelectTrigger
@@ -1054,7 +1054,7 @@ export default function AddProducts() {
                 Returnable
               </Label>
               <Select
-                onValueChange={(value) => setValue("is_returnable", value)}
+                onValueChange={(value) => setValue("is_returnable", value === "yes")}
                 defaultValue="no"
               >
                 <SelectTrigger
