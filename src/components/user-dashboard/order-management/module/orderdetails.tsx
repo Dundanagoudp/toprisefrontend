@@ -675,8 +675,8 @@ export default function OrderDetailsView() {
               </div>
 
               {/* Update Status Dropdown */}
-              <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-medium text-gray-900">Update Order Status</label>
+              <div className="space-y-2 min-h-[100px]">
+                <label className="text-xs sm:text-sm font-medium text-gray-900 ">Update Order Status</label>
                 <Select>
                   <SelectTrigger className="w-full bg-white border-gray-300 h-9 sm:h-10">
                     <SelectValue placeholder="Select Reason" />
