@@ -332,7 +332,7 @@ export default function ProductManagement() {
                     placeholder="Search Spare parts"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#A3A3A3] h-10 p-0 flex-1 outline-none shadow-none"
+                    className="bg-transparent font-[Poppins] border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#A3A3A3] h-10 p-0 flex-1 outline-none shadow-none"
                   />
                 </div>
               </div>
@@ -342,13 +342,13 @@ export default function ProductManagement() {
                   variant="outline"
                   className="flex items-center gap-2 bg-transparent border-gray-300 hover:bg-gray-50 min-w-[100px]"
                 >
-                  <span className="b3 font-poppins">Filters</span>
+                  <span className="b3 font-[Poppins] ">Filters</span>
                 </Button>
                 <Button
                   variant="outline"
                   className="flex items-center gap-2 border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
                 >
-                  <span className="b3 font-poppins">Requests</span>
+                  <span className="b3 font-[Poppins] ">Requests</span>
                 </Button>
               </div>
             </div>
@@ -367,7 +367,7 @@ export default function ProductManagement() {
                     ) : (
                       <Image src={uploadFile} alt="Add" className="h-4 w-4" />
                     )}
-                    <span className="text-[#408EFD] b3">Upload</span>
+                    <span className="text-[#408EFD] b3 font-[Poppins]">Upload</span>
                   </Button>
                   <Button
                     className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
@@ -378,7 +378,7 @@ export default function ProductManagement() {
                     {addProductLoading ? (
                       <svg className="animate-spin h-5 w-5 text-[#C72920]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
                     ) : <Plus className="h-4 w-4" />}
-                    <span className="b3 font-RedHat">Add Product</span>
+                    <span className="b3 font-[Poppins]">Add Product</span>
                   </Button>
                 </>
               )}
@@ -389,7 +389,7 @@ export default function ProductManagement() {
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 w-full">
             {/* Tab Bar */}
             <div className="flex border-b border-gray-200 overflow-x-auto" aria-label="Product status tabs">
-              <div className="flex min-w-max">
+              <div className="flex min-w-max font-[Poppins]">
                 {["Created", "Approved", "Pending", "Rejected"].map((tab) => (
                   <button
                     key={tab}
@@ -510,169 +510,117 @@ export default function ProductManagement() {
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-                  <TableHead className="px-4 py-4 w-8">
+                  <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
                     <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} aria-label="Select all" />
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left">Image</TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px]">Name</TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell">
-                    Category
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell">
-                    Sub Category
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell">
-                    Brand
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell">
-                    Type
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
-                    QC Status
-                  </TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">Image</TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">Name</TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">Category</TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-[Red Hat Display]">Sub Category</TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display]">Brand</TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">Type</TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">QC Status</TableHead>
                   {selectedTab !== "Created" && (
-                    <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
-                      Product Status
-                    </TableHead>
+                    <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">Product Status</TableHead>
                   )}
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px]">
-                    Action
-                  </TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loadingTab
-                  ? Array.from({ length: cardsPerPage }).map((_, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="px-4 py-4 w-8">
-                          <Skeleton className="w-5 h-5 rounded" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <Skeleton className="w-16 h-12 rounded-md" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <Skeleton className="h-4 w-3/4 mb-2" />
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4 hidden md:table-cell">
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4 hidden lg:table-cell">
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4 hidden md:table-cell">
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4 hidden lg:table-cell">
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
-                        {selectedTab !== "Created" && (
-                          <TableCell className="px-6 py-4">
-                            <Skeleton className="h-3 w-1/2" />
-                          </TableCell>
-                        )}
-                        <TableCell className="px-6 py-4 text-center">
-                          <Skeleton className="w-8 h-8 rounded" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : paginatedData.map((product, index) => (
-                      <TableRow
-                        key={product.id}
-                        className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-                          index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                        }`}
-                      >
-                        <TableCell className="px-4 py-4 w-8">
-                          <Checkbox
-                            checked={selectedProducts.includes(product.id)}
-                            onCheckedChange={() => handleSelectOne(product.id)}
-                            aria-label="Select row"
-                          />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                            <Image
-                              src={product.image || "/placeholder.svg"}
-                              alt={product.name}
-                              width={80}
-                              height={64}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-6 py-4 cursor-pointer" onClick={() => handleViewProduct(product.id)}>
-                          <div className="font-medium text-gray-900 b2 font-redhat">{product.name}</div>
-                          {/* Show category and brand on smaller screens */}
-                          <div className="text-xs text-gray-500 mt-1 md:hidden">
-                            {product.category} • {product.brand}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-6 py-4 hidden md:table-cell">
-                          <span className="text-gray-700 b2 font-redHat">{product.category}</span>
-                        </TableCell>
-                        <TableCell className="px-6 py-4 hidden lg:table-cell">
-                          <span className="text-gray-700 b2">{product.subCategory}</span>
-                        </TableCell>
-                        <TableCell className="px-6 py-4 hidden md:table-cell">
-                          <span className="text-gray-700 b2">{product.brand}</span>
-                        </TableCell>
-                        <TableCell className="px-6 py-4 hidden lg:table-cell">
-                          <span className="text-gray-700 b2">{product.productType}</span>
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <span className={`b2 ${getStatusColor(product.qcStatus)}`}>{product.qcStatus}</span>
-                        </TableCell>
-                        {selectedTab !== "Created" && (
-                          <TableCell className="px-6 py-4">
-                            {selectedTab === "Rejected" ? (
-                              <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
-                            ) : (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 px-3 hover:bg-gray-100">
-                                    <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48">
-                                  {selectedTab === "Approved" && (
-                                    <DropdownMenuItem className="cursor-pointer" onClick={() => handleDeactivateProduct(product.id)}>
-                                      Deactivate Product
-                                    </DropdownMenuItem>
-                                  )}
-                                  {selectedTab === "Pending" && (
-                                    <DropdownMenuItem className="cursor-pointer" onClick={() => handleApproveProduct(product.id)}>
-                                      Activate Product
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </TableCell>
-                        )}
-                        <TableCell className="px-6 py-4 text-center">
+                {paginatedData.map((product, index) => (
+                  <TableRow
+                    key={product.id}
+                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                    }`}
+                  >
+                    <TableCell className="px-4 py-4 w-8 font-[Poppins]">
+                      <Checkbox
+                        checked={selectedProducts.includes(product.id)}
+                        onCheckedChange={() => handleSelectOne(product.id)}
+                        aria-label="Select row"
+                      />
+                    </TableCell>
+                    <TableCell className="px-6 py-4 font-[Poppins]">
+                      <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                        <Image
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name}
+                          width={80}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 cursor-pointer font-[Red Hat Display]" onClick={() => handleViewProduct(product.id)}>
+                      <div className="font-medium text-gray-900 b2 font-[Red Hat Display]">{product.name}</div>
+                      {/* Show category and brand on smaller screens */}
+                      <div className="text-xs text-gray-500 mt-1 md:hidden">
+                        {product.category} • {product.brand}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                      <span className="text-gray-700 b2 font-[Red Hat Display]">{product.category}</span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
+                      <span className="text-gray-700 b2 font-[Red Hat Display]">{product.subCategory}</span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                      <span className="text-gray-700 b2 font-[Red Hat Display]">{product.brand}</span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
+                      <span className="text-gray-700 b2 font-[Red Hat Display]">{product.productType}</span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                      <span className={`b2 ${getStatusColor(product.qcStatus)}`}>{product.qcStatus}</span>
+                    </TableCell>
+                    {selectedTab !== "Created" && (
+                      <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                        {selectedTab === "Rejected" ? (
+                          <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
+                        ) : (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Open menu</span>
+                              <Button variant="ghost" size="sm" className="h-8 px-3 hover:bg-gray-100">
+                                <span className={`b2 ${getStatusColor(product.liveStatus)}`}>{product.liveStatus}</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem className="cursor-pointer">Edit Product</DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">View Details</DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">Duplicate</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
-                                Delete
-                              </DropdownMenuItem>
+                              {selectedTab === "Approved" && (
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleDeactivateProduct(product.id)}>
+                                  Deactivate Product
+                                </DropdownMenuItem>
+                              )}
+                              {selectedTab === "Pending" && (
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => handleApproveProduct(product.id)}>
+                                  Activate Product
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                        )}
+                      </TableCell>
+                    )}
+                    <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem className="cursor-pointer">Edit Product</DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer">View Details</DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer">Duplicate</DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
