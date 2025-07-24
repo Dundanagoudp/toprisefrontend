@@ -29,39 +29,40 @@ import {
 } from "@/service/product-Service";
 import { useParams } from "next/navigation";
 import { Product } from "@/types/product-Types";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 
 const schema = z.object({
-  
-  skuCode: z.string().min(1, "SKU Code is required"),
-  manufacturerPartNumber: z.string().optional(),
-  productName: z.string().min(1, "Product Name is required"),
+  sku_code: z.string().min(1, "SKU Code is required"),
+  manufacturer_part_name: z.string().optional(),
+  product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().optional(),
-  hsnCode: z.string().optional(),
+  hsn_code: z.string().optional(),
   category: z.string().min(1, "Category is required"),
-  subCategory: z.string().min(1, "Sub-category is required"),
-  productType: z.string().min(1, "Product type is required"),
+  sub_category: z.string().min(1, "Sub-category is required"),
   // Added fields
-  noOfStock: z.coerce
+  no_of_stock: z.coerce
     .number()
     .int({ message: "No. of Stock must be an integer" }),
-  sellingPrice: z.coerce
+  selling_price: z.coerce
     .number()
     .int({ message: "Selling Price must be an integer" }),
   updatedBy: z.string().optional(),
-  fulfillmentPriority: z.coerce
+  fulfillment_priority: z.coerce
     .number()
     .int({ message: "Fulfillment Priority must be an integer" })
     .optional(),
-  adminNotes: z.string().optional(),
+  admin_notes: z.string().optional(),
+  product_type: z.string(),
+  vehicle_type: z.string(),
   // Vehicle Compatibility
   make: z.string().min(1, "Make is required"),
   make2: z.string().optional(),
   model: z.string().min(1, "Model is required"),
-  yearRange: z.string().optional(),
+  year_range: z.string().optional(),
   variant: z.string().min(1, "Variant is required"),
-  fitmentNotes: z.string().optional(),
-  isUniversal: z.string().optional(),
-  isConsumable: z.string().optional(),
+  fitment_notes: z.string().optional(),
+  is_universal: z.string().optional(),
+  is_consumable: z.string().optional(),
   // Technical Specifications
   keySpecifications: z.string().optional(),
   dimensions: z.string().optional(),
@@ -71,13 +72,13 @@ const schema = z.object({
   // Media & Documentation
   images: z.string().optional(),
   videoUrl: z.string().optional(),
-  brouchureAvailable: z.string().optional(),
+  brochure_available: z.string().optional(),
   // Pricing details
-  mrp: z.string().min(1, "MRP is required"),
-  gst: z.string().min(1, "GST is required"),
+  mrp_with_gst: z.string().min(1, "mrp_with_gst is required"),
+  gst_percentage: z.string().min(1, "gst_percentage is required"),
   // Return & Availability
-  returnable: z.string().min(1, "Returnable is required"),
-  returnPolicy: z.string().min(1, "Return Policy is required"),
+  is_returnable: z.string().min(1, "is_returnable is required"),
+  return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
   availableDealers: z.string().optional(),
   quantityPerDealer: z.string().optional(),
@@ -86,16 +87,17 @@ const schema = z.object({
   stockExpiryRule: z.string().optional(),
   lastStockUpdate: z.string().optional(),
   LastinquiredAt: z.string().optional(),
+
   // Status, Audit & Metadata
   active: z.string().optional(),
   createdBy: z.string().optional(),
   modifiedAtBy: z.string().optional(),
   changeLog: z.string().optional(),
   // SEO & Search Optimization
-  seoTitle: z.string().optional(),
+  seo_title: z.string().optional(),
   searchTags: z.string().optional(),
-  searchTagsArray: z.array(z.string()).optional(),
-  seoDescription: z.string().optional(),
+  search_tags: z.array(z.string()).optional(),
+  seo_description: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -118,6 +120,14 @@ export default function ProductEdit() {
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
   const [brandOptions, setBrandOptions] = useState<any[]>([]);
 
+  // State for image uploads and previews
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedImagePreviews, setSelectedImagePreviews] = useState<string[]>(
+    []
+  );
+  const [apiError, setApiError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useGlobalToast();
   const {
     register,
     handleSubmit,
@@ -128,14 +138,6 @@ export default function ProductEdit() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
   });
-  // State for image uploads and previews
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [selectedImagePreviews, setSelectedImagePreviews] = useState<string[]>(
-    []
-  );
-  const [apiError, setApiError] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   // Handle image file input change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -147,56 +149,29 @@ export default function ProductEdit() {
       setValue("images", previews.join(","));
     }
   };
-
-  // Fetch dropdown data
+  // Parallel fetch for categories, subcategories, types, and year ranges
   useEffect(() => {
-    const getCategoryOptions = async () => {
+    const fetchInitialData = async () => {
       try {
-        const response = await getCategories();
-
-        setCategoryOptions(response.data.map((category: any) => category));
+        const [categories, subCategories, types, yearRanges] =
+          await Promise.all([
+            getCategories(),
+            getSubCategories(),
+            getTypes(),
+            getYearRange(),
+          ]);
+        setCategoryOptions(categories.data.map((category: any) => category));
+        setSubCategoryOptions(
+          subCategories.data.map((category: any) => category)
+        );
+        setTypeOptions(types.data.map((type: any) => type));
+        setYearRangeOptions(yearRanges.data.map((year: any) => year));
+        console.log("Fetched all initial data in parallel");
       } catch (error) {
-        console.error("Failed to fetch category options:", error);
+        console.error("Failed to fetch initial data in parallel:", error);
       }
     };
-    getCategoryOptions();
-  }, []);
-
-  useEffect(() => {
-    const getSubCategoryOptions = async () => {
-      try {
-        const response = await getSubCategories();
-        setSubCategoryOptions(response.data.map((category: any) => category));
-      } catch (error) {
-        console.error("Failed to fetch subcategory options:", error);
-      }
-    };
-    getSubCategoryOptions();
-  }, []);
-
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const response = await getTypes();
-        setTypeOptions(response.data.map((type: any) => type));
-        console.log("Type Options:", response.data);
-      } catch (error) {
-        console.error("Failed to fetch type options:", error);
-      }
-    };
-    fetchTypes();
-  }, []);
-
-  useEffect(() => {
-    const fetchYearRange = async () => {
-      try {
-        const response = await getYearRange();
-        setYearRangeOptions(response.data.map((year: any) => year));
-      } catch (error) {
-        console.error("Failed to fetch year range options:", error);
-      }
-    };
-    fetchYearRange();
+    fetchInitialData();
   }, []);
 
   // Fetch brands when product type changes
@@ -299,23 +274,23 @@ export default function ProductEdit() {
   useEffect(() => {
     if (product) {
       reset({
-        skuCode: product.sku_code || "",
-        manufacturerPartNumber: product.manufacturer_part_name || "",
-        productName: product.product_name || "",
+        sku_code: product.sku_code || "",
+        manufacturer_part_name: product.manufacturer_part_name || "",
+        product_name: product.product_name || "",
         brand: product.brand?.brand_name || "",
-        hsnCode: product.hsn_code || "",
+        hsn_code: product.hsn_code || "",
         category: product.category?._id || "",
-        subCategory: product.sub_category?._id || "",
-        productType: product.product_type || "",
-        noOfStock: product.no_of_stock,
-        sellingPrice: product.selling_price,
+        sub_category: product.sub_category?._id || "",
+        product_type: product.product_type || "",
+        no_of_stock: product.no_of_stock,
+        selling_price: product.selling_price,
         updatedBy: product.updated_at || "",
-        fulfillmentPriority: product.fulfillment_priority,
-        adminNotes: product.admin_notes || "",
+        fulfillment_priority: product.fulfillment_priority,
+        admin_notes: product.admin_notes || "",
         make: product.make && product.make.length > 0 ? product.make[0] : "",
         make2: product.make && product.make.length > 1 ? product.make[1] : "",
         model: product.model.model_name || "",
-        yearRange:
+        year_range:
           product.year_range && product.year_range.length > 0
             ? product.year_range[0].year_name
             : "",
@@ -323,9 +298,9 @@ export default function ProductEdit() {
           product.variant && product.variant.length > 0
             ? product.variant[0].variant_name
             : "",
-        fitmentNotes: product.fitment_notes || "",
-        isUniversal: product.is_universal ? "yes" : "no",
-        isConsumable: product.is_consumable ? "yes" : "no",
+        fitment_notes: product.fitment_notes || "",
+        is_universal: product.is_universal ? "yes" : "no",
+        is_consumable: product.is_consumable ? "yes" : "no",
         keySpecifications: product.key_specifications || "",
         dimensions: "",
         weight: product.weight?.toString() || "",
@@ -333,11 +308,11 @@ export default function ProductEdit() {
         warranty: product.warranty?.toString() || "",
         images: product.images?.join(",") || "",
         videoUrl: "",
-        brouchureAvailable: product.brochure_available ? "yes" : "no",
-        mrp: product.mrp_with_gst?.toString() || "",
-        gst: product.gst_percentage?.toString() || "",
-        returnable: product.is_returnable ? "yes" : "no",
-        returnPolicy: product.return_policy || "",
+        brochure_available: product.brochure_available ? "yes" : "no",
+        mrp_with_gst: product.mrp_with_gst?.toString() || "",
+        gst_percentage: product.gst_percentage?.toString() || "",
+        is_returnable: product.is_returnable ? "yes" : "no",
+        return_policy: product.return_policy || "",
         availableDealers: "",
         quantityPerDealer: "",
         dealerMargin: "",
@@ -345,10 +320,10 @@ export default function ProductEdit() {
         stockExpiryRule: "",
         lastStockUpdate: product.available_dealers?.last_stock_update || "",
         LastinquiredAt: product.last_stock_inquired || "",
-        seoTitle: product.seo_title || "",
+        seo_title: product.seo_title || "",
         searchTags: product.search_tags?.join(",") || "",
-        searchTagsArray: product.search_tags || [],
-        seoDescription: product.seo_description || "",
+        search_tags: product.search_tags || [],
+        seo_description: product.seo_description || "",
       });
       // Initialize image previews for existing images
       if (product.images && Array.isArray(product.images)) {
@@ -359,82 +334,92 @@ export default function ProductEdit() {
     }
   }, [product, reset]);
 
-  // Set dependent dropdown IDs only when options and product are available
+  // Prepopulate dependent dropdowns in correct order after product data loads
   useEffect(() => {
-    if (product && typeOptions.length > 0) {
+    if (!product) return;
+
+    // Product Type
+    if (typeOptions.length > 0) {
       const selectedTypeObj = typeOptions.find(
-        (t) => t.type_name === product.product_type
+        (t) =>
+          t.type_name === product.product_type || t._id === product.product_type
       );
-      setSelectedProductTypeId(selectedTypeObj?._id || "");
+      if (selectedTypeObj) {
+        setSelectedProductTypeId(selectedTypeObj._id);
+        setValue("product_type", selectedTypeObj.type_name);
+        setValue("vehicle_type", selectedTypeObj.type_name);
+      }
     }
-  }, [product, typeOptions]);
+  }, [product, typeOptions, setValue]);
 
   useEffect(() => {
+    // Brand
     if (product && brandOptions.length > 0 && product.brand) {
       const selectedBrandObj = brandOptions.find(
-        (b) => b.brand_name === product.brand?.brand_name
+        (b) =>
+          b.brand_name === product.brand.brand_name ||
+          b._id === product.brand._id
       );
-      setSelectedBrandId(selectedBrandObj?._id || "");
+      if (selectedBrandObj) {
+        setSelectedBrandId(selectedBrandObj._id);
+        setValue("brand", selectedBrandObj.brand_name);
+      }
     }
-  }, [product, brandOptions]);
+  }, [product, brandOptions, setValue]);
 
   useEffect(() => {
+    // Model
     if (product && modelOptions.length > 0 && product.model) {
       const selectedModelObj = modelOptions.find(
-        (m) => m.model_name === product.model?.model_name
+        (m) =>
+          m.model_name === product.model.model_name ||
+          m._id === product.model._id
       );
-      setModelId(selectedModelObj?._id || "");
+      if (selectedModelObj) {
+        setModelId(selectedModelObj._id);
+        setValue("model", selectedModelObj.model_name);
+      }
     }
-  }, [product, modelOptions]);
+  }, [product, modelOptions, setValue]);
+
+  useEffect(() => {
+    // Variant
+    if (
+      product &&
+      varientOptions.length > 0 &&
+      product.variant &&
+      product.variant.length > 0
+    ) {
+      const selectedVariantObj = varientOptions.find(
+        (v) =>
+          v.variant_name === product.variant[0].variant_name ||
+          v._id === product.variant[0]._id
+      );
+      if (selectedVariantObj) {
+        setValue("variant", selectedVariantObj.variant_name);
+      }
+    }
+  }, [product, varientOptions, setValue]);
 
   const onSubmit = async (data: FormValues) => {
     setApiError("");
     setIsSubmitting(true);
-    console.log("onSubmit called. Data:", data);
+
     if (typeof id.id === "string") {
       const preparedData = {
         ...data,
-
-        category:
-          categoryOptions.find((cat) => cat.category_name === data.category)
-            ?._id || data.category,
-        subCategory:
-          subCategoryOptions.find(
-            (sub) => sub.subcategory_name === data.subCategory
-          )?._id || data.subCategory,
-        productType:
-          typeOptions.find((type) => type.type_name === data.productType)
-            ?._id || data.productType,
-        brand:
-          selectedbrandId ||
-          brandOptions.find((brand) => brand.brand_name === data.brand)?._id,
-        model:
-          modelId ||
-          modelOptions.find((model) => model.model_name === data.model)?._id,
-
-        variant: (() => {
-          const found = varientOptions.find(
-            (v) => v.variant_name === data.variant
-          );
-          return found && found._id ? [found._id] : [];
-        })(),
-        yearRange:
-          yearRangeOptions.find((year) => year.year_name === data.yearRange)
-            ?._id || data.yearRange,
       };
-
-      console.log("Prepared data with ObjectIds:", preparedData);
 
       if (selectedImages.length === 0) {
         // No images - send as JSON
         console.log("Sending as JSON (no images)");
         try {
           const response = await editProduct(id.id, preparedData);
-          console.log("Edit Product Response:", response);
-          console.log("Updated Product Data:", preparedData);
+          showToast("Product updated successfully", "success");
           setApiError("");
         } catch (error: any) {
           console.error("Failed to edit product (JSON):", error);
+          showToast("Failed to update product", "error");
           console.error(
             "Error details:",
             error.response?.data || error.message
@@ -456,7 +441,7 @@ export default function ProductEdit() {
         Object.entries(preparedData).forEach(([key, value]) => {
           if (key !== "images" && value != null) {
             if (Array.isArray(value)) {
-              value.forEach((v) => formData.append(key, v));
+              value.forEach((v) => formData.append(`${key}[]`, v));
             } else {
               formData.append(key, value.toString());
             }
@@ -476,11 +461,14 @@ export default function ProductEdit() {
 
         try {
           const response = await editProduct(id.id, formData);
+        
+
           console.log("Edit Product Response:", response);
           console.log("Updated Product Data:", preparedData);
           setApiError("");
         } catch (error: any) {
           console.error("Failed to edit product (FormData):", error);
+          showToast("Failed to update product", "error");
           console.error(
             "Error details:",
             error.response?.data || error.message
@@ -496,6 +484,7 @@ export default function ProductEdit() {
       }
     } else {
       console.error("Product ID is missing or invalid.");
+      showToast("Invalid product ID", "error");
       setApiError("Product ID is missing or invalid.");
       setIsSubmitting(false);
     }
@@ -544,11 +533,11 @@ export default function ProductEdit() {
                 id="sku_code"
                 placeholder="Enter Sku Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("skuCode")}
+                {...register("sku_code")}
               />
-              {errors.skuCode && (
+              {errors.sku_code && (
                 <span className="text-red-500 text-sm">
-                  {errors.skuCode.message}
+                  {errors.sku_code.message}
                 </span>
               )}
             </div>
@@ -564,11 +553,11 @@ export default function ProductEdit() {
                 min="0"
                 placeholder="Enter No. of Stock"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("noOfStock", { valueAsNumber: true })}
+                {...register("no_of_stock", { valueAsNumber: true })}
               />
-              {errors.noOfStock && (
+              {errors.no_of_stock && (
                 <span className="text-red-500 text-sm">
-                  {errors.noOfStock.message}
+                  {errors.no_of_stock.message}
                 </span>
               )}
             </div>
@@ -584,11 +573,11 @@ export default function ProductEdit() {
                 id="manufacturer_part_name"
                 placeholder="Part Number"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("manufacturerPartNumber")}
+                {...register("manufacturer_part_name")}
               />
-              {errors.manufacturerPartNumber && (
+              {errors.manufacturer_part_name && (
                 <span className="text-red-500 text-sm">
-                  {errors.manufacturerPartNumber.message}
+                  {errors.manufacturer_part_name.message}
                 </span>
               )}
             </div>
@@ -601,11 +590,11 @@ export default function ProductEdit() {
                 id="product_name"
                 placeholder="Enter Product Name"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("productName")}
+                {...register("product_name")}
               />
-              {errors.productName && (
+              {errors.product_name && (
                 <span className="text-red-500 text-sm">
-                  {errors.productName.message}
+                  {errors.product_name.message}
                 </span>
               )}
             </div>
@@ -620,11 +609,11 @@ export default function ProductEdit() {
                 id="hsn_code"
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("hsnCode")}
+                {...register("hsn_code")}
               />
-              {errors.hsnCode && (
+              {errors.hsn_code && (
                 <span className="text-red-500 text-sm">
-                  {errors.hsnCode.message}
+                  {errors.hsn_code.message}
                 </span>
               )}
             </div>
@@ -669,8 +658,8 @@ export default function ProductEdit() {
                 Sub-category
               </Label>
               <Select
-                value={watch("subCategory") || ""}
-                onValueChange={(value) => setValue("subCategory", value)}
+                value={watch("sub_category") || ""}
+                onValueChange={(value) => setValue("sub_category", value)}
               >
                 <SelectTrigger
                   id="sub_category"
@@ -692,30 +681,53 @@ export default function ProductEdit() {
                   )}
                 </SelectContent>
               </Select>
-              {errors.subCategory && (
+              {errors.sub_category && (
                 <span className="text-red-500 text-sm">
-                  {errors.subCategory.message}
+                  {errors.sub_category.message}
                 </span>
               )}
             </div>
-            {/* Product Type */}
+            {/* Product Type (OE, OEM, Aftermarket) */}
             <div className="space-y-2">
               <Label htmlFor="productType" className="text-sm font-medium">
                 Product Type
               </Label>
               <Select
-                value={watch("productType") || ""}
+                onValueChange={(value) => setValue("product_type", value)}
+                defaultValue={watch("product_type")}
+              >
+                <SelectTrigger
+                  id="productType"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OE">OE</SelectItem>
+                  <SelectItem value="OEM">OEM</SelectItem>
+                  <SelectItem value="AfterMarket">Aftermarket</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.product_type && (
+                <span className="text-red-500 text-sm">
+                  {errors.product_type.message}
+                </span>
+              )}
+            </div>
+            {/* Vehicle Type */}
+            <div className="space-y-2">
+              <Label htmlFor="vehicle_type" className="text-sm font-medium">
+                Vehicle Type
+              </Label>
+              <Select
+                value={watch("vehicle_type") || ""}
                 onValueChange={(value) => {
-                  setValue("productType", value);
-
-                  const selectedType = typeOptions.find(
-                    (type) => type.type_name === value
-                  );
-                  setSelectedProductTypeId(selectedType?._id || "");
+                  setValue("vehicle_type", value);
+                  setSelectedProductTypeId(value);
                 }}
               >
                 <SelectTrigger
-                  id="product_type"
+                  id="vehicle_type"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -727,19 +739,16 @@ export default function ProductEdit() {
                     </SelectItem>
                   ) : (
                     typeOptions.map((type) => (
-                      <SelectItem
-                        key={type._id || type.type_name}
-                        value={type.type_name}
-                      >
+                      <SelectItem key={type._id} value={type._id}>
                         {type.type_name}
                       </SelectItem>
                     ))
                   )}
                 </SelectContent>
               </Select>
-              {errors.productType && (
+              {errors.vehicle_type && (
                 <span className="text-red-500 text-sm">
-                  {errors.productType.message}
+                  {errors.vehicle_type.message}
                 </span>
               )}
             </div>
@@ -767,10 +776,7 @@ export default function ProductEdit() {
                 onValueChange={(value) => {
                   setValue("brand", value);
 
-                  const selectedBrand = brandOptions.find(
-                    (p) => p.brand_name === value
-                  );
-                  setSelectedBrandId(selectedBrand?._id || "");
+                  setSelectedBrandId(value);
                 }}
               >
                 <SelectTrigger
@@ -794,7 +800,7 @@ export default function ProductEdit() {
                     </SelectItem>
                   ) : (
                     brandOptions.map((brand) => (
-                      <SelectItem key={brand._id} value={brand.brand_name}>
+                      <SelectItem key={brand._id} value={brand._id}>
                         {brand.brand_name}
                       </SelectItem>
                     ))
@@ -809,6 +815,22 @@ export default function ProductEdit() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="make" className="text-sm font-medium">
+                Make
+              </Label>
+              <Input
+                id="make"
+                placeholder="Enter Make"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("make")}
+              />
+              {errors.make && (
+                <span className="text-red-500 text-sm">
+                  {errors.make.message}
+                </span>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="model" className="text-sm font-medium">
                 Model
               </Label>
@@ -816,11 +838,8 @@ export default function ProductEdit() {
                 value={watch("model") || ""}
                 onValueChange={(value) => {
                   setValue("model", value);
-                  // Find the selected model to get its ID for filtering variants
-                  const selectedModel = modelOptions.find(
-                    (model) => model.model_name === value
-                  );
-                  setModelId(selectedModel?._id || "");
+
+                  setModelId(value);
                 }}
               >
                 <SelectTrigger
@@ -836,10 +855,7 @@ export default function ProductEdit() {
                     </SelectItem>
                   ) : (
                     modelOptions.map((model) => (
-                      <SelectItem
-                        key={model._id || model.model_name}
-                        value={model.model_name}
-                      >
+                      <SelectItem key={model._id} value={model._id}>
                         {model.model_name}
                       </SelectItem>
                     ))
@@ -852,45 +868,7 @@ export default function ProductEdit() {
                 </span>
               )}
             </div>
-            {/* Year Range */}
-            <div className="space-y-2">
-              <Label htmlFor="yearRange" className="text-sm font-medium">
-                Year Range
-              </Label>
-              <Select
-                value={watch("yearRange") || ""}
-                onValueChange={(value) => setValue("yearRange", value)}
-              >
-                <SelectTrigger
-                  id="year_range"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearRangeOptions.length === 0 ? (
-                    <SelectItem value="loading" disabled>
-                      Loading...
-                    </SelectItem>
-                  ) : (
-                    yearRangeOptions.map((year) => (
-                      <SelectItem
-                        key={year._id || year.year_name}
-                        value={year.year_name}
-                      >
-                        {year.year_name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.yearRange && (
-                <span className="text-red-500 text-sm">
-                  {errors.yearRange.message}
-                </span>
-              )}
-            </div>
-            {/* Variant */}
+                 {/* Variant */}
             <div className="space-y-2">
               <Label htmlFor="variant" className="text-sm font-medium">
                 Variant
@@ -912,10 +890,7 @@ export default function ProductEdit() {
                     </SelectItem>
                   ) : (
                     varientOptions.map((variant) => (
-                      <SelectItem
-                        key={variant._id || variant.variant_name}
-                        value={variant.variant_name}
-                      >
+                      <SelectItem key={variant._id} value={variant._id}>
                         {variant.variant_name}
                       </SelectItem>
                     ))
@@ -928,6 +903,42 @@ export default function ProductEdit() {
                 </span>
               )}
             </div>
+            {/* Year Range */}
+            <div className="space-y-2">
+              <Label htmlFor="yearRange" className="text-sm font-medium">
+                Year Range
+              </Label>
+              <Select
+                value={watch("year_range") || ""}
+                onValueChange={(value) => setValue("year_range", value)}
+              >
+                <SelectTrigger
+                  id="year_range"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearRangeOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      Loading...
+                    </SelectItem>
+                  ) : (
+                    yearRangeOptions.map((year) => (
+                      <SelectItem key={year._id} value={year._id}>
+                        {year.year_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.year_range && (
+                <span className="text-red-500 text-sm">
+                  {errors.year_range.message}
+                </span>
+              )}
+            </div>
+       
             {/* Fitment Notes */}
             <div className="space-y-2">
               <Label htmlFor="fitmentNotes" className="text-sm font-medium">
@@ -937,11 +948,11 @@ export default function ProductEdit() {
                 id="fitment_notes"
                 placeholder="Enter Fitment Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("fitmentNotes")}
+                {...register("fitment_notes")}
               />
-              {errors.fitmentNotes && (
+              {errors.fitment_notes && (
                 <span className="text-red-500 text-sm">
-                  {errors.fitmentNotes.message}
+                  {errors.fitment_notes.message}
                 </span>
               )}
             </div>
@@ -960,11 +971,11 @@ export default function ProductEdit() {
                 min="0"
                 placeholder="Enter Fulfillment Priority"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("fulfillmentPriority", { valueAsNumber: true })}
+                {...register("fulfillment_priority", { valueAsNumber: true })}
               />
-              {errors.fulfillmentPriority && (
+              {errors.fulfillment_priority && (
                 <span className="text-red-500 text-sm">
-                  {errors.fulfillmentPriority.message}
+                  {errors.fulfillment_priority.message}
                 </span>
               )}
             </div>
@@ -974,8 +985,8 @@ export default function ProductEdit() {
                 Is Universal
               </Label>
               <Select
-                value={watch("isUniversal") || ""}
-                onValueChange={(value) => setValue("isUniversal", value)}
+                value={watch("is_universal") || ""}
+                onValueChange={(value) => setValue("is_universal", value)}
               >
                 <SelectTrigger
                   id="is_universal"
@@ -988,9 +999,9 @@ export default function ProductEdit() {
                   <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.isUniversal && (
+              {errors.is_universal && (
                 <span className="text-red-500 text-sm">
-                  {errors.isUniversal.message}
+                  {errors.is_universal.message}
                 </span>
               )}
             </div>
@@ -1102,8 +1113,8 @@ export default function ProductEdit() {
                 Is Consumable
               </Label>
               <Select
-                value={watch("isConsumable") || ""}
-                onValueChange={(value) => setValue("isConsumable", value)}
+                value={watch("is_consumable") || ""}
+                onValueChange={(value) => setValue("is_consumable", value)}
               >
                 <SelectTrigger
                   id="is_consumable"
@@ -1116,9 +1127,9 @@ export default function ProductEdit() {
                   <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.isConsumable && (
+              {errors.is_consumable && (
                 <span className="text-red-500 text-sm">
-                  {errors.isConsumable.message}
+                  {errors.is_consumable.message}
                 </span>
               )}
             </div>
@@ -1191,11 +1202,11 @@ export default function ProductEdit() {
                 Brochure Available
               </Label>
               <Select
-                value={watch("brouchureAvailable") || ""}
-                onValueChange={(value) => setValue("brouchureAvailable", value)}
+                value={watch("brochure_available") || ""}
+                onValueChange={(value) => setValue("brochure_available", value)}
               >
                 <SelectTrigger
-                  id="brouchureAvailable"
+                  id="brochure_available"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -1205,9 +1216,9 @@ export default function ProductEdit() {
                   <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.brouchureAvailable && (
+              {errors.brochure_available && (
                 <span className="text-red-500 text-sm">
-                  {errors.brouchureAvailable.message}
+                  {errors.brochure_available.message}
                 </span>
               )}
             </div>
@@ -1225,7 +1236,7 @@ export default function ProductEdit() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* MRP (with GST) */}
+            {/* MRP (with gst) */}
             <div className="space-y-2">
               <Label htmlFor="mrp" className="text-sm font-medium">
                 MRP (with GST)
@@ -1234,11 +1245,11 @@ export default function ProductEdit() {
                 id="mrp_with_gst"
                 placeholder="Enter MRP"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("mrp")}
+                {...register("mrp_with_gst")}
               />
-              {errors.mrp && (
+              {errors.mrp_with_gst && (
                 <span className="text-red-500 text-sm">
-                  {errors.mrp.message}
+                  {errors.mrp_with_gst.message}
                 </span>
               )}
             </div>
@@ -1254,11 +1265,11 @@ export default function ProductEdit() {
                 min="0"
                 placeholder="Enter Selling Price"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("sellingPrice", { valueAsNumber: true })}
+                {...register("selling_price", { valueAsNumber: true })}
               />
-              {errors.sellingPrice && (
+              {errors.selling_price && (
                 <span className="text-red-500 text-sm">
-                  {errors.sellingPrice.message}
+                  {errors.selling_price.message}
                 </span>
               )}
             </div>
@@ -1271,15 +1282,15 @@ export default function ProductEdit() {
                 id="gst_percentage"
                 placeholder="Enter GST"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("gst")}
+                {...register("gst_percentage")}
               />
-              {errors.gst && (
+              {errors.gst_percentage && (
                 <span className="text-red-500 text-sm">
-                  {errors.gst.message}
+                  {errors.gst_percentage.message}
                 </span>
               )}
             </div>
-            {/* Returnable */}
+            {/* is_returnable */}
             <div className="space-y-2">
               <Label htmlFor="returnable" className="text-sm font-medium">
                 Returnable
@@ -1288,11 +1299,11 @@ export default function ProductEdit() {
                 id="returnable"
                 placeholder="Enter Returnable"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("returnable")}
+                {...register("is_returnable")}
               />
-              {errors.returnable && (
+              {errors.is_returnable && (
                 <span className="text-red-500 text-sm">
-                  {errors.returnable.message}
+                  {errors.is_returnable.message}
                 </span>
               )}
             </div>
@@ -1302,14 +1313,14 @@ export default function ProductEdit() {
                 Return Policy
               </Label>
               <Input
-                id="returnPolicy"
+                id="return_policy"
                 placeholder="Enter Return Policy"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("returnPolicy")}
+                {...register("return_policy")}
               />
-              {errors.returnPolicy && (
+              {errors.return_policy && (
                 <span className="text-red-500 text-sm">
-                  {errors.returnPolicy.message}
+                  {errors.return_policy.message}
                 </span>
               )}
             </div>
@@ -1453,18 +1464,18 @@ export default function ProductEdit() {
             </div>
             {/* Admin Notes */}
             <div className="space-y-2">
-              <Label htmlFor="adminNotes" className="text-sm font-medium">
+              <Label htmlFor="admin_notes" className="text-sm font-medium">
                 Admin Notes
               </Label>
               <Input
                 id="admin_notes"
                 placeholder="Enter Admin Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("adminNotes")}
+                {...register("admin_notes")}
               />
-              {errors.adminNotes && (
+              {errors.admin_notes && (
                 <span className="text-red-500 text-sm">
-                  {errors.adminNotes.message}
+                  {errors.admin_notes.message}
                 </span>
               )}
             </div>
@@ -1483,18 +1494,18 @@ export default function ProductEdit() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* SEO Title */}
             <div className="space-y-2">
-              <Label htmlFor="seoTitle" className="text-sm font-medium">
+              <Label htmlFor="seo_title" className="text-sm font-medium">
                 SEO Title
               </Label>
               <Input
                 id="seo_title"
                 placeholder="Enter SEO Title"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("seoTitle")}
+                {...register("seo_title")}
               />
-              {errors.seoTitle && (
+              {errors.seo_title && (
                 <span className="text-red-500 text-sm">
-                  {errors.seoTitle.message}
+                  {errors.seo_title.message}
                 </span>
               )}
             </div>
@@ -1506,17 +1517,17 @@ export default function ProductEdit() {
               </Label>
               <TagsInput
                 value={
-                  Array.isArray(watch("searchTagsArray"))
-                    ? watch("searchTagsArray")
+                  Array.isArray(watch("search_tags"))
+                    ? watch("search_tags")
                     : []
                 }
-                onChange={(tags: string[]) => setValue("searchTagsArray", tags)}
-                name="searchTagsArray"
+                onChange={(tags: string[]) => setValue("search_tags", tags)}
+                name="search_tags"
                 placeHolder="Add tag and press enter"
               />
-              {errors.searchTagsArray && (
+              {errors.search_tags && (
                 <span className="text-red-500 text-sm">
-                  {errors.searchTagsArray.message}
+                  {errors.search_tags.message}
                 </span>
               )}
             </div>
@@ -1529,11 +1540,11 @@ export default function ProductEdit() {
                 id="seo_description"
                 placeholder="Enter SEO Description"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("seoDescription")}
+                {...register("seo_description")}
               />
-              {errors.seoDescription && (
+              {errors.seo_description && (
                 <span className="text-red-500 text-sm">
-                  {errors.seoDescription.message}
+                  {errors.seo_description.message}
                 </span>
               )}
             </div>

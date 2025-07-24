@@ -53,7 +53,7 @@ const schema = z.object({
   no_of_stock: z.coerce
     .number()
     .int({ message: "No. of Stock must be an integer" }),
-  
+
   updatedBy: z.string().optional(),
   fulfillment_priority: z.coerce
     .number()
@@ -61,7 +61,7 @@ const schema = z.object({
     .optional(),
   admin_notes: z.string().optional(),
   // Vehicle Compatibility
-  // make: z.string().min(1, "Make is required"),
+  make: z.string().min(1, "Make is required"),
   // make2: z.string().optional(),
   model: z.string().min(1, "Model is required"),
   year_range: z.string().optional(),
@@ -83,7 +83,7 @@ const schema = z.object({
   mrp_with_gst: z.number().min(1, "MRP is required"),
   gst_percentage: z.number().min(1, "GST is required"),
   selling_price: z.number().min(1, "Selling Price is required"),
-  
+
   // Return & Availability
   is_returnable: z.boolean(),
   return_policy: z.string().min(1, "Return Policy is required"),
@@ -116,7 +116,7 @@ export default function AddProducts() {
   const [subCategoryOptions, setSubCategoryOptions] = useState<any[]>([]);
   const [modelOptions, setModelOptions] = useState<any[]>([]);
   const [typeOptions, setTypeOptions] = useState<any[]>([]);
-  const [brandOptions, setBrandOptions] = useState<any[]>([]);
+
   const [filteredBrandOptions, setFilteredBrandOptions] = useState<any[]>([]);
   const [selectedProductTypeId, setSelectedProductTypeId] =
     useState<string>("");
@@ -125,6 +125,10 @@ export default function AddProducts() {
   const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
   const [modelId, setModelId] = useState<string>("");
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -142,48 +146,41 @@ export default function AddProducts() {
       is_returnable: false,
     },
   });
-  const [submitLoading, setSubmitLoading] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Parallel fetch for categories, subcategories, types, and year ranges
   useEffect(() => {
-    const getCategoryOptions = async () => {
+    const fetchInitialData = async () => {
       try {
-        const response = await getCategories();
-        console.log("Category Options:", response);
-        setCategoryOptions(response.data.map((category: any) => category));
+        const [categories, subCategories, types, yearRanges] =
+          await Promise.all([
+            getCategories(),
+            getSubCategories(),
+            getTypes(),
+            getYearRange(),
+          ]);
+        setCategoryOptions(categories.data.map((category: any) => category));
+        setSubCategoryOptions(
+          subCategories.data.map((category: any) => category)
+        );
+        setTypeOptions(types.data.map((type: any) => type));
+        setYearRangeOptions(yearRanges.data.map((year: any) => year));
+        console.log("Fetched all initial data in parallel");
       } catch (error) {
-        console.error("Failed to fetch category options:", error);
+        console.error("Failed to fetch initial data in parallel:", error);
       }
     };
-
-    getCategoryOptions();
+    fetchInitialData();
   }, []);
 
-  useEffect(() => {
-    const getSubCategoryOptions = async () => {
-      try {
-        const response = await getSubCategories();
-        setSubCategoryOptions(response.data.map((category: any) => category));
-      } catch (error) {
-        console.error("Failed to fetch category options:", error);
-      }
-    };
-
-    getSubCategoryOptions();
-  }, []);
-  useEffect(() => {
-    console.log("Selected Product Type ID:", selectedProductTypeId);
-  });
+  // Model options (fetch brands by type)
   useEffect(() => {
     if (!selectedProductTypeId) {
       setFilteredBrandOptions([]);
       return;
     }
-
     const fetchBrandsByType = async () => {
       try {
         const response = await getBrandByType(selectedProductTypeId);
-
         setFilteredBrandOptions(response.data.map((brand: any) => brand));
       } catch (error) {
         setFilteredBrandOptions([]);
@@ -192,15 +189,13 @@ export default function AddProducts() {
     };
     fetchBrandsByType();
   }, [selectedProductTypeId]);
-  useEffect(() => {
-    console.log("Selected Brand ID:", selectedbrandId);
-  });
+
+  // Fetch models when brand changes
   useEffect(() => {
     if (!selectedbrandId) {
       setModelOptions([]);
       return;
     }
-
     const fetchModelsByBrand = async () => {
       try {
         const response = await getModelByBrand(selectedbrandId);
@@ -212,21 +207,11 @@ export default function AddProducts() {
     fetchModelsByBrand();
   }, [selectedbrandId]);
 
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const response = await getTypes();
-        setTypeOptions(response.data.map((type: any) => type));
-        console.log("Type Options:", response.data);
-      } catch (error) {
-        console.error("Failed to fetch type options:", error);
-      }
-    };
-    fetchTypes();
-  }, []);
+  // Fetch variants by model
   useEffect(() => {
     if (!modelId) {
       setVarientOptions([]);
+      return;
     }
     const fetchVarientByModel = async () => {
       try {
@@ -239,25 +224,12 @@ export default function AddProducts() {
     };
     fetchVarientByModel();
   }, [modelId]);
-  useEffect(() => {
-    const fetchYearRange = async () => {
-      try {
-        const response = await getYearRange();
-        setYearRangeOptions(response.data.map((year: any) => year));
-        console.log("Year Range Options:", response.data);
-      } catch (error) {
-        console.error("Failed to fetch year range options:", error);
-      }
-    };
-    fetchYearRange();
-  }, []);
+
+  // Handle search tags input and Submit
   const onSubmit = async (data: FormValues) => {
-    console.log("onSubmit called");
-    console.log("Submitting product form data:", data);
     setSubmitLoading(true);
     try {
-      // Get userId from JWT token
-      const userId = auth.user._id;
+      const userId = auth.user && auth.user._id;
       if (!userId) {
         showToast("User ID not found in token", "error");
         setSubmitLoading(false);
@@ -269,8 +241,8 @@ export default function AddProducts() {
       Object.entries(dataWithCreatedBy).forEach(([key, value]) => {
         if (key !== "images" && key !== "searchTagsArray") {
           if (Array.isArray(value)) {
-            // For arrays, append each value separately (especially for search_tags)
-            value.forEach((v) => formData.append(key, v));
+            // For arrays, append as comma-separated string (FormData does not support arrays natively)
+            formData.append(key, value.join(","));
           } else if (typeof value === "number") {
             formData.append(key, value.toString());
           } else {
@@ -284,12 +256,12 @@ export default function AddProducts() {
       if (imageFile) {
         formData.append("images", imageFile);
       }
-      // No need to append search_tags again, handled above
       await addProduct(formData);
       console.log("Product submitted:", dataWithCreatedBy);
       showToast("Product created successfully ", "success");
       setImageFile(null);
       setImagePreview(null);
+      reset(); // Reset the form after successful submission
     } catch (error) {
       console.error("Failed to submit product:", error);
       showToast("Failed to create product", "error");
@@ -303,7 +275,10 @@ export default function AddProducts() {
     if (e.key === "Enter") {
       // Only allow Enter to submit if the target is a textarea or the submit button
       const target = e.target as HTMLElement;
-      if (target.tagName !== "TEXTAREA" && target.getAttribute("type") !== "submit") {
+      if (
+        target.tagName !== "TEXTAREA" &&
+        target.getAttribute("type") !== "submit"
+      ) {
         e.preventDefault();
       }
     }
@@ -323,7 +298,9 @@ export default function AddProducts() {
       </div>
       <form
         id="add-product-form"
-        onSubmit={handleSubmit(onSubmit, (errors) => { console.log('Form validation failed', errors); })}
+        onSubmit={handleSubmit(onSubmit, (errors) => {
+          console.log("Form validation failed", errors);
+        })}
         onKeyDown={handleKeyDown}
         className="space-y-6"
       >
@@ -599,11 +576,10 @@ export default function AddProducts() {
                 Brand
               </Label>
               <Select
-                onValueChange={(value) => {;
+                onValueChange={(value) => {
                   setSelectedBrandId(value);
                   setValue("brand", value);
                 }}
-               
               >
                 <SelectTrigger
                   id="brand"
@@ -628,6 +604,22 @@ export default function AddProducts() {
               {errors.brand && (
                 <span className="text-red-500 text-sm">
                   {errors.brand.message}
+                </span>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="make" className="text-sm font-medium">
+                Make
+              </Label>
+              <Input
+                id="make"
+                placeholder="Enter Make"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("make")}
+              />
+              {errors.make && (
+                <span className="text-red-500 text-sm">
+                  {errors.make.message}
                 </span>
               )}
             </div>
@@ -1096,7 +1088,10 @@ export default function AddProducts() {
                 min="0"
                 placeholder="Enter Selling Price"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("selling_price", { valueAsNumber: true, required: true })}
+                {...register("selling_price", {
+                  valueAsNumber: true,
+                  required: true,
+                })}
               />
               {errors.selling_price && (
                 <span className="text-red-500 text-sm">
@@ -1346,9 +1341,13 @@ export default function AddProducts() {
                 Search Tags
               </Label>
               <TagsInput
-                value={Array.isArray(watch("search_tags")) ? watch("search_tags") : []}
+                value={
+                  Array.isArray(watch("search_tags"))
+                    ? watch("search_tags")
+                    : []
+                }
                 onChange={(tags: string[]) => setValue("search_tags", tags)}
-                 name="searchTagsArray"
+                name="searchTagsArray"
                 placeHolder="Add tag and press enter"
               />
               {errors.search_tags && (
