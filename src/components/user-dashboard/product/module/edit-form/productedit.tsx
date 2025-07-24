@@ -31,7 +31,7 @@ import { useParams } from "next/navigation";
 import { Product } from "@/types/product-Types";
 
 const schema = z.object({
-  // Core Product Identity
+  
   skuCode: z.string().min(1, "SKU Code is required"),
   manufacturerPartNumber: z.string().optional(),
   productName: z.string().min(1, "Product Name is required"),
@@ -134,6 +134,7 @@ export default function ProductEdit() {
     []
   );
   const [apiError, setApiError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Handle image file input change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -388,7 +389,8 @@ export default function ProductEdit() {
 
   const onSubmit = async (data: FormValues) => {
     setApiError("");
-    console.log("Update button clicked", data);
+    setIsSubmitting(true);
+    console.log("onSubmit called. Data:", data);
     if (typeof id.id === "string") {
       const preparedData = {
         ...data,
@@ -442,6 +444,8 @@ export default function ProductEdit() {
               error.message ||
               "Failed to update product"
           );
+        } finally {
+          setIsSubmitting(false);
         }
       } else {
         // Has images - send as FormData
@@ -486,11 +490,14 @@ export default function ProductEdit() {
               error.message ||
               "Failed to update product"
           );
+        } finally {
+          setIsSubmitting(false);
         }
       }
     } else {
       console.error("Product ID is missing or invalid.");
       setApiError("Product ID is missing or invalid.");
+      setIsSubmitting(false);
     }
   };
 
@@ -1536,8 +1543,9 @@ export default function ProductEdit() {
           <Button
             type="submit"
             className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
+            disabled={isSubmitting}
           >
-            Update Product
+            {isSubmitting ? "Updating..." : "Update Product"}
           </Button>
         </div>
       </form>
