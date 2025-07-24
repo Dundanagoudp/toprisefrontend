@@ -42,7 +42,7 @@ export function LoginForm({
   
       if ( response.data) {
         const { token, user } = response.data;
-        const { role, last_login } = user;
+        const { role, last_login, _id } = user;
 
         Cookies.set("role", role, {
           expires: 1,
@@ -53,7 +53,7 @@ export function LoginForm({
           expires: 1,
           path: "/",
         });
-        dispatch(loginSuccess({token, role, last_login}));
+        dispatch(loginSuccess({token, role, last_login, _id}));
         showToast("Successfully Login", "success");
         router.replace("/user/dashboard");
       } else {

@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
+import { TagsInput } from "react-tag-input-component";
+
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -32,8 +34,9 @@ import {
   getYearRange,
 } from "@/service/product-Service";
 import { useEffect, useState } from "react";
+import { useAppSelector } from "@/store/hooks";
+// Helper to decode JWT and extract user id
 import { useToast as useGlobalToast } from "@/components/ui/toast";
-
 
 const schema = z.object({
   // Core Product Identity
@@ -45,13 +48,12 @@ const schema = z.object({
   category: z.string().min(1, "Category is required"),
   sub_category: z.string().min(1, "Sub-category is required"),
   product_type: z.string().min(1, "Product type is required"),
+  vehicle_type: z.string().optional(),
   // Added fields
   no_of_stock: z.coerce
     .number()
     .int({ message: "No. of Stock must be an integer" }),
-  sellingPrice: z.coerce
-    .number()
-    .int({ message: "Selling Price must be an integer" }),
+  
   updatedBy: z.string().optional(),
   fulfillment_priority: z.coerce
     .number()
@@ -59,8 +61,8 @@ const schema = z.object({
     .optional(),
   admin_notes: z.string().optional(),
   // Vehicle Compatibility
-  make: z.string().min(1, "Make is required"),
-  make2: z.string().optional(),
+  // make: z.string().min(1, "Make is required"),
+  // make2: z.string().optional(),
   model: z.string().min(1, "Model is required"),
   year_range: z.string().optional(),
   variant: z.string().min(1, "Variant is required"),
@@ -81,6 +83,7 @@ const schema = z.object({
   mrp_with_gst: z.number().min(1, "MRP is required"),
   gst_percentage: z.number().min(1, "GST is required"),
   selling_price: z.number().min(1, "Selling Price is required"),
+  
   // Return & Availability
   is_returnable: z.boolean(),
   return_policy: z.string().min(1, "Return Policy is required"),
@@ -102,12 +105,14 @@ const schema = z.object({
   searchTags: z.string().optional(),
   search_tags: z.array(z.string()).optional(),
   seo_description: z.string().optional(),
+  created_by: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export default function AddProducts() {
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
+  const auth = useAppSelector((state) => state.auth);
   const [subCategoryOptions, setSubCategoryOptions] = useState<any[]>([]);
   const [modelOptions, setModelOptions] = useState<any[]>([]);
   const [typeOptions, setTypeOptions] = useState<any[]>([]);
@@ -125,6 +130,7 @@ export default function AddProducts() {
     handleSubmit,
     setValue,
     reset,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -133,6 +139,7 @@ export default function AddProducts() {
       is_consumable: false,
       brochure_available: "no",
       active: "yes",
+      is_returnable: false,
     },
   });
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -187,7 +194,7 @@ export default function AddProducts() {
   }, [selectedProductTypeId]);
   useEffect(() => {
     console.log("Selected Brand ID:", selectedbrandId);
-  },)
+  });
   useEffect(() => {
     if (!selectedbrandId) {
       setModelOptions([]);
@@ -198,9 +205,7 @@ export default function AddProducts() {
       try {
         const response = await getModelByBrand(selectedbrandId);
         setModelOptions(response.data.map((model: any) => model));
-  
       } catch (error) {
-   
         console.error("Failed to fetch models by brand:", error);
       }
     };
@@ -247,30 +252,41 @@ export default function AddProducts() {
     fetchYearRange();
   }, []);
   const onSubmit = async (data: FormValues) => {
+    console.log("onSubmit called");
+    console.log("Submitting product form data:", data);
     setSubmitLoading(true);
     try {
+      // Get userId from JWT token
+      const userId = auth.user._id;
+      if (!userId) {
+        showToast("User ID not found in token", "error");
+        setSubmitLoading(false);
+        return;
+      }
+      // Add created_by to data
+      const dataWithCreatedBy = { ...data, created_by: userId };
       const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
+      Object.entries(dataWithCreatedBy).forEach(([key, value]) => {
         if (key !== "images" && key !== "searchTagsArray") {
-          // If value is an array, join as comma-separated string
           if (Array.isArray(value)) {
-            formData.append(key, value.join(","));
+            // For arrays, append each value separately (especially for search_tags)
+            value.forEach((v) => formData.append(key, v));
           } else if (typeof value === "number") {
             formData.append(key, value.toString());
           } else {
-            formData.append(key, typeof value === "boolean" ? String(value) : value ?? "");
+            formData.append(
+              key,
+              typeof value === "boolean" ? String(value) : value ?? ""
+            );
           }
         }
       });
       if (imageFile) {
         formData.append("images", imageFile);
       }
-      if (data.search_tags && Array.isArray(data.search_tags)) {
-        data.search_tags.forEach((tag, idx) => {
-          formData.append(`search_tags[${idx}]`, tag);
-        });
-      }
-      await addProduct(formData); // expects FormData
+      // No need to append search_tags again, handled above
+      await addProduct(formData);
+      console.log("Product submitted:", dataWithCreatedBy);
       showToast("Product created successfully ", "success");
       setImageFile(null);
       setImagePreview(null);
@@ -279,6 +295,17 @@ export default function AddProducts() {
       showToast("Failed to create product", "error");
     } finally {
       setSubmitLoading(false);
+    }
+  };
+
+  // Prevent form submission on Enter key in any input
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter") {
+      // Only allow Enter to submit if the target is a textarea or the submit button
+      const target = e.target as HTMLElement;
+      if (target.tagName !== "TEXTAREA" && target.getAttribute("type") !== "submit") {
+        e.preventDefault();
+      }
     }
   };
 
@@ -296,9 +323,12 @@ export default function AddProducts() {
       </div>
       <form
         id="add-product-form"
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(onSubmit, (errors) => { console.log('Form validation failed', errors); })}
+        onKeyDown={handleKeyDown}
         className="space-y-6"
       >
+        {/* Hidden input for created_by (snake_case) */}
+        <input type="hidden" {...register("created_by")} />
         {/* Core Product Identity */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
@@ -313,7 +343,10 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Sku Code */}
             <div className="space-y-2">
-              <Label htmlFor="skuCode" className="text-sm font-medium font-[Red Hat Display]">
+              <Label
+                htmlFor="skuCode"
+                className="text-sm font-medium font-[Red Hat Display]"
+              >
                 Sku Code
               </Label>
               <Input
@@ -395,7 +428,15 @@ export default function AddProducts() {
                 id="hsnCode"
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("hsn_code")}
+                type="number"
+                {...register("hsn_code", {
+                  valueAsNumber: true,
+                  required: "HSN Code is required",
+                  validate: (value) =>
+                    value === undefined || isNaN(value)
+                      ? "Invalid input: expected number"
+                      : true,
+                })}
               />
               {errors.hsn_code && (
                 <span className="text-red-500 text-sm">
@@ -472,20 +513,47 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Product Type */}
+            {/* Product Type (OE, OEM, Aftermarket) */}
             <div className="space-y-2">
               <Label htmlFor="productType" className="text-sm font-medium">
                 Product Type
               </Label>
               <Select
-                onValueChange={(value) => {
-             
-                  setValue("product_type", value);
-                  setSelectedProductTypeId(value);
-                }}
+                onValueChange={(value) => setValue("product_type", value)}
+                defaultValue={watch("product_type")}
               >
                 <SelectTrigger
                   id="productType"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OE">OE</SelectItem>
+                  <SelectItem value="OEM">OEM</SelectItem>
+                  <SelectItem value="AfterMarket">Aftermarket</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.product_type && (
+                <span className="text-red-500 text-sm">
+                  {errors.product_type.message}
+                </span>
+              )}
+            </div>
+            {/* Vehicle Type (keep as is) */}
+            <div className="space-y-2">
+              <Label htmlFor="vehicleType" className="text-sm font-medium">
+                Vehicle Type
+              </Label>
+              <Select
+                onValueChange={(value) => {
+                  setValue("vehicle_type", value);
+                  setSelectedProductTypeId(value);
+                }}
+                defaultValue={watch("vehicle_type")}
+              >
+                <SelectTrigger
+                  id="vehicleType"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -504,9 +572,9 @@ export default function AddProducts() {
                   )}
                 </SelectContent>
               </Select>
-              {errors.product_type && (
+              {errors.vehicle_type && (
                 <span className="text-red-500 text-sm">
-                  {errors.product_type.message}
+                  {errors.vehicle_type.message}
                 </span>
               )}
             </div>
@@ -516,10 +584,10 @@ export default function AddProducts() {
         {/* Vehicle Compatibility */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">
+            <CardTitle className="text-red-600 font-semibold text-lg font-[Red Hat Display]">
               Vehicle Compatibility
             </CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 font-[red Hat Display]">
               Specify which vehicle make, model, and variant the product is
               compatible with.
             </p>
@@ -531,10 +599,11 @@ export default function AddProducts() {
                 Brand
               </Label>
               <Select
-                onValueChange={(value) => {
-                  setValue("brand", value);
+                onValueChange={(value) => {;
                   setSelectedBrandId(value);
+                  setValue("brand", value);
                 }}
+               
               >
                 <SelectTrigger
                   id="brand"
@@ -556,9 +625,9 @@ export default function AddProducts() {
                   )}
                 </SelectContent>
               </Select>
-              {errors.make && (
+              {errors.brand && (
                 <span className="text-red-500 text-sm">
-                  {errors.make.message}
+                  {errors.brand.message}
                 </span>
               )}
             </div>
@@ -570,7 +639,6 @@ export default function AddProducts() {
               </Label>
               <Select
                 onValueChange={(value) => {
-                  
                   setValue("model", value);
                   setModelId(value);
                 }}
@@ -720,7 +788,9 @@ export default function AddProducts() {
                 Is Universal
               </Label>
               <Select
-                onValueChange={(value) => setValue("is_universal", value === "yes")}
+                onValueChange={(value) =>
+                  setValue("is_universal", value === "yes")
+                }
                 defaultValue="no"
               >
                 <SelectTrigger
@@ -838,7 +908,9 @@ export default function AddProducts() {
                 min="0"
                 placeholder="Enter Warranty"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("warranty", { valueAsNumber: true })}
+                {...register("warranty", {
+                  setValueAs: (v) => (v === "" ? undefined : Number(v)),
+                })}
               />
               {errors.warranty && (
                 <span className="text-red-500 text-sm">
@@ -852,7 +924,9 @@ export default function AddProducts() {
                 Is Consumable
               </Label>
               <Select
-                onValueChange={(value) => setValue("is_consumable", value === "yes")}
+                onValueChange={(value) =>
+                  setValue("is_consumable", value === "yes")
+                }
                 defaultValue="no"
               >
                 <SelectTrigger
@@ -1002,7 +1076,7 @@ export default function AddProducts() {
                 type="number"
                 placeholder="Enter MRP"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("mrp_with_gst")}
+                {...register("mrp_with_gst", { valueAsNumber: true })}
               />
               {errors.mrp_with_gst && (
                 <span className="text-red-500 text-sm">
@@ -1010,23 +1084,23 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Selling Price */}
+            {/* Selling Price (Required) */}
             <div className="space-y-2">
-              <Label htmlFor="sellingPrice" className="text-sm font-medium">
-                Selling Price
+              <Label htmlFor="selling_price" className="text-sm font-medium">
+                Selling Price <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="sellingPrice"
+                id="selling_price"
                 type="number"
                 step="1"
                 min="0"
                 placeholder="Enter Selling Price"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("sellingPrice", { valueAsNumber: true })}
+                {...register("selling_price", { valueAsNumber: true, required: true })}
               />
-              {errors.sellingPrice && (
+              {errors.selling_price && (
                 <span className="text-red-500 text-sm">
-                  {errors.sellingPrice.message}
+                  {errors.selling_price.message}
                 </span>
               )}
             </div>
@@ -1040,7 +1114,9 @@ export default function AddProducts() {
                 type="number"
                 placeholder="Enter GST"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("gst_percentage")}
+                {...register("gst_percentage", {
+                  valueAsNumber: true,
+                })}
               />
               {errors.gst_percentage && (
                 <span className="text-red-500 text-sm">
@@ -1054,8 +1130,10 @@ export default function AddProducts() {
                 Returnable
               </Label>
               <Select
-                onValueChange={(value) => setValue("is_returnable", value === "yes")}
-                defaultValue="no"
+                onValueChange={(value) =>
+                  setValue("is_returnable", value === "yes")
+                }
+                value={watch("is_returnable") ? "yes" : "no"}
               >
                 <SelectTrigger
                   id="returnable"
@@ -1262,24 +1340,16 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Search Tags (comma separated) */}
+            {/* Search Tags (chip input) */}
             <div className="space-y-2">
               <Label htmlFor="searchTagsArray" className="text-sm font-medium">
-                Search Tags (multiple, comma separated)
+                Search Tags
               </Label>
-              <Input
-                id="searchTagsArray"
-                placeholder="Enter tags separated by commas"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                onChange={(e) =>
-                  setValue(
-                    "search_tags",
-                    e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                  )
-                }
+              <TagsInput
+                value={Array.isArray(watch("search_tags")) ? watch("search_tags") : []}
+                onChange={(tags: string[]) => setValue("search_tags", tags)}
+                 name="searchTagsArray"
+                placeHolder="Add tag and press enter"
               />
               {errors.search_tags && (
                 <span className="text-red-500 text-sm">
