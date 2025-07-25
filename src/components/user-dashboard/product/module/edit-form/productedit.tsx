@@ -311,10 +311,11 @@ export default function ProductEdit() {
         admin_notes: product.admin_notes || "",
         make: product.make && product.make.length > 0 ? product.make[0] : "",
         make2: product.make && product.make.length > 1 ? product.make[1] : "",
+       
         model: product.model?._id || "",
         year_range:
           product.year_range && product.year_range.length > 0
-            ? product.year_range[0].year_name
+            ? product.year_range[0]._id
             : "",
         variant:
           product.variant && product.variant.length > 0
@@ -359,6 +360,31 @@ export default function ProductEdit() {
     }
   }, [product, reset]);
 
+  // Initialize dependent state variables when product loads
+  useEffect(() => {
+    if (!product) return;
+
+    // Set product type ID for brand dependency
+    if (typeOptions.length > 0) {
+      const selectedTypeObj = typeOptions.find(
+        (t) => t.type_name === product.product_type || t._id === product.product_type
+      );
+      if (selectedTypeObj) {
+        setSelectedProductTypeId(selectedTypeObj._id);
+      }
+    }
+
+    // Set brand ID for model dependency
+    if (product.brand?._id) {
+      setSelectedBrandId(product.brand._id);
+    }
+
+    // Set model ID for variant dependency
+    if (product.model?._id) {
+      setModelId(product.model._id);
+    }
+  }, [product, typeOptions]);
+
   // Prepopulate dependent dropdowns in correct order after product data loads
 
   
@@ -372,9 +398,8 @@ export default function ProductEdit() {
           t.type_name === product.product_type || t._id === product.product_type
       );
       if (selectedTypeObj) {
-        setSelectedProductTypeId(selectedTypeObj._id);
         setValue("product_type", selectedTypeObj.type_name);
-        setValue("vehicle_type", selectedTypeObj.type_name);
+        setValue("vehicle_type", selectedTypeObj._id); // Set ID for Select component
       }
     }
   }, [product, typeOptions, setValue]);
@@ -389,7 +414,7 @@ export default function ProductEdit() {
       );
       if (selectedBrandObj) {
         setSelectedBrandId(selectedBrandObj._id);
-        setValue("brand", selectedBrandObj.brand_name);
+        setValue("brand", selectedBrandObj._id); // Set ID, not name
       }
     }
   }, [product, brandOptions, setValue]);
@@ -404,7 +429,7 @@ export default function ProductEdit() {
       );
       if (selectedModelObj) {
         setModelId(selectedModelObj._id);
-        setValue("model", selectedModelObj.model_name);
+        setValue("model", selectedModelObj._id); // Set ID, not name
       }
     }
   }, [product, modelOptions, setValue]);
@@ -423,10 +448,29 @@ export default function ProductEdit() {
           v._id === product.variant?.[0]?._id
       );
       if (selectedVariantObj) {
-        setValue("variant", selectedVariantObj.variant_name);
+        setValue("variant", selectedVariantObj._id); // Set ID, not name
       }
     }
   }, [product, varientOptions, setValue]);
+
+  useEffect(() => {
+    // Year Range
+    if (
+      product &&
+      yearRangeOptions.length > 0 &&
+      product.year_range &&
+      product.year_range.length > 0
+    ) {
+      const selectedYearObj = yearRangeOptions.find(
+        (y) =>
+          y.year_name === product.year_range?.[0]?.year_name ||
+          y._id === product.year_range?.[0]?._id
+      );
+      if (selectedYearObj) {
+        setValue("year_range", selectedYearObj._id); // Set ID for Select component
+      }
+    }
+  }, [product, yearRangeOptions, setValue]);
 
   const onSubmit = async (data: FormValues) => {
     setApiError("");
@@ -769,6 +813,7 @@ export default function ProductEdit() {
                 </span>
               )}
             </div>
+            
           </CardContent>
         </Card>
         {/* Vehicle Compatibility */}
