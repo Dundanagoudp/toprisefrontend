@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import addSquare from "../../../../../public/assets/addSquare.svg";
 import uploadFile from "../../../../../public/assets/uploadFile.svg";
 import UploadBulkCard from "./uploadBulk";
+import DynamicButton from "@/components/common/button/button";
 
 export default function Emptydata() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,30 +23,39 @@ export default function Emptydata() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] bg-white p-4">
       <div className="flex flex-col items-center space-y-4">
-        <Image src="/images/emptydata.png" alt="Document icon" width={120} height={120} className="w-30 h-30" />
-        <p className="text-lg font-semibold text-gray-700">Add or upload the data</p>
+        <Image
+          src="/images/emptydata.png"
+          alt="Document icon"
+          width={120}
+          height={120}
+          className="w-30 h-30"
+        />
+        <p className="text-lg font-semibold text-gray-700">
+          Add or upload the data
+        </p>
         <div className="flex gap-4">
           <div className="flex items-center gap-3 w-full lg:w-auto">
-            <Button
+            <DynamicButton
               variant="default"
-              className="flex items-center gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
+              customClassName=" bg-[#408EFD1A] text-[#408EFD] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
               onClick={handleUploadBulk}
               disabled={isModalOpen}
-            >
-              <Image src={uploadFile} alt="Add" className="h-4 w-4" />
-              <span className="text-[#408EFD] b3">Upload</span>
-            </Button>
-            <Button
-              className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
+              text="Upload Bulk"
+              icon={<Image src={uploadFile} alt="Add" className="h-4 w-4" />}
+            />
+            <DynamicButton
               variant="default"
+              customClassName=" bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
               onClick={handleAddProduct}
-            >
-              <Image src={addSquare} alt="Add" className="h-4 w-4" />
-              <span className="b3 font-RedHat">Add Product</span>
-            </Button>
+              text="Add Product"
+              icon={<Image src={addSquare} alt="Add" className="h-4 w-4" />}
+            />
           </div>
         </div>
-        <UploadBulkCard isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        <UploadBulkCard
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
       </div>
     </div>
   );

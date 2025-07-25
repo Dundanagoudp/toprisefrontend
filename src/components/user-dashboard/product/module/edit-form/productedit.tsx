@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { selectProductById } from "@/store/slice/product/productSlice";
+import { useAppSelector } from "@/store/hooks";
 // @ts-ignore
 import { TagsInput } from "react-tag-input-component";
 import {
@@ -121,13 +123,15 @@ export default function ProductEdit() {
   const [brandOptions, setBrandOptions] = useState<any[]>([]);
 
   // State for image uploads and previews
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [selectedImagePreviews, setSelectedImagePreviews] = useState<string[]>(
-    []
-  );
+  const [selectedImages, setSelectedImages] = useState<File[]>([]); // new uploads
+  const [selectedImagePreviews, setSelectedImagePreviews] = useState<string[]>([]); // new upload previews
+  const [existingImages, setExistingImages] = useState<string[]>([]); // URLs of images from backend
+  const [removedExistingIndexes, setRemovedExistingIndexes] = useState<number[]>([]); // indexes of removed existing images
   const [apiError, setApiError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const { showToast } = useGlobalToast();
+
   const {
     register,
     handleSubmit,
@@ -142,11 +146,15 @@ export default function ProductEdit() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-      setSelectedImages(filesArray);
-      const previews = filesArray.map((file) => URL.createObjectURL(file));
-      setSelectedImagePreviews(previews);
-      // Update form value as array of file names or handle as needed
-      setValue("images", previews.join(","));
+      setSelectedImages((prev) => [...prev, ...filesArray]);
+      filesArray.forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSelectedImagePreviews((prev) => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+      setValue("images", ""); // not used for validation here
     }
   };
   // Parallel fetch for categories, subcategories, types, and year ranges
@@ -243,32 +251,46 @@ export default function ProductEdit() {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      if (!id.id || typeof id.id !== "string") {
+        setApiError("Product ID is missing or invalid.");
+        return;
+      }
+
+      setIsLoadingProduct(true);
+      setApiError("");
+      
       try {
-        if (typeof id.id === "string") {
-          const response = await getProductById(id.id);
-          // response is ProductResponse, which has data: Product[]
-          const data = response.data;
-          if (Array.isArray(data) && data.length > 0) {
-            setProduct(data[0]);
-          } else if (
-            typeof data === "object" &&
-            data !== null &&
-            !Array.isArray(data)
-          ) {
-            setProduct(data as Product);
-          } else {
-            setProduct(null);
-          }
-          console.log("getProducts API response:", response);
+        const response = await getProductById(id.id);
+        // response is ProductResponse, which has data: Product[]
+        const data = response.data;
+        if (Array.isArray(data) && data.length > 0) {
+          setProduct(data[0]);
+        } else if (
+          typeof data === "object" &&
+          data !== null &&
+          !Array.isArray(data)
+        ) {
+          setProduct(data as Product);
         } else {
-          console.error("Product ID is missing or invalid.");
+          setProduct(null);
+          setApiError("Product not found.");
         }
-      } catch (error) {
+        console.log("getProducts API response:", response);
+      } catch (error: any) {
         console.error("getProducts API error:", error);
+        setApiError(
+          error.response?.data?.message || 
+          error.message || 
+          "Failed to fetch product details."
+        );
+        setProduct(null);
+      } finally {
+        setIsLoadingProduct(false);
       }
     };
+    
     fetchProducts();
-  }, []);
+  }, [id.id]);
 
   // Populate form with fetched product data
   useEffect(() => {
@@ -277,7 +299,7 @@ export default function ProductEdit() {
         sku_code: product.sku_code || "",
         manufacturer_part_name: product.manufacturer_part_name || "",
         product_name: product.product_name || "",
-        brand: product.brand?.brand_name || "",
+        brand: product.brand?._id || "",
         hsn_code: product.hsn_code || "",
         category: product.category?._id || "",
         sub_category: product.sub_category?._id || "",
@@ -289,14 +311,14 @@ export default function ProductEdit() {
         admin_notes: product.admin_notes || "",
         make: product.make && product.make.length > 0 ? product.make[0] : "",
         make2: product.make && product.make.length > 1 ? product.make[1] : "",
-        model: product.model.model_name || "",
+        model: product.model?._id || "",
         year_range:
           product.year_range && product.year_range.length > 0
             ? product.year_range[0].year_name
             : "",
         variant:
           product.variant && product.variant.length > 0
-            ? product.variant[0].variant_name
+            ? product.variant[0]._id
             : "",
         fitment_notes: product.fitment_notes || "",
         is_universal: product.is_universal ? "yes" : "no",
@@ -327,14 +349,19 @@ export default function ProductEdit() {
       });
       // Initialize image previews for existing images
       if (product.images && Array.isArray(product.images)) {
-        setSelectedImagePreviews(product.images);
+        setExistingImages(product.images);
       } else {
-        setSelectedImagePreviews([]);
+        setExistingImages([]);
       }
+      setSelectedImages([]);
+      setSelectedImagePreviews([]);
+      setRemovedExistingIndexes([]);
     }
   }, [product, reset]);
 
   // Prepopulate dependent dropdowns in correct order after product data loads
+
+  
   useEffect(() => {
     if (!product) return;
 
@@ -357,8 +384,8 @@ export default function ProductEdit() {
     if (product && brandOptions.length > 0 && product.brand) {
       const selectedBrandObj = brandOptions.find(
         (b) =>
-          b.brand_name === product.brand.brand_name ||
-          b._id === product.brand._id
+          b.brand_name === product.brand?.brand_name ||
+          b._id === product.brand?._id
       );
       if (selectedBrandObj) {
         setSelectedBrandId(selectedBrandObj._id);
@@ -372,8 +399,8 @@ export default function ProductEdit() {
     if (product && modelOptions.length > 0 && product.model) {
       const selectedModelObj = modelOptions.find(
         (m) =>
-          m.model_name === product.model.model_name ||
-          m._id === product.model._id
+          m.model_name === product.model?.model_name ||
+          m._id === product.model?._id
       );
       if (selectedModelObj) {
         setModelId(selectedModelObj._id);
@@ -392,8 +419,8 @@ export default function ProductEdit() {
     ) {
       const selectedVariantObj = varientOptions.find(
         (v) =>
-          v.variant_name === product.variant[0].variant_name ||
-          v._id === product.variant[0]._id
+          v.variant_name === product.variant?.[0]?.variant_name ||
+          v._id === product.variant?.[0]?._id
       );
       if (selectedVariantObj) {
         setValue("variant", selectedVariantObj.variant_name);
@@ -410,77 +437,51 @@ export default function ProductEdit() {
         ...data,
       };
 
-      if (selectedImages.length === 0) {
-        // No images - send as JSON
-        console.log("Sending as JSON (no images)");
-        try {
-          const response = await editProduct(id.id, preparedData);
-          showToast("Product updated successfully", "success");
-          setApiError("");
-        } catch (error: any) {
-          console.error("Failed to edit product (JSON):", error);
-          showToast("Failed to update product", "error");
-          console.error(
-            "Error details:",
-            error.response?.data || error.message
-          );
-          setApiError(
-            error.response?.data?.message ||
-              error.message ||
-              "Failed to update product"
-          );
-        } finally {
-          setIsSubmitting(false);
-        }
-      } else {
-        // Has images - send as FormData
-        console.log("Sending as FormData (with images)");
-        const formData = new FormData();
-
-        // Append all prepared fields except images
-        Object.entries(preparedData).forEach(([key, value]) => {
-          if (key !== "images" && value != null) {
-            if (Array.isArray(value)) {
-              value.forEach((v) => formData.append(`${key}[]`, v));
-            } else {
-              formData.append(key, value.toString());
-            }
+      // Always use FormData for images update
+      const formData = new FormData();
+      // Append all prepared fields except images
+      Object.entries(preparedData).forEach(([key, value]) => {
+        if (key !== "images" && value != null) {
+          if (Array.isArray(value)) {
+            value.forEach((v) => formData.append(`${key}[]`, v));
+          } else {
+            formData.append(key, value.toString());
           }
-        });
-
-        // Append image files
-        selectedImages.forEach((file) => {
-          formData.append("images", file);
-        });
-
-        // Debug: Log FormData contents
-        console.log("FormData contents:");
-        for (let pair of formData.entries()) {
-          console.log(pair[0] + ": " + pair[1]);
         }
-
-        try {
-          const response = await editProduct(id.id, formData);
-        
-
-          console.log("Edit Product Response:", response);
-          console.log("Updated Product Data:", preparedData);
-          setApiError("");
-        } catch (error: any) {
-          console.error("Failed to edit product (FormData):", error);
-          showToast("Failed to update product", "error");
-          console.error(
-            "Error details:",
-            error.response?.data || error.message
-          );
-          setApiError(
-            error.response?.data?.message ||
-              error.message ||
-              "Failed to update product"
-          );
-        } finally {
-          setIsSubmitting(false);
+      });
+      // Append new image files
+      selectedImages.forEach((file) => {
+        formData.append("images", file);
+      });
+      // Append remaining existing images (not removed)
+      existingImages.forEach((url, idx) => {
+        if (!removedExistingIndexes.includes(idx)) {
+          formData.append("existingImages", url);
         }
+      });
+      // Debug: Log FormData contents
+      console.log("FormData contents:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ": " + pair[1]);
+      }
+      try {
+        const response = await editProduct(id.id, formData);
+        showToast("Product updated successfully", "success");
+        setApiError("");
+      } catch (error: any) {
+        console.error("Failed to edit product (FormData):", error);
+        showToast("Failed to update product", "error");
+        console.error(
+          "Error details:",
+          error.response?.data || error.message
+        );
+        setApiError(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to update product"
+        );
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       console.error("Product ID is missing or invalid.");
@@ -497,16 +498,32 @@ export default function ProductEdit() {
           {apiError}
         </div>
       )}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
-            Edit Product
-          </h1>
-          <p className="text-sm text-gray-500">
-            Edit your product details below
-          </p>
+      
+      {isLoadingProduct ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+            <p className="mt-2 text-gray-600">Loading product details...</p>
+          </div>
         </div>
-      </div>
+      ) : !product ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-gray-600">Product not found or failed to load.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+                Edit Product
+              </h1>
+              <p className="text-sm text-gray-500">
+                Edit your product details below
+              </p>
+            </div>
+          </div>
       <form
         id="edit-product-form"
         onSubmit={handleSubmit(onSubmit)}
@@ -1160,14 +1177,47 @@ export default function ProductEdit() {
                 onChange={handleImageChange}
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
               />
-              <div className="flex space-x-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
+                {/* Existing images from backend, not removed */}
+                {existingImages.map((src, idx) =>
+                  removedExistingIndexes.includes(idx) ? null : (
+                    <div key={"existing-" + idx} className="relative inline-block">
+                      <img
+                        src={src}
+                        alt={`Existing ${idx + 1}`}
+                        className="h-20 w-20 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                        onClick={() => setRemovedExistingIndexes((prev) => [...prev, idx])}
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )
+                )}
+                {/* New uploads */}
                 {selectedImagePreviews.map((src, idx) => (
-                  <img
-                    key={idx}
-                    src={src}
-                    alt={`Preview ${idx + 1}`}
-                    className="h-20 w-20 object-cover rounded"
-                  />
+                  <div key={"new-" + idx} className="relative inline-block">
+                    <img
+                      src={src}
+                      alt={`Preview ${idx + 1}`}
+                      className="h-20 w-20 object-cover rounded"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                      onClick={() => {
+                        setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
+                        setSelectedImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+                      }}
+                      title="Remove"
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
               {errors.images && (
@@ -1560,6 +1610,8 @@ export default function ProductEdit() {
           </Button>
         </div>
       </form>
+        </>
+      )}
     </div>
   );
 }

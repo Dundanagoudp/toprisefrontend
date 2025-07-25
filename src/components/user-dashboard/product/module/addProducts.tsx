@@ -37,7 +37,7 @@ import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store/hooks";
 // Helper to decode JWT and extract user id
 import { useToast as useGlobalToast } from "@/components/ui/toast";
-import DynamicButton from "../../button/button";
+import DynamicButton from "../../../common/button/button";
 
 const schema = z.object({
   // Core Product Identity
@@ -127,8 +127,8 @@ export default function AddProducts() {
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
   const [modelId, setModelId] = useState<string>("");
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const {
     register,
@@ -254,14 +254,16 @@ export default function AddProducts() {
           }
         }
       });
-      if (imageFile) {
-        formData.append("images", imageFile);
+      if (imageFiles.length > 0) {
+        imageFiles.forEach((file) => {
+          formData.append("images", file);
+        });
       }
       await addProduct(formData);
       console.log("Product submitted:", dataWithCreatedBy);
       showToast("Product created successfully ", "success");
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
       reset(); // Reset the form after successful submission
     } catch (error) {
       console.error("Failed to submit product:", error);
@@ -963,19 +965,20 @@ export default function AddProducts() {
                 id="images"
                 type="file"
                 accept="image/*"
+                multiple
                 style={{ display: "none" }}
                 onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setImageFile(file);
-                  if (file) {
+                  const files = Array.from(e.target.files || []);
+                  setImageFiles((prev) => [...prev, ...files]);
+                  // Generate previews for new files
+                  files.forEach((file) => {
                     const reader = new FileReader();
-                    reader.onloadend = () =>
-                      setImagePreview(reader.result as string);
+                    reader.onloadend = () => {
+                      setImagePreviews((prev) => [...prev, reader.result as string]);
+                    };
                     reader.readAsDataURL(file);
-                  } else {
-                    setImagePreview(null);
-                  }
-                  setValue("images", file ? file.name : ""); // for validation
+                  });
+                  setValue("images", files.length > 0 ? files.map(f => f.name).join(",") : ""); // for validation
                 }}
               />
               <Button
@@ -983,14 +986,31 @@ export default function AddProducts() {
                 className="bg-gray-50 border border-gray-200 rounded-[8px] p-4 w-full text-left text-gray-700 hover:bg-gray-100"
                 onClick={() => document.getElementById("images")?.click()}
               >
-                {imageFile ? `Selected: ${imageFile.name}` : "Choose Image"}
+                {imageFiles.length > 0 ? `${imageFiles.length} image(s) selected` : "Choose Images"}
               </Button>
-              {imagePreview && (
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="mt-2 max-h-32 rounded border"
-                />
+              {imagePreviews.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {imagePreviews.map((preview, idx) => (
+                    <div key={idx} className="relative inline-block">
+                      <img
+                        src={preview}
+                        alt={`Preview ${idx + 1}`}
+                        className="max-h-24 rounded border"
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                        onClick={() => {
+                          setImageFiles((prev) => prev.filter((_, i) => i !== idx));
+                          setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
               {errors.images && (
                 <span className="text-red-500 text-sm">
