@@ -6,7 +6,15 @@ import {
   fetchProductsWithLiveStatus,
   updateProductLiveStatus,
 } from "@/store/slice/product/productLiveStatusSlice";
-import { Search, Plus, MoreHorizontal, FileUp, Pencil, Loader2, X } from "lucide-react";
+import {
+  Search,
+  Plus,
+  MoreHorizontal,
+  FileUp,
+  Pencil,
+  Loader2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +58,11 @@ import {
 import { aproveProduct, deactivateProduct } from "@/service/product-Service";
 import { Skeleton } from "@/components/ui/skeleton";
 import uploadFile from "../../../../../public/assets/uploadFile.svg";
-import DynamicButton from "../../button/button";
+import DynamicButton from "../../../common/button/button";
+import useDebounce from "@/utils/useDebounce";
+import { fetchProductDetailsSuccess } from "@/store/slice/product/productSlice";
+import Emptydata from "./Emptydata";
+import SearchInput from "@/components/common/search/SearchInput";
 
 // Product type for table
 type Product = {
@@ -113,47 +125,18 @@ const getStatusColor = (status: string) => {
 /**
  * Custom debounce hook that delays the execution of a function
  * until after a specified delay has passed since its last invocation.
- * 
+ *
  * @param callback - The function to debounce
  * @param delay - The delay in milliseconds
  * @returns Object containing the debounced callback and cleanup function
  */
-const useDebounce = (callback: (...args: any[]) => void, delay: number) => {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const callbackRef = useRef(callback);
-
-  // Update callback ref when callback changes
-  callbackRef.current = callback;
-
-  const debouncedCallback = useCallback(
-    (...args: any[]) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => {
-        callbackRef.current(...args);
-      }, delay);
-    },
-    [delay]
-  );
-
-  // Cleanup function
-  const cleanup = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-  }, []);
-
-  // Return both the debounced function and cleanup
-  return { debouncedCallback, cleanup };
-};
 
 export default function ProductManagement() {
   const payload = getTokenPayload();
   const auth = useAppSelector((state) => state.auth.user);
   const products = useAppSelector((state) => state.productLiveStatus.products);
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
+  const product = useAppSelector((state) => state.product.products);
   const error = useAppSelector((state) => state.productLiveStatus.error);
   const dispatch = useAppDispatch();
   const route = useRouter();
@@ -180,16 +163,17 @@ export default function ProductManagement() {
   // Debounced search functionality
   const performSearch = useCallback((query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1); // Reset to first page when searching
-    setIsSearching(false); // Hide loading indicator
+    setCurrentPage(1);
+    setIsSearching(false);
   }, []);
 
-  const { debouncedCallback: debouncedSearch, cleanup: cleanupDebounce } = useDebounce(performSearch, 500); // 500ms delay
+  const { debouncedCallback: debouncedSearch, cleanup: cleanupDebounce } =
+    useDebounce(performSearch, 500);
 
   // Handle search input change
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
-    setIsSearching(value.trim() !== ""); // Show loading only if there's text
+    setIsSearching(value.trim() !== "");
     debouncedSearch(value);
   };
 
@@ -202,18 +186,21 @@ export default function ProductManagement() {
   };
 
   const filteredProducts = React.useMemo(() => {
+    // Ensure products is an array to avoid errors
+    const productsArray = Array.isArray(products) ? products : [];
+
     // First, filter by tab
-    let tabFiltered = products;
+    let tabFiltered = productsArray;
     if (selectedTab === "Pending")
-      tabFiltered = products.filter(
+      tabFiltered = productsArray.filter(
         (product) => product.liveStatus === "Pending"
       );
     else if (selectedTab === "Approved")
-      tabFiltered = products.filter(
+      tabFiltered = productsArray.filter(
         (product) => product.liveStatus === "Approved"
       );
     else if (selectedTab === "Rejected")
-      tabFiltered = products.filter(
+      tabFiltered = productsArray.filter(
         (product) => product.liveStatus === "Rejected"
       );
     // Now, filter by search query
@@ -238,12 +225,11 @@ export default function ProductManagement() {
     setEditBulkLoading(true);
   };
   const handleCloseModal = () => {
-  setIsModalOpen(false);
-  setEditBulkLoading(false);
-};
+    setIsModalOpen(false);
+    setEditBulkLoading(false);
+  };
 
-
-// Handlers for Buolk Approve and Deactivate
+  // Handlers for Buolk Approve and Deactivate
   const handleBulkApprove = async () => {
     if (selectedProducts.length === 0) return;
     try {
@@ -280,6 +266,7 @@ export default function ProductManagement() {
     const fetchProducts = async () => {
       try {
         const response = await getProducts();
+        dispatch(fetchProductDetailsSuccess(response.data));
         console.log("API Response:", response);
         const data = response.data;
         if (Array.isArray(data)) {
@@ -368,7 +355,7 @@ export default function ProductManagement() {
     setSelectedProducts([]);
   }, [selectedTab, currentPage]);
 
-  // Handlers for Add product 
+  // Handlers for Add product
   const handleAddProduct = () => {
     setAddProductLoading(true);
     route.push(`/user/dashboard/product/Addproduct`);
@@ -408,7 +395,8 @@ export default function ProductManagement() {
           updateProductLiveStatus({ id: productId, liveStatus: "Approved" })
         );
         setTimeout(() => {
-          const approvedProducts = products.filter(
+          const productsArray = Array.isArray(products) ? products : [];
+          const approvedProducts = productsArray.filter(
             (p) => p.liveStatus === "Pending" && p.id !== productId
           );
           const newTotal = approvedProducts.length;
@@ -431,7 +419,8 @@ export default function ProductManagement() {
           updateProductLiveStatus({ id: productId, liveStatus: "Pending" })
         );
         setTimeout(() => {
-          const approvedProducts = products.filter(
+          const productsArray = Array.isArray(products) ? products : [];
+          const approvedProducts = productsArray.filter(
             (p) => p.liveStatus === "Approved" && p.id !== productId
           );
           const newTotal = approvedProducts.length;
@@ -464,31 +453,14 @@ export default function ProductManagement() {
             {/* Left: Search, Filters, Requests */}
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3 w-full lg:w-auto">
               {/* Search Bar */}
-              <div className="relative w-full sm:w-80 lg:w-96">
-                <div className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-4 py-0">
-                  {isSearching ? (
-                    <Loader2 className="h-5 w-5 text-[#A3A3A3] flex-shrink-0 animate-spin" />
-                  ) : (
-                    <Search className="h-5 w-5 text-[#A3A3A3] flex-shrink-0" />
-                  )}
-                  <Input
-                    placeholder="Search Spare parts"
-                    value={searchInput}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="bg-transparent font-[Poppins] border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#A3A3A3] h-10 p-0 flex-1 outline-none shadow-none"
-                  />
-                  {searchInput && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearSearch}
-                      className="h-6 w-6 p-0 hover:bg-gray-200 rounded-full flex-shrink-0"
-                    >
-                      <X className="h-4 w-4 text-[#A3A3A3]" />
-                    </Button>
-                  )}
-                </div>
-              </div>
+
+              <SearchInput
+                value={searchInput}
+                onChange={handleSearchChange}
+                onClear={handleClearSearch}
+                isLoading={isSearching}
+                placeholder="Search Spare parts"
+              />
               {/* Filter Buttons */}
               <div className="flex gap-2 sm:gap-3">
                 <DynamicButton
@@ -561,16 +533,16 @@ export default function ProductManagement() {
             {/* Bulk Edit & Created dropdown */}
             {selectedProducts.length > 1 && (
               <div className="flex items-center gap-2 justify-start sm:justify-end">
-                       <DynamicButton
-                    variant="default"
-                    customClassName="bg-gray-200 text-black hover:bg-gray-300 flex items-center gap-2"
-                    onClick={handleBulkEdit}
-                    disabled={editBulkLoading}
-                    loading={editBulkLoading}
-                    loadingText="Editing..."
-                    icon= {<Pencil/>}
-                    text="Bulk Edit"
-                  />
+                <DynamicButton
+                  variant="default"
+                  customClassName="bg-gray-200 text-black hover:bg-gray-300 flex items-center gap-2"
+                  onClick={handleBulkEdit}
+                  disabled={editBulkLoading}
+                  loading={editBulkLoading}
+                  loadingText="Editing..."
+                  icon={<Pencil />}
+                  text="Bulk Edit"
+                />
                 {/* <Button
                   className="bg-gray-200 text-black flex items-center gap-2"
                   variant="outline"
@@ -610,359 +582,378 @@ export default function ProductManagement() {
 
         {/* Product Table */}
         <CardContent className="p-0">
-          {/* Mobile Card View for small screens */}
-          <div className="block sm:hidden">
-            <div className="space-y-4 p-4">
-              {loadingTab
-                ? Array.from({ length: 3 }).map((_, idx) => (
-                    <Card key={idx} className="p-4">
-                      <div className="flex items-start space-x-4">
-                        <Skeleton className="w-5 h-5 rounded" />
-                        <Skeleton className="w-16 h-12 rounded-md" />
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-3 w-1/2" />
-                          <Skeleton className="h-3 w-1/3" />
-                        </div>
-                        <Skeleton className="w-8 h-8 rounded" />
-                      </div>
-                    </Card>
-                  ))
-                : paginatedData.map((product, index) => (
-                    <Card key={product.id} className="p-4">
-                      <div className="flex items-start space-x-4">
+          {/* Check if there are no products to show empty state */}
+          {!loading && !loadingTab && filteredProducts.length === 0 ? (
+            <Emptydata />
+          ) : (
+            <>
+              {/* Mobile Card View for small screens */}
+              <div className="block sm:hidden">
+                <div className="space-y-4 p-4">
+                  {loadingTab
+                    ? Array.from({ length: 3 }).map((_, idx) => (
+                        <Card key={idx} className="p-4">
+                          <div className="flex items-start space-x-4">
+                            <Skeleton className="w-5 h-5 rounded" />
+                            <Skeleton className="w-16 h-12 rounded-md" />
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <Skeleton className="h-4 w-3/4" />
+                              <Skeleton className="h-3 w-1/2" />
+                              <Skeleton className="h-3 w-1/3" />
+                            </div>
+                            <Skeleton className="w-8 h-8 rounded" />
+                          </div>
+                        </Card>
+                      ))
+                    : paginatedData.map((product, index) => (
+                        <Card key={product.id} className="p-4">
+                          <div className="flex items-start space-x-4">
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={() =>
+                                handleSelectOne(product.id)
+                              }
+                              aria-label="Select row"
+                            />
+                            <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                              <Image
+                                src={product.image || "/placeholder.svg"}
+                                alt={product.name}
+                                width={64}
+                                height={48}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 text-sm truncate ">
+                                {product.name}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {product.category} • {product.brand}
+                              </div>
+                              <div className="flex items-center justify-between mt-2">
+                                <span
+                                  className={`text-xs ${getStatusColor(
+                                    product.qcStatus
+                                  )}`}
+                                >
+                                  QC: {product.qcStatus}
+                                </span>
+                                {selectedTab !== "Created" && (
+                                  <span
+                                    className={`text-xs ${getStatusColor(
+                                      product.liveStatus
+                                    )}`}
+                                  >
+                                    {product.liveStatus}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>
+                                  Edit Product
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600">
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </Card>
+                      ))}
+                </div>
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table className="min-w-full">
+                  <TableHeader>
+                    <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
+                      <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
                         <Checkbox
-                          checked={selectedProducts.includes(product.id)}
-                          onCheckedChange={() => handleSelectOne(product.id)}
-                          aria-label="Select row"
+                          checked={allSelected}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="Select all"
                         />
-                        <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                          <Image
-                            src={product.image || "/placeholder.svg"}
-                            alt={product.name}
-                            width={64}
-                            height={48}
-                            className="w-full h-full object-cover"
+                      </TableHead>
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+                        Image
+                      </TableHead>
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">
+                        Name
+                      </TableHead>
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
+                        Category
+                      </TableHead>
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-[Red Hat Display]">
+                        Sub Category
+                      </TableHead>
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display]">
+                        Brand
+                      </TableHead>
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
+                        Type
+                      </TableHead>
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+                        QC Status
+                      </TableHead>
+                      {selectedTab !== "Created" && (
+                        <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+                          Product Status
+                        </TableHead>
+                      )}
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">
+                        Action
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedData.map((product, index) => (
+                      <TableRow
+                        key={product.id}
+                        className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                        }`}
+                      >
+                        <TableCell className="px-4 py-4 w-8 font-[Poppins]">
+                          <Checkbox
+                            checked={selectedProducts.includes(product.id)}
+                            onCheckedChange={() => handleSelectOne(product.id)}
+                            aria-label="Select row"
                           />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 text-sm truncate ">
+                        </TableCell>
+                        <TableCell className="px-6 py-4 font-[Poppins]">
+                          <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                            <Image
+                              src={product.image || "/placeholder.svg"}
+                              alt={product.name}
+                              width={80}
+                              height={64}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
+                          onClick={() => handleViewProduct(product.id)}
+                        >
+                          <div className="font-medium text-gray-900 b2 font-sans ">
                             {product.name}
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
+                          {/* Show category and brand on smaller screens */}
+                          <div className="text-xs text-gray-500 mt-1 md:hidden">
                             {product.category} • {product.brand}
                           </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <span
-                              className={`text-xs ${getStatusColor(
-                                product.qcStatus
-                              )}`}
-                            >
-                              QC: {product.qcStatus}
-                            </span>
-                            {selectedTab !== "Created" && (
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                          <span className="text-gray-700 b2 font-[Red Hat Display]">
+                            {product.category}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
+                          <span className="text-gray-700 b2 font-[Red Hat Display]">
+                            {product.subCategory}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                          <span className="text-gray-700 b2 font-[Red Hat Display]">
+                            {product.brand}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
+                          <span className="text-gray-700 b2 font-[Red Hat Display]">
+                            {product.productType}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                          <span
+                            className={`b2 ${getStatusColor(product.qcStatus)}`}
+                          >
+                            {product.qcStatus}
+                          </span>
+                        </TableCell>
+                        {selectedTab !== "Created" && (
+                          <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                            {selectedTab === "Rejected" ? (
                               <span
-                                className={`text-xs ${getStatusColor(
+                                className={`b2 ${getStatusColor(
                                   product.liveStatus
                                 )}`}
                               >
                                 {product.liveStatus}
                               </span>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 px-3 hover:bg-gray-100"
+                                  >
+                                    <span
+                                      className={`b2 ${getStatusColor(
+                                        product.liveStatus
+                                      )}`}
+                                    >
+                                      {product.liveStatus}
+                                    </span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-48"
+                                >
+                                  {selectedTab === "Approved" && (
+                                    <DropdownMenuItem
+                                      className="cursor-pointer"
+                                      onClick={() =>
+                                        handleDeactivateProduct(product.id)
+                                      }
+                                    >
+                                      Deactivate Product
+                                    </DropdownMenuItem>
+                                  )}
+                                  {selectedTab === "Pending" && (
+                                    <DropdownMenuItem
+                                      className="cursor-pointer"
+                                      onClick={() =>
+                                        handleApproveProduct(product.id)
+                                      }
+                                    >
+                                      Activate Product
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Edit Product</DropdownMenuItem>
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </Card>
-                  ))}
-            </div>
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden sm:block overflow-x-auto">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-                  <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Select all"
-                    />
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Image
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">
-                    Name
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
-                    Category
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-[Red Hat Display]">
-                    Sub Category
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display]">
-                    Brand
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
-                    Type
-                  </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
-                    QC Status
-                  </TableHead>
-                  {selectedTab !== "Created" && (
-                    <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
-                      Product Status
-                    </TableHead>
-                  )}
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">
-                    Action
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedData.map((product, index) => (
-                  <TableRow
-                    key={product.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                    }`}
-                  >
-                    <TableCell className="px-4 py-4 w-8 font-[Poppins]">
-                      <Checkbox
-                        checked={selectedProducts.includes(product.id)}
-                        onCheckedChange={() => handleSelectOne(product.id)}
-                        aria-label="Select row"
-                      />
-                    </TableCell>
-                    <TableCell className="px-6 py-4 font-[Poppins]">
-                      <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                        <Image
-                          src={product.image || "/placeholder.svg"}
-                          alt={product.name}
-                          width={80}
-                          height={64}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell
-                      className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
-                      onClick={() => handleViewProduct(product.id)}
-                    >
-                      <div className="font-medium text-gray-900 b2 font-sans ">
-                        {product.name}
-                      </div>
-                      {/* Show category and brand on smaller screens */}
-                      <div className="text-xs text-gray-500 mt-1 md:hidden">
-                        {product.category} • {product.brand}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-                      <span className="text-gray-700 b2 font-[Red Hat Display]">
-                        {product.category}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-                      <span className="text-gray-700 b2 font-[Red Hat Display]">
-                        {product.subCategory}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-                      <span className="text-gray-700 b2 font-[Red Hat Display]">
-                        {product.brand}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-                      <span className="text-gray-700 b2 font-[Red Hat Display]">
-                        {product.productType}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 font-[Red Hat Display]">
-                      <span
-                        className={`b2 ${getStatusColor(product.qcStatus)}`}
-                      >
-                        {product.qcStatus}
-                      </span>
-                    </TableCell>
-                    {selectedTab !== "Created" && (
-                      <TableCell className="px-6 py-4 font-[Red Hat Display]">
-                        {selectedTab === "Rejected" ? (
-                          <span
-                            className={`b2 ${getStatusColor(
-                              product.liveStatus
-                            )}`}
-                          >
-                            {product.liveStatus}
-                          </span>
-                        ) : (
+                          </TableCell>
+                        )}
+                        <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 px-3 hover:bg-gray-100"
+                                className="h-8 w-8 p-0 hover:bg-gray-100"
                               >
-                                <span
-                                  className={`b2 ${getStatusColor(
-                                    product.liveStatus
-                                  )}`}
-                                >
-                                  {product.liveStatus}
-                                </span>
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              {selectedTab === "Approved" && (
-                                <DropdownMenuItem
-                                  className="cursor-pointer"
-                                  onClick={() =>
-                                    handleDeactivateProduct(product.id)
-                                  }
-                                >
-                                  Deactivate Product
-                                </DropdownMenuItem>
-                              )}
-                              {selectedTab === "Pending" && (
-                                <DropdownMenuItem
-                                  className="cursor-pointer"
-                                  onClick={() =>
-                                    handleApproveProduct(product.id)
-                                  }
-                                >
-                                  Activate Product
-                                </DropdownMenuItem>
-                              )}
+                              <DropdownMenuItem className="cursor-pointer">
+                                Edit Product
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer">
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer">
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
+                                Delete
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        )}
-                      </TableCell>
-                    )}
-                    <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 hover:bg-gray-100"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem className="cursor-pointer">
-                            Edit Product
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
 
           {/* Footer - Pagination */}
-          {totalPages > 1 && (
-            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8 px-4 sm:px-6 pb-6">
-              {/* Left: Showing X-Y of Z products */}
-              <div className="text-sm text-gray-600 text-center sm:text-left">
-                {`Showing ${(currentPage - 1) * cardsPerPage + 1}-${Math.min(
-                  currentPage * cardsPerPage,
-                  filteredProducts.length
-                )} of ${filteredProducts.length} products`}
-              </div>
-              {/* Pagination Controls */}
-              <div className="flex justify-center sm:justify-end">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() =>
-                          setCurrentPage((p) => Math.max(1, p - 1))
-                        }
-                        className={
-                          currentPage === 1
-                            ? "pointer-events-none opacity-50"
-                            : "cursor-pointer"
-                        }
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: Math.min(totalPages, 5) }).map(
-                      (_, idx) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = idx + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = idx + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + idx;
-                        } else {
-                          pageNum = currentPage - 2 + idx;
-                        }
+          {!loading &&
+            !loadingTab &&
+            filteredProducts.length > 0 &&
+            totalPages > 1 && (
+              <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8 px-4 sm:px-6 pb-6">
+                {/* Left: Showing X-Y of Z products */}
+                <div className="text-sm text-gray-600 text-center sm:text-left">
+                  {`Showing ${(currentPage - 1) * cardsPerPage + 1}-${Math.min(
+                    currentPage * cardsPerPage,
+                    filteredProducts.length
+                  )} of ${filteredProducts.length} products`}
+                </div>
+                {/* Pagination Controls */}
+                <div className="flex justify-center sm:justify-end">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() =>
+                            setCurrentPage((p) => Math.max(1, p - 1))
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: Math.min(totalPages, 5) }).map(
+                        (_, idx) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = idx + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = idx + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + idx;
+                          } else {
+                            pageNum = currentPage - 2 + idx;
+                          }
 
-                        return (
-                          <PaginationItem
-                            key={pageNum}
-                            className="hidden sm:block"
-                          >
-                            <PaginationLink
-                              isActive={currentPage === pageNum}
-                              onClick={() => setCurrentPage(pageNum)}
-                              className="cursor-pointer"
+                          return (
+                            <PaginationItem
+                              key={pageNum}
+                              className="hidden sm:block"
                             >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      }
-                    )}
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() =>
-                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                              <PaginationLink
+                                isActive={currentPage === pageNum}
+                                onClick={() => setCurrentPage(pageNum)}
+                                className="cursor-pointer"
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
                         }
-                        className={
-                          currentPage === totalPages
-                            ? "pointer-events-none opacity-50"
-                            : "cursor-pointer"
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                      )}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() =>
+                            setCurrentPage((p) => Math.min(totalPages, p + 1))
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </CardContent>
       </Card>
       <UploadBulkCard

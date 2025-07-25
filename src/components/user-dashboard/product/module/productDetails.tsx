@@ -15,11 +15,13 @@ import { getProductById, getProducts } from "@/service/product-Service";
 import { useParams, useRouter } from "next/navigation";
 import { Product } from "@/types/product-Types";
 import { aproveProduct, deactivateProduct } from "@/service/product-Service";
-import DynamicButton from "../../button/button";
+import DynamicButton from "../../../common/button/button";
 
 export default function ViewProductDetails() {
   const [status, setStatus] = React.useState<string>("Created");
   const [product, setProduct] = React.useState<Product | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [isEditLoading, setIsEditLoading] = React.useState<boolean>(false);
   const id = useParams<{ id: string }>();
   const router = useRouter();
 
@@ -47,6 +49,7 @@ export default function ViewProductDetails() {
     }
   };
   const handleEdit = (idObj: { id: string }) => {
+    setIsEditLoading(true);
     router.push(`/user/dashboard/product/productedit/${idObj.id}`);
   };
   React.useEffect(() => {
@@ -90,10 +93,10 @@ export default function ViewProductDetails() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">
               Product Overview
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-base font-medium font-sans text-gray-500">
               Add your product description
             </p>
           </div>
@@ -113,10 +116,12 @@ export default function ViewProductDetails() {
             </Select>
             <DynamicButton
               variant= "outline"
-              customClassName=" bg-red-50 border-red-200 hover:bg-red-100 text-red-600"
+              customClassName=" bg-red-50 border-red-200 hover:bg-red-100 hover:text-red-600 text-red-600"
               onClick={()=> handleEdit(id)}
               icon={<Pencil/>}
               text="Edit Product"
+              loading={isEditLoading}
+              loadingText="Redirecting..."
             />
           </div>
         </div>
