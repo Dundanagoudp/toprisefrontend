@@ -37,6 +37,7 @@ import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store/hooks";
 // Helper to decode JWT and extract user id
 import { useToast as useGlobalToast } from "@/components/ui/toast";
+import DynamicButton from "../../button/button";
 
 const schema = z.object({
   // Core Product Identity
@@ -289,10 +290,10 @@ export default function AddProducts() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 font-[Red Hat Display]">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">
             Add Product
           </h1>
-          <p className="text-sm text-gray-500">Add your product description</p>
+          <p className="text-base font-medium font-sans text-gray-500">Add your product description</p>
         </div>
         {/* Save button removed from here */}
       </div>
@@ -309,10 +310,10 @@ export default function AddProducts() {
         {/* Core Product Identity */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg font-[Red Hat Display]">
+            <CardTitle className="text-red-600 font-bold text-lg font-sans">
               Core Product Identity
             </CardTitle>
-            <p className="text-sm text-gray-500 font-[Red Hat Display]">
+            <p className="text-sm text-[#737373] font-medium font-sans">
               Classify the product for catalog structure, filterability, and
               business logic.
             </p>
@@ -322,8 +323,8 @@ export default function AddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="skuCode"
-                className="text-sm font-medium font-[Red Hat Display]"
-              >
+                className="text-base font-medium font-sans">
+              
                 Sku Code
               </Label>
               <Input
@@ -340,7 +341,7 @@ export default function AddProducts() {
             </div>
             {/* No. of Stock */}
             <div className="space-y-2">
-              <Label htmlFor="noOfStock" className="text-sm font-medium">
+              <Label htmlFor="noOfStock" className="text-base font-medium font-sans">
                 No. of Stock
               </Label>
               <Input
@@ -362,7 +363,7 @@ export default function AddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="manufacturerPartNumber"
-                className="text-sm font-medium"
+                className="text-base font-medium font-sans"
               >
                 Manufacturer Part Number (MPN)
               </Label>
@@ -380,7 +381,7 @@ export default function AddProducts() {
             </div>
             {/* Product Name */}
             <div className="space-y-2">
-              <Label htmlFor="productName" className="text-sm font-medium">
+              <Label htmlFor="productName" className="text-base font-medium font-sans">
                 Product Name
               </Label>
               <Input
@@ -398,7 +399,7 @@ export default function AddProducts() {
 
             {/* HSN Code */}
             <div className="space-y-2">
-              <Label htmlFor="hsnCode" className="text-sm font-medium">
+              <Label htmlFor="hsnCode" className="text-base font-medium font-sans">
                 HSN Code
               </Label>
               <Input
@@ -423,7 +424,7 @@ export default function AddProducts() {
             </div>
             {/* Category */}
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-sm font-medium">
+              <Label htmlFor="category" className="text-base font-medium font-sans">
                 Category
               </Label>
               <Select
@@ -458,7 +459,7 @@ export default function AddProducts() {
             </div>
             {/* Sub-category */}
             <div className="space-y-2">
-              <Label htmlFor="subCategory" className="text-sm font-medium">
+              <Label htmlFor="subCategory" className="text-base font-medium font-sans">
                 Sub-category
               </Label>
               <Select
@@ -492,7 +493,7 @@ export default function AddProducts() {
             </div>
             {/* Product Type (OE, OEM, Aftermarket) */}
             <div className="space-y-2">
-              <Label htmlFor="productType" className="text-sm font-medium">
+              <Label htmlFor="productType" className="text-base font-medium font-sans">
                 Product Type
               </Label>
               <Select
@@ -519,7 +520,7 @@ export default function AddProducts() {
             </div>
             {/* Vehicle Type (keep as is) */}
             <div className="space-y-2">
-              <Label htmlFor="vehicleType" className="text-sm font-medium">
+              <Label htmlFor="vehicleType" className="text-base font-medium font-sans">
                 Vehicle Type
               </Label>
               <Select
@@ -561,10 +562,10 @@ export default function AddProducts() {
         {/* Vehicle Compatibility */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg font-[Red Hat Display]">
+            <CardTitle className="text-red-600 font-bold text-lg font-sans">
               Vehicle Compatibility
             </CardTitle>
-            <p className="text-sm text-gray-500 font-[red Hat Display]">
+            <p className="text-sm text-[#737373] font-medium font-sans">
               Specify which vehicle make, model, and variant the product is
               compatible with.
             </p>
@@ -572,7 +573,7 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Make */}
             <div className="space-y-2">
-              <Label htmlFor="brand" className="text-sm font-medium">
+              <Label htmlFor="brand" className="text-base font-medium font-sans">
                 Brand
               </Label>
               <Select
@@ -608,7 +609,7 @@ export default function AddProducts() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="make" className="text-sm font-medium">
+              <Label htmlFor="make" className="text-base font-medium font-sans">
                 Make
               </Label>
               <Input
@@ -626,7 +627,7 @@ export default function AddProducts() {
 
             {/* Model */}
             <div className="space-y-2">
-              <Label htmlFor="model" className="text-sm font-medium">
+              <Label htmlFor="model" className="text-base font-medium font-sans">
                 Model
               </Label>
               <Select
@@ -667,7 +668,7 @@ export default function AddProducts() {
             </div>
             {/* Year Range */}
             <div className="space-y-2">
-              <Label htmlFor="yearRange" className="text-sm font-medium">
+              <Label htmlFor="yearRange" className="text-base font-medium font-sans">
                 Year Range
               </Label>
               <Select onValueChange={(value) => setValue("year_range", value)}>
@@ -699,7 +700,7 @@ export default function AddProducts() {
             </div>
             {/* Variant */}
             <div className="space-y-2">
-              <Label htmlFor="variant" className="text-sm font-medium">
+              <Label htmlFor="variant" className="text-base font-medium font-sans">
                 Variant
               </Label>
               <Select onValueChange={(value) => setValue("variant", value)}>
@@ -736,7 +737,7 @@ export default function AddProducts() {
             </div>
             {/* Fitment Notes */}
             <div className="space-y-2">
-              <Label htmlFor="fitmentNotes" className="text-sm font-medium">
+              <Label htmlFor="fitmentNotes" className="text-base font-medium font-sans">
                 Fitment Notes
               </Label>
               <Input
@@ -755,7 +756,7 @@ export default function AddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="fulfillmentPriority"
-                className="text-sm font-medium"
+                className="text-base font-medium font-sans"
               >
                 Fulfillment Priority
               </Label>
@@ -776,7 +777,7 @@ export default function AddProducts() {
             </div>
             {/* Is Universal */}
             <div className="space-y-2">
-              <Label htmlFor="isUniversal" className="text-sm font-medium">
+              <Label htmlFor="isUniversal" className="text-base font-medium font-sans">
                 Is Universal
               </Label>
               <Select
@@ -808,10 +809,10 @@ export default function AddProducts() {
         {/* Technical Specifications */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">
+            <CardTitle className="text-red-600 font-bold text-lg font-sans">
               Technical Specifications
             </CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#737373] font-medium font-sans">
               Add all relevant technical details to help users understand the
               product quality and features.
             </p>
@@ -821,7 +822,7 @@ export default function AddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="keySpecifications"
-                className="text-sm font-medium"
+                className="text-base font-medium font-sans"
               >
                 Key Specifications
               </Label>
@@ -839,7 +840,7 @@ export default function AddProducts() {
             </div>
             {/* Dimensions */}
             <div className="space-y-2">
-              <Label htmlFor="dimensions" className="text-sm font-medium">
+              <Label htmlFor="dimensions" className="text-base font-medium font-sans">
                 Dimensions
               </Label>
               <Input
@@ -856,7 +857,7 @@ export default function AddProducts() {
             </div>
             {/* Weight */}
             <div className="space-y-2">
-              <Label htmlFor="weight" className="text-sm font-medium">
+              <Label htmlFor="weight" className="text-base font-medium font-sans">
                 Weight
               </Label>
               <Input
@@ -873,7 +874,7 @@ export default function AddProducts() {
             </div>
             {/* Certifications */}
             <div className="space-y-2">
-              <Label htmlFor="certifications" className="text-sm font-medium">
+              <Label htmlFor="certifications" className="text-base font-medium font-sans">
                 Certifications
               </Label>
               <Input
@@ -890,7 +891,7 @@ export default function AddProducts() {
             </div>
             {/* Warranty */}
             <div className="space-y-2">
-              <Label htmlFor="warranty" className="text-sm font-medium">
+              <Label htmlFor="warranty" className="text-base font-medium font-sans">
                 Warranty
               </Label>
               <Input
@@ -912,7 +913,7 @@ export default function AddProducts() {
             </div>
             {/* Is Consumable */}
             <div className="space-y-2">
-              <Label htmlFor="isConsumable" className="text-sm font-medium">
+              <Label htmlFor="isConsumable" className="text-base font-medium font-sans">
                 Is Consumable
               </Label>
               <Select
@@ -944,10 +945,10 @@ export default function AddProducts() {
         {/* Media & Documentation */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">
+            <CardTitle className="text-red-600 font-bold text-lg font-sanss">
               Media & Documentation
             </CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#737373] font-medium font-sans">
               Upload product images, videos, and brochures to enhance product
               representation and credibility.
             </p>
@@ -955,7 +956,7 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Images */}
             <div className="space-y-2">
-              <Label htmlFor="images" className="text-sm font-medium">
+              <Label htmlFor="images" className="text-base font-medium font-sans">
                 Images
               </Label>
               <input
@@ -999,7 +1000,7 @@ export default function AddProducts() {
             </div>
             {/* Video URL */}
             <div className="space-y-2">
-              <Label htmlFor="videoUrl" className="text-sm font-medium">
+              <Label htmlFor="videoUrl" className="text-base font-medium font-sans">
                 Video URL
               </Label>
               <Input
@@ -1018,7 +1019,7 @@ export default function AddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="brouchureAvailable"
-                className="text-sm font-medium"
+                className="text-base font-medium font-sans"
               >
                 Brochure Available
               </Label>
@@ -1049,10 +1050,10 @@ export default function AddProducts() {
         {/* Pricing details */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">
+            <CardTitle className="text-red-600 font-bold text-lg font-sans">
               Pricing & Tax
             </CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#737373] font-medium font-sans">
               Provide the pricing and tax information required for listing and
               billing.
             </p>
@@ -1060,7 +1061,7 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* MRP (with GST) */}
             <div className="space-y-2">
-              <Label htmlFor="mrp" className="text-sm font-medium">
+              <Label htmlFor="mrp" className="text-base font-medium font-sans">
                 MRP (with GST)
               </Label>
               <Input
@@ -1078,7 +1079,7 @@ export default function AddProducts() {
             </div>
             {/* Selling Price (Required) */}
             <div className="space-y-2">
-              <Label htmlFor="selling_price" className="text-sm font-medium">
+              <Label htmlFor="selling_price" className="text-base font-medium font-sans">
                 Selling Price <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -1101,7 +1102,7 @@ export default function AddProducts() {
             </div>
             {/* GST % */}
             <div className="space-y-2">
-              <Label htmlFor="gst" className="text-sm font-medium">
+              <Label htmlFor="gst" className="text-base font-medium font-sans">
                 GST %
               </Label>
               <Input
@@ -1121,7 +1122,7 @@ export default function AddProducts() {
             </div>
             {/* Returnable */}
             <div className="space-y-2">
-              <Label htmlFor="returnable" className="text-sm font-medium">
+              <Label htmlFor="returnable" className="text-base font-medium font-sans">
                 Returnable
               </Label>
               <Select
@@ -1149,7 +1150,7 @@ export default function AddProducts() {
             </div>
             {/* Return Policy */}
             <div className="space-y-2">
-              <Label htmlFor="returnPolicy" className="text-sm font-medium">
+              <Label htmlFor="returnPolicy" className="text-base font-medium font-sans">
                 Return Policy
               </Label>
               <Input
@@ -1170,17 +1171,17 @@ export default function AddProducts() {
         {/* Dealer-Level Mapping & Routing */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">
+            <CardTitle className="text-red-600 font-bold text-lg font-sans">
               Dealer-Level Mapping & Routing
             </CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#737373] font-medium font-sans">
               Dealer product quantity and quality
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Available Dealers */}
             <div className="space-y-2">
-              <Label htmlFor="availableDealers" className="text-sm font-medium">
+              <Label htmlFor="availableDealers" className="text-base font-medium font-sans">
                 Available Dealers
               </Label>
               <Input
@@ -1199,7 +1200,7 @@ export default function AddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="quantityPerDealer"
-                className="text-sm font-medium"
+                className="text-base font-medium font-sans"
               >
                 Quantity per Dealer
               </Label>
@@ -1217,7 +1218,7 @@ export default function AddProducts() {
             </div>
             {/* Dealer Margin % */}
             <div className="space-y-2">
-              <Label htmlFor="dealerMargin" className="text-sm font-medium">
+              <Label htmlFor="dealerMargin" className="text-base font-medium font-sans">
                 Dealer Margin %
               </Label>
               <Input
@@ -1236,7 +1237,7 @@ export default function AddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="dealerPriorityOverride"
-                className="text-sm font-medium"
+                className="text-base font-medium font-sans"
               >
                 Dealer Priority Override
               </Label>
@@ -1254,7 +1255,7 @@ export default function AddProducts() {
             </div>
             {/* Stock Expiry Rule */}
             <div className="space-y-2">
-              <Label htmlFor="stockExpiryRule" className="text-sm font-medium">
+              <Label htmlFor="stockExpiryRule" className="text-base font-medium font-sans">
                 Stock Expiry Rule
               </Label>
               <Input
@@ -1271,7 +1272,7 @@ export default function AddProducts() {
             </div>
             {/* Last Stock Update */}
             <div className="space-y-2">
-              <Label htmlFor="lastStockUpdate" className="text-sm font-medium">
+              <Label htmlFor="lastStockUpdate" className="text-base font-medium font-sans">
                 Last Stock Update
               </Label>
               <Input
@@ -1288,7 +1289,7 @@ export default function AddProducts() {
             </div>
             {/* Admin Notes */}
             <div className="space-y-2">
-              <Label htmlFor="adminNotes" className="text-sm font-medium">
+              <Label htmlFor="adminNotes" className="text-base font-medium font-sans">
                 Admin Notes
               </Label>
               <Input
@@ -1309,10 +1310,10 @@ export default function AddProducts() {
         {/* SEO & Search Optimization */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">
+            <CardTitle className="text-red-600 font-bold text-lg font-sans">
               SEO & Search Optimization
             </CardTitle>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#737373] font-medium font-sans">
               Provide the pricing and tax information required for listing and
               billing.
             </p>
@@ -1320,7 +1321,7 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* SEO Title */}
             <div className="space-y-2">
-              <Label htmlFor="seoTitle" className="text-sm font-medium">
+              <Label htmlFor="seoTitle" className="text-base font-medium font-sans">
                 SEO Title
               </Label>
               <Input
@@ -1337,7 +1338,7 @@ export default function AddProducts() {
             </div>
             {/* Search Tags (chip input) */}
             <div className="space-y-2">
-              <Label htmlFor="searchTagsArray" className="text-sm font-medium">
+              <Label htmlFor="searchTagsArray" className="text-base font-medium font-sans">
                 Search Tags
               </Label>
               <TagsInput
@@ -1358,7 +1359,7 @@ export default function AddProducts() {
             </div>
             {/* SEO Description */}
             <div className="space-y-2">
-              <Label htmlFor="seoDescription" className="text-sm font-medium">
+              <Label htmlFor="seoDescription" className="text-base font-medium font-sans">
                 SEO Description
               </Label>
               <Input
@@ -1376,7 +1377,17 @@ export default function AddProducts() {
           </CardContent>
         </Card>
         <div className="flex justify-end pt-4">
-          <Button
+
+          <DynamicButton
+          variant="default"
+          type="submit"
+          customClassName="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
+          disabled={submitLoading}
+          loading={submitLoading}
+          loadingText="Adding..."
+          text="Add Product"
+          />
+          {/* <Button
             type="submit"
             className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
             disabled={submitLoading}
@@ -1408,7 +1419,7 @@ export default function AddProducts() {
             ) : (
               "Add Product"
             )}
-          </Button>
+          </Button> */}
         </div>
       </form>
     </div>
