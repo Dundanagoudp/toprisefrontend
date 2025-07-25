@@ -121,20 +121,35 @@ export default function statusTable() {
       <Card className="shadow-sm rounded-none">
         <CardHeader className="space-y-4 sm:space-y-6">
           <div className="flex flex-col   w-full">
-            <div className="flex flex-row  w-full">
-              <CardTitle className="text-[#000000] font-semibold text-lg">
+            <div className="flex flex-row  w-full border-b border-gray-200  ">
+              <CardTitle className="text-[#000000] font-semibold text-lg ">
                 Product Logs
               </CardTitle>
+             
+
          
             </div>
-            <div className="w-full mt-4">
+            <div className="w-full mt-4 flex flex-row  justify-between items-center">
+                <div className="flex flex-row gap-6 items-center ">
                  <SearchInput
                 value={searchInput}
                 onChange={handleSearchChange}
                 onClear={handleClearSearch}
                 isLoading={isSearching}
                 placeholder="Search Spare parts"
-              /></div>
+              />
+               <span className="text-[#1D1D1B] font-medium font-sans"> uploaded : 0</span>
+               <span className="text-[#1D1D1B] font-medium font-sans"> Rejected : 0</span>
+               
+               </div>
+               <div>
+                <DynamicButton
+                variant="default"
+                text="Done"
+                />
+               </div>
+               
+               </div>
           </div>
         </CardHeader>
 
@@ -142,8 +157,8 @@ export default function statusTable() {
           <div className=" bg-white shadow-sm">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-medium text-gray-700">
+                <TableRow className="bg-transparent">
+                  <TableHead className="font-medium text-gray-700 font-sans">
                     Time Date
                   </TableHead>
                   <TableHead className="font-medium text-gray-700">
