@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getTokenPayload } from "@/utils/cookies";
 import {
   fetchProductsWithLiveStatus,
   updateProductLiveStatus,
 } from "@/store/slice/product/productLiveStatusSlice";
-import { Search, Plus, MoreHorizontal, FileUp, Pencil } from "lucide-react";
+import { Search, Plus, MoreHorizontal, FileUp, Pencil, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +110,45 @@ const getStatusColor = (status: string) => {
   }
 };
 
+/**
+ * Custom debounce hook that delays the execution of a function
+ * until after a specified delay has passed since its last invocation.
+ * 
+ * @param callback - The function to debounce
+ * @param delay - The delay in milliseconds
+ * @returns Object containing the debounced callback and cleanup function
+ */
+const useDebounce = (callback: (...args: any[]) => void, delay: number) => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const callbackRef = useRef(callback);
+
+  // Update callback ref when callback changes
+  callbackRef.current = callback;
+
+  const debouncedCallback = useCallback(
+    (...args: any[]) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        callbackRef.current(...args);
+      }, delay);
+    },
+    [delay]
+  );
+
+  // Cleanup function
+  const cleanup = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  // Return both the debounced function and cleanup
+  return { debouncedCallback, cleanup };
+};
+
 export default function ProductManagement() {
   const payload = getTokenPayload();
   const auth = useAppSelector((state) => state.auth.user);
@@ -122,7 +161,9 @@ export default function ProductManagement() {
   const isAllowed =
     payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // Input field value
+  const [searchQuery, setSearchQuery] = useState(""); // Actual search query for filtering
+  const [isSearching, setIsSearching] = useState(false); // Search loading state
   const [selectedTab, setSelectedTab] = useState("Created");
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(10);
@@ -135,6 +176,30 @@ export default function ProductManagement() {
   const [editBulkLoading, setEditBulkLoading] = useState(false);
 
   const cardsPerPage = 10;
+
+  // Debounced search functionality
+  const performSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to first page when searching
+    setIsSearching(false); // Hide loading indicator
+  }, []);
+
+  const { debouncedCallback: debouncedSearch, cleanup: cleanupDebounce } = useDebounce(performSearch, 500); // 500ms delay
+
+  // Handle search input change
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setIsSearching(value.trim() !== ""); // Show loading only if there's text
+    debouncedSearch(value);
+  };
+
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setSearchQuery("");
+    setIsSearching(false);
+    setCurrentPage(1);
+  };
 
   const filteredProducts = React.useMemo(() => {
     // First, filter by tab
@@ -166,6 +231,7 @@ export default function ProductManagement() {
     return tabFiltered;
   }, [selectedTab, products, searchQuery]);
 
+  // Handlers for bulk actions
   const handleBulkEdit = () => {
     setBulkMode("edit");
     setIsModalOpen(true);
@@ -176,6 +242,8 @@ export default function ProductManagement() {
   setEditBulkLoading(false);
 };
 
+
+// Handlers for Buolk Approve and Deactivate
   const handleBulkApprove = async () => {
     if (selectedProducts.length === 0) return;
     try {
@@ -207,6 +275,7 @@ export default function ProductManagement() {
     }
   };
 
+  // Fetch products on mount and when page changes
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -238,6 +307,13 @@ export default function ProductManagement() {
 
     fetchProducts();
   }, [currentPage, productsPerPage, dispatch]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      cleanupDebounce();
+    };
+  }, [cleanupDebounce]);
 
   // Handle shimmer effect on tab change
   useEffect(() => {
@@ -292,6 +368,7 @@ export default function ProductManagement() {
     setSelectedProducts([]);
   }, [selectedTab, currentPage]);
 
+  // Handlers for Add product 
   const handleAddProduct = () => {
     setAddProductLoading(true);
     route.push(`/user/dashboard/product/Addproduct`);
@@ -389,13 +466,27 @@ export default function ProductManagement() {
               {/* Search Bar */}
               <div className="relative w-full sm:w-80 lg:w-96">
                 <div className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-4 py-0">
-                  <Search className="h-5 w-5 text-[#A3A3A3] flex-shrink-0" />
+                  {isSearching ? (
+                    <Loader2 className="h-5 w-5 text-[#A3A3A3] flex-shrink-0 animate-spin" />
+                  ) : (
+                    <Search className="h-5 w-5 text-[#A3A3A3] flex-shrink-0" />
+                  )}
                   <Input
                     placeholder="Search Spare parts"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={searchInput}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="bg-transparent font-[Poppins] border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#A3A3A3] h-10 p-0 flex-1 outline-none shadow-none"
                   />
+                  {searchInput && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearSearch}
+                      className="h-6 w-6 p-0 hover:bg-gray-200 rounded-full flex-shrink-0"
+                    >
+                      <X className="h-4 w-4 text-[#A3A3A3]" />
+                    </Button>
+                  )}
                 </div>
               </div>
               {/* Filter Buttons */}
@@ -419,7 +510,7 @@ export default function ProductManagement() {
                 <>
                   <DynamicButton
                     variant="default"
-                    customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center"
+                    customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center font-[Poppins]"
                     onClick={handleUploadBulk}
                     disabled={uploadBulkLoading}
                     loading={uploadBulkLoading}
@@ -429,14 +520,14 @@ export default function ProductManagement() {
                     }
                     text="Upload"
                   />
-                   <DynamicButton
+                  <DynamicButton
                     variant="default"
-                    customClassName="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
+                    customClassName="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center font-[Poppins]  font-regular   "
                     onClick={handleAddProduct}
                     disabled={addProductLoading}
                     loading={addProductLoading}
                     loadingText="Adding..."
-                    icon= {<Plus/>}
+                    icon={<Plus />}
                     text="Add Product"
                   />
                 </>
@@ -555,7 +646,7 @@ export default function ProductManagement() {
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 text-sm truncate">
+                          <div className="font-medium text-gray-900 text-sm truncate ">
                             {product.name}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
@@ -678,7 +769,7 @@ export default function ProductManagement() {
                       className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
                       onClick={() => handleViewProduct(product.id)}
                     >
-                      <div className="font-medium text-gray-900 b2 font-[Red Hat Display]">
+                      <div className="font-medium text-gray-900 b2 font-sans ">
                         {product.name}
                       </div>
                       {/* Show category and brand on smaller screens */}

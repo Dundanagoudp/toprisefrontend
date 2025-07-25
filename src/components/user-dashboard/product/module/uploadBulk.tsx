@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { FileUp, ImageUp, X } from "lucide-react";
 import React, { ChangeEvent, useState } from "react";
-import { uploadBulkProducts } from "@/service/product-Service";
+import { uploadBulkProducts , editBulkProducts} from "@/service/product-Service";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 import {
     Dialog,
     DialogContent,
@@ -21,7 +22,7 @@ interface UploadBulkCardProps {
 
 
 export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: UploadBulkCardProps) {
-    
+  const {showToast} = useGlobalToast();
   const [imageZipFile, setImageZipFile] = useState<File | null>(null);
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
@@ -55,8 +56,12 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
   };
     const handleUpload = async () => {
       // Ensure both files are selected before uploading
-      if (!imageZipFile || !csvFile) {
-        setUploadMessage('Please select both the Image.zip and CSV files.');
+      if (mode === 'edit' && !csvFile) {
+        setUploadMessage('Please select the CSV file for editing.');
+        return;
+      }
+      if (mode === 'upload' && (!imageZipFile || !csvFile)) {
+        setUploadMessage('Please select the Image.zip file and CSV file for upload.');
         return;
       }
 
@@ -64,27 +69,45 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
       setUploadMessage('');
 
       const formData = new FormData();
-      formData.append('imageZip', imageZipFile);
-      formData.append('dataFile', csvFile);
+      if (mode === 'upload') {
+        if (imageZipFile) {
+          formData.append('imageZip', imageZipFile);
+        }
+        if (csvFile) {
+          formData.append('dataFile', csvFile);
+        }
+      }
+      if (mode === 'edit') {
+        if (csvFile) {
+          formData.append('editsFile', csvFile);
+        }
+      }
+   
 
       try {
         let response;
         if (mode === 'edit') {
-          // response = await editUploadBulk(formData);
+          response = await editBulkProducts(formData);
+          showToast("Updated successfully", "success");
           console.log('Editing bulk upload with formData:');
         } else {
           response = await uploadBulkProducts(formData);
+          showToast("Uploaded successfully", "success");
+          console.log('Uploading bulk upload with formData:');
         }
 
-        if (response && response.data) {
+        if (response) {
           setUploadMessage(response.message || (mode === 'edit' ? 'Files edited successfully!' : 'Files uploaded successfully!'));
           setImageZipFile(null);
           setCsvFile(null);
+          handleClose();
+         
         } else {
-          setUploadMessage(response?.message || (mode === 'edit' ? 'Edit failed. Please try again.' : 'Upload failed. Please try again.'));
+          setUploadMessage((mode === 'edit' ? 'Edit failed. Please try again.' : 'Upload failed. Please try again.'));
         }
       } catch (error: any) {
         console.error('Error uploading files:', error);
+        showToast( 'An error occurred during upload. Please check the console.', "error");
         const message = error.response?.data?.message || error.message || 'An error occurred during upload. Please check the console.';
         setUploadMessage(message);
       } finally {
@@ -178,8 +201,17 @@ return (
       </div>
       <DialogFooter className="flex justify-end gap-3 pt-4">
         <Button variant="outline" onClick={handleClose}>Cancel</Button>
-        <Button className="bg-red-600 text-white hover:bg-red-700" disabled={!imageZipFile || !csvFile || isUploading} onClick={handleUpload}>
-            {isUploading ? (mode === 'edit' ? 'Editing...' : 'Uploading...') : (mode === 'edit' ? 'Edit Bulk' : 'Upload')}
+        <Button
+          className="bg-red-600 text-white hover:bg-red-700"
+          disabled={
+            (mode === 'edit'
+              ? !csvFile
+              : !imageZipFile || !csvFile
+            ) || isUploading
+          }
+          onClick={handleUpload}
+        >
+          {isUploading ? (mode === 'edit' ? 'Editing...' : 'Uploading...') : (mode === 'edit' ? 'Edit Bulk' : 'Upload')}
         </Button>
       </DialogFooter>
     </DialogContent>

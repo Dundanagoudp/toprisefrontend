@@ -177,3 +177,19 @@ export async function addProduct(productData:FormData | any): Promise<ProductRes
     throw error;
   }
 }
+
+export async function editBulkProducts(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.put(`/category/products/v1/bulk-edit`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk products:", error);
+    throw error;
+  }
+}
