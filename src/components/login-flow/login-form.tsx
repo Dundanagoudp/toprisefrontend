@@ -59,9 +59,10 @@ export function LoginForm({
       } else {
         showToast("Login failed", "error");
       }
-    } catch (err) {
-      showToast("Something went wrong.", "error");
-      console.error(err);
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err.message || "Login failed";
+      showToast(`${message}`, "error");
+      
     } finally {
       setLoading(false);
     }

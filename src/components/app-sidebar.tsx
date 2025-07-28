@@ -86,13 +86,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { state } = useSidebar();
   const expanded = state === "expanded";
+  // Import persistor from store
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { persistor } = require("@/store/store");
   const handleLogout = () => {
-    
-    Cookies.remove('token');
+  Cookies.remove('token');
   Cookies.remove('role');
   Cookies.remove('lastlogin');
-  router.replace('/login');
+  localStorage.clear();
+  sessionStorage.clear();
   dispatch(logoutAction());
+  persistor.purge(); 
+  router.replace('/login');
+  window.location.reload();
   }
 
   // Removed debug logs

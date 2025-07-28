@@ -15,6 +15,7 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -140,6 +141,7 @@ export default function ProductManagement() {
   const error = useAppSelector((state) => state.productLiveStatus.error);
   const dispatch = useAppDispatch();
   const route = useRouter();
+  const { showToast } = useGlobalToast();
 
   const isAllowed =
     payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
@@ -157,6 +159,7 @@ export default function ProductManagement() {
   const [addProductLoading, setAddProductLoading] = useState(false);
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false);
   const [editBulkLoading, setEditBulkLoading] = useState(false);
+  const [viewProductLoading, setViewProductLoading] = useState<string | null>(null);
 
   const cardsPerPage = 10;
 
@@ -233,31 +236,41 @@ export default function ProductManagement() {
   const handleBulkApprove = async () => {
     if (selectedProducts.length === 0) return;
     try {
+      // Call API and update Redux for each selected product
+      const updatedProducts: string[] = [];
       await Promise.all(
         selectedProducts.map(async (id) => {
           await aproveProduct(id);
-          dispatch(updateProductLiveStatus({ id, liveStatus: "Approved" }));
+          updatedProducts.push(id);
         })
       );
-
+      // Update Redux for all approved products
+      updatedProducts.forEach((id) => {
+        dispatch(updateProductLiveStatus({ id, liveStatus: "Approved" }));
+      });
+      showToast("Approved successfully", "success");
       setSelectedProducts([]);
     } catch (error) {
       console.error("Bulk approve failed:", error);
     }
   };
+  // Handler for bulk deactivation
   const handleBulkDeactivate = async () => {
     if (selectedProducts.length === 0) return;
     try {
+      const updatedProducts: string[] = [];
       await Promise.all(
         selectedProducts.map(async (id) => {
           await deactivateProduct(id);
-          dispatch(updateProductLiveStatus({ id, liveStatus: "Pending" }));
+          updatedProducts.push(id);
         })
       );
-
+      updatedProducts.forEach((id) => {
+        dispatch(updateProductLiveStatus({ id, liveStatus: "Pending" }));
+      });
       setSelectedProducts([]);
     } catch (error) {
-      console.error("Bulk approve failed:", error);
+      console.error("Bulk deactivate failed:", error);
     }
   };
 
@@ -324,7 +337,7 @@ export default function ProductManagement() {
     paginatedData.length > 0 &&
     paginatedData.every((p) => selectedProducts.includes(p.id));
   const someSelected = selectedProducts.length > 0;
-
+// Handler for selecting a single product
   const handleSelectOne = (id: string) => {
     setSelectedProducts((prev) => {
       let newSelected;
@@ -333,13 +346,11 @@ export default function ProductManagement() {
       } else {
         newSelected = [...prev, id];
       }
-      if (newSelected.length === 1) {
-        return [];
-      }
+  
       return newSelected;
     });
   };
-
+// Handler for selecting all products on the current page
   const handleSelectAll = () => {
     let newSelected: string[];
     if (allSelected) {
@@ -365,16 +376,19 @@ export default function ProductManagement() {
     route.push(`/user/dashboard/product/productedit/${id}`);
   };
   const handleViewProduct = (id: string) => {
+    setViewProductLoading(id);
     route.push(`/user/dashboard/product/product-details/${id}`);
+    // Clear loading state after navigation (simulated delay)
+    setTimeout(() => setViewProductLoading(null), 1000);
   };
-
+// Handlers for Bulk upload
   const handleUploadBulk = () => {
     setBulkMode("upload");
     setUploadBulkLoading(true);
     setIsModalOpen(true);
     setTimeout(() => setUploadBulkLoading(false), 1000); // Simulate loading
   };
-
+// Handler for QC status change
   const handleQCStatusChange = (id: string, newStatus: string) => {
     const updatedProducts = products.map((product) =>
       product.id === id ? { ...product, qcStatus: newStatus } : product
@@ -410,7 +424,7 @@ export default function ProductManagement() {
       console.error("Failed to approve product:", error);
     }
   };
-
+// Handler for deactivating product
   const handleDeactivateProduct = async (productId: string) => {
     try {
       if (selectedTab === "Approved") {
@@ -476,7 +490,7 @@ export default function ProductManagement() {
               </div>
             </div>
             {/* Right: Upload, Add Product */}
-            <div className="flex items-center gap-3 w-full lg:w-auto justify-start sm:justify-end">
+            <div className="flex items-center gap-3 w-full lg:w-auto justify-start grid-ro-2 sm:justify-end">
               {(auth?.role === "Super-admin" ||
                 auth?.role === "Inventory-admin") && (
                 <>
@@ -502,6 +516,16 @@ export default function ProductManagement() {
                     icon={<Plus />}
                     text="Add Product"
                   />
+                    <DynamicButton
+                  variant="default"
+                  customClassName="bg-gray-200 text-black hover:bg-gray-300 flex items-center gap-2"
+                  onClick={handleBulkEdit}
+                  disabled={editBulkLoading}
+                  loading={editBulkLoading}
+                  loadingText="Editing..."
+                  icon={<Pencil />}
+                  text="Bulk Edit"
+                />
                 </>
               )}
             </div>
@@ -531,18 +555,9 @@ export default function ProductManagement() {
               </div>
             </div>
             {/* Bulk Edit & Created dropdown */}
-            {selectedProducts.length > 1 && (
+            {selectedProducts.length >= 1 && (
               <div className="flex items-center gap-2 justify-start sm:justify-end">
-                <DynamicButton
-                  variant="default"
-                  customClassName="bg-gray-200 text-black hover:bg-gray-300 flex items-center gap-2"
-                  onClick={handleBulkEdit}
-                  disabled={editBulkLoading}
-                  loading={editBulkLoading}
-                  loadingText="Editing..."
-                  icon={<Pencil />}
-                  text="Bulk Edit"
-                />
+              
                 {/* <Button
                   className="bg-gray-200 text-black flex items-center gap-2"
                   variant="outline"
@@ -661,16 +676,18 @@ export default function ProductManagement() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                onClick={() => handleEditProduct(product.id)}
+                                >
                                   Edit Product
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                onClick={() => handleViewProduct(product.id)}
+                                >
                                   View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
-                                  Delete
-                                </DropdownMenuItem>
+                                
+                       
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -856,18 +873,13 @@ export default function ProductManagement() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem className="cursor-pointer">
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => handleEditProduct(product.id)}>
                                 Edit Product
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewProduct(product.id)}>
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">
-                                Duplicate
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600 cursor-pointer hover:text-red-700">
-                                Delete
-                              </DropdownMenuItem>
+                  
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -961,6 +973,16 @@ export default function ProductManagement() {
         onClose={handleCloseModal}
         mode={bulkMode}
       />
+      
+      {/* Centered Loading Overlay */}
+      {viewProductLoading && (
+        <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
+            <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
+            <p className="text-lg font-medium text-gray-700">Loading product details...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

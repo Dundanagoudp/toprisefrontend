@@ -12,6 +12,7 @@ import {
     DialogTitle,
     DialogFooter,
   } from "@/components/ui/dialog";
+import { useAppSelector } from "@/store/hooks";
 
 
 interface UploadBulkCardProps {
@@ -27,12 +28,13 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
   const [isUploading, setIsUploading] = useState(false);
-
+    const auth = useAppSelector((state) => state.auth.user);
   const [uploadMessage, setUploadMessage] = useState('');
 
 
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const csvInputRef = React.useRef<HTMLInputElement>(null);
+    const allowedRoles = [ "Super-admin", "Inventory-admin"];
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fileType: string) => {
     const files = event.target.files;
     const file = files && files[0];
@@ -123,7 +125,16 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
       if(csvInputRef.current) csvInputRef.current.value = '';
     }
   };
-
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+       <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[600px]">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access.
+        </div></DialogContent>
+      </Dialog>
+    );
+  }
 return (
     <Dialog open={isOpen} onOpenChange={onClose}>
     <DialogContent className="sm:max-w-[600px]">
