@@ -129,6 +129,8 @@ export default function AddProducts() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const allowedRoles = ["Super-admin", "Inventory-admin"];
+
 
   const {
     register,
@@ -286,6 +288,15 @@ export default function AddProducts() {
       }
     }
   };
+    if (!auth || !allowedRoles.includes(auth.user.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen ">

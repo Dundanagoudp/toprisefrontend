@@ -106,6 +106,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ProductEdit() {
   // State for dropdown options
+    const auth = useAppSelector((state) => state.auth.user);
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
   const [subCategoryOptions, setSubCategoryOptions] = useState<any[]>([]);
   const [typeOptions, setTypeOptions] = useState<any[]>([]);
@@ -131,6 +132,7 @@ export default function ProductEdit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const { showToast } = useGlobalToast();
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
 
   const {
     register,
@@ -534,6 +536,15 @@ export default function ProductEdit() {
       setIsSubmitting(false);
     }
   };
+    if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen">
