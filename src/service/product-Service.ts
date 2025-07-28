@@ -196,7 +196,6 @@ export async function editBulkProducts(
 
 
 export async function uploadLogs(
-  formData: FormData
 ): Promise<ProductResponse> {
   try {
     const response = await apiClient.get(`/category/products/v1/get-all-productLogs`);

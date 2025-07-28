@@ -226,6 +226,7 @@ export default function ProductManagement() {
     setBulkMode("edit");
     setIsModalOpen(true);
     setEditBulkLoading(true);
+   
   };
   const handleCloseModal = () => {
     setIsModalOpen(false);

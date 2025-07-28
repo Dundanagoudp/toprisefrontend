@@ -13,6 +13,7 @@ import {
     DialogFooter,
   } from "@/components/ui/dialog";
 import { useAppSelector } from "@/store/hooks";
+import { useRouter } from "next/navigation";
 
 
 interface UploadBulkCardProps {
@@ -26,10 +27,12 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
   const {showToast} = useGlobalToast();
   const [imageZipFile, setImageZipFile] = useState<File | null>(null);
   const [csvFile, setCsvFile] = useState<File | null>(null);
-
   const [isUploading, setIsUploading] = useState(false);
-    const auth = useAppSelector((state) => state.auth.user);
+  const auth = useAppSelector((state) => state.auth.user);
   const [uploadMessage, setUploadMessage] = useState('');
+  const [logs, setLogs] = useState<any[]>([]);
+  const [isLogOpen, setIsLogOpen] = useState(false);
+  const route = useRouter();
 
 
   const imageInputRef = React.useRef<HTMLInputElement>(null);
@@ -103,6 +106,10 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
           setImageZipFile(null);
           setCsvFile(null);
           handleClose();
+          route.push(`/user/dashboard/product/Logs`);
+          // const logsResponse = await getProductLogs();
+          // setLogs(logsResponse.data);
+          setIsLogOpen(true);
          
         } else {
           setUploadMessage((mode === 'edit' ? 'Edit failed. Please try again.' : 'Upload failed. Please try again.'));
@@ -136,6 +143,7 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
     );
   }
 return (
+  <>
     <Dialog open={isOpen} onOpenChange={onClose}>
     <DialogContent className="sm:max-w-[600px]">
       <DialogHeader>
@@ -227,6 +235,7 @@ return (
       </DialogFooter>
     </DialogContent>
   </Dialog>
+  </>
 )
 
 }
