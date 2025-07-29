@@ -6,37 +6,32 @@ interface OrderState {
   error: string | null;
 }
 
+
 const initialState: OrderState = {
   orders: [],
   loading: false,
   error: null,
 };
 
-const orderSlice = createSlice({
-  name: "order",
+const orderByIdSlice = createSlice({
+  name: "orderById",
   initialState,
   reducers: {
-    fetchOrdersRequest: (state) => {
+    fetchOrderByIdRequest: (state) => {
       state.loading = true;
       state.error = null;
     },
-    fetchOrdersSuccess: (state, action) => {
+    fetchOrderByIdSuccess: (state, action) => {
       state.orders = action.payload;
       state.loading = false;
       state.error = null;
     },
-    fetchOrdersFailure: (state, action) => {
+    fetchOrderByIdFailure: (state, action) => {
       state.loading = false;
       state.error = action.payload;
     },
   },
 });
-export const orderById = (state: { order: OrderState }, orderId: string) =>
-  state.order.orders.find((order) => order.id === orderId);
 
-export const {
-  fetchOrdersRequest,
-  fetchOrdersSuccess,
-  fetchOrdersFailure,
-} = orderSlice.actions;
-export default orderSlice.reducer;
+export const { fetchOrderByIdRequest, fetchOrderByIdSuccess, fetchOrderByIdFailure } = orderByIdSlice.actions;
+export default orderByIdSlice.reducer;
