@@ -11,6 +11,14 @@ import { Textarea } from "@/components/ui/textarea"
 import DealerIdentification from "@/components/user-dashboard/order-management/module/order-popus/dealerIdentification" // Correct import path
 import CancelOrderModal from "@/components/user-dashboard/order-management/module/order-popus/cancelorder"
 import ProductPopupModal from "@/components/user-dashboard/order-management/module/order-popus/productdetails"
+import { useAppSelector ,useAppDispatch} from "@/store/hooks"
+import { useParams } from "next/navigation"
+import { ca } from "zod/v4/locales"
+import { getOrderById } from "@/service/order-service"
+import { fetchOrderByIdSuccess, fetchOrderByIdRequest, fetchOrderByIdFailure } from "@/store/slice/order/orderByIdSlice"
+import DynamicButton from "@/components/common/button/button"
+
+
 
 interface ProductItem {
   id: string
@@ -21,45 +29,45 @@ interface ProductItem {
   totalPrice: number
   image: string
 }
-
-const mockProducts: ProductItem[] = [
-  {
-    id: "1",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    dealerId: "DLR302",
-    mrp: 749.0,
-    gst: "18%",
-    totalPrice: 1498.0,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "2",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    dealerId: "DLR302",
-    mrp: 749.0,
-    gst: "18%",
-    totalPrice: 1498.0,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "3",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    dealerId: "DLR302",
-    mrp: 749.0,
-    gst: "18%",
-    totalPrice: 1498.0,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "4",
-    name: "Front Brake Pad - Swift 2016 Petrol",
-    dealerId: "DLR302",
-    mrp: 749.0,
-    gst: "18%",
-    totalPrice: 1498.0,
-    image: "/placeholder.svg?height=40&width=40",
-  },
-]
+type Params = { id: string };
+// const mockProducts: ProductItem[] = [
+//   {
+//     id: "1",
+//     name: "Front Brake Pad - Swift 2016 Petrol",
+//     dealerId: "DLR302",
+//     mrp: 749.0,
+//     gst: "18%",
+//     totalPrice: 1498.0,
+//     image: "/placeholder.svg?height=40&width=40",
+//   },
+//   {
+//     id: "2",
+//     name: "Front Brake Pad - Swift 2016 Petrol",
+//     dealerId: "DLR302",
+//     mrp: 749.0,
+//     gst: "18%",
+//     totalPrice: 1498.0,
+//     image: "/placeholder.svg?height=40&width=40",
+//   },
+//   {
+//     id: "3",
+//     name: "Front Brake Pad - Swift 2016 Petrol",
+//     dealerId: "DLR302",
+//     mrp: 749.0,
+//     gst: "18%",
+//     totalPrice: 1498.0,
+//     image: "/placeholder.svg?height=40&width=40",
+//   },
+//   {
+//     id: "4",
+//     name: "Front Brake Pad - Swift 2016 Petrol",
+//     dealerId: "DLR302",
+//     mrp: 749.0,
+//     gst: "18%",
+//     totalPrice: 1498.0,
+//     image: "/placeholder.svg?height=40&width=40",
+//   },
+// ]
 
 const trackingSteps = [
   {
@@ -97,18 +105,47 @@ export default function OrderDetailsView() {
   const [dealerModalOpen, setDealerModalOpen] = useState(false)
   const [selectedDealer, setSelectedDealer] = useState<any>(null) // State to hold dealer data for the modal
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const dispatch = useAppDispatch()
+  
+const params = useParams<Params>()
+  const orderId = params.id
+  console.log(orderId)
   // Product modal state
   const [productModalOpen, setProductModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [order , setOrder] = useState<any>({})
 
+const orderById = useAppSelector((state)=> state.orderById.orders as any) // Ensure it's treated as an object
+const loadingById = useAppSelector((state)=> state.orderById.loading)
+const errorById = useAppSelector((state)=> state.orderById.error)
+  console.log(orderById)
   // Simulate loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 2000)
+    let timer: NodeJS.Timeout;
+    async function fetchOrder() {
+      dispatch(fetchOrderByIdRequest());
+      try {
+        const response = await getOrderById(orderId);
 
-    return () => clearTimeout(timer)
-  }, [])
+        const item = response.data
+        dispatch(fetchOrderByIdSuccess(item));
+
+          
+     
+
+        timer = setTimeout(() => {
+          setLoading(false);
+        }, 2000);
+      } catch (error: any) {
+        console.error(`Failed to fetch order with id ${orderId}:`, error);
+        dispatch(fetchOrderByIdFailure(error.message));
+        setLoading(false);
+      }
+    }
+    fetchOrder();
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Loading Skeleton Component
   const LoadingSkeleton = () => (
@@ -330,20 +367,19 @@ export default function OrderDetailsView() {
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100 px-2 sm:px-3 py-1 text-xs sm:text-sm">
             Active
           </Badge>
-          <Button
-            variant="outline"
-            className="flex items-center gap-2 border-red-400 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-500 px-6 py-2 rounded-lg font-medium text-base h-10 shadow-none focus:ring-2 focus:ring-red-100"
-          >
-            <img src="/upload/upload.png" alt="Upload" className="w-5 h-5" />
-            Upload
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10"
-            onClick={() => setCancelModalOpen(true)}
-          >
-            Cancel Order
-          </Button>
+          <DynamicButton
+          variant="outline"
+          customClassName=" border-red-400 text-red-600 bg-red-50 hover:text-red-500 hover:bg-red-100 hover:border-red-500 px-6 py-2 rounded-lg font-medium text-base h-10 shadow-none focus:ring-2 focus:ring-red-100"
+          text="Upload"
+          icon={<img src="/upload/upload.png" alt="Upload" className="w-5 h-5" />}
+          />
+          <DynamicButton
+          variant="outline"
+          customClassName="border-gray-300 text-gray-700 hover:bg-gray-50 px-3 sm:px-4 h-8 sm:h-10 text-xs sm:text-sm"
+          text="Cancel Order"
+          onClick={() => setCancelModalOpen(true)}
+          />
+         
         </div>
       </div>
 
@@ -361,24 +397,22 @@ export default function OrderDetailsView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                 <div>
                   <p className="text-xs sm:text-sm text-gray-600 mb-1">Name</p>
-                  <p className="font-medium text-gray-900 text-sm sm:text-base">Mahesh Shinde</p>
+                  <p className="font-medium text-gray-900 text-sm sm:text-base">{orderById?.customerDetails?.name || '-'}</p>
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-gray-600 mb-1">Email</p>
-                  <p className="font-medium text-gray-900 text-sm sm:text-base break-all">
-                    mahesh.shinde.designer@gmail.com
-                  </p>
+                  <p className="font-medium text-gray-900 text-sm sm:text-base break-all">{orderById?.customerDetails?.email || '-'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                 <div>
                   <p className="text-xs sm:text-sm text-gray-600 mb-1">Phone Number</p>
-                  <p className="font-medium text-gray-900 text-sm sm:text-base">+91 9632587125</p>
+                  <p className="font-medium text-gray-900 text-sm sm:text-base">{orderById?.customerDetails?.phone || '-'}</p>
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-gray-600 mb-1">Delivery Address</p>
                   <p className="font-medium text-gray-900 text-sm sm:text-base">
-                    Rajaji Nagar, Bangalore, Karnataka, 562148
+                    {orderById?.customerDetails?.address || '-'}, {orderById?.customerDetails?.pincode || ''}
                   </p>
                 </div>
               </div>
@@ -458,7 +492,7 @@ export default function OrderDetailsView() {
                 </div>
                 <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <span>No.of Product:</span>
-                  <span className="font-medium">4</span>
+                  <span className="font-medium">{orderById?.skus?.length || 0}</span>
                 </div>
               </div>
             </CardHeader>
@@ -490,19 +524,19 @@ export default function OrderDetailsView() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {mockProducts.map((product, index) => (
-                        <tr key={product.id} className="hover:bg-gray-50">
+                      {orderById?.skus?.map((product: any, index: number) => (
+                        <tr key={product._id} className="hover:bg-gray-50">
                           <td className="py-3 px-4 align-middle w-[35%]">
                             <div className="flex items-center gap-2">
                               <img
-                                src={product.image || "/assets/Box.svg"}
-                                alt={product.name}
+                                src={"/assets/Box.svg"}
+                                alt={product.productName}
                                 className="w-8 h-8 rounded object-contain bg-gray-100 border border-gray-200 flex-shrink-0"
                               />
                               <div className="flex flex-col justify-center min-w-0 flex-1">
                                 <div className="flex items-center gap-1">
                                   <p className="text-xs font-medium text-gray-900 leading-tight truncate">
-                                    {product.name}
+                                    {product.productName}
                                   </p>
                                   <Eye
                                     className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer"
@@ -513,19 +547,11 @@ export default function OrderDetailsView() {
                             </div>
                           </td>
                           <td className="py-3 px-2 align-middle w-[15%]">
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-gray-900 font-semibold truncate">{product.dealerId}</span>
-                              <Eye
-                                className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer"
-                                onClick={() => handleDealerEyeClick(product.dealerId)}
-                              />
-                            </div>
+                            <span className="text-xs text-gray-900 font-semibold truncate">{product.sku}</span>
                           </td>
-                          <td className="py-3 px-2 text-xs text-gray-900 w-[12%]">₹{product.mrp.toFixed(2)}</td>
-                          <td className="py-3 px-2 text-xs text-gray-900 w-[8%]">{product.gst}</td>
-                          <td className="py-3 px-2 text-xs font-medium text-gray-900 w-[15%]">
-                            ₹{product.totalPrice.toFixed(2)}
-                          </td>
+                          <td className="py-3 px-2 text-xs text-gray-900 w-[12%]">{product.quantity}</td>
+                          <td className="py-3 px-2 text-xs text-gray-900 w-[8%]">-</td>
+                          <td className="py-3 px-2 text-xs font-medium text-gray-900 w-[15%]">-</td>
                           <td className="py-3 px-2 w-[15%]">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -571,44 +597,30 @@ export default function OrderDetailsView() {
 
               {/* Card View for Mobile and Tablet */}
               <div className="xl:hidden p-4 space-y-3">
-                {mockProducts.map((product, index) => (
-                  <div key={product.id} className="border border-gray-200 rounded-lg p-3">
+                {orderById?.skus?.map((product: any, index: number) => (
+                  <div key={product._id} className="border border-gray-200 rounded-lg p-3">
                     <div className="flex items-start gap-3 mb-3">
                       <img
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
+                        src={"/assets/Box.svg"}
+                        alt={product.productName}
                         className="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover bg-gray-100 flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium text-gray-900 text-sm truncate">{product.name}</h3>
+                          <h3 className="font-medium text-gray-900 text-sm truncate">{product.productName}</h3>
                           <Eye
                             className="w-4 h-4 text-gray-500 flex-shrink-0 cursor-pointer"
                             onClick={() => handleProductEyeClick(product)}
                           />
                         </div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs sm:text-sm text-gray-600">Dealer ID:</span>
-                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">{product.dealerId}</span>
-                          <Eye
-                            className="w-4 h-4 text-gray-500 flex-shrink-0 cursor-pointer"
-                            onClick={() => handleDealerEyeClick(product.dealerId)}
-                          />
+                          <span className="text-xs sm:text-sm text-gray-600">SKU:</span>
+                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">{product.sku}</span>
                         </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm mb-3">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">MRP:</span>
-                        <span className="text-gray-900">₹{product.mrp.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">GST:</span>
-                        <span className="text-gray-900">{product.gst}</span>
-                      </div>
-                      <div className="flex justify-between col-span-2">
-                        <span className="text-gray-600">Total Price:</span>
-                        <span className="font-medium text-gray-900">₹{product.totalPrice.toFixed(2)}</span>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs sm:text-sm text-gray-600">Quantity:</span>
+                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">{product.quantity}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end">
@@ -699,9 +711,14 @@ export default function OrderDetailsView() {
                 />
               </div>
               <div className="flex justify-end pt-2">
-                <Button className="bg-red-600 text-white hover:bg-red-700 px-6 py-2 text-sm sm:text-base h-auto">
-                  Update
-                </Button>
+                <DynamicButton
+                variant="default"
+                text="Update"
+                customClassName="bg-[#C72920] text-[#FFFFFF] "
+              
+                />
+
+            
               </div>
             </CardContent>
           </Card>

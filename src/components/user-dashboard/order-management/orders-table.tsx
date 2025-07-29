@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect ,useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Filter,
@@ -193,17 +193,18 @@ export default function OrdersTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const filteredOrders = searchQuery
-  ? ordersState.filter((order: any) =>
-      order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.number?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  : ordersState;
- const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-const paginatedData = filteredOrders.slice(
-  (currentPage - 1) * itemsPerPage,
-  currentPage * itemsPerPage
-);
+    ? ordersState.filter(
+        (order: any) =>
+          order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.number?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : ordersState;
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedData = filteredOrders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
   // Simulate loading
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -215,14 +216,30 @@ const paginatedData = filteredOrders.slice(
         const mappedOrders = response.data.map((order: any) => ({
           id: order._id,
           orderId: order.orderId,
-          orderDate: new Date(order.orderDate).toLocaleDateString(),
+          orderDate: new Date(order.orderDate).toLocaleDateString(), // Format as needed
           customer: order.customerDetails?.name || "",
           number: order.customerDetails?.phone || "",
           payment: order.paymentType,
           value: `₹${order.order_Amount}`,
-          skus: order.skus?.length || 0,
+          skus:
+            order.skus?.map((sku: any) => ({
+              sku: sku.sku,
+              quantity: sku.quantity,
+              productId: sku.productId,
+              productName: sku.productName,
+              _id: sku._id,
+            })) || [],
+          skusCount: order.skus?.length || 0,
           dealers: order.dealerMapping?.length || 0,
-          status: order.status === "Confirmed" ? "Approved" : "Pending", // Map status as needed
+          dealerMapping: order.dealerMapping || [],
+          status: order.status === "Confirmed" ? "Approved" : "Pending",
+          deliveryCharges: order.deliveryCharges,
+          GST: order.GST,
+          orderType: order.orderType,
+          orderSource: order.orderSource,
+          auditLogs: order.auditLogs || [],
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
         }));
         dispatch(fetchOrdersSuccess(mappedOrders));
         console.log(response);
@@ -337,7 +354,7 @@ const paginatedData = filteredOrders.slice(
           <div className="hidden sm:block overflow-x-auto">
             <Table className="min-w-full">
               <TableHeader>
-                <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
+                <TableRow className="border-b  border-[#E5E5E5] bg-gray-50/50">
                   <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
                     <Checkbox
                       // checked={allSelected}
@@ -443,10 +460,8 @@ const paginatedData = filteredOrders.slice(
                         </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           {Array.isArray(order.skus)
-                            ? order.skus
-                                .map((sku: any) => sku.productName)
-                                .join(", ")
-                            : order.skus}
+                            ? order.skus.length
+                            : 1}
                         </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           {order.dealers}
@@ -486,94 +501,91 @@ const paginatedData = filteredOrders.slice(
               </TableBody>
             </Table>
           </div>
-                {!loading &&
-                      !error &&
-                      paginatedData.length > 0 &&
-                      totalPages > 1 && (
-                        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8 px-4 sm:px-6 pb-6">
-                          {/* Left: Showing X-Y of Z products */}
-                          <div className="text-sm text-gray-600 text-center sm:text-left">
-                            {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
-                              currentPage * itemsPerPage,
-                              paginatedData.length
-                            )} of ${paginatedData.length} products`}
-                          </div>
-                          {/* Pagination Controls */}
-                          <div className="flex justify-center sm:justify-end">
-                            <Pagination>
-                              <PaginationContent>
-                                <PaginationItem>
-                                  <PaginationPrevious
-                                    onClick={() =>
-                                      setCurrentPage((p) => Math.max(1, p - 1))
-                                    }
-                                    className={
-                                      currentPage === 1
-                                        ? "pointer-events-none opacity-50"
-                                        : "cursor-pointer"
-                                    }
-                                  />
-                                </PaginationItem>
-                                {Array.from({ length: Math.min(totalPages, 3) }).map(
-                                  (_, idx) => {
-                                    let pageNum;
-                                    if (totalPages <= 3) {
-                                      pageNum = idx + 1;
-                                    } else if (currentPage <= 2) {
-                                      pageNum = idx + 1;
-                                    } else if (currentPage >= totalPages - 1) {
-                                      pageNum = totalPages - 2 + idx;
-                                    } else {
-                                      pageNum = currentPage - 1 + idx;
-                                    }
-          
-                                    // Prevent out-of-bounds pageNum
-                                    if (pageNum < 1 || pageNum > totalPages) return null;
-          
-                                    return (
-                                      <PaginationItem
-                                        key={pageNum}
-                                        className="hidden sm:block"
-                                      >
-                                        <PaginationLink
-                                          isActive={currentPage === pageNum}
-                                          onClick={() => setCurrentPage(pageNum)}
-                                          className="cursor-pointer"
-                                        >
-                                          {pageNum}
-                                        </PaginationLink>
-                                      </PaginationItem>
-                                    );
-                                  }
-                                )}
-                                <PaginationItem>
-                                  <PaginationNext
-                                    onClick={() =>
-                                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                                    }
-                                    className={
-                                      currentPage === totalPages
-                                        ? "pointer-events-none opacity-50"
-                                        : "cursor-pointer"
-                                    }
-                                  />
-                                </PaginationItem>
-                              </PaginationContent>
-                            </Pagination>
-                          </div>
-                        </div>
-                      )}
+          {!loading && !error && paginatedData.length > 0 && totalPages > 1 && (
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8 px-4 sm:px-6 pb-6">
+              {/* Left: Showing X-Y of Z products */}
+              <div className="text-sm text-gray-600 text-center sm:text-left">
+                {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
+                  currentPage * itemsPerPage,
+                  paginatedData.length
+                )} of ${paginatedData.length} products`}
+              </div>
+              {/* Pagination Controls */}
+              <div className="flex justify-center sm:justify-end">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: Math.min(totalPages, 3) }).map(
+                      (_, idx) => {
+                        let pageNum;
+                        if (totalPages <= 3) {
+                          pageNum = idx + 1;
+                        } else if (currentPage <= 2) {
+                          pageNum = idx + 1;
+                        } else if (currentPage >= totalPages - 1) {
+                          pageNum = totalPages - 2 + idx;
+                        } else {
+                          pageNum = currentPage - 1 + idx;
+                        }
+
+                        // Prevent out-of-bounds pageNum
+                        if (pageNum < 1 || pageNum > totalPages) return null;
+
+                        return (
+                          <PaginationItem
+                            key={pageNum}
+                            className="hidden sm:block"
+                          >
+                            <PaginationLink
+                              isActive={currentPage === pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              className="cursor-pointer"
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      }
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </div>
+          )}
         </CardContent>
 
         {/* Empty State */}
         {paginatedData.length === 0 && !loading && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-          <p className="text-gray-500 text-lg mb-2">No orders found</p>
-          <p className="text-gray-400 text-sm">
-            Try adjusting your search terms
-          </p>
-        </div>
-      )}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <p className="text-gray-500 text-lg mb-2">No orders found</p>
+            <p className="text-gray-400 text-sm">
+              Try adjusting your search terms
+            </p>
+          </div>
+        )}
       </Card>
     </div>
   );
