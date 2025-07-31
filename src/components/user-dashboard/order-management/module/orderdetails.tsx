@@ -116,9 +116,10 @@ const params = useParams<Params>()
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [order , setOrder] = useState<any>({})
 
-const orderById = useAppSelector((state)=> state.orderById.orders as any) // Ensure it's treated as an object
-const loadingById = useAppSelector((state)=> state.orderById.loading)
-const errorById = useAppSelector((state)=> state.orderById.error)
+// Use the correct root state type and property name as per your store setup
+const orderById = useAppSelector((state: any) => state.orderById.orders as any) // Ensure it's treated as an object
+const loadingById = useAppSelector((state: any) => state.orderById.loading)
+const errorById = useAppSelector((state: any) => state.orderById.error)
   console.log(orderById)
   // Simulate loading
   useEffect(() => {

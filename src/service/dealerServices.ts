@@ -90,7 +90,7 @@ export async function getAllCSlaTypes(): Promise<SlaTypesResponse> {
 
 export async function setSlaType(dealerId: string, data: any): Promise<SlaTypesResponse> {
   try {
-    const response = await apiClient.post(`/orders/api/orders/dealers/${dealerId}`, data)
+    const response = await apiClient.post(`/orders/api/orders/dealers/${dealerId}/sla`, data)
     return response.data
   } catch (error) {
     console.error("Failed to upload dealer:", error)
