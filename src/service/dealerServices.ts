@@ -1,5 +1,6 @@
 import apiClient from "@/apiClient"
 import type { Dealer, CreateDealerRequest, ApiResponse, User, Category } from "@/types/dealer-types"
+import { SlaTypesResponse } from "@/types/sla-types"
 
 // Create a dealer
 export async function createDealer(data: CreateDealerRequest): Promise<ApiResponse<Dealer>> {
@@ -66,5 +67,36 @@ export async function getAllCategories(): Promise<ApiResponse<Category[]>> {
     throw error
   }
 }
+
+export async function uploadDealerBulk(  data: FormData): Promise<ApiResponse<Dealer>> {
+  try {
+    const response = await apiClient.post("/users/api/users/dealers/bulk", data)
+    return response.data
+  } catch (error) {
+    console.error("Failed to upload dealer:", error)
+    throw error
+  }
+}
+
+export async function getAllCSlaTypes(): Promise<SlaTypesResponse> {
+  try {
+    const response = await apiClient.get("/orders/api/orders/sla/types")
+    return response.data
+  } catch (error) {
+    console.error("Failed to fetch SLA types:", error)
+    throw error
+  }
+}
+
+export async function setSlaType(dealerId: string, data: any): Promise<SlaTypesResponse> {
+  try {
+    const response = await apiClient.post(`/orders/api/orders/dealers/${dealerId}`, data)
+    return response.data
+  } catch (error) {
+    console.error("Failed to upload dealer:", error)
+    throw error
+  }
+}
+
 
 // Update Address info for user 

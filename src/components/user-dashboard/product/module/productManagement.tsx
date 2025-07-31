@@ -64,6 +64,7 @@ import useDebounce from "@/utils/useDebounce";
 import { fetchProductDetailsSuccess } from "@/store/slice/product/productSlice";
 import Emptydata from "./Emptydata";
 import SearchInput from "@/components/common/search/SearchInput";
+import { set } from "zod";
 
 // Product type for table
 type Product = {
@@ -154,11 +155,13 @@ export default function ProductManagement() {
   const [productsPerPage] = useState(10);
   const [totalProducts, setTotalProducts] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [bulkMode, setBulkMode] = useState<"upload" | "edit">("upload");
+  const [bulkMode, setBulkMode] = useState<"upload" | "edit" | "uploadDealer">("upload");
+
   const [loadingTab, setLoadingTab] = useState(false);
   const [addProductLoading, setAddProductLoading] = useState(false);
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false);
   const [editBulkLoading, setEditBulkLoading] = useState(false);
+  const [uploadDealerBulkLoading, setUploadDealerBulkLoading] = useState(false);
   const [viewProductLoading, setViewProductLoading] = useState<string | null>(
     null
   );
@@ -232,6 +235,11 @@ export default function ProductManagement() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditBulkLoading(false);
+  };
+    const handleBulkUploadDealer = () => {
+    setBulkMode("uploadDealer");
+    setIsModalOpen(true);
+    setUploadDealerBulkLoading(true);
   };
 
   // Handlers for Buolk Approve and Deactivate
@@ -527,6 +535,15 @@ export default function ProductManagement() {
                     loadingText="Editing..."
                     icon={<Pencil />}
                     text="Bulk Edit"
+                  />
+                  <DynamicButton
+                  variant="default"
+                   customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center font-[Poppins]"
+                    onClick={handleBulkUploadDealer}
+                    loadingText="Opening..."
+                    icon={<Pencil />}
+                    text="Assign Dealer"
+
                   />
                 </>
               )}
@@ -1016,6 +1033,7 @@ export default function ProductManagement() {
       <UploadBulkCard
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+        
         mode={bulkMode}
       />
 
