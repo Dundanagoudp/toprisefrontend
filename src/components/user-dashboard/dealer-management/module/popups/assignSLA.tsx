@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 import DynamicButton from "@/components/common/button/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { getAllCSlaTypes } from "@/service/dealerServices";
+import { getAllCSlaTypes, setSlaType } from "@/service/dealerServices";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,8 +64,10 @@ export default function AssignSLAForm({ open, onClose , dealerId, onSubmit }: As
     }
   };
 
-  const onFormSubmit = (data: { sla_type_id: string; dispatch_hours: { start: number; end: number } }) => {
-    if (onSubmit) onSubmit(data.sla_type_id); // You can pass the whole data if needed
+  const onFormSubmit = async(data: { sla_type_id: string; dispatch_hours: { start: number; end: number } }) => {
+    if (onSubmit) onSubmit(data.sla_type_id); 
+    await setSlaType(dealerId as string, data);
+    
     onClose();
   };
 
