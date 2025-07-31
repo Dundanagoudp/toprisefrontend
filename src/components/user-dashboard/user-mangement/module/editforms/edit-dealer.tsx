@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
-import { getDealerById, updateDealerById, getAllUsers, getAllCategories } from "@/service/dealerServices"
+import { getDealerById, updateDealerById, getAllUsers, getAllCategories, getAllCSlaTypes } from "@/service/dealerServices"
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import type { User, Category } from "@/types/dealer-types"
+import {  SlaType } from "@/types/sla-types"
 
 export default function EditDealer() {
   const { showToast } = useGlobalToast();
@@ -25,6 +26,7 @@ export default function EditDealer() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [submitLoading, setSubmitLoading] = useState(false)
+  const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
 
   const form = useForm<DealerFormValues>({
     resolver: zodResolver(dealerSchema) as any,
@@ -63,9 +65,21 @@ export default function EditDealer() {
     fetchUsers()
     fetchCategories()
     fetchDealer()
+    fetchSlaTypes()
     // eslint-disable-next-line
   }, [dealerId])
 
+
+  const fetchSlaTypes = async () => {
+    try {
+      const slaTypesResponse = await getAllCSlaTypes()
+      const item = slaTypesResponse.data
+      console.log('Fetched SLA Types:', item)
+      setSlaTypes(item)
+    } catch (error) {
+      showToast("Failed to load SLA types. Please refresh the page.", "error");
+    }
+  }
   const fetchUsers = async () => {
     try {
       const usersResponse = await getAllUsers()
@@ -484,9 +498,15 @@ export default function EditDealer() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Standard">Standard</SelectItem>
-                        <SelectItem value="Priority">Priority</SelectItem>
-                        <SelectItem value="Limited">Limited</SelectItem>
+                        {slaTypes && slaTypes.length > 0 ? (
+                          slaTypes.map((sla) => (
+                            <SelectItem key={sla._id} value={sla._id}>
+                              {sla.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="">No SLA Types</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
