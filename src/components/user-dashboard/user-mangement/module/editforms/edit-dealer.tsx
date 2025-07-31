@@ -15,6 +15,9 @@ import { getDealerById, updateDealerById, getAllUsers, getAllCategories, getAllC
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import type { User, Category } from "@/types/dealer-types"
 import {  SlaType } from "@/types/sla-types"
+import { getAllEmployees } from "@/service/employeeServices"
+import { Employee } from "@/types/employee-types"
+import { set } from "zod"
 
 export default function EditDealer() {
   const { showToast } = useGlobalToast();
@@ -22,6 +25,7 @@ export default function EditDealer() {
   const params = useParams()
   const dealerId = params?.id as string
   const [users, setUsers] = useState<User[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [allCategories, setAllCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
@@ -66,6 +70,7 @@ export default function EditDealer() {
     fetchCategories()
     fetchDealer()
     fetchSlaTypes()
+    fetchEmployees()
     // eslint-disable-next-line
   }, [dealerId])
 
@@ -86,6 +91,15 @@ export default function EditDealer() {
       if (usersResponse.success) {
         setUsers(usersResponse.data)
       }
+    } catch (error) {
+      showToast("Failed to load users. Please refresh the page.", "error");
+    }
+  }
+    const fetchEmployees = async () => {
+    try {
+      const usersResponse = await getAllEmployees()
+      const items = usersResponse.data
+      setEmployees(items ?? [])
     } catch (error) {
       showToast("Failed to load users. Please refresh the page.", "error");
     }
@@ -578,7 +592,7 @@ export default function EditDealer() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {users.map((user) => (
+                        {employees.map((user) => (
                           <SelectItem key={user._id} value={user._id}>
                             {user.email} ({user.role})
                           </SelectItem>
@@ -589,31 +603,7 @@ export default function EditDealer() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="onboarding_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Onboarding Date *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        value={(() => {
-                          if (!field.value) return "";
-                          if (typeof field.value === "string") return field.value.split("T")[0];
-                          if (typeof field.value === "object" && field.value !== null && typeof (field.value as Date).toISOString === "function") {
-                            return (field.value as Date).toISOString().split("T")[0];
-                          }
-                          return "";
-                        })()}
-                        onChange={e => field.onChange(e.target.value)}
-                        className="bg-gray-50 border-gray-200"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
               <div className="md:col-span-2">
                 <FormField
                   control={form.control}

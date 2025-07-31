@@ -29,30 +29,29 @@ const schema = z.object({
     end: z.number().min(0, "End hour required").max(23, "Hour must be 0-23"),
   })
 });
-
+type FormValues = z.infer<typeof schema>;
 
 
 export default function AssignSLAForm({ open, onClose , dealerId, onSubmit }: AssignSLAFormProps) {
   const [slaTypes, setSlaTypes] = useState<{ _id: string; name: string }[]>([]);
   const { showToast } = useGlobalToast();
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<{
-    sla_type_id: string;
-    dispatch_hours: { start: number; end: number };
-  }>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      sla_type_id: "",
-      dispatch_hours: { start: 9, end: 18 },
-    },
+  const {  register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+    } = useForm<FormValues>({
+    resolver: zodResolver(schema) as any,
   });
 
   useEffect(() => {
     if (open) {
       fetchSlaTypes();
-      reset({ sla_type_id: "", dispatch_hours: { start: 9, end: 18 } });
+      setValue("sla_type_id", "");
+      setValue("dispatch_hours.start", 9);
+      setValue("dispatch_hours.end", 18);
     }
-  }, [open, reset]);
+  }, [open, setValue]);
 
   const fetchSlaTypes = async () => {
     try {
@@ -63,13 +62,12 @@ export default function AssignSLAForm({ open, onClose , dealerId, onSubmit }: As
       showToast("Failed to load SLA types. Please refresh the page.", "error");
     }
   };
-
-  const onFormSubmit = async(data: { sla_type_id: string; dispatch_hours: { start: number; end: number } }) => {
+const handleFormSubmit = async (data: FormValues) => {
     if (onSubmit) onSubmit(data.sla_type_id); 
     await setSlaType(dealerId as string, data);
-    
+
     onClose();
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -77,8 +75,8 @@ export default function AssignSLAForm({ open, onClose , dealerId, onSubmit }: As
         <DialogHeader>
           <DialogTitle>Assign SLA Type</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-          <Card className="border-none p-0">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          <Card>
             <CardContent className="pt-0 px-0">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">SLA Type</label>
@@ -86,6 +84,7 @@ export default function AssignSLAForm({ open, onClose , dealerId, onSubmit }: As
                   {...register("sla_type_id")}
                   className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2"
                   defaultValue=""
+                  
                 >
                   <option value="" disabled>
                     Select SLA Type
