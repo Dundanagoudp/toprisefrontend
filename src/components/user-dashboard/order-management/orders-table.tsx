@@ -474,6 +474,7 @@ export default function OrdersTable() {
                         <TableCell className="px-6 py-4">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
+                        
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -488,7 +489,7 @@ export default function OrdersTable() {
                               className="w-40 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
                             >
                               <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100">
-                                <Edit className="h-4 w-4 mr-2" /> Edit
+                                <Edit className="h-4 w-4 mr-2" /> Packed
                               </DropdownMenuItem>
                               <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100">
                                 <Eye className="h-4 w-4 mr-2" /> View

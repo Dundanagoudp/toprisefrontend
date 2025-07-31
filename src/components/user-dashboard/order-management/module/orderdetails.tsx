@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { ChevronDown, Edit, Package, HandHeart, Truck, UserCheck, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,6 +17,7 @@ import { ca } from "zod/v4/locales"
 import { getOrderById } from "@/service/order-service"
 import { fetchOrderByIdSuccess, fetchOrderByIdRequest, fetchOrderByIdFailure } from "@/store/slice/order/orderByIdSlice"
 import DynamicButton from "@/components/common/button/button"
+import { getDealerById } from "@/service/dealerServices"
 
 
 
@@ -146,6 +147,7 @@ const errorById = useAppSelector((state)=> state.orderById.error)
 
     return () => clearTimeout(timer);
   }, []);
+
 
   // Loading Skeleton Component
   const LoadingSkeleton = () => (
@@ -334,11 +336,30 @@ const errorById = useAppSelector((state)=> state.orderById.error)
     setDealerModalOpen(true)
   }
 
+  // Function to extract product data from orderById
+  const product = (orderData: any) => {
+    if (!orderData || !orderData.skus) {
+      return []
+    }
+    
+    return orderData.skus.map((sku: any) => ({
+      productId: sku.productId || sku._id,
+      productName: sku.productName || '',
+      dealerId: sku.dealerId || orderData.dealerMapping?.[0]?.dealerId || 'N/A', // Get from dealerMapping or SKU
+      sku: sku.sku || '',
+      quantity: sku.quantity || 0,
+      mrp: sku.mrp || 0, // This might need to be fetched from product details
+      gst: sku.gst || orderData.GST || 0,
+      totalPrice: sku.totalPrice || (sku.quantity * (sku.mrp || 0)), // Calculate if not provided
+      _id: sku._id
+    }))
+  }
+
   // Handler to open modal with product data
   const handleProductEyeClick = (product: any) => {
     setSelectedProduct({
-      productId: product.id,
-      productName: product.name,
+      productId: product.productId || product.id,
+      productName: product.productName || product.name,
       category: "Braking", // You can update this if you have category info
       brand: "Maruti Suzuki", // You can update this if you have brand info
       description: "High-quality front brake pads designed for Swift 2016 Petrol models. Ensures optimal braking performance and durability.", // Update as needed
@@ -492,7 +513,7 @@ const errorById = useAppSelector((state)=> state.orderById.error)
                 </div>
                 <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <span>No.of Product:</span>
-                  <span className="font-medium">{orderById?.skus?.length || 0}</span>
+                  <span className="font-medium">{product(orderById)?.length || 0}</span>
                 </div>
               </div>
             </CardHeader>
@@ -504,7 +525,7 @@ const errorById = useAppSelector((state)=> state.orderById.error)
                     <thead className="border-b border-gray-200">
                       <tr>
                         <th className="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase tracking-wider w-[35%]">
-                          Product Name
+                          ProductName
                         </th>
                         <th className="text-left py-3 px-2 text-xs font-medium text-gray-600 uppercase tracking-wider w-[15%]">
                           Dealer ID
@@ -518,76 +539,38 @@ const errorById = useAppSelector((state)=> state.orderById.error)
                         <th className="text-left py-3 px-2 text-xs font-medium text-gray-600 uppercase tracking-wider w-[15%]">
                           Total Price
                         </th>
-                        <th className="text-left py-3 px-2 text-xs font-medium text-gray-600 uppercase tracking-wider w-[15%]">
-                          Status
-                        </th>
+
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {orderById?.skus?.map((product: any, index: number) => (
-                        <tr key={product._id} className="hover:bg-gray-50">
+                      {product(orderById)?.map((productItem: any, index: number) => (
+                        
+                        <tr key={productItem._id || index} className="hover:bg-gray-50">
                           <td className="py-3 px-4 align-middle w-[35%]">
                             <div className="flex items-center gap-2">
-                              <img
-                                src={"/assets/Box.svg"}
-                                alt={product.productName}
-                                className="w-8 h-8 rounded object-contain bg-gray-100 border border-gray-200 flex-shrink-0"
-                              />
                               <div className="flex flex-col justify-center min-w-0 flex-1">
                                 <div className="flex items-center gap-1">
                                   <p className="text-xs font-medium text-gray-900 leading-tight truncate">
-                                    {product.productName}
+                                    {productItem.productName}
                                   </p>
                                   <Eye
                                     className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer"
-                                    onClick={() => handleProductEyeClick(product)}
+                                    onClick={() => handleProductEyeClick(productItem)}
                                   />
                                 </div>
                               </div>
                             </div>
                           </td>
                           <td className="py-3 px-2 align-middle w-[15%]">
-                            <span className="text-xs text-gray-900 font-semibold truncate">{product.sku}</span>
+                            <span className="text-xs text-[#1D1D1B] font-bold truncate">{productItem.dealerId}</span>
+                            <Eye
+                              className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer ml-1 inline-block align-middle"
+                              onClick={() => handleDealerEyeClick(productItem.dealerId._id)}
+                            />
                           </td>
-                          <td className="py-3 px-2 text-xs text-gray-900 w-[12%]">{product.quantity}</td>
-                          <td className="py-3 px-2 text-xs text-gray-900 w-[8%]">-</td>
-                          <td className="py-3 px-2 text-xs font-medium text-gray-900 w-[15%]">-</td>
-                          <td className="py-3 px-2 w-[15%]">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 px-2 text-xs text-gray-600 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 w-full max-w-[80px] justify-between"
-                                >
-                                  Edit
-                                  <ChevronDown className="h-3 w-3 ml-1" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40">
-                                <DropdownMenuItem className="text-sm">
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-sm">
-                                  <Package className="h-4 w-4 mr-2" />
-                                  Mark Packed
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-sm">
-                                  <HandHeart className="h-4 w-4 mr-2" />
-                                  Mark Handover
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-sm">
-                                  <Truck className="h-4 w-4 mr-2" />
-                                  Update Tracking
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-sm">
-                                  <UserCheck className="h-4 w-4 mr-2" />
-                                  Reassign Dealer
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
+                          <td className="py-3 px-2 text-xs text-[#1D1D1B] font-bold w-[12%]">₹{productItem.mrp}</td>
+                          <td className="py-3 px-2 text-xs text-[#1D1D1B] font-bold w-[8%]">{productItem.gst}%</td>
+                          <td className="py-3 px-2 text-xs text-[#1D1D1B] font-bold w-[15%]">₹{productItem.totalPrice}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -597,29 +580,37 @@ const errorById = useAppSelector((state)=> state.orderById.error)
 
               {/* Card View for Mobile and Tablet */}
               <div className="xl:hidden p-4 space-y-3">
-                {orderById?.skus?.map((product: any, index: number) => (
-                  <div key={product._id} className="border border-gray-200 rounded-lg p-3">
+                {product(orderById)?.map((productItem: any, index: number) => (
+                  <div key={productItem._id} className="border border-gray-200 rounded-lg p-3">
                     <div className="flex items-start gap-3 mb-3">
-                      <img
-                        src={"/assets/Box.svg"}
-                        alt={product.productName}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover bg-gray-100 flex-shrink-0"
-                      />
+             
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium text-gray-900 text-sm truncate">{product.productName}</h3>
+                          <h3 className="font-medium text-gray-900 text-sm truncate">{productItem.productName}</h3>
                           <Eye
                             className="w-4 h-4 text-gray-500 flex-shrink-0 cursor-pointer"
-                            onClick={() => handleProductEyeClick(product)}
+                            onClick={() => handleProductEyeClick(productItem)}
                           />
                         </div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs sm:text-sm text-gray-600">SKU:</span>
-                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">{product.sku}</span>
+                          <span className="text-xs sm:text-sm text-gray-600">Dealer ID:</span>
+                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">{productItem.dealerId}</span>
+                          <Eye
+                            className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer ml-1 inline-block align-middle"
+                            onClick={() => handleDealerEyeClick(productItem.dealerId)} 
+                          />
                         </div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs sm:text-sm text-gray-600">Quantity:</span>
-                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">{product.quantity}</span>
+                          <span className="text-xs sm:text-sm text-gray-600">MRP:</span>
+                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">₹{productItem.mrp}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs sm:text-sm text-gray-600">GST:</span>
+                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">{productItem.gst}%</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs sm:text-sm text-gray-600">Total Price:</span>
+                          <span className="text-xs sm:text-sm text-gray-900 font-semibold">₹{productItem.totalPrice}</span>
                         </div>
                       </div>
                     </div>

@@ -1,7 +1,10 @@
+'use client';
+
 import { Inter, DM_Serif_Display } from "next/font/google";
 import { AppSidebar } from "@/components/app-sidebar"
 import { DynamicBreadcrumb } from "@/components/user-dashboard/DynamicBreadcrumb";
 import { Separator } from "@/components/ui/separator"
+import { useAppSelector } from "@/store/hooks";
 import {
   SidebarInset,
   SidebarProvider,
@@ -9,14 +12,10 @@ import {
 } from "@/components/ui/sidebar"
 import { WithProtectionRoute } from "@/components/protectionRoute";
 
-const inter = Inter({ subsets: ["latin"] });
-const dmSerifDisplay = DM_Serif_Display({ 
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-dm-serif-display"
-});
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+ 
   return (
     <WithProtectionRoute redirectTo="/login">
       <SidebarProvider>

@@ -16,6 +16,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Product } from "@/types/product-Types";
 import { aproveProduct, deactivateProduct } from "@/service/product-Service";
 import DynamicButton from "../../../common/button/button";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchProductByIdSuccess, fetchProductByIdRequest, fetchProductByIdFailure } from "@/store/slice/product/productByIdSlice";
 
 export default function ViewProductDetails() {
   const [status, setStatus] = React.useState<string>("Created");
@@ -24,6 +26,8 @@ export default function ViewProductDetails() {
   const [isEditLoading, setIsEditLoading] = React.useState<boolean>(false);
   const id = useParams<{ id: string }>();
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
 
   const getStatusColor = (currentStatus: string) => {
     switch (currentStatus) {
@@ -54,6 +58,7 @@ export default function ViewProductDetails() {
   };
   React.useEffect(() => {
     const fetchProducts = async () => {
+        dispatch(fetchProductByIdRequest());
       try {
         const response = await getProductById(id.id);
         // response is ProductResponse, which has data: Product[]
@@ -69,12 +74,14 @@ export default function ViewProductDetails() {
           prod = data as Product;
         }
         setProduct(prod);
+        dispatch(fetchProductByIdSuccess(prod));
         if (prod && prod.live_status) {
           setStatus(prod.live_status);
         }
         console.log("getProducts API response:", response);
       } catch (error) {
         console.error("getProducts API error:", error);
+        dispatch(fetchProductByIdFailure(error as string));
       }
     };
     fetchProducts();

@@ -341,3 +341,8 @@
   }
 }
 
+/* Custom gap utility for 224px */
+.gap-224 {
+  gap: 224px !important;
+}
+
