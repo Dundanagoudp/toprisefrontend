@@ -52,6 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useRouter } from "next/navigation";
 import { getOrders } from "@/service/order-service";
 import { orderResponse } from "@/types/order-Types";
 import {
@@ -73,112 +74,12 @@ interface Order {
   status: "Pending" | "Approved";
 }
 
-const mockOrders: Order[] = [
-  {
-    id: "O56789",
-    date: "26 Jun 2025",
-    customer: "A. Sharma",
-    number: "+91 8523694712",
-    payment: "Cod",
-    value: "₹1,899",
-    skus: 5,
-    dealers: 5,
-    status: "Pending",
-  },
-  {
-    id: "O56790",
-    date: "26 Jun 2025",
-    customer: "Maren Dokidis",
-    number: "+91 8523694712",
-    payment: "UPI",
-    value: "₹1,899",
-    skus: 15,
-    dealers: 15,
-    status: "Approved",
-  },
-  {
-    id: "O56789",
-    date: "26 Jun 2025",
-    customer: "Cristofer Siphron",
-    number: "+91 8523694712",
-    payment: "Card",
-    value: "₹1,899",
-    skus: 4,
-    dealers: 4,
-    status: "Pending",
-  },
-  {
-    id: "O56790",
-    date: "26 Jun 2025",
-    customer: "Zaire Dorwart",
-    number: "+91 8523694712",
-    payment: "Cod",
-    value: "₹1,899",
-    skus: 6,
-    dealers: 6,
-    status: "Approved",
-  },
-  {
-    id: "O56789",
-    date: "26 Jun 2025",
-    customer: "Mira Phillips",
-    number: "+91 8523694712",
-    payment: "UPI",
-    value: "₹1,899",
-    skus: 8,
-    dealers: 8,
-    status: "Pending",
-  },
-  {
-    id: "O56790",
-    date: "26 Jun 2025",
-    customer: "Madelyn Donin",
-    number: "+91 8523694712",
-    payment: "Card",
-    value: "₹1,899",
-    skus: 6,
-    dealers: 6,
-    status: "Approved",
-  },
-  {
-    id: "O56789",
-    date: "26 Jun 2025",
-    customer: "Cooper Aminoff",
-    number: "+91 8523694712",
-    payment: "Cod",
-    value: "₹1,899",
-    skus: 5,
-    dealers: 5,
-    status: "Pending",
-  },
-  {
-    id: "O56789",
-    date: "26 Jun 2025",
-    customer: "Nolan Korsgaard",
-    number: "+91 8523694712",
-    payment: "UPI",
-    value: "₹1,899",
-    skus: 7,
-    dealers: 7,
-    status: "Approved",
-  },
-  {
-    id: "O56789",
-    date: "26 Jun 2025",
-    customer: "Nolan Korsgaard",
-    number: "+91 8523694712",
-    payment: "Card",
-    value: "₹1,899",
-    skus: 20,
-    dealers: 20,
-    status: "Approved",
-  },
-];
+
 
 export default function OrdersTable() {
   const [orders, setOrders] = useState<any[]>([]);
   const { showToast } = GlobalToast();
-
+  const route = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("Requests");
   const [searchInput, setSearchInput] = useState("");
@@ -188,6 +89,7 @@ export default function OrdersTable() {
   const ordersState = useAppSelector((state) => state.order.orders);
   const loading = useAppSelector((state: any) => state.order.loading);
   const error = useAppSelector((state: any) => state.order.error);
+  const [orderDetails, setOrderDetails] = useState<any>(null);
   // Filtered orders must be declared before pagination logic
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -205,6 +107,15 @@ export default function OrdersTable() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+console.log( "paginatedData", paginatedData);
+
+    const handleViewOrder = (id: string) => {
+    setOrderDetails(id);
+    route.push(`/user/dashboard/order/orderdetails/${id}`);
+    // Clear loading state after navigation (simulated delay)
+    setTimeout(() => setOrderDetails(null), 1000);
+  };
   // Simulate loading
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -245,7 +156,7 @@ export default function OrdersTable() {
         console.log(response);
         setOrders(response.data);
         timer = setTimeout(() => {
-          setOrders(mockOrders);
+          setOrders(response.data);
         }, 2000);
       } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -435,12 +346,15 @@ export default function OrdersTable() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : paginatedData.map((order, index) => (
-                      <TableRow key={order.id + "-" + index}>
+                  : paginatedData.map((order) => (
+                      <TableRow key={order.id}
+                      >
                         <TableCell className="px-4 py-4 w-8">
                           <Checkbox />
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-medium ">
+                        <TableCell className="px-6 py-4 font-medium "
+                        onClick={() => handleViewOrder(order.id)}
+                        >
                           {order.orderId}
                         </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000] font-sans">
