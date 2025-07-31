@@ -9,8 +9,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-
-export function DynamicBreadcrumb() {
+function toTitle(str: string) {
+  return str.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+export function DynamicBreadcrumb({ customLabels = {} }: { customLabels?: Record<string, string> }) {
   const pathname = usePathname();
   const segments = pathname.replace(/^\/+/, '').split('/');
   // Show breadcrumb for /user/dashboard and its subpages
@@ -18,7 +20,8 @@ export function DynamicBreadcrumb() {
   const items = [
     { label: 'Dashboard', href: '/user/dashboard' },
     ...segments.slice(2).map((seg, idx) => {
-      const label = seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+       const label = customLabels[seg]
+        || (/^[0-9a-f]{24}$/i.test(seg) ? "Loading..." : toTitle(seg));
       const href = '/user/dashboard/' + segments.slice(2, 2 + idx + 1).join('/');
       return { label, href };
     })

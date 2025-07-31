@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { selectProductById } from "@/store/slice/product/productSlice";
 import { useAppSelector } from "@/store/hooks";
+import { DynamicBreadcrumb } from "@/components/user-dashboard/DynamicBreadcrumb";
+
 // @ts-ignore
 import { TagsInput } from "react-tag-input-component";
 import {
@@ -133,6 +135,7 @@ export default function ProductEdit() {
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-admin"];
+
 
   const {
     register,
@@ -547,6 +550,7 @@ export default function ProductEdit() {
   }
 
   return (
+    
     <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen">
       {apiError && (
         <div className="mb-4 p-2 bg-red-100 text-red-800 rounded">
@@ -1668,6 +1672,7 @@ export default function ProductEdit() {
       </form>
         </>
       )}
+      
     </div>
   );
 }
