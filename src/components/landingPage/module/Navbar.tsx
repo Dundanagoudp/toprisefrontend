@@ -36,27 +36,25 @@ const routeList: RouteProps[] = [
     href: "/PrivacyPolicy",
     label: "Privacy and Policy",
   },
-    {
+  {
     href: "/ShippingAndReturnPolicy",
     label: "Shipping & Returns Policy ",
   },
-//   {
-//     href: "#pricing",
-//     label: "Pricing",
-//   },
-//   {
-//     href: "#faq",
-//     label: "FAQ",
-//   },
+  //   {
+  //     href: "#pricing",
+  //     label: "Pricing",
+  //   },
+  //   {
+  //     href: "#faq",
+  //     label: "FAQ",
+  //   },
 ];
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
- const [contactUsOpen, setContactUsOpen] = useState(false);
+  const [contactUsOpen, setContactUsOpen] = useState(false);
   const handleSLAFormSubmit = (data: any) => {
     setContactUsOpen(false);
- 
- 
   };
 
   return (
@@ -78,10 +76,7 @@ export const Navbar = () => {
           <span className="flex md:hidden">
             {/* <ModeToggle /> */}
 
-            <Sheet
-              open={isOpen}
-              onOpenChange={setIsOpen}
-            >
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger className="px-2">
                 <Menu
                   className="flex md:hidden h-5 w-5"
@@ -111,7 +106,7 @@ export const Navbar = () => {
                   ))}
                   <DynamicButton
                     variant="default"
-                    className="mt-4 w-full max-w-xs"
+                    className="mt-4 w-full max-w-xs py-3 text-lg rounded-lg shadow-md bg-[#C72920] text-white font-semibold active:scale-95 transition-transform"
                     text="Contact Us"
                     onClick={() => {
                       setContactUsOpen(true);
@@ -141,8 +136,6 @@ export const Navbar = () => {
               onClick={() => setContactUsOpen(true)}
             />
           </nav>
-
-   
         </NavigationMenuList>
       </NavigationMenu>
       <ContactDialog
