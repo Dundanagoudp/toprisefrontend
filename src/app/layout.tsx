@@ -31,7 +31,9 @@ export default function RootLayout({
         className={`${redHatDisplay.variable} ${poppins.variable} antialiased`}
       >
         <ToastProvider>
-          <Providers>{children}</Providers>
+         
+            <Providers>{children}</Providers>
+        
         </ToastProvider>
       </body>
     </html>

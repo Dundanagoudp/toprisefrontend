@@ -11,7 +11,7 @@ export default function HeroSection() {
       </div>
 
       {/* Content Grid */}
-      <div className="relative z-10 container mx-auto px-4 h-screen">
+     <div className="relative z-10 container mx-auto px-2 pt-8 pb-8 md:px-4 h-screen">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full items-center">
           {/* Left Side - Text Content */}
           <div className="text-white space-y-6">
