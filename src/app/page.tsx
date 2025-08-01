@@ -1,11 +1,18 @@
-import React from 'react'
+import AboutUs from "@/components/landingPage/module/AboutUs";
+import Footer from "@/components/landingPage/module/Footer";
+import HeroSection, { } from "@/components/landingPage/module/Hero";
+import { Navbar } from "@/components/landingPage/module/Navbar";
 
-export default function page() {
+const Page = () => {
   return (
-    <div>
-      new page
-      <h1>Public Page</h1>
-      <p>Welcome to the public page!</p>
-    </div>
-  )
-}
+    <>
+      <Navbar />
+      <HeroSection />
+      <AboutUs/>
+      <Footer/>
+
+    </>
+  );
+};
+
+export default Page;
