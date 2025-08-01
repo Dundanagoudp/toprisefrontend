@@ -17,6 +17,8 @@ import {
 // import { buttonVariants } from "./ui/button";
 import { Menu } from "lucide-react";
 import DynamicButton from "@/components/common/button/button";
+import { useContactDialog } from "./popup/ContactDialogProvider";
+import ContactDialog from "./popup/contactus";
 // import { ModeToggle } from "./mode-toggle";
 // import { LogoIcon } from "./Icons";
 
@@ -34,6 +36,10 @@ const routeList: RouteProps[] = [
     href: "/PrivacyPolicy",
     label: "Privacy and Policy",
   },
+    {
+    href: "/ShippingAndReturnPolicy",
+    label: "Shipping & Returns Policy ",
+  },
 //   {
 //     href: "#pricing",
 //     label: "Pricing",
@@ -46,6 +52,13 @@ const routeList: RouteProps[] = [
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+ const [contactUsOpen, setContactUsOpen] = useState(false);
+  const handleSLAFormSubmit = (data: any) => {
+    setContactUsOpen(false);
+ 
+ 
+  };
+
   return (
     <header className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-slate-700 dark:bg-background">
       <NavigationMenu className="mx-auto">
@@ -81,7 +94,7 @@ export const Navbar = () => {
               <SheetContent side={"left"}>
                 <SheetHeader>
                   <SheetTitle className="font-bold text-xl">
-                    Shadcn/React
+                    TopRise Ventures
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col justify-center items-center gap-4 mt-4">
@@ -100,6 +113,9 @@ export const Navbar = () => {
                     variant="default"
                     className="mt-4 w-full max-w-xs"
                     text="Contact Us"
+                    onClick={() => {
+                      setContactUsOpen(true);
+                    }}
                   />
                 </nav>
               </SheetContent>
@@ -122,12 +138,18 @@ export const Navbar = () => {
               variant="default"
               className="ml-2 bg-[#C72920]"
               text="Contact Us"
+              onClick={() => setContactUsOpen(true)}
             />
           </nav>
 
    
         </NavigationMenuList>
       </NavigationMenu>
+      <ContactDialog
+        open={contactUsOpen}
+        onClose={() => setContactUsOpen(false)}
+        form={{ name: "", email: "", message: "" }}
+      />
     </header>
   );
 };
