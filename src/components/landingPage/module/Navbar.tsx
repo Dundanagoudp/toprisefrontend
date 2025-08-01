@@ -17,7 +17,9 @@ import {
 // import { buttonVariants } from "./ui/button";
 import { Menu } from "lucide-react";
 import DynamicButton from "@/components/common/button/button";
-import { useContactDialog } from "./popup/ContactDialogProvider";
+import logo from "../../../../public/assets/logo.png";
+import Image from "next/image";
+
 import ContactDialog from "./popup/contactus";
 // import { ModeToggle } from "./mode-toggle";
 // import { LogoIcon } from "./Icons";
@@ -57,81 +59,78 @@ export const Navbar = () => {
     setContactUsOpen(false);
   };
 
-  return (
+return (
     <header className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-slate-700 dark:bg-background">
       <NavigationMenu className="mx-auto">
-        <NavigationMenuList className="container h-16 px-4 w-screen flex justify-between ">
+        <NavigationMenuList className="container h-16 px-4 w-screen flex justify-between">
           <NavigationMenuItem className="font-bold flex">
-            <a
+            {/* <a
               rel="noreferrer noopener"
               href="/"
-              className="ml-2 font-bold text-xl flex"
+              className="ml-2 font-bold text-lg sm:text-xl flex"
             >
-              {/* <LogoIcon /> */}
               TopRise Ventures
-            </a>
+            </a> */}
+              <Image src={logo} alt="Logo" rel="noreferrer noopener" />
           </NavigationMenuItem>
 
-          {/* mobile */}
-          <span className="flex md:hidden">
-            {/* <ModeToggle /> */}
-
+          {/* Mobile menu */}
+          <div className="flex md:hidden">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger className="px-2">
                 <Menu
                   className="flex md:hidden h-5 w-5"
                   onClick={() => setIsOpen(true)}
-                >
-                  <span className="sr-only">Menu Icon</span>
-                </Menu>
+                />
               </SheetTrigger>
 
-              <SheetContent side={"left"}>
+              <SheetContent side={"left"} className="w-full sm:w-[320px]">
                 <SheetHeader>
-                  <SheetTitle className="font-bold text-xl">
-                    TopRise Ventures
+                  <SheetTitle className="font-bold text-lg sm:text-xl">
+                    <Image src={logo} alt="Logo" width={40} height={40} />
+                  
                   </SheetTitle>
                 </SheetHeader>
-                <nav className="flex flex-col justify-center items-center gap-4 mt-4">
+                <nav className="flex flex-col justify-center items-center gap-5 mt-4">
                   {routeList.map(({ href, label }: RouteProps) => (
                     <a
-                      rel="noreferrer noopener"
                       key={label}
                       href={href}
                       onClick={() => setIsOpen(false)}
-                      className="text-red-500 font-medium hover:text-red-600 transition-colors text-center py-2"
+                      className="font-semibold font-sans text-[#1A1A1A] hover:text-gray-600 transition-colors text-sm lg:text-base whitespace-nowrap"
                     >
                       {label}
                     </a>
                   ))}
                   <DynamicButton
                     variant="default"
-                    className="mt-4 w-full max-w-xs py-3 text-lg rounded-lg shadow-md bg-[#C72920] text-white font-semibold active:scale-95 transition-transform"
+                    className="mt-2 w-full py-2 text-sm rounded-md shadow bg-[#C72920] text-white font-semibold active:scale-95 transition-transform"
                     text="Contact Us"
                     onClick={() => {
                       setContactUsOpen(true);
+                      setIsOpen(false);
                     }}
                   />
                 </nav>
               </SheetContent>
             </Sheet>
-          </span>
+          </div>
 
-          {/* desktop */}
-          <nav className="hidden md:flex items-center gap-6">
+          {/* Desktop/Tablet menu */}
+          <nav className="hidden md:flex items-center gap-2 lg:gap-4 xl:gap-6">
             {routeList.map((route: RouteProps, i) => (
               <a
                 rel="noreferrer noopener"
                 href={route.href}
                 key={i}
-                className="font-semibold font-sans text-[#1A1A1A] hover:text-gray-600 transition-colors"
+                className="font-semibold font-sans text-[#1A1A1A] hover:text-gray-600 transition-colors text-sm lg:text-base whitespace-nowrap"
               >
                 {route.label}
               </a>
             ))}
             <DynamicButton
               variant="default"
-              className="ml-2 bg-[#C72920]"
+              className="ml-2 bg-[#C72920] text-sm lg:text-base px-3 py-1 lg:px-4 lg:py-2"
               text="Contact Us"
               onClick={() => setContactUsOpen(true)}
             />
