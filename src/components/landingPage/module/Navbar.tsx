@@ -64,14 +64,13 @@ return (
       <NavigationMenu className="mx-auto">
         <NavigationMenuList className="container h-16 px-4 w-screen flex justify-between">
           <NavigationMenuItem className="font-bold flex">
-            {/* <a
+            <a
               rel="noreferrer noopener"
               href="/"
-              className="ml-2 font-bold text-lg sm:text-xl flex"
+              className="ml-2 font-bold text-lg sm:text-xl flex cursor-pointer"
             >
-              TopRise Ventures
-            </a> */}
-              <Image src={logo} alt="Logo" rel="noreferrer noopener" />
+              <Image src={logo} alt="Logo" className="hover:opacity-80 transition-opacity" />
+            </a>
           </NavigationMenuItem>
 
           {/* Mobile menu */}
@@ -87,8 +86,14 @@ return (
               <SheetContent side={"left"} className="w-full sm:w-[320px]">
                 <SheetHeader>
                   <SheetTitle className="font-bold text-lg sm:text-xl">
-                    <Image src={logo} alt="Logo" width={40} height={40} />
-                  
+                    <a
+                      rel="noreferrer noopener"
+                      href="/"
+                      className="cursor-pointer"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Image src={logo} alt="Logo" width={40} height={40} className="hover:opacity-80 transition-opacity" />
+                    </a>
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col justify-center items-center gap-5 mt-4">
