@@ -140,7 +140,6 @@ return (
       <ContactDialog
         open={contactUsOpen}
         onClose={() => setContactUsOpen(false)}
-        form={{ name: "", email: "", message: "" }}
       />
     </header>
   );
