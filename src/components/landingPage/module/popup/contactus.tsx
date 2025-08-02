@@ -74,14 +74,14 @@ export default function ContactDialog({ open, onClose }: ContactDialogProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <DialogTitle className="text-xl font-semibold">Contact Us</DialogTitle>
-          <Button 
+          {/* <Button 
             variant="ghost" 
             size="icon" 
             onClick={onClose}
             className="h-8 w-8"
           >
             <X className="h-4 w-4" />
-          </Button>
+          </Button> */}
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
