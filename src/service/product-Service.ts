@@ -65,9 +65,27 @@ export async function getCategories(): Promise<ProductResponse> {
     throw error;
   }
 }
-export async function createCategory():Promise<any>{
+export async function createCategory(data:FormData):Promise<any>{
   try{
-    const response = await apiClient.post(`/category/`)
+    const response = await apiClient.post(`/category/api/category`,data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+    return response.data
+  }
+  catch(err:any){
+    console.error("Failed to create category:", err);
+    throw err
+  }
+}
+export async function createSubCategory(data:FormData):Promise<any>{
+  try{
+    const response = await apiClient.post(`/subCategory/api/subCategory`,data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
     return response.data
   }
   catch(err:any){

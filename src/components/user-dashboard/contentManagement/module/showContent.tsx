@@ -17,6 +17,9 @@ import ShowCategory from "./TabComponent/showCategory";
 import SubCategory from "./TabComponent/subCategory";
 import ShowModel from "./TabComponent/showModel";
 import DynamicButton from "@/components/common/button/button";
+import CreateCategory from "./TabComponent/handelTabForm/CreateCategory";
+import CreateSubCategory from "./TabComponent/handelTabForm/CreateSubCatefory";
+import CreateModelForm from "./TabComponent/handelTabForm/createModelForm";
 
 // Tab types
 type TabType = 'Category' | 'Subcategory' | 'Model';
@@ -37,29 +40,26 @@ interface TabConfig {
 
 export default function ShowContent() {
   const [activeTab, setActiveTab] = useState<TabType>('Category');
+  const [openCategory , setOpenCategory] = useState(false);
+  const [openSubCategory , setOpenSubCategory] = useState(false);
+  const [openModel , setOpenModel] = useState(false);
   const { showToast } = useGlobalToast();
 
   // Tab-specific action handlers
   const handleCategoryAction = useCallback(() => {
-    console.log("Category action triggered");
-    showToast("Category added", "success");
-    // Add your category-specific logic here
-    // e.g., open modal, navigate to form, etc.
-  }, [showToast]);
+    setOpenCategory(true);
+  }, []);
 
   const handleSubcategoryAction = useCallback(() => {
-    console.log("Subcategory action triggered");
-    showToast("Subcategory added", "success");
-    // Add your subcategory-specific logic here
-  }, [showToast]);
+    setOpenSubCategory(true);
+  }, []);
 
     // Add your subcategory-specific logic here
 
   const handleModelAction = useCallback(() => {
-    console.log("Model action triggered");
-    showToast("Model added", "success");
+    setOpenModel(true);
     
-  }, [showToast]);
+  }, []);
 
   // Scalable tab configuration - easy to extend
   const tabConfigs: TabConfig[] = useMemo(() => [
@@ -149,6 +149,9 @@ export default function ShowContent() {
           </div>
         </CardContent>
       </Card>
+      <CreateCategory open={openCategory} onClose={() => setOpenCategory(false)} />
+      <CreateSubCategory open={openSubCategory} onClose={() => setOpenSubCategory(false)} />
+      <CreateModelForm open={openModel} onClose={() => setOpenModel(false)} />
     </div>
   );
 }
