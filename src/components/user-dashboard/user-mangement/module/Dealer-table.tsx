@@ -1,7 +1,7 @@
   // Handle SLA Form submit
 
 "use client";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -68,6 +68,9 @@ export default function Dealertable({
   const loaderRef = useRef<HTMLDivElement | null>(null);
 const [slaFormOpen, setSlaFormOpen] = useState(false);
 const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null);
+const [viewDealerLoading, setViewDealerLoading] = useState(false);
+const [editDealerLoading, setEditDealerLoading] = useState(false);
+const [addDealerLoading, setAddDealerLoading] = useState(false);
 
   useEffect(() => {
     fetchDealers();
@@ -322,15 +325,19 @@ const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null);
                   <DropdownMenuContent>
                     <DropdownMenuItem
                       onClick={() =>
+                      {
+                        setEditDealerLoading(true);
                         router.push(
                           `/user/dashboard/user/edit-dealer/${dealer._id}`
-                        )
+                        )}
+                        
                       }
                     >
                       Edit
                     </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
+                    
                       setSelectedDealerId(dealer._id);
                       setSlaFormOpen(true);
                     }}
@@ -338,11 +345,12 @@ const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null);
                     Assign SLA
                   </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() =>
+                      onClick={() => {
+                        setViewDealerLoading(true);
                         router.push(
                           `/user/dashboard/user/dealerview/${dealer._id}`
-                        )
-                      }
+                        );
+                      }}
                     >
                       View Details
                     </DropdownMenuItem>
@@ -403,6 +411,39 @@ const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null);
         dealerId={selectedDealerId}
         onSubmit={handleSLAFormSubmit}
       />
+{/* Loader for  dealers */}
+
+
+              {viewDealerLoading && (
+              <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
+                  <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
+                  <p className="text-lg font-medium text-gray-700">
+                    Loading Dealer details...
+                  </p>
+                </div>
+              </div>
+            )}
+                  {editDealerLoading && (
+              <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
+                  <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
+                  <p className="text-lg font-medium text-gray-700">
+                    Loading Dealer details...
+                  </p>
+                </div>
+              </div>
+            )}
+             {addDealerLoading && (
+              <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
+                  <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
+                  <p className="text-lg font-medium text-gray-700">
+                    Loading Dealer details...
+                  </p>
+                </div>
+              </div>
+            )}
     </div>
   );
 }
