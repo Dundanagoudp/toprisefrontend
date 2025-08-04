@@ -65,6 +65,16 @@ export async function getCategories(): Promise<ProductResponse> {
     throw error;
   }
 }
+
+export async function getBrand(): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/brands`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch brands:", error);
+    throw error;
+  }
+}
 export async function createCategory(data:FormData):Promise<any>{
   try{
     const response = await apiClient.post(`/category/api/category`,data, {
@@ -82,6 +92,35 @@ export async function createCategory(data:FormData):Promise<any>{
 export async function createSubCategory(data:FormData):Promise<any>{
   try{
     const response = await apiClient.post(`/subCategory/api/subCategory`,data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+    return response.data
+  }
+  catch(err:any){
+    console.error("Failed to create category:", err);
+    throw err
+  }
+}
+
+export async function createModel(data:FormData):Promise<any>{
+  try{
+    const response = await apiClient.post(`/category/api/model`,data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+    return response.data
+  }
+  catch(err:any){
+    console.error("Failed to create category:", err);
+    throw err
+  }
+}
+export async function createBrand(data:FormData):Promise<any>{
+  try{
+    const response = await apiClient.post(`/category/api/brands`,data, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -135,6 +174,8 @@ export async function getProductById(
     throw error;
   }
 }
+
+
 export async function getBrandByType(id: string): Promise<ProductResponse> {
   try {
     const response = await apiClient.get(

@@ -98,12 +98,16 @@ function AboutSection({ title, content, imageSrc, imageAlt, imagePosition }: Abo
         >
           {title}
         </motion.h3>
-        <motion.p 
-          className="text-gray-600 leading-relaxed text-base md:text-lg"
+        <motion.div 
+          className="text-gray-600 leading-relaxed text-base md:text-lg space-y-4"
           variants={textVariants}
         >
-          {content}
-        </motion.p>
+          {content.split('\n\n').map((paragraph, index) => (
+            <p key={index} className="mb-4 last:mb-0">
+              {paragraph}
+            </p>
+          ))}
+        </motion.div>
       </motion.div>
 
       {/* Image with Enhanced Parallax */}
@@ -152,29 +156,37 @@ export default function AboutUs() {
 
   const aboutSections = [
     {
-      title: "Lorem Ipsum is simply",
+      title: "What We Do",
       content:
-        "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+        "Smart Product Discovery: We make it easy for dealers and retailers to find exact-fit parts using advanced filters based on vehicle make, model and variant eliminating guesswork. Our intuitive search system ensures precision and saves valuable time.\n\nVerified Sourcing Network: Our platform hosts a curated network of trusted manufacturers and distributors, ensuring quality, competitive pricing, and consistent supply. Every partner is thoroughly vetted to maintain our high standards.\n\nReal-Time Inventory & Fulfilment: With live inventory visibility, multi-location stocking, and intelligent order routing, Toprise ensures swift order fulfilment and reduced downtime. Our system optimizes delivery routes for maximum efficiency.\n\nDealer-Centric Technology: We empower our partners with mobile-first tools to manage orders, returns, claims, and logistics seamlessly, all from a unified dashboard. Everything you need is at your fingertips.",
       imageSrc: "/assets/Engineers.jpg",
       imageAlt: "Team collaboration",
       imagePosition: "right" as const,
     },
     {
-      title: "Lorem Ipsum is simply",
+      title: "Why Toprise?",
       content:
-        "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+        "Fast Fulfilment: Integrated logistics and real-time inventory mapping across regions.\n\nPrecise Fitment Matching: Reduce returns and increase satisfaction with exact-fit assurance.\n\nParts for Every Need: From consumables to premium assemblies, we cover the entire spectrum of 2-wheeler and 4-wheeler spare parts.\n\nMulti-Channel Access: Order via mobile app, website, WhatsApp, or direct call, we’re built for the way dealers work.\n\nEasy Returns & Claims: Transparent workflows and verified inspection at pickup for hassle-free returns.",
       imageSrc: "/assets/Gear.jpg",
       imageAlt: "Workplace environment",
       imagePosition: "left" as const,
     },
-    // {
-    //   title: "Our Mission & Vision",
-    //   content:
-    //     "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
-    //   imageSrc: "/assets/AboutUs.jpg",
-    //   imageAlt: "Mission and vision",
-    //   imagePosition: "right" as const,
-    // },
+    {
+      title: "Our Mission ",
+      content:
+        "To revolutionize India’s automotive aftermarket by enabling faster access, better transparency, and stronger business outcomes for every link in the parts supply chain.",
+      imageSrc: "/assets/AboutUs.jpg",
+      imageAlt: "Mission and vision",
+      imagePosition: "right" as const,
+    },
+      {
+      title: "Who We Serve",
+      content:
+        "Distributors & Dealers looking for better reach, digitization, and streamlined inventory movement.\n\nRetailers & Workshops seeking accurate, timely part deliveries.\n\nManufacturers & OEMs aiming for deeper visibility and channel control.",
+      imageSrc: "/assets/AboutUs.jpg",
+      imageAlt: "Mission and vision",
+      imagePosition: "left" as const,
+    },
   ]
 
   // Header animation variants
@@ -219,16 +231,16 @@ export default function AboutUs() {
             About Us
           </motion.h2>
           <motion.h1 
-            className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6 w-full"
+            className="text-3xl md:text-4xl lg:text-5xl  text-gray-900 leading-tight mb-6 w-full"
             variants={headerItemVariants}
           >
-           Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever
+            <strong>Toprise Ventures</strong> is a next-generation e-commerce and distribution platform transforming the way automotive spare parts are discovered, ordered, and fulfilled across India.
           </motion.h1>
           <motion.p 
             className="text-gray-600 leading-relaxed text-base md:text-lg w-full"
             variants={headerItemVariants}
           >
-           Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+          Founded with a vision to simplify and digitize the spare parts supply chain, Toprise brings together manufacturers, distributors, dealers, and retailers onto a single, trusted platform. We bridge the gap between availability and accessibility by offering a powerful ecosystem designed specifically for the complex and unorganized automotive parts market.
           </motion.p>
         </motion.div>
 
@@ -245,6 +257,15 @@ export default function AboutUs() {
             />
           ))}
         </div>
+        <motion.div className="text-center">
+          <motion.p 
+            className="text-gray-600 leading-relaxed text-base md:text-lg w-full"
+            variants={headerItemVariants}
+          >
+            <strong>Join the Toprise Network</strong><br />
+            Whether you're a parts manufacturer, distributor, or dealer: let’s scale together.
+          </motion.p>
+        </motion.div>
       </div>
     </section>
   )

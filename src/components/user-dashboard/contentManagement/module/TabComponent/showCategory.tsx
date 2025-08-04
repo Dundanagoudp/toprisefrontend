@@ -96,7 +96,7 @@ export default function ShowCategory() {
           ) : (
             <TableRow>
               <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                No subcategories found
+                No categories found
               </TableCell>
             </TableRow>
           )}
@@ -111,7 +111,7 @@ export default function ShowCategory() {
             {`Showing ${(currentPage - 1) * itemPerPage + 1}-${Math.min(
               currentPage * itemPerPage,
               Categories.length
-            )} of ${Categories.length} subcategories`}
+            )} of ${Categories.length} categories`}
           </div>
           {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">
