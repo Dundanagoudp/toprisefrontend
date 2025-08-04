@@ -20,9 +20,12 @@ import DynamicButton from "@/components/common/button/button";
 import CreateCategory from "./TabComponent/handelTabForm/CreateCategory";
 import CreateSubCategory from "./TabComponent/handelTabForm/CreateSubCatefory";
 import CreateModelForm from "./TabComponent/handelTabForm/createModelForm";
+import ShowBrand from "./TabComponent/showBrand";
+import { set } from "zod";
+import CreateBrand from "./TabComponent/handelTabForm/CreateBrand";
 
 // Tab types
-type TabType = 'Category' | 'Subcategory' | 'Model';
+type TabType = 'Category' | 'Subcategory' | 'Model' | 'Brand';
 
 // Tab configuration interface for scalability
 interface TabConfig {
@@ -43,6 +46,7 @@ export default function ShowContent() {
   const [openCategory , setOpenCategory] = useState(false);
   const [openSubCategory , setOpenSubCategory] = useState(false);
   const [openModel , setOpenModel] = useState(false);
+  const [openBrand , setOpenBrand] = useState(false);
   const { showToast } = useGlobalToast();
 
   // Tab-specific action handlers
@@ -59,6 +63,10 @@ export default function ShowContent() {
   const handleModelAction = useCallback(() => {
     setOpenModel(true);
     
+  }, []);
+  const handleBrandAction = useCallback(() => {
+    setOpenBrand(true);
+
   }, []);
 
   // Scalable tab configuration - easy to extend
@@ -89,8 +97,17 @@ export default function ShowContent() {
         text: 'Add Model',
         action: handleModelAction,
       }
-    }
-  ], [handleCategoryAction, handleSubcategoryAction, handleModelAction]);
+    },
+    {
+      id: 'Brand',
+      label: 'Brand', 
+      component: ShowBrand,
+      buttonConfig: {
+        text: 'Add Brand',
+        action: handleBrandAction,
+      }
+    },
+  ], [handleCategoryAction, handleSubcategoryAction, handleModelAction, handleBrandAction]);
 
   // Get current tab configuration
   const currentTabConfig = useMemo(() => 
@@ -152,6 +169,7 @@ export default function ShowContent() {
       <CreateCategory open={openCategory} onClose={() => setOpenCategory(false)} />
       <CreateSubCategory open={openSubCategory} onClose={() => setOpenSubCategory(false)} />
       <CreateModelForm open={openModel} onClose={() => setOpenModel(false)} />
+        <CreateBrand open={openBrand} onClose={() => setOpenBrand(false)} />
     </div>
   );
 }

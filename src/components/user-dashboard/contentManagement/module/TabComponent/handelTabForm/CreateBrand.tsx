@@ -1,42 +1,44 @@
-import React, { use, useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast as useGlobalToast } from "@/components/ui/toast"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, Controller } from "react-hook-form"
-import { X, Image as ImageIcon, Car } from 'lucide-react'
-import { createModel, getBrand, getBrandByType, getTypes } from '@/service/product-Service'
+import { Controller, useForm } from "react-hook-form"
+import { X, Image as ImageIcon } from 'lucide-react'
+import { createBrand, createSubCategory, getCategories, getTypes } from '@/service/product-Service'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { type } from 'os'
 import { useAppSelector } from '@/store/hooks'
 
-// Sample subcategories for dropdown (replace with actual API data)
-
-
-// Validation schema for model creation
-const modelSchema = z.object({
-  model_name: z
+// Validation schema for brand creation
+const brandSchema = z.object({
+  brand_name: z
     .string()
-    .min(1, "Model name is required")
-    .min(2, "Model name must be at least 2 characters")
-    .max(100, "Model name must not exceed 100 characters")
-    .regex(/^[a-zA-Z0-9\s-_]+$/, "Model name can only contain letters, numbers, spaces, hyphens, and underscores"),
+    .min(1, "Brand name is required")
+    .min(2, "Brand name must be at least 2 characters")
+    .max(100, "Brand name must not exceed 100 characters")
+    .regex(/^[a-zA-Z0-9\s-_]+$/, "Brand name can only contain letters, numbers, spaces, hyphens, and underscores"),
 
-  model_code: z
+  brand_code: z
     .string()
-    .min(1, "Model code is required")
-    .min(1, "Model code must be at least 1 character")
-    .max(20, "Model code must not exceed 20 characters")
-    .regex(/^[A-Z0-9-_]+$/, "Model code must be uppercase letters, numbers, hyphens, or underscores only"),
+    .min(1, "Brand code is required")
+    .min(1, "Brand code must be at least 1 character")
+    .max(20, "Brand code must not exceed 20 characters")
+    .regex(/^[A-Z0-9-_]+$/, "Brand code must be uppercase letters, numbers, hyphens, or underscores only"),
 
-  brand_ref: z
+  brand_description: z
     .string()
-    .min(1, "Please select a brand"),
+    .min(1, "Brand description is required")
+    .min(10, "Description must be at least 10 characters")
+    .max(500, "Description must not exceed 500 characters"),
 
-  model_image: z
+  type_ref: z.string().min(1, "Please select a type"),
+
+  brand_logo: z
     .instanceof(File)
     .optional()
     .refine(
@@ -49,22 +51,21 @@ const modelSchema = z.object({
     ),
 })
 
-type ModelFormValues = z.infer<typeof modelSchema>
+type BrandFormValues = z.infer<typeof brandSchema>
 
-interface CreateModelFormProps {
+interface CreateBrandProps {
   open: boolean
   onClose: () => void
-  onSuccess?: (model: any) => void
+  onSuccess?: (brand: any) => void
 }
 
-export default function CreateModelForm({ open, onClose, onSuccess }: CreateModelFormProps) {
+export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandProps) {
   const { showToast } = useGlobalToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
-  const [brandOptions, setBrandOptions] = useState<any[]>([])
-  const [brandLoading, setBrandLoading] = useState(false)
-
+  const [types, setTypes] = useState<any[]>([])
+  const [typeLoading, setTypeLoading] = useState(false)
   const auth = useAppSelector((state) => state.auth)
 
   const { 
@@ -72,64 +73,62 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
     handleSubmit,
     reset,
     setValue,
-    watch,
     control,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<ModelFormValues>({
-    resolver: zodResolver(modelSchema),
+  } = useForm<BrandFormValues>({
+    resolver: zodResolver(brandSchema),
     defaultValues: {
-      model_name: '',
-      model_code: '',
-      brand_ref: '',
-      model_image: undefined,
+      brand_name: '',
+      brand_code: '',
+      brand_description: '',
+      type_ref: '',
+      brand_logo: undefined,
     }
   })
 
-  const watchedImage = watch('model_image')
-
-  // Fetch types on mount
-
-
-  // Fetch brands when selectedTypeId changes
-  useEffect(() => {
-
-    const fetchBrands = async () => {
-      setBrandLoading(true);
-      try {
-        const response = await getBrand();
-        setBrandOptions(response.data);
-     
-      } catch (err) {
-        console.error("Error fetching brands:", err);
-      } finally {
-        setBrandLoading(false);
-      }
-    };
-    fetchBrands();
-  }, []);
+  const watchedImage = watch('brand_logo')
+    useEffect(() => {
+      const fetchTypes = async () => {
+        setTypeLoading(true);
+        try {
+          const response = await getTypes();
+          const items = response.data;
+          setTypes(items);
+        } catch (err: any) {
+          console.error("Failed to fetch vehicle types:", err);
+          showToast("Failed to fetch vehicle types. Please try again.", "error");
+        } finally {
+          setTypeLoading(false);
+        }
+      };
+      
+      fetchTypes();
+    }, [])
 
   // Handle form submission
-  const handleFormSubmit = useCallback(async (data: ModelFormValues) => {
+  const handleFormSubmit = useCallback(async (data: BrandFormValues) => {
     try {
-      console.log("Model form data:", data)
+      console.log("Brand form data:", data)
       
       // Create FormData for file upload
       const formData = new FormData()
-      formData.append('model_name', data.model_name)
-      formData.append('model_code', data.model_code)
-      formData.append('brand_ref', data.brand_ref)
-        formData.append("created_by", auth.user._id); // Fixed to match Redux structure
-        formData.append("updated_by", auth.user._id); 
+      formData.append('brand_name', data.brand_name)
+      formData.append('brand_code', data.brand_code)
+      formData.append('brand_description', data.brand_description)
+      formData.append('type', data.type_ref)
+      formData.append("created_by", auth.user._id); // Fixed to match Redux structure
+      formData.append("updated_by", auth.user._id); 
       // Status will be set to "Created" by default on the backend
 
-      if (data.model_image) {
-        formData.append('model_image', data.model_image)
+      if (data.brand_logo) {
+        formData.append('file', data.brand_logo)
       }
 
-      await createModel(formData)
+     await createBrand(formData)
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      showToast("Model created successfully!", "success")
+      showToast("Brand created successfully!", "success")
       
       // Reset form and close dialog
       reset()
@@ -142,14 +141,14 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
       }
       
     } catch (err: any) {
-      console.error("Error creating model:", err)
-      showToast("Failed to create model. Please try again.", "error")
+      console.error("Error creating brand:", err)
+      showToast("Failed to create brand. Please try again.", "error")
     }
   }, [showToast, reset, onClose, onSuccess])
 
   // Handle file selection
   const handleFileSelect = useCallback((file: File) => {
-    setValue('model_image', file, { shouldValidate: true })
+    setValue('brand_logo', file, { shouldValidate: true })
     
     // Create preview
     const reader = new FileReader()
@@ -191,14 +190,14 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
 
   // Remove selected image
   const removeImage = useCallback(() => {
-    setValue('model_image', undefined, { shouldValidate: true })
+    setValue('brand_logo', undefined, { shouldValidate: true })
     setImagePreview(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
   }, [setValue])
 
-  // Auto-generate model code from name
+  // Auto-generate brand code from name
   const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value
     const code = name
@@ -207,7 +206,7 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
       .replace(/\s+/g, '_')
       .substring(0, 20)
 
-    setValue('model_code', code, { shouldValidate: true })
+    setValue('brand_code', code, { shouldValidate: true })
   }, [setValue])
 
   // Handle dialog close
@@ -221,40 +220,45 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-            {/* <Car className="h-5 w-5 text-[#C72920]" /> */}
-            Create New Model
-          </DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Create New Brand</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      
-
-          {/* Brand Dropdown */}
-          <div className="space-y-2">
+               <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Brand <span className="text-red-500">*</span>
+              Type <span className="text-red-500">*</span>
             </Label>
             <Controller
-              name="brand_ref"
+              name="type_ref"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}
-                  disabled={brandLoading}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                  disabled={typeLoading}
+                >
                   <SelectTrigger className="bg-gray-50 border-gray-200 rounded-lg">
-                    <SelectValue placeholder={brandLoading ? "Loading brands..." : "Select a brand"} />
+                    <SelectValue 
+                      placeholder={
+                        typeLoading
+                          ? "Loading types..."
+                          : types.length === 0
+                            ? "No types available"
+                            : "Select a type"
+                      } 
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {brandOptions.length > 0 ? (
-                      brandOptions.map((option: any) => (
+                    {types.length > 0 ? (
+                      types.map((option: any) => (
                         <SelectItem key={option._id} value={option._id}>
-                          {option.brand_name}
+                          {option.type_name}
                         </SelectItem>
                       ))
                     ) : (
-                      !brandLoading && (
+                      !typeLoading && (
                         <SelectItem value="no-data" disabled>
-                          No brands available
+                          No types available
                         </SelectItem>
                       )
                     )}
@@ -262,57 +266,73 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
                 </Select>
               )}
             />
-            {errors.brand_ref && (
+            {errors.type_ref && (
               <span className="text-red-500 text-sm">
-                {errors.brand_ref.message}
+                {errors.type_ref.message}
               </span>
             )}
           </div>
-          {/* Model Name */}
+          {/* Brand Name */}
           <div className="space-y-2">
-            <Label htmlFor="model_name" className="text-sm font-medium">
-              Model Name <span className="text-red-500">*</span>
+            <Label htmlFor="brand_name" className="text-sm font-medium">
+              Brand Name <span className="text-red-500">*</span>
             </Label>
             <Input
-              id="model_name"
-              placeholder="Enter model name (e.g., APACHE RTR 160 BS4)"
+              id="brand_name"
+              placeholder="Enter brand name (e.g., Maruti Suzuki)"
               className="bg-gray-50 border-gray-200 rounded-lg"
-              {...register("model_name")}
+              {...register("brand_name")}
             />
-            {errors.model_name && (
+            {errors.brand_name && (
               <span className="text-red-500 text-sm">
-                {errors.model_name.message}
+                {errors.brand_name.message}
               </span>
             )}
           </div>
 
-          {/* Model Code */}
+          {/* Brand Code */}
           <div className="space-y-2">
-            <Label htmlFor="model_code" className="text-sm font-medium">
-              Model Code <span className="text-red-500">*</span>
+            <Label htmlFor="brand_code" className="text-sm font-medium">
+              Brand Code <span className="text-red-500">*</span>
             </Label>
             <Input
-              id="model_code"
-              placeholder="AUTO_GENERATED (e.g., 90)"
+              id="brand_code"
+              placeholder="Enter brand code (e.g., 1)"
               className="bg-gray-50 border-gray-200 rounded-lg"
-              {...register("model_code")}
+              {...register("brand_code")}
             />
-            {errors.model_code && (
+            {errors.brand_code && (
               <span className="text-red-500 text-sm">
-                {errors.model_code.message}
+                {errors.brand_code.message}
               </span>
             )}
             <p className="text-xs text-gray-500">
-              Code is auto-generated from the model name but can be edited
+              Code is independent and can be set manually. Use uppercase letters, numbers, hyphens, or underscores.
             </p>
           </div>
 
-    
+          {/* Brand Description */}
+          <div className="space-y-2">
+            <Label htmlFor="brand_description" className="text-sm font-medium">
+              Brand Description <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="brand_description"
+              placeholder="Enter detailed description (e.g., Best Brand)"
+              className="bg-gray-50 border-gray-200 rounded-lg min-h-[100px] resize-none"
+              {...register("brand_description")}
+            />
+            {errors.brand_description && (
+              <span className="text-red-500 text-sm">
+                {errors.brand_description.message}
+              </span>
+            )}
+          </div>
 
           {/* Image Upload */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Model Image
+              Brand Logo
             </Label>
             
             {!imagePreview ? (
@@ -347,7 +367,7 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
               <div className="relative">
                 <img
                   src={imagePreview}
-                  alt="Model preview"
+                  alt="Brand logo preview"
                   className="w-full h-48 object-cover rounded-lg border"
                 />
                 <button
@@ -360,9 +380,9 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
               </div>
             )}
             
-            {errors.model_image && (
+            {errors.brand_logo && (
               <span className="text-red-500 text-sm">
-                {errors.model_image.message}
+                {errors.brand_logo.message}
               </span>
             )}
           </div>
@@ -387,7 +407,7 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
                   Creating...
                 </>
               ) : (
-                'Create Model'
+                'Create Brand'
               )}
             </Button>
           </DialogFooter>
