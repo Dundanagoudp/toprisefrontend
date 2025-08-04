@@ -74,7 +74,12 @@ const data = {
       title:"Return Claims",
       url: "/user/dashboard/returnclaims",
       icon: Box,
-    }
+    },
+       {
+      title: "Content Management",
+      url: "/user/dashboard/contentManagement",
+      icon: BoxIcon,
+    },
   ],
 }
 

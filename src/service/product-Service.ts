@@ -65,6 +65,16 @@ export async function getCategories(): Promise<ProductResponse> {
     throw error;
   }
 }
+export async function createCategory():Promise<any>{
+  try{
+    const response = await apiClient.post(`/category/`)
+    return response.data
+  }
+  catch(err:any){
+    console.error("Failed to create category:", err);
+    throw err
+  }
+}
 
 export async function getSubCategories(): Promise<ProductResponse> {
   try {

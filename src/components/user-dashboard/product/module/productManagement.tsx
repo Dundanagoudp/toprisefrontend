@@ -458,8 +458,7 @@ export default function ProductManagement() {
       console.error("Failed to deactivate product:", error);
     }
   };
-
-  const handlePreviousPage = () => {
+   const handlePreviousPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
 

@@ -19,6 +19,7 @@ export default function Usermangement() {
   const [role, setRole] = useState("");
   const router = useRouter();
 
+
   return (
     <div className="flex-1 p-4 md:p-6 bg-white">
       {/* Header */}
@@ -110,6 +111,7 @@ export default function Usermangement() {
           ? <Employeetable />
           : <Dealertable search={search} role={role === "all" ? "" : role} />}
       </div>
+    
     </div>
   )
 }
