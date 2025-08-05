@@ -25,7 +25,7 @@ export default function EditEmployee() {
       roleDescription: "Manages fulfillment operations",
       accessLevel: "full",
       assignedDealer: "dealer1",
-      assignedRegion: "north",
+      assignedRegion: ["north"],
       remarks: "Temporarily suspended due to leave",
       auditTrail: "Role changed on 2025-06-01 by USR019",
       sendLoginInvite: true,
@@ -33,7 +33,7 @@ export default function EditEmployee() {
       currentStatus: "active",
       lastLogin: "2025-06-25 12:43",
       createdBy: "USR001",
-      assignedOrdersPicklists: "ORD-9032, ORD-9044",
+      assignedOrdersPicklists: ["ORD-9032", "ORD-9044"],
       slaType: "type1",
       slaMaxDispatchTime: "24",
     },
@@ -284,8 +284,8 @@ export default function EditEmployee() {
                 Assigned Region
               </label>
               <Select
-                onValueChange={(value) => form.setValue("assignedRegion", value)}
-                value={form.watch("assignedRegion")} // Make it a controlled component
+                onValueChange={(value) => form.setValue("assignedRegion", [value])}
+                value={form.watch("assignedRegion")?.[0] || ""} // Make it a controlled component
               >
                 <SelectTrigger className="w-full bg-gray-50 border-gray-200">
                   <SelectValue placeholder="Select Assigned Region" />

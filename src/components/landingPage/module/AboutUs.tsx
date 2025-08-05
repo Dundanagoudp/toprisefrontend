@@ -1,32 +1,38 @@
-'use client'
+"use client";
 
-import Image from "next/image"
-import { motion, useInView, useScroll, useTransform } from "framer-motion"
-import { useRef } from "react"
-import { easeInOut } from "framer-motion"
+import Image from "next/image";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
+import { easeInOut } from "framer-motion";
 
 interface AboutSectionProps {
-  title: string
-  content: string
-  imageSrc: string
-  imageAlt: string
-  imagePosition: "left" | "right"
+  title: string;
+  content: string;
+  imageSrc: string;
+  imageAlt: string;
+  imagePosition: "left" | "right";
 }
 
-function AboutSection({ title, content, imageSrc, imageAlt, imagePosition }: AboutSectionProps) {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, amount: 0.2 })
-  
+function AboutSection({
+  title,
+  content,
+  imageSrc,
+  imageAlt,
+  imagePosition,
+}: AboutSectionProps) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.2 });
+
   // Scroll-based parallax for the entire section
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ["start end", "end start"]
-  })
-  
+    offset: ["start end", "end start"],
+  });
+
   // Parallax transforms
-  const imageY = useTransform(scrollYProgress, [0, 1], ["20%", "-20%"])
-  const textY = useTransform(scrollYProgress, [0, 1], ["10%", "-10%"])
-  const imageScale = useTransform(scrollYProgress, [0, 0.5, 1], [1.1, 1, 1.1])
+  const imageY = useTransform(scrollYProgress, [0, 1], ["20%", "-20%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["10%", "-10%"]);
+  const imageScale = useTransform(scrollYProgress, [0, 0.5, 1], [1.1, 1, 1.1]);
 
   // Enhanced staggered animation variants
   const containerVariants = {
@@ -36,45 +42,45 @@ function AboutSection({ title, content, imageSrc, imageAlt, imagePosition }: Abo
       transition: {
         staggerChildren: 0.2,
         delayChildren: 0.1,
-      }
-    }
-  }
+      },
+    },
+  };
 
   const textVariants = {
-    hidden: { 
-      opacity: 0, 
+    hidden: {
+      opacity: 0,
       y: 50,
-      x: imagePosition === "left" ? -30 : 30
+      x: imagePosition === "left" ? -30 : 30,
     },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       x: 0,
       transition: {
         duration: 0.8,
-        ease: easeInOut
-      }
-    }
-  }
+        ease: easeInOut,
+      },
+    },
+  };
 
   const imageVariants = {
-    hidden: { 
-      opacity: 0, 
+    hidden: {
+      opacity: 0,
       scale: 0.9,
       x: imagePosition === "left" ? -50 : 50,
-      rotateY: imagePosition === "left" ? -15 : 15
+      rotateY: imagePosition === "left" ? -15 : 15,
     },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       scale: 1,
       x: 0,
       rotateY: 0,
       transition: {
         duration: 1,
-        ease: easeInOut
-      }
-    }
-  }
+        ease: easeInOut,
+      },
+    },
+  };
 
   return (
     <motion.div
@@ -87,22 +93,24 @@ function AboutSection({ title, content, imageSrc, imageAlt, imagePosition }: Abo
       }`}
     >
       {/* Text Content with Parallax */}
-      <motion.div 
-        className={`space-y-4 ${imagePosition === "left" ? "lg:col-start-2" : ""}`}
+      <motion.div
+        className={`space-y-4 ${
+          imagePosition === "left" ? "lg:col-start-2" : ""
+        }`}
         style={{ y: textY }}
         variants={textVariants}
       >
-        <motion.h3 
+        <motion.h3
           className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight"
           variants={textVariants}
         >
           {title}
         </motion.h3>
-        <motion.div 
+        <motion.div
           className="text-gray-600 leading-relaxed text-base md:text-lg space-y-4"
           variants={textVariants}
         >
-          {content.split('\n\n').map((paragraph, index) => (
+          {content.split("\n\n").map((paragraph, index) => (
             <p key={index} className="mb-4 last:mb-0">
               {paragraph}
             </p>
@@ -111,23 +119,20 @@ function AboutSection({ title, content, imageSrc, imageAlt, imagePosition }: Abo
       </motion.div>
 
       {/* Image with Enhanced Parallax */}
-      <motion.div 
+      <motion.div
         className={`${imagePosition === "left" ? "lg:col-start-1" : ""}`}
         variants={imageVariants}
       >
-        <motion.div 
+        <motion.div
           className="relative aspect-[4/3] rounded-lg overflow-hidden shadow-lg"
           style={{ y: imageY }}
-          whileHover={{ 
+          whileHover={{
             scale: 1.02,
             rotateY: imagePosition === "left" ? 5 : -5,
-            transition: { duration: 0.3 }
+            transition: { duration: 0.3 },
           }}
         >
-          <motion.div
-            style={{ scale: imageScale }}
-            className="w-full h-full"
-          >
+          <motion.div style={{ scale: imageScale }} className="w-full h-full">
             <Image
               src={imageSrc || "/placeholder.svg"}
               alt={imageAlt}
@@ -138,21 +143,21 @@ function AboutSection({ title, content, imageSrc, imageAlt, imagePosition }: Abo
         </motion.div>
       </motion.div>
     </motion.div>
-  )
+  );
 }
 
 export default function AboutUs() {
-  const sectionRef = useRef(null)
-  const headerRef = useRef(null)
-  const isHeaderInView = useInView(headerRef, { once: true, amount: 0.3 })
-  
+  const sectionRef = useRef(null);
+  const headerRef = useRef(null);
+  const isHeaderInView = useInView(headerRef, { once: true, amount: 0.3 });
+
   // Header parallax
   const { scrollYProgress: headerScrollProgress } = useScroll({
     target: headerRef,
-    offset: ["start end", "end start"]
-  })
-  
-  const headerY = useTransform(headerScrollProgress, [0, 1], ["0%", "-15%"])
+    offset: ["start end", "end start"],
+  });
+
+  const headerY = useTransform(headerScrollProgress, [0, 1], ["0%", "-15%"]);
 
   const aboutSections = [
     {
@@ -179,15 +184,15 @@ export default function AboutUs() {
       imageAlt: "Mission and vision",
       imagePosition: "right" as const,
     },
-      {
+    {
       title: "Who We Serve",
       content:
         "Distributors & Dealers looking for better reach, digitization, and streamlined inventory movement.\n\nRetailers & Workshops seeking accurate, timely part deliveries.\n\nManufacturers & OEMs aiming for deeper visibility and channel control.",
-      imageSrc: "/assets/AboutUs.jpg",
+      imageSrc: "/assets/Car-Accessories.webp",
       imageAlt: "Mission and vision",
       imagePosition: "left" as const,
     },
-  ]
+  ];
 
   // Header animation variants
   const headerVariants = {
@@ -197,26 +202,26 @@ export default function AboutUs() {
       transition: {
         staggerChildren: 0.3,
         delayChildren: 0.2,
-      }
-    }
-  }
+      },
+    },
+  };
 
   const headerItemVariants = {
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: {
         duration: 0.8,
-        ease: easeInOut // use a valid easing function for ease
-      }
-    }
-  }
+        ease: easeInOut, // use a valid easing function for ease
+      },
+    },
+  };
 
   return (
     <section ref={sectionRef} className="py-16 bg-white overflow-hidden">
       <div className="container mx-auto px-4">
         {/* Enhanced Header Section with Parallax */}
-        <motion.div 
+        <motion.div
           ref={headerRef}
           className="mb-16 text-left"
           style={{ y: headerY }}
@@ -224,23 +229,30 @@ export default function AboutUs() {
           animate={isHeaderInView ? "visible" : "hidden"}
           variants={headerVariants}
         >
-          <motion.h2 
+          <motion.h2
             className="text-[#C72920] text-4xl font-bold font-sans mb-4"
             variants={headerItemVariants}
           >
             About Us
           </motion.h2>
-          <motion.h1 
+          <motion.h1
             className="text-3xl md:text-4xl lg:text-5xl  text-gray-900 leading-tight mb-6 w-full"
             variants={headerItemVariants}
           >
-            <strong>Toprise Ventures</strong> is a next-generation e-commerce and distribution platform transforming the way automotive spare parts are discovered, ordered, and fulfilled across India.
+            <strong>Toprise Ventures</strong> is a next-generation e-commerce
+            and distribution platform transforming the way automotive spare
+            parts are discovered, ordered, and fulfilled across India.
           </motion.h1>
-          <motion.p 
+          <motion.p
             className="text-gray-600 leading-relaxed text-base md:text-lg w-full"
             variants={headerItemVariants}
           >
-          Founded with a vision to simplify and digitize the spare parts supply chain, Toprise brings together manufacturers, distributors, dealers, and retailers onto a single, trusted platform. We bridge the gap between availability and accessibility by offering a powerful ecosystem designed specifically for the complex and unorganized automotive parts market.
+            Founded with a vision to simplify and digitize the spare parts
+            supply chain, Toprise brings together manufacturers, distributors,
+            dealers, and retailers onto a single, trusted platform. We bridge
+            the gap between availability and accessibility by offering a
+            powerful ecosystem designed specifically for the complex and
+            unorganized automotive parts market.
           </motion.p>
         </motion.div>
 
@@ -258,15 +270,17 @@ export default function AboutUs() {
           ))}
         </div>
         <motion.div className="text-center">
-          <motion.p 
+          <motion.p
             className="text-gray-600 leading-relaxed text-base md:text-lg w-full"
             variants={headerItemVariants}
           >
-            <strong>Join the Toprise Network</strong><br />
-            Whether you're a parts manufacturer, distributor, or dealer: let’s scale together.
+            <strong>Join the Toprise Network</strong>
+            <br />
+            Whether you're a parts manufacturer, distributor, or dealer: let’s
+            scale together.
           </motion.p>
         </motion.div>
       </div>
     </section>
-  )
+  );
 }

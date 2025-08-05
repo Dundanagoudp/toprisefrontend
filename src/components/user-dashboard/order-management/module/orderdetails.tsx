@@ -17,7 +17,6 @@ import { ca } from "zod/v4/locales"
 import { getOrderById } from "@/service/order-service"
 import { fetchOrderByIdSuccess, fetchOrderByIdRequest, fetchOrderByIdFailure } from "@/store/slice/order/orderByIdSlice"
 import DynamicButton from "@/components/common/button/button"
-import { getDealerById } from "@/service/dealerServices"
 
 
 
