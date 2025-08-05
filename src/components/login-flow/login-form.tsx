@@ -8,7 +8,7 @@ import { loginUser } from "@/service/auth-service";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { useAppDispatch,useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginSuccess } from "@/store/slice/auth/authSlice";
 import { useToast } from "@/components/ui/toast";
 
@@ -25,7 +25,6 @@ export function LoginForm({
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
 
-
   /**
    * Handles the form submission for the login form.
    * @param e The React FormEvent
@@ -39,8 +38,8 @@ export function LoginForm({
     setError(null);
     try {
       const response = await loginUser({ email, password });
-  
-      if ( response.data) {
+
+      if (response.data) {
         const { token, user } = response.data;
         const { role, last_login, _id } = user;
 
@@ -53,16 +52,16 @@ export function LoginForm({
           expires: 1,
           path: "/",
         });
-        dispatch(loginSuccess({token, role, last_login, _id}));
+        dispatch(loginSuccess({ token, role, last_login, _id }));
         showToast("Successfully Login", "success");
         router.replace("/user/dashboard");
       } else {
         showToast("Login failed", "error");
       }
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || "Login failed";
+      const message =
+        err?.response?.data?.message || err.message || "Login failed";
       showToast(`${message}`, "error");
-      
     } finally {
       setLoading(false);
     }
@@ -114,10 +113,31 @@ export function LoginForm({
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      ></path>
+                    </svg>
                     Logging in...
                   </span>
-                ) : "Login"}
+                ) : (
+                  "Login"
+                )}
               </Button>
 
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
