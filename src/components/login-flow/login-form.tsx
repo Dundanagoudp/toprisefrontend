@@ -55,7 +55,11 @@ export function LoginForm({
         });
         dispatch(loginSuccess({token, role, last_login, _id}));
         showToast("Successfully Login", "success");
-        router.replace("/user/dashboard");
+        if (role === "Dealer") {
+          router.replace("/dealer/dashboard");
+        } else {
+          router.replace("/user/dashboard");
+        }
       } else {
         showToast("Login failed", "error");
       }

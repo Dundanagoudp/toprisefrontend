@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
    LogOutIcon as LogOut,
    LogOutIcon,
- 
 } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {LogOut as logoutAction } from "../store/slice/auth/authSlice"
@@ -47,44 +46,20 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/user/dashboard",
+      url: "/dealer/dashboard",
       icon: DashboardIcon,
     },
     {
       title: "Product Management",
-      url: "/user/dashboard/product",
+      url: "/dealer/dashboard/product",
       icon: BoxIcon,
-    },
-    {
-      title: "User Management",
-      url: "/user/dashboard/user",
-      icon: userIcon,
-    },
-    {
-      title: "Inventory Management",
-      url: "/user/dashboard/inventory",
-      icon: LayoutDashboard,
-    },
-    {
-      title: "Pricing & Margin Management",
-      url: "/user/dashboard/PricingMarginMangement",
-      icon: TicketIcon,
     },
     {
       title:"Order Management",
-      url: "/user/dashboard/order",
+      url: "/dealer/dashboard/order",
       icon: Bot,
     },
-    {
-      title:"Return Claims",
-      url: "/user/dashboard/returnclaims",
-      icon: Box,
-    },
-       {
-      title: "Content Management",
-      url: "/user/dashboard/contentManagement",
-      icon: BoxIcon,
-    },
+   
   ],
 }
 
@@ -118,7 +93,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ...item,
     isActive:
       pathname === item.url ||
-      (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
+      (item.url !== "/dealer/dashboard" && pathname.startsWith(item.url + "/"))
   }));
 
   return (
