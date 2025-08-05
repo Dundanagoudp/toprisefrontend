@@ -8,28 +8,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { getCategories, getBrand } from "@/service/product-Service";
+import {  getvarient } from "@/service/product-Service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
-export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
-    const [brands, setBrands] = useState<any[]>([]);
+export default function ShowVariant({ searchQuery }: { searchQuery: string }) {
+    const [variants, setVariants] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const itemPerPage = 10;
 
-    // Filter brands by searchQuery
-    const filteredBrands = React.useMemo(() => {
-        if (!searchQuery || !searchQuery.trim()) return brands;
+    // Filter variants by searchQuery
+    const filteredVariants = React.useMemo(() => {
+        if (!searchQuery || !searchQuery.trim()) return variants;
         const q = searchQuery.trim().toLowerCase();
-        return brands.filter((item) =>
-            (item.brand_name?.toLowerCase().includes(q) ||
-                item.status?.toLowerCase().includes(q) ||
-                item.type?.type_name?.toLowerCase().includes(q))
+        return variants.filter((item) =>
+            (item.variant_name?.toLowerCase().includes(q) ||
+                item.model?.model_name?.toLowerCase().includes(q) ||
+                item.variant_status?.toLowerCase().includes(q))
         );
-    }, [brands, searchQuery]);
+    }, [variants, searchQuery]);
 
-    const totalPages = Math.ceil(filteredBrands.length / itemPerPage);
-    const paginatedData = filteredBrands.slice(
+    const totalPages = Math.ceil(filteredVariants.length / itemPerPage);
+    const paginatedData = filteredVariants.slice(
         (currentPage - 1) * itemPerPage,
         currentPage * itemPerPage
     );
@@ -38,13 +38,13 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const response = await getBrand();
+                const response = await getvarient();
                 setLoading(false);
                 if (!response || !response.data) {
                     console.error("No data found in response");
                     return;
                 }
-                setBrands(response.data);
+                setVariants(response.data);
             } catch (err: any) {
                 console.error("Error fetching data:", err);
                 setLoading(false);
@@ -56,9 +56,9 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
     if (loading) {
         return (
             <div className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Brands</h2>
+                <h2 className="text-xl font-semibold mb-4">Variants</h2>
                 <div className="flex justify-center items-center h-32">
-                    <div className="text-gray-500">Loading Brands...</div>
+                    <div className="text-gray-500">Loading Variants...</div>
                 </div>
             </div>
         );
@@ -66,46 +66,40 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
 
     return (
         <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Brands</h2>
+            <h2 className="text-xl font-semibold mb-4">Variants</h2>
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Name</TableHead>
+                        <TableHead>Variant Name</TableHead>
+                        <TableHead>Model Name</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {paginatedData.length > 0 ? (
                         paginatedData.map((item) => (
                             <TableRow key={item._id}>
-                                <TableCell>{item.brand_name || "No Name"}</TableCell>
+                                <TableCell>{item.variant_name || "No Name"}</TableCell>
+                                <TableCell>{item.model?.model_name || "No Model"}</TableCell>
                                 <TableCell>
                                     <span
                                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                            item.status === "active"
+                                            item.variant_status === "active"
                                                 ? "bg-green-100 text-green-800"
-                                                : item.status === "inactive"
+                                                : item.variant_status === "inactive"
                                                     ? "bg-orange-100 text-orange-800"
                                                     : "bg-gray-200 text-gray-700"
                                         }`}
                                     >
-                                        {item.status || "No Status"}
+                                        {item.variant_status || "No Status"}
                                     </span>
-                                </TableCell>
-                                <TableCell>{item.type?.type_name || "No Type"}</TableCell>
-                                <TableCell>
-                                    <Button variant="outline" size="sm">
-                                        Edit
-                                    </Button>
                                 </TableCell>
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                                No brands found
+                            <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                                No variants found
                             </TableCell>
                         </TableRow>
                     )}
@@ -113,14 +107,14 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
             </Table>
 
             {/* Pagination - moved outside of table */}
-            {brands.length > 0 && totalPages > 1 && (
+            {variants.length > 0 && totalPages > 1 && (
                 <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
-                    {/* Left: Showing X-Y of Z brands */}
+                    {/* Left: Showing X-Y of Z variants */}
                     <div className="text-sm text-gray-600 text-center sm:text-left">
                         {`Showing ${(currentPage - 1) * itemPerPage + 1}-${Math.min(
                             currentPage * itemPerPage,
-                            brands.length
-                        )} of ${brands.length} brands`}
+                            variants.length
+                        )} of ${variants.length} variants`}
                     </div>
                     {/* Pagination Controls */}
                     <div className="flex justify-center sm:justify-end">

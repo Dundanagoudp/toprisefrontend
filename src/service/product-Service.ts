@@ -132,6 +132,35 @@ export async function createBrand(data:FormData):Promise<any>{
     throw err
   }
 }
+export async function createVariant(data:FormData):Promise<any>{
+  try{
+    const response = await apiClient.post(`/subCategory/variants/`,data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return response.data
+  }
+  catch(err:any){
+    console.error("Failed to create category:", err);
+    throw err
+  }
+}
+
+export async function createVariants(data:FormData):Promise<ProductResponse>{
+  try{
+     const response = await apiClient.post(`/subCategory/variants/`,data,{
+       headers: {
+         'Content-Type': 'application/json',
+       },
+     })
+     return response.data
+  }
+  catch(err:any){
+    console.error("Failed to create category:", err);
+    throw err
+  }
+}
 
 export async function getSubCategories(): Promise<ProductResponse> {
   try {
@@ -145,6 +174,16 @@ export async function getSubCategories(): Promise<ProductResponse> {
 export async function getModels(): Promise<ProductResponse> {
   try {
     const response = await apiClient.get(`/category/api/model`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+    throw error;
+  }
+}
+
+export async function getvarient(): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/subCategory/variants/`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories:", error);

@@ -11,14 +11,25 @@ import { Button } from "@/components/ui/button";
 import { getSubCategories } from "@/service/product-Service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
-export default function SubCategory() {
+export default function SubCategory({ searchQuery }: { searchQuery: string }) {
   const [subCategories, setSubCategories] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const itemPerPage = 10;
 
-  const totalPages = Math.ceil(subCategories.length / itemPerPage);
-  const paginatedData = subCategories.slice(
+  // Filter subcategories by searchQuery
+  const filteredSubCategories = React.useMemo(() => {
+    if (!searchQuery || !searchQuery.trim()) return subCategories;
+    const q = searchQuery.trim().toLowerCase();
+    return subCategories.filter((item) =>
+      (item.subcategory_name?.toLowerCase().includes(q) ||
+        item.subcategory_status?.toLowerCase().includes(q) ||
+        item.category_ref?.category_name?.toLowerCase().includes(q))
+    );
+  }, [subCategories, searchQuery]);
+
+  const totalPages = Math.ceil(filteredSubCategories.length / itemPerPage);
+  const paginatedData = filteredSubCategories.slice(
     (currentPage - 1) * itemPerPage,
     currentPage * itemPerPage
   );

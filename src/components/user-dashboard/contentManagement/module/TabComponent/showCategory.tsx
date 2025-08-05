@@ -12,17 +12,28 @@ import { getCategories } from "@/service/product-Service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 
-export default function ShowCategory() {
+export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
     const [Categories, setCategories] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const itemPerPage = 10;
 
-      const totalPages = Math.ceil(Categories.length / itemPerPage);
-  const paginatedData = Categories.slice(
-    (currentPage - 1) * itemPerPage,
-    currentPage * itemPerPage
-  );
+    // Filter categories by searchQuery
+    const filteredCategories = React.useMemo(() => {
+      if (!searchQuery || !searchQuery.trim()) return Categories;
+      const q = searchQuery.trim().toLowerCase();
+      return Categories.filter((item) =>
+        (item.category_name?.toLowerCase().includes(q) ||
+          item.category_code?.toLowerCase().includes(q) ||
+          item.category_Status?.toLowerCase().includes(q))
+      );
+    }, [Categories, searchQuery]);
+
+    const totalPages = Math.ceil(filteredCategories.length / itemPerPage);
+    const paginatedData = filteredCategories.slice(
+      (currentPage - 1) * itemPerPage,
+      currentPage * itemPerPage
+    );
    useEffect(() => {
       const fetchData = async () => {
           setLoading(true);
