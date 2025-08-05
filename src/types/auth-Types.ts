@@ -4,7 +4,7 @@ export interface User {
   password: string;
   phone_Number: string;
   role: string;
-  address: any[]; 
+  address: any[];
   __v?: number;
   createdAt?: string;
   updatedAt?: string;
