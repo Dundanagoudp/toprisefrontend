@@ -15,7 +15,6 @@ import {LogOut as logoutAction } from "../store/slice/auth/authSlice"
 import { NavMain } from "@/components/nav-main"
 import { TeamSwitcher } from "@/components/team-switcher"
 import Cookies from "js-cookie"
-
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +25,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter } from "next/navigation"
+import { HiOutlineUser } from "react-icons/hi2";
+import { SiPhotobucket } from "react-icons/si";
 import TicketIcon,{ BoxIcon ,DashboardIcon,userIcon} from "./ui/TicketIcon"
 import { title } from "process"
 
@@ -57,8 +58,13 @@ const data = {
     {
       title:"Order Management",
       url: "/dealer/dashboard/order",
-      icon: Bot,
+      icon: SiPhotobucket ,
     },
+    {
+      title:"Profile",
+      url: "/dealer/dashboard/profile",
+      icon: HiOutlineUser,
+    }
    
   ],
 }

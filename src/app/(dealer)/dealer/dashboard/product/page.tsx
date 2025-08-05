@@ -3,7 +3,7 @@ import DealerAssignTable from "@/components/dealer-dashboard/dealerproductsubmis
 export default function page() {
   return (
     <div>
-            <DealerAssignTable/>
+           <DealerAssignTable/>
     </div>
   )
 }

@@ -1,14 +1,10 @@
 'use client';
 
-import { Inter, DM_Serif_Display } from "next/font/google";
 import { Separator } from "@/components/ui/separator"
-import { useAppSelector } from "@/store/hooks";
-
 import { WithProtectionRoute } from "@/components/protectionRoute";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dealer-sidebar";
 import { DynamicBreadcrumb } from "@/components/dealer-dashboard/DynamicBreadcrumbdealer";
-
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

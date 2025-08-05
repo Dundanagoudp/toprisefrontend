@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button"
 import Emptydata from "@/components/user-dashboard/product/module/Emptydata"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
+import { IoMdArrowDropdown } from "react-icons/io";
 
 // Product type for table
 type Product = {
@@ -400,16 +401,14 @@ export default function DealerAssignTable() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex items-center gap-2 bg-[#FDEAEA] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center font-[Poppins] font-medium border border-[#FDEAEA] hover:bg-[#f8d2d2] transition "
+                    className="flex items-center gap-2 bg-[#FDEAEA] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] h-[40px] justify-center font-[Poppins] font-medium border border-[#FDEAEA] hover:bg-[#f8d2d2] transition"
                     disabled={addProductLoading}
                   >
                     Add Product
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                      <path d="M19 9l-7 7-7-7" />
-                    </svg>
+                  <IoMdArrowDropdown style={{ fontSize: "20px" }}/>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-35 shadow-lg">
+                <DropdownMenuContent align="end" className="w-41 shadow-lg">
                   <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={handleAddProduct}>
                     <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center">
                       <Plus className="w-3 h-3 text-white" />
@@ -426,7 +425,7 @@ export default function DealerAssignTable() {
               </DropdownMenu>
               <DynamicButton
                 variant="default"
-                customClassName="flex items-center gap-3 bg-green-50 border-green-600 hover:bg-green-50 text-green-600 rounded-[8px] px-4 py-2 min-w-[140px] justify-center font-[Poppins] font-regular"
+                customClassName="flex items-center gap-3 bg-green-50 border-green-600 hover:bg-green-50 text-green-600 rounded-[8px] px-4 py-2 min-w-[140px] h-[40px] justify-center font-[Poppins] font-regular"
                 disabled={sendApprovalLoading}
                 loading={sendApprovalLoading}
                 loadingText="Sending..."
