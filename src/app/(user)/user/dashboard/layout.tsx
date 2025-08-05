@@ -1,10 +1,8 @@
 'use client';
 
-import { Inter, DM_Serif_Display } from "next/font/google";
 import { AppSidebar } from "@/components/app-sidebar"
 import { DynamicBreadcrumb } from "@/components/user-dashboard/DynamicBreadcrumb";
 import { Separator } from "@/components/ui/separator"
-import { useAppSelector } from "@/store/hooks";
 import {
   SidebarInset,
   SidebarProvider,

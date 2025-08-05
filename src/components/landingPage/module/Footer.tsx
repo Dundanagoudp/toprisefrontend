@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "next/link";
 
 export default function Footer() {
   const footerLinks = [
@@ -6,7 +6,7 @@ export default function Footer() {
     { label: "Contact us", href: "/contact" },
     { label: "Privacy & Policy", href: "/privacy" },
     { label: "Terms & Conditions", href: "/terms" },
-  ]
+  ];
 
   return (
     <footer className="bg-[#1F1F1F] text-white py-12 px-4">
@@ -14,11 +14,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {/* Company Info Section */}
           <div className="lg:col-span-2">
-            <h3 className="text-xl font-bold mb-4 tracking-wide">TOPRISE VENTURES</h3>
-            <p className="text-gray-300 leading-relaxed max-w-md">
-              Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the
-              industry's standard dummy text ever since the.
-            </p>
+            <h3 className="text-xl font-bold mb-4 tracking-wide">
+              TOPRISE VENTURES
+            </h3>
+            {/* <p className="text-gray-300 leading-relaxed max-w-md">
+              Lorem Ipsum is simply dummy text of the printing and typesetting
+              industry. Lorem Ipsum has been the industry's standard dummy text
+              ever since the.
+            </p> */}
           </div>
 
           {/* Quick Links Section */}
@@ -41,10 +44,10 @@ export default function Footer() {
         {/* Copyright Section */}
         <div className="border-t border-gray-700 pt-6">
           <p className="text-gray-400 text-sm text-center">
-            © 2022-2025 Smart Parts Dynamics Ltd.
+            © 2025 Toprise Pvt. Ltd.
           </p>
         </div>
       </div>
     </footer>
-  )
+  );
 }

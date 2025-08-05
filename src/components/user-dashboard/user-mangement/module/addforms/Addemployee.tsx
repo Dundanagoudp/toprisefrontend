@@ -48,7 +48,7 @@ export default function Addemployee() {
       toast({
         title: "Success!",
         description: response.message || "Employee added successfully.",
-        variant: "default",
+        variant: "success",
       })
       form.reset()
     } catch (error: any) {
