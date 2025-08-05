@@ -1,5 +1,4 @@
-import { ApiResponse } from "@/types/apiReponses-Types";
-import { User, LoginRequest, LoginResponse } from "@/types/auth-Types";
+
 import apiClient from "@/apiClient";
 import { LoginResponse, LoginRequest } from "@/types/authentication-Types";
 
