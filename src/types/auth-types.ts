@@ -10,16 +10,4 @@ export interface User {
   updatedAt?: string;
 }
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-  // If your API accepts phone login too, add it:
-  // phone_Number?: string
-}
 
-export interface LoginResponse {
-  data: any;
-  user: User;
-  token: string;
-  message?: string;
-}
