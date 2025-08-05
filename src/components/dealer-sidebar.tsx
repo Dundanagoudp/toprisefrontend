@@ -9,14 +9,12 @@ import {
   LayoutDashboard,
    LogOutIcon as LogOut,
    LogOutIcon,
- 
 } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {LogOut as logoutAction } from "../store/slice/auth/authSlice"
 import { NavMain } from "@/components/nav-main"
 import { TeamSwitcher } from "@/components/team-switcher"
 import Cookies from "js-cookie"
-
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +25,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { usePathname, useRouter } from "next/navigation"
+import { HiOutlineUser } from "react-icons/hi2";
+import { SiPhotobucket } from "react-icons/si";
 import TicketIcon,{ BoxIcon ,DashboardIcon,userIcon} from "./ui/TicketIcon"
 import { title } from "process"
 
@@ -47,44 +47,25 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/user/dashboard",
+      url: "/dealer/dashboard",
       icon: DashboardIcon,
     },
     {
       title: "Product Management",
-      url: "/user/dashboard/product",
+      url: "/dealer/dashboard/product",
       icon: BoxIcon,
-    },
-    {
-      title: "User Management",
-      url: "/user/dashboard/user",
-      icon: userIcon,
-    },
-    {
-      title: "Inventory Management",
-      url: "/user/dashboard/inventory",
-      icon: LayoutDashboard,
-    },
-    {
-      title: "Pricing & Margin Management",
-      url: "/user/dashboard/PricingMarginMangement",
-      icon: TicketIcon,
     },
     {
       title:"Order Management",
-      url: "/user/dashboard/order",
-      icon: Bot,
+      url: "/dealer/dashboard/order",
+      icon: SiPhotobucket ,
     },
     {
-      title:"Return Claims",
-      url: "/user/dashboard/returnclaims",
-      icon: Box,
-    },
-       {
-      title: "Content Management",
-      url: "/user/dashboard/contentManagement",
-      icon: BoxIcon,
-    },
+      title:"Profile",
+      url: "/dealer/dashboard/profile",
+      icon: HiOutlineUser,
+    }
+   
   ],
 }
 
@@ -118,7 +99,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ...item,
     isActive:
       pathname === item.url ||
-      (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
+      (item.url !== "/dealer/dashboard" && pathname.startsWith(item.url + "/"))
   }));
 
   return (

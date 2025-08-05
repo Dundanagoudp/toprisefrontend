@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-
 interface ProductState {
   products: any[];
   loading: boolean;

@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-
 interface DealerState {
   dealers: any[];
   loading: boolean;
