@@ -117,7 +117,7 @@ export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandPro
       formData.append('brand_code', data.brand_code)
       formData.append('brand_description', data.brand_description)
       formData.append('type', data.type_ref)
-      formData.append("created_by", auth.user._id); // Fixed to match Redux structure
+      formData.append("created_by", auth.user._id); 
       formData.append("updated_by", auth.user._id); 
       // Status will be set to "Created" by default on the backend
 

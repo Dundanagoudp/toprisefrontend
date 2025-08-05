@@ -4,7 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { fetchContentSuccess, fetchContentRequest, fetchContentFailure } from "@/store/slice/content/contentSlice";
+import {
+  fetchContentSuccess,
+  fetchContentRequest,
+  fetchContentFailure,
+} from "@/store/slice/content/contentSlice";
 import {
   Table,
   TableBody,
@@ -14,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import ShowCategory from "./TabComponent/showCategory";
-import SubCategory from "./TabComponent/subCategory";
+import SubCategory from "./TabComponent/showSubCategory";
 import ShowModel from "./TabComponent/showModel";
 import DynamicButton from "@/components/common/button/button";
 import CreateCategory from "./TabComponent/handelTabForm/CreateCategory";
@@ -23,31 +27,44 @@ import CreateModelForm from "./TabComponent/handelTabForm/createModelForm";
 import ShowBrand from "./TabComponent/showBrand";
 import { set } from "zod";
 import CreateBrand from "./TabComponent/handelTabForm/CreateBrand";
+import ShowVariant from "./TabComponent/showVarient";
+import CreateVarient from "./TabComponent/handelTabForm/createVarient";
+import SearchInput from "@/components/common/search/SearchInput";
+import useDebounce from "@/utils/useDebounce";
 
 // Tab types
-type TabType = 'Category' | 'Subcategory' | 'Model' | 'Brand';
+type TabType = "Model" | "Brand" | "Variant" | "Category" | "Subcategory";
 
 // Tab configuration interface for scalability
 interface TabConfig {
   id: TabType;
   label: string;
-  component: React.ComponentType;
+  component: React.ComponentType<any>;
   buttonConfig: {
     text: string;
     action: () => void;
-    variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+    variant?:
+      | "default"
+      | "destructive"
+      | "outline"
+      | "secondary"
+      | "ghost"
+      | "link";
     disabled?: boolean;
   };
 }
 
-
 export default function ShowContent() {
-  const [activeTab, setActiveTab] = useState<TabType>('Category');
-  const [openCategory , setOpenCategory] = useState(false);
-  const [openSubCategory , setOpenSubCategory] = useState(false);
-  const [openModel , setOpenModel] = useState(false);
-  const [openBrand , setOpenBrand] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("Category");
+  const [openCategory, setOpenCategory] = useState(false);
+  const [openSubCategory, setOpenSubCategory] = useState(false);
+  const [openModel, setOpenModel] = useState(false);
+  const [openBrand, setOpenBrand] = useState(false);
+  const [openVariant, setOpenVariant] = useState(false);
   const { showToast } = useGlobalToast();
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   // Tab-specific action handlers
   const handleCategoryAction = useCallback(() => {
@@ -57,77 +74,128 @@ export default function ShowContent() {
   const handleSubcategoryAction = useCallback(() => {
     setOpenSubCategory(true);
   }, []);
+  const performSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setIsSearching(false);
+  }, []);
+    const { debouncedCallback: debouncedSearch, cleanup: cleanupDebounce } =
+    useDebounce(performSearch, 500);
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setIsSearching(value.trim() !== "");
+    debouncedSearch(value);
+  };
 
-    // Add your subcategory-specific logic here
+    const handleClearSearch = () => {
+    setSearchInput("");
+    setSearchQuery("");
+    setIsSearching(false);
+  };
+    const searchPlaceholders: Record<TabType, string> = {
+    Model: "Search Models...",
+    Brand: "Search Brands...",
+    Variant: "Search Variants...",
+    Category: "Search Categories...",
+    Subcategory: "Search Subcategories...",
+  };
+
+  // Add your subcategory-specific logic here
 
   const handleModelAction = useCallback(() => {
     setOpenModel(true);
-    
   }, []);
   const handleBrandAction = useCallback(() => {
     setOpenBrand(true);
-
+  }, []);
+  const handleVariantAction = useCallback(() => {
+    setOpenVariant(true);
   }, []);
 
   // Scalable tab configuration - easy to extend
-  const tabConfigs: TabConfig[] = useMemo(() => [
-    {
-      id: 'Category',
-      label: 'Category',
-      component: ShowCategory,
-      buttonConfig: {
-        text: 'Add Category',
-        action: handleCategoryAction,
-      }
-    },
-    {
-      id: 'Subcategory', 
-      label: 'Subcategory',
-      component: SubCategory,
-      buttonConfig: {
-        text: 'Add Subcategory',
-        action: handleSubcategoryAction,
-      }
-    },
-    {
-      id: 'Model',
-      label: 'Model', 
-      component: ShowModel,
-      buttonConfig: {
-        text: 'Add Model',
-        action: handleModelAction,
-      }
-    },
-    {
-      id: 'Brand',
-      label: 'Brand', 
-      component: ShowBrand,
-      buttonConfig: {
-        text: 'Add Brand',
-        action: handleBrandAction,
-      }
-    },
-  ], [handleCategoryAction, handleSubcategoryAction, handleModelAction, handleBrandAction]);
+  const tabConfigs: TabConfig[] = useMemo(
+    () => [
+      {
+        id: "Model",
+        label: "Model",
+        component: ShowModel,
+        buttonConfig: {
+          text: "Add Model",
+          action: handleModelAction,
+        },
+      },
+      {
+        id: "Brand",
+        label: "Brand",
+        component: ShowBrand,
+        buttonConfig: {
+          text: "Add Brand",
+          action: handleBrandAction,
+        },
+      },
+      {
+        id: "Variant",
+        label: "Variant",
+        component: ShowVariant,
+        buttonConfig: {
+          text: "Add Variant",
+          action: handleVariantAction,
+        },
+      },
+      {
+        id: "Category",
+        label: "Category",
+        component: ShowCategory,
+        buttonConfig: {
+          text: "Add Category",
+          action: handleCategoryAction,
+        },
+      },
+      {
+        id: "Subcategory",
+        label: "Subcategory",
+        component: SubCategory,
+        buttonConfig: {
+          text: "Add Subcategory",
+          action: handleSubcategoryAction,
+        },
+      },
+    ],
+    [
+      handleCategoryAction,
+      handleSubcategoryAction,
+      handleModelAction,
+      handleBrandAction,
+    ]
+  );
 
   // Get current tab configuration
-  const currentTabConfig = useMemo(() => 
-    tabConfigs.find(tab => tab.id === activeTab) || tabConfigs[0], 
+  const currentTabConfig = useMemo(
+    () => tabConfigs.find((tab) => tab.id === activeTab) || tabConfigs[0],
     [tabConfigs, activeTab]
   );
 
   // Render tab content dynamically
   const renderTabContent = useCallback(() => {
     const TabComponent = currentTabConfig.component;
-    return <TabComponent />;
-  }, [currentTabConfig]);
+    return <TabComponent searchQuery={searchQuery} />;
+  }, [currentTabConfig, searchQuery]);
 
   return (
     <div className="w-full">
       <Card className="shadow-sm rounded-none">
-        
         <CardHeader className="space-y-4 sm:space-y-6">
-          <div className="flex justify-between items-center"> 
-            <CardTitle>Content Management</CardTitle>
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col ">
+            <CardTitle className="mb-4">Content Management</CardTitle>
+            <SearchInput 
+               value={searchInput}
+    onChange={handleSearchChange}
+    onClear={handleClearSearch}
+    isLoading={isSearching}
+    placeholder={searchPlaceholders[activeTab]}
+
+            />
+            </div>
             {/* Dynamic button that changes based on active tab */}
             <DynamicButton
               text={currentTabConfig.buttonConfig.text}
@@ -149,8 +217,8 @@ export default function ShowContent() {
                     flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm font-mono transition-colors
                     ${
                       activeTab === tab.id
-                        ? 'text-[#C72920] border-b-2 border-[#C72920]'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? "text-[#C72920] border-b-2 border-[#C72920]"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }
                   `}
                 >
@@ -161,15 +229,20 @@ export default function ShowContent() {
           </div>
 
           {/* Tab Content */}
-          <div className="min-h-[400px]">
-            {renderTabContent()}
-          </div>
+          <div className="min-h-[400px]">{renderTabContent()}</div>
         </CardContent>
       </Card>
-      <CreateCategory open={openCategory} onClose={() => setOpenCategory(false)} />
-      <CreateSubCategory open={openSubCategory} onClose={() => setOpenSubCategory(false)} />
+      <CreateCategory
+        open={openCategory}
+        onClose={() => setOpenCategory(false)}
+      />
+      <CreateSubCategory
+        open={openSubCategory}
+        onClose={() => setOpenSubCategory(false)}
+      />
       <CreateModelForm open={openModel} onClose={() => setOpenModel(false)} />
-        <CreateBrand open={openBrand} onClose={() => setOpenBrand(false)} />
+      <CreateBrand open={openBrand} onClose={() => setOpenBrand(false)} />
+      <CreateVarient open={openVariant} onClose={() => setOpenVariant(false)} />
     </div>
   );
 }

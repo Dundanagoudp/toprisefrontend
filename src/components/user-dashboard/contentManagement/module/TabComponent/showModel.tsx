@@ -12,17 +12,28 @@ import { getCategories, getModels } from "@/service/product-Service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 
-export default function ShowModel() {
+export default function ShowModel({ searchQuery }: { searchQuery: string }) {
         const [model, setModel] = useState<any[]>([]);
         const [currentPage, setCurrentPage] = useState(1);
         const [loading, setLoading] = useState(false);
         const itemPerPage = 10;
-    
-          const totalPages = Math.ceil(model.length / itemPerPage);
-      const paginatedData = model.slice(
-        (currentPage - 1) * itemPerPage,
-        currentPage * itemPerPage
-      );
+
+        // Filter models by searchQuery
+        const filteredModels = React.useMemo(() => {
+          if (!searchQuery || !searchQuery.trim()) return model;
+          const q = searchQuery.trim().toLowerCase();
+          return model.filter((item) =>
+            (item.model_name?.toLowerCase().includes(q) ||
+              item.brand_ref?.brand_name?.toLowerCase().includes(q) ||
+              item.model_Status?.toLowerCase().includes(q))
+          );
+        }, [model, searchQuery]);
+
+        const totalPages = Math.ceil(filteredModels.length / itemPerPage);
+        const paginatedData = filteredModels.slice(
+          (currentPage - 1) * itemPerPage,
+          currentPage * itemPerPage
+        );
          useEffect(() => {
             const fetchData = async () => {
                 setLoading(true);
