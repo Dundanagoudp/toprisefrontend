@@ -10,8 +10,4 @@ export interface User {
   updatedAt?: string;
 }
 
-export interface LoginResponse {
-  Success: boolean;
-  message: string;
-  user: User;
-}
+
