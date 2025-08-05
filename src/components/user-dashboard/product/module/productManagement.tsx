@@ -156,7 +156,7 @@ export default function ProductManagement() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState<"upload" | "edit" | "uploadDealer">("upload");
-
+  const [loadingProducts , setLoadingProducts] = useState(false);
   const [loadingTab, setLoadingTab] = useState(false);
   const [addProductLoading, setAddProductLoading] = useState(false);
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false);
@@ -287,8 +287,10 @@ export default function ProductManagement() {
   // Fetch products on mount and when page changes
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoadingProducts(true);
       try {
         const response = await getProducts();
+        setLoadingProducts(false);
         dispatch(fetchProductDetailsSuccess(response.data));
         console.log("API Response:", response);
         const data = response.data;
@@ -312,6 +314,8 @@ export default function ProductManagement() {
       } catch (error) {
         console.error("Failed to fetch products:", error);
         setTotalProducts(0);
+      } finally {
+        setLoadingProducts(false);
       }
     };
 
@@ -465,6 +469,17 @@ export default function ProductManagement() {
   const handleNextPage = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
+  
+  if (loadingProducts) {
+    return (
+      <div className="p-6">
+        <h2 className="text-xl font-semibold mb-4">products</h2>
+        <div className="flex justify-center items-center h-32">
+          <div className="text-gray-500">Loading products...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -615,7 +630,7 @@ export default function ProductManagement() {
         {/* Product Table */}
         <CardContent className="p-0">
           {/* Check if there are no products to show empty state */}
-          {!loading && !loadingTab && filteredProducts.length === 0 ? (
+          {!loading && !loadingTab &&  filteredProducts.length === 0 ? (
             <Emptydata />
           ) : (
             <>

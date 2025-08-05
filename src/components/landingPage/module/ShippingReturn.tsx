@@ -8,7 +8,7 @@ export default function ShippingReturn() {
       <div className="relative bg-gray-800 text-white py-8 px-6 bg-cover bg-center min-h-[250px] flex  items-center">
         {/* Background image for header */}
         <Image
-          src="/assets/herobg.jpg"
+          src="/assets/HeroBg.jpg"
           alt="Background"
           fill
           className="object-cover"

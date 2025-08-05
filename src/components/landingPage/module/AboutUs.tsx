@@ -218,7 +218,7 @@ export default function AboutUs() {
   };
 
   return (
-    <section ref={sectionRef} className="py-16 bg-white overflow-hidden">
+    <section ref={sectionRef} id="about" className="py-16 bg-white overflow-hidden">
       <div className="container mx-auto px-4">
         {/* Enhanced Header Section with Parallax */}
         <motion.div

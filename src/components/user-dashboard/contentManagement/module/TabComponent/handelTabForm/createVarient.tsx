@@ -147,7 +147,7 @@ export default function CreateVariant({
         const yearIds = data.Year.map((year) =>
           typeof year === "object" && year !== null && "_id" in year ? (year as any)._id : year
         );
-        formData.append("Year", JSON.stringify(yearIds));
+        formData.append("Year", data.Year.map((year) => (typeof year === "object" && year !== null ? (year as any)._id : year)).join(","));
 
 
         console.log("FormData being sent:");
