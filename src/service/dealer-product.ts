@@ -1,5 +1,5 @@
 import apiClient from "@/apiClient";
-import { Product, ProductsApiResponse } from "@/types/dealer-productTypes";
+import { Product, ProductsApiResponse, PermissionCheckResponse } from "@/types/dealer-productTypes";
 import { getCookie, getAuthToken } from "@/utils/auth";
 
 const API_PRODUCTS_BASE_URL = "/category/products/v1";
@@ -45,15 +45,15 @@ export const getProductsByDealerId = async (dealerId?: string): Promise<Product[
 
 //  check permission for dealer to access product
 
-export const checkDealerProductPermission = async (dealerId: string): Promise<boolean> => {
+export const checkDealerProductPermission = async (dealerId: string): Promise<PermissionCheckResponse> => {
   try {
-    const response = await apiClient.get(`/users/api/permissionMatrix/check-permission`, {
+    const response = await apiClient.get<PermissionCheckResponse>(`/users/api/permissionMatrix/check-permission`, {
       params: {
         module: "Products",
         userId: dealerId,
       },
     });
-    return response.data.success;
+    return response.data;
   } catch (error) {
     console.error("Error checking dealer product permission:", error);
     throw error;

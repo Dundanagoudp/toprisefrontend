@@ -164,3 +164,22 @@ export interface ProductsApiResponse {
   message: string;
   data: Product[];
 }
+
+export interface UserPermissions {
+  allowedFields: string[];
+  read: boolean;
+  write: boolean;
+  update: boolean;
+  delete: boolean;
+}
+
+export interface PermissionCheckResponse {
+  message: string;
+  hasPermission: boolean;
+  data: {
+    permissionModule: string;
+    role: string;
+    userPermissions: UserPermissions;
+  };
+}
+

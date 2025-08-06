@@ -166,8 +166,8 @@ export default function OrdersTable() {
       dispatch(fetchOrdersSuccess(updatedOrders));
   
       // Show success message
-      showToast(`Order ${order.orderId} marked as packed successfully!`, "success");
-  
+      showToast(`Packed! Order ${order.orderId} is now ready for shipment.`, "success");
+      console.log(`Packed! Order ${order.orderId} is now ready for shipment.`);
       console.log("Order status updated:", response);
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -194,7 +194,7 @@ export default function OrdersTable() {
           skusCount: order.orderDetails.skus?.length || 0,
           dealers: order.orderDetails.dealerMapping?.length || 0,
           dealerMapping: order.orderDetails.dealerMapping || [],
-          status: order.status === "Confirmed" ? "Approved" : "Pending",
+          status: order.status, // Use backend status directly
           deliveryCharges: order.orderDetails.order_Amount,
           orderType: order.orderDetails.orderType,
           orderSource: order.orderDetails.orderSource,
@@ -242,12 +242,25 @@ export default function OrdersTable() {
     setCurrentPage(1);
   };
 
-  const getStatusBadge = (status: "Pending" | "Approved") => {
+  const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 rounded text-xs font-medium";
-    if (status === "Pending") {
-      return `${baseClasses} text-yellow-700 bg-yellow-100`;
+    switch (status) {
+      case "Pending":
+        return `${baseClasses} text-yellow-700 bg-yellow-100`;
+      case "Approved":
+      case "Confirmed":
+        return `${baseClasses} text-green-700 bg-green-100`;
+      case "Packed":
+        return `${baseClasses} text-green-700 bg-green-100`;
+      case "Shipped":
+        return `${baseClasses} text-purple-700 bg-purple-100`;
+      case "Delivered":
+        return `${baseClasses} text-green-900 bg-green-200`;
+      case "Cancelled":
+        return `${baseClasses} text-red-700 bg-red-100`;
+      default:
+        return `${baseClasses} text-gray-700 bg-gray-100`;
     }
-    return `${baseClasses} text-green-700 bg-green-100`;
   };
 
   return (

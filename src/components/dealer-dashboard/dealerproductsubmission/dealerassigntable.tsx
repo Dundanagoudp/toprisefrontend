@@ -17,8 +17,8 @@ import DataTable from "@/components/common/table/DataTable"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 
 // API and Types
-import { getProductsByDealerId } from "@/service/dealer-product"
-import { Product } from "@/types/dealer-productTypes"
+import { getProductsByDealerId, checkDealerProductPermission } from "@/service/dealer-product";
+import { Product, PermissionCheckResponse } from "@/types/dealer-productTypes";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -52,6 +52,8 @@ export default function DealerAssignTable() {
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false)
   const [sendApprovalLoading, setSendApprovalLoading] = useState(false)
   const [viewProductLoading, setViewProductLoading] = useState<string | null>(null)
+  const [permission, setPermission] = useState<PermissionCheckResponse | null>(null);
+  const [loadingPermission, setLoadingPermission] = useState(true);
 
   const cardsPerPage = 10
 
@@ -81,27 +83,58 @@ export default function DealerAssignTable() {
     setCurrentPage(1)
   }
 
-  // Fetch products from API
+  // Fetch products and permissions from API
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoadingProducts(true)
+    const fetchProductsAndPermissions = async () => {
+      setLoadingProducts(true);
+      setLoadingPermission(true);
       try {
-        const fetchedProducts = await getProductsByDealerId()
-        setProducts(fetchedProducts)
-      } catch (error: any) {
-        console.error("Failed to fetch products:", error)
-        if (typeof error?.message === 'string' && error.message.includes('Dealer ID not found')) {
-          showToast("Dealer ID missing. Please log out and log in again to refresh your session.", "error")
-        } else {
-          showToast("Failed to load products.", "error")
+        // Get dealerId using the same logic as getProductsByDealerId
+        let dealerId = undefined;
+        try {
+          const { getCookie, getAuthToken } = await import("@/utils/auth");
+          dealerId = getCookie("dealerId");
+          if (!dealerId) {
+            const token = getAuthToken();
+            if (token) {
+              const payloadBase64 = token.split(".")[1];
+              if (payloadBase64) {
+                const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+                const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+                const payloadJson = atob(paddedBase64);
+                const payload = JSON.parse(payloadJson);
+                dealerId = payload.dealerId || payload.id;
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Failed to get dealerId for permission check:", err);
         }
-        setProducts([])
+        if (!dealerId) {
+          throw new Error("Dealer ID not found in cookie, argument, or token");
+        }
+        // Fetch permissions
+        const permissionRes = await checkDealerProductPermission(dealerId);
+        setPermission(permissionRes);
+        // Fetch products
+        const fetchedProducts = await getProductsByDealerId(dealerId);
+        setProducts(fetchedProducts);
+      } catch (error: any) {
+        console.error("Failed to fetch products or permissions:", error);
+        if (typeof error?.message === 'string' && error.message.includes('Dealer ID not found')) {
+          showToast("Dealer ID missing. Please log out and log in again to refresh your session.", "error");
+        } else {
+          showToast("Failed to load products or permissions.", "error");
+        }
+        setProducts([]);
+        setPermission(null);
       } finally {
-        setLoadingProducts(false)
+        setLoadingProducts(false);
+        setLoadingPermission(false);
       }
-    }
-    fetchProducts()
-  }, [showToast])
+    };
+    fetchProductsAndPermissions();
+  }, [showToast]);
 
   const filteredProducts = useMemo(() => {
     let currentProducts = products
@@ -193,13 +226,13 @@ export default function DealerAssignTable() {
   }
 
   // Handler for Send Approval
-  const handleSendApproval = () => {
-    setSendApprovalLoading(true)
-    setTimeout(() => {
-      setSendApprovalLoading(false)
-      showToast("Approval sent successfully", "success")
-    }, 1000)
-  }
+  // const handleSendApproval = () => {
+  //   setSendApprovalLoading(true)
+  //   // setTimeout(() => {
+  //   //   // setSendApprovalLoading(false)
+  //   //   // showToast("Approval sent successfully", "success")
+  //   // }, 1000)
+  // }
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -269,7 +302,7 @@ export default function DealerAssignTable() {
                 loadingText="Sending..."
                 icon={<Send />}
                 text="Send Approval"
-                onClick={handleSendApproval}
+                // onClick={handleSendApproval}
               />
             </div>
           </div>
