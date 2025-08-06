@@ -1,174 +1,178 @@
-"use client"
-import Link from "next/link"
-import dynamic from "next/dynamic"
-const Button = dynamic(() => import("@/components/ui/button").then(mod => mod.Button), { ssr: false })
-import { ArrowLeft } from "lucide-react"
-import { Productcard } from "@/components/user-dashboard/product/module/productCard" // Corrected import path for custom component
-import { useParams, useRouter } from "next/navigation"
+"use client";
 
-// Simplified Product type for static data, matching the fields used in the UI
-type Product = {
-  sku_code?: string
-  manufacturer_part_name?: string
-  product_name?: string
-  brand?: { brand_name: string }
-  category?: { category_name: string }
-  sub_category?: { subcategory_name: string }
-  product_type?: string
-  hsn_code?: string
-  is_universal?: boolean
-  is_consumable?: boolean
-  make?: string
-  model?: { model_name: string }
-  year_range?: { year_name: string }[]
-  variant?: { variant_name: string }[]
-  fitment_notes?: string
-  key_specifications?: string
-  dimensions?: string
-  weight?: number
-  certifications?: string
-  warranty?: number
-  images?: string[]
-  video_url?: string
-  brochure_available?: boolean
-  mrp_with_gst?: number
-  gst_percentage?: number
-  is_returnable?: boolean
-  return_policy?: string
-}
+import React from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Pencil } from "lucide-react";
+import { getProductById, getProducts } from "@/service/product-Service";
+import { useParams, useRouter } from "next/navigation";
+import { Product } from "@/types/product-Types";
+import { aproveProduct, deactivateProduct } from "@/service/product-Service";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchProductByIdSuccess, fetchProductByIdRequest, fetchProductByIdFailure } from "@/store/slice/product/productByIdSlice";
+import { Productcard } from "@/components/dealer-dashboard/productCard";
+import DynamicButton from "@/components/common/button/button";
 
-// Static data for the product, matching the screenshot content
-const staticProduct: Product = {
-  sku_code: "TOP-BRK-000453",
-  manufacturer_part_name: "BP-456M-VL",
-  product_name: "Front Brake Pad",
-  brand: { brand_name: "Bosch" },
-  category: { category_name: "Braking System" },
-  sub_category: { subcategory_name: "Brake Pads" },
-  product_type: "Aftermarket",
-  hsn_code: "87083000",
-  is_universal: false,
-  is_consumable: true,
-  make: "Maruti Suzuki",
-  model: { model_name: "Swift" },
-  year_range: [{ year_name: "2015-2020" }],
-  variant: [{ variant_name: "ZXI, VXi Petrol" }],
-  fitment_notes: "Only for ABS variants",
-  key_specifications: "Ceramic, 18mm",
-  dimensions: "90 x 65 x 20",
-  weight: 0.45,
-  certifications: "ISO 9001, ARAI Certified",
-  warranty: 12,
-  images: [
-    "/placeholder.svg?height=200&width=300",
-    "/placeholder.svg?height=100&width=100",
-    "/placeholder.svg?height=100&width=100",
-    "/placeholder.svg?height=100&width=100",
-  ],
-  video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // Example YouTube URL
-  brochure_available: true,
-  mrp_with_gst: 1099.0,
-  gst_percentage: 18,
-  is_returnable: true,
-  return_policy: "18 Days",
-}
+export default function DealerProdutView() {
+  const [status, setStatus] = React.useState<string>("Created");
+  const [product, setProduct] = React.useState<Product | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [isEditLoading, setIsEditLoading] = React.useState<boolean>(false);
+  const id = useParams<{ id: string }>();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
 
-export default function ViewProductDetails() {
-  const router = useRouter()
-  const id = useParams<{ id: string }>() // useParams is a Client Component hook [^3]
 
-  const handleEdit = () => {
-    // Use a static ID or the actual ID if available from the URL
-    router.push(`/user/dashboard/product/productedit/${id.id || "static-product-id"}`)
-  }
+  const getStatusColor = (currentStatus: string) => {
+    switch (currentStatus) {
+      case "Created":
+        return "text-gray-600 bg-gray-50 border-gray-200";
+      case "Approved":
+        return "text-green-600 bg-green-50 border-green-200";
+      case "Pending":
+        return "text-orange-600 bg-orange-50 border-orange-200";
+      case "Rejected":
+        return "text-red-600 bg-red-50 border-red-200";
+      default:
+        return "text-gray-600 bg-gray-50 border-gray-200";
+    }
+  };
+  // Function to handle product approval
+  const handleStatusChange = async (newStatus: string) => {
+    setStatus(newStatus);
+    if (newStatus === "Approved") {
+      await aproveProduct(id.id);
+    } else if (newStatus === "Pending") {
+      await deactivateProduct(id.id);
+    }
+  };
+  const handleEdit = (idObj: { id: string }) => {
+    setIsEditLoading(true);
+    router.push(`/dealer/dashboard/product/productedit/${idObj.id}`);
+  };
+  React.useEffect(() => {
+    const fetchProducts = async () => {
+        dispatch(fetchProductByIdRequest());
+      try {
+        const response = await getProductById(id.id);
+        // response is ProductResponse, which has data: Product[]
+        const data = response.data;
+        let prod: Product | null = null;
+        if (Array.isArray(data) && data.length > 0) {
+          prod = data[0];
+        } else if (
+          typeof data === "object" &&
+          data !== null &&
+          !Array.isArray(data)
+        ) {
+          prod = data as Product;
+        }
+        setProduct(prod);
+        dispatch(fetchProductByIdSuccess(prod));
+        if (prod && prod.live_status) {
+          setStatus(prod.live_status);
+        }
+        console.log("getProducts API response:", response);
+      } catch (error) {
+        console.error("getProducts API error:", error);
+        dispatch(fetchProductByIdFailure(error as string));
+      }
+    };
+    fetchProducts();
+  }, []);
 
-  const handleGoBack = () => {
-    router.back()
-  }
-
-  // The product data is now static
-  const product = staticProduct
+  // Update status if product changes
+  React.useEffect(() => {
+    if (product && product.live_status) {
+      setStatus(product.live_status);
+    }
+  }, [product]);
 
   return (
     <div className="min-h-screen bg-(neutral-100)-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline" // Change variant to outline
-              size="icon"
-              onClick={handleGoBack}
-              aria-label="Go back"
-              className="rounded-lg border-2 border-gray-400 p-2 bg-transparent" // Add custom classes for border and rounding
-            >
-              <ArrowLeft className="h-5 w-5 text-gray-900" /> {/* Ensure icon color is dark */}
-            </Button>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">Product Details</h1>
-              <p className="text-base font-medium font-sans text-gray-500">Add your product description</p>
-            </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">
+              Product Overview
+            </h1>
+            <p className="text-base font-medium font-sans text-gray-500">
+              Add your product description
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="default" className="bg-red-500 hover:bg-(primary)-600 text-white" onClick={handleEdit}>
-              Edit
-            </Button>
+            <Select onValueChange={handleStatusChange} value={status}>
+              <SelectTrigger
+                className={`min-w-[120px] ${getStatusColor(status)}`}
+              >
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Created">Created</SelectItem>
+                <SelectItem value="Approved">Approved</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            <DynamicButton
+              variant= "outline"
+              customClassName=" bg-red-50 border-red-200 hover:bg-red-100 hover:text-red-600 text-red-600"
+              onClick={()=> handleEdit(id)}
+              icon={<Pencil/>}
+              text="Edit Product"
+              loading={isEditLoading}
+              loadingText="Redirecting..."
+            />
           </div>
         </div>
       </div>
+
       {/* Content */}
       <div className="p-4 sm:p-6 space-y-8">
-        {/* Top Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Basic Product Information */}
-          <div>
-            <Productcard
-              title="Basic Product Information"
-              description="the core identifiers that define the product's identity, brand, and origin."
-              data={
-                product
-                  ? [
-                      { label: "SKU Code", value: product.sku_code || "-" },
-                      {
-                        label: "Manufacturer Part Number (MPN)",
-                        value: product.manufacturer_part_name || "-",
-                      },
-                      { label: "Product Name", value: product.product_name || "-" },
-                      { label: "Brand", value: product.brand?.brand_name || "-" },
-                      { label: "HSN Code", value: product.hsn_code || "-" },
-                    ]
-                  : []
-              }
-            />
-          </div>
-          {/* Product Classification */}
-          <div>
-            <Productcard
-              title="Product Classification"
-              description="the product for catalog structure, filterability, and business logic."
-              data={
-                product
-                  ? [
-                      { label: "Category", value: product.category?.category_name || "-" },
-                      {
-                        label: "Sub-category",
-                        value: product.sub_category?.subcategory_name || "-",
-                      },
-                      { label: "Product Type", value: product.product_type || "-" },
-                      {
-                        label: "Is Universal",
-                        value: product.is_universal ? "True" : "False",
-                      },
-                      {
-                        label: "Is Consumable",
-                        value: product.is_consumable ? "True" : "False",
-                      },
-                    ]
-                  : []
-              }
-            />
-          </div>
+        {/* Core Product Identity */}
+        <div>
+          <Productcard
+            title="Core Product Identity"
+            description="the core identifiers that define the product's identity, brand, and origin."
+            data={
+              product
+                ? [
+                    { label: "SKU Code", value: product.sku_code || "-" },
+                    {
+                      label: "Manufacturer Part Number (MPN)",
+                      value: product.manufacturer_part_name || "-",
+                    },
+                    {
+                      label: "Product Name",
+                      value: product.product_name || "-",
+                    },
+                    { label: "Brand", value: product.brand?.brand_name || "-" },
+                    {
+                      label: "Category",
+                      value: product.category?.category_name || "-",
+                    },
+                    {
+                      label: "Sub-category",
+                      value: product.sub_category?.subcategory_name || "-",
+                    },
+                    {
+                      label: "Product Type",
+                      value: product.product_type || "-",
+                    },
+                    { label: "HSN Code", value: product.hsn_code || "-" },
+                  ]
+                : []
+            }
+          />
         </div>
+
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Vehicle Compatibility */}
@@ -178,7 +182,12 @@ export default function ViewProductDetails() {
             data={
               product
                 ? [
-                    { label: "Make", value: product.make || "-" },
+                    {
+                      label: "Make",
+                      value: Array.isArray(product.make)
+                        ? product.make.join(", ")
+                        : "-",
+                    },
                     { label: "Model", value: product.model?.model_name || "-" },
                     {
                       label: "Year Range",
@@ -192,11 +201,19 @@ export default function ViewProductDetails() {
                         ? product.variant.map((v) => v.variant_name).join(", ")
                         : "-",
                     },
-                    { label: "Fitment Notes", value: product.fitment_notes || "-" },
+                    {
+                      label: "Fitment Notes",
+                      value: product.fitment_notes || "-",
+                    },
+                    {
+                      label: "Is Universal",
+                      value: product.is_universal ? "True" : "False",
+                    },
                   ]
                 : []
             }
           />
+
           {/* Technical Specifications */}
           <Productcard
             title="Technical Specifications"
@@ -204,29 +221,40 @@ export default function ViewProductDetails() {
             data={
               product
                 ? [
-                    { label: "Key Specifications", value: product.key_specifications || "-" },
-                    { label: "Dimensions", value: product.dimensions || "-" },
                     {
-                      label: "Weight",
+                      label: "Key Specifications",
+                      value: product.key_specifications || "-",
+                    },
+                    {
+                      label: "Dimensions",
                       value: product.weight ? `${product.weight} kg` : "-",
                     },
-                    { label: "Certifications", value: product.certifications || "-" },
+                    {
+                      label: "Certifications",
+                      value: product.certifications || "-",
+                    },
                     {
                       label: "Warranty",
-                      value: product.warranty ? `${product.warranty} months` : "-",
+                      value: product.warranty
+                        ? `${product.warranty} months`
+                        : "-",
+                    },
+                    {
+                      label: "Is Consumable",
+                      value: product.is_consumable ? "True" : "False",
                     },
                   ]
                 : []
             }
           />
         </div>
-        {/* Bottom Section - Media & Documentation and Pricing/Returns */}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Media & Documentation */}
+          {/* Media & Assets */}
           <Productcard
-            title="Media & Documentation"
+            title="Media & Assets"
             description="product images, videos, and brochures to enhance visual representation and credibility."
-            data={[]} // Data is rendered as children
+            data={[]}
           >
             <div className="col-span-2 space-y-4">
               <div className="grid grid-cols-2 gap-3 ">
@@ -234,24 +262,22 @@ export default function ViewProductDetails() {
                   <>
                     {/* Show the first image as main */}
                     <img
-                      src={product.images[0] || "/placeholder.svg"}
-                      alt="Main product image"
-                      width={300}
-                      height={200}
+                      src={product.images[0]}
+                      alt="Main"
                       className="aspect-video bg-gray-200 rounded-md object-cover"
                     />
                     {/* Show remaining images, if any */}
                     <div className={`grid grid-cols-2 gap-2`}>
-                      {product.images.slice(1).map((img: string, idx: number) => (
-                        <img
-                          key={idx}
-                          src={img || "/placeholder.svg"}
-                          alt={`Product thumbnail ${idx + 1}`}
-                          width={100}
-                          height={100}
-                          className="aspect-square bg-gray-200 rounded-md object-cover"
-                        />
-                      ))}
+                      {product.images
+                        .slice(1)
+                        .map((img: string, idx: number) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt={`img-${idx + 1}`}
+                            className="aspect-square bg-gray-200 rounded-md object-cover"
+                          />
+                        ))}
                     </div>
                   </>
                 ) : (
@@ -262,67 +288,136 @@ export default function ViewProductDetails() {
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 ">Video URL</span>
-                  {product?.video_url ? (
-                    <Link
-                      href={product.video_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      Youtube
-                    </Link>
-                  ) : (
-                    <span className="text-sm text-gray-400">N/A</span>
-                  )}
+                  {/* No videoUrl in Product, so show N/A */}
+                  <span className="text-sm text-gray-400">N/A</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Brochure Available</span>
+                  <span className="text-sm text-gray-600">
+                    Brochure Available
+                  </span>
                   <span className="text-sm font-medium text-gray-900">
                     {product && typeof product.brochure_available === "boolean"
-                      ? product.brochure_available
-                        ? "True"
-                        : "False"
+                      ? product.brochure_available ? "True" : "False"
                       : "False"}
                   </span>
                 </div>
               </div>
             </div>
           </Productcard>
-          {/* Right column for Pricing & Tax and Returns & Availability */}
-          <div className="space-y-6">
-            {/* Pricing & Tax */}
+
+          {/* Pricing & Tax */}
+          <Productcard
+            title="Pricing & Tax"
+            description="The pricing and tax information required for listing and billing."
+            data={
+              product
+                ? [
+                    {
+                      label: "MRP (with GST)",
+                      value: product.mrp_with_gst
+                        ? `₹${product.mrp_with_gst}`
+                        : "-",
+                    },
+                    {
+                      label: "GST %",
+                      value: product.gst_percentage
+                        ? String(product.gst_percentage)
+                        : "-",
+                    },
+                    {
+                      label: "Returnable",
+                      value: product.is_returnable ? "True" : "False",
+                    },
+                    {
+                      label: "Return Policy",
+                      value: product.return_policy || "-",
+                    },
+                  ]
+                : []
+            }
+          />
+        </div>
+
+        {/* Bottom Section */}
+        <div className="space-y-6">
+          {/* Dealer-Level Mapping & Routing */}
+          <Productcard
+            title="Dealer-Level Mapping & Routing"
+            description="the core identifiers that define the product's identity, brand, and origin."
+            data={
+              product
+                ? [
+                    {
+                      label: "Available Dealers",
+                      value: product.available_dealers
+                        ? JSON.stringify(product.available_dealers)
+                        : "-",
+                    },
+                    {
+                      label: "Quantity per Dealer",
+                      value:
+                        product.no_of_stock !== undefined
+                          ? String(product.no_of_stock)
+                          : "-",
+                    },
+                    // Dealer Margin % not present in Product type
+                    {
+                      label: "Dealer Priority Override",
+                      value:
+                        product.fulfillment_priority !== undefined
+                          ? String(product.fulfillment_priority)
+                          : "-",
+                    },
+                    // Stock Expiry Rule not present in Product type
+                    {
+                      label: "Last Stock Update",
+                      value:
+                        product.available_dealers?.last_stock_update || "-",
+                    },
+                    {
+                      label: "Last Inquired At",
+                      value: product.last_stock_inquired || "-",
+                    },
+                  ]
+                : []
+            }
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* SEO & Search Optimization */}
             <Productcard
-              title="Pricing Details"
+              title="SEO & Search Optimization"
               description="The pricing and tax information required for listing and billing."
               data={
                 product
                   ? [
+                      { label: "SEO Title", value: product.seo_title || "-" },
                       {
-                        label: "MRP (with GST)",
-                        value: product.mrp_with_gst ? `₹${product.mrp_with_gst.toFixed(2)}` : "-",
+                        label: "SEO Description",
+                        value: product.seo_description || "-",
                       },
                       {
-                        label: "GST %",
-                        value: product.gst_percentage ? String(product.gst_percentage) : "-",
+                        label: "Search Tags",
+                        value: Array.isArray(product.search_tags)
+                          ? product.search_tags.join(", ")
+                          : "-",
                       },
                     ]
                   : []
               }
             />
-            {/* Returns & Availability */}
+
+            {/* Status, Audit & Metadata */}
             <Productcard
-              title="Returns & Availability"
-              description="Product return eligibility and applicable return conditions."
+              title="Status, Audit & Metadata"
+              description="The pricing and tax information required for listing and billing."
               data={
                 product
                   ? [
+                      { label: "Created By", value: product.created_by || "-" },
                       {
-                        label: "Returnable",
-                        value: product.is_returnable ? "True" : "False",
-                      },
-                      {
-                        label: "Return Policy",
-                        value: product.return_policy || "-",
+                        label: "Modified At / By",
+                        value: product.updated_at || "-",
                       },
                     ]
                   : []
@@ -332,5 +427,5 @@ export default function ViewProductDetails() {
         </div>
       </div>
     </div>
-  )
+  );
 }

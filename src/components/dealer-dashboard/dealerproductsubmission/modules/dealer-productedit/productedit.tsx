@@ -1,19 +1,19 @@
+
 "use client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { TagsInput } from "react-tag-input-component";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { selectProductById } from "@/store/slice/product/productSlice";
+import { useAppSelector } from "@/store/hooks";
+import { DynamicBreadcrumb } from "@/components/user-dashboard/DynamicBreadcrumb";
+
+// @ts-ignore
+import { TagsInput } from "react-tag-input-component";
 import {
   Select,
   SelectContent,
@@ -22,44 +22,53 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  addProduct,
-  getBrandByType,
   getCategories,
-  getModelByBrand,
-  getModels,
   getSubCategories,
   getTypes,
-  getvarientByModel,
+  getBrandByType,
+  getModelByBrand,
   getYearRange,
+  getvarientByModel,
+  editProduct,
+  getProductById,
 } from "@/service/product-Service";
-import { useEffect, useState } from "react";
-import { useAppSelector } from "@/store/hooks";
-// Helper to decode JWT and extract user id
+import { useParams } from "next/navigation";
+import { Product } from "@/types/product-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
-import DynamicButton from "@/components/common/button/button";
 import { dealerProductSchema } from "@/lib/schemas/product-schema";
 
 type FormValues = z.infer<typeof dealerProductSchema>;
 
-export default function DealerAddProducts() {
+export default function DealerProductEdit() {
+  // State for dropdown options
+    const auth = useAppSelector((state) => state.auth.user);
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
-  const auth = useAppSelector((state) => state.auth);
   const [subCategoryOptions, setSubCategoryOptions] = useState<any[]>([]);
-  const [modelOptions, setModelOptions] = useState<any[]>([]);
   const [typeOptions, setTypeOptions] = useState<any[]>([]);
-
-  const [filteredBrandOptions, setFilteredBrandOptions] = useState<any[]>([]);
-  const [selectedProductTypeId, setSelectedProductTypeId] =
-    useState<string>("");
-  const { showToast } = useGlobalToast();
-  const [selectedbrandId, setSelectedBrandId] = useState<string>("");
+  const [modelOptions, setModelOptions] = useState<any[]>([]);
   const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
+  const [product, setProduct] = useState<Product | null>(null);
+  // State for dependent dropdowns
+  const [selectedProductTypeId, setSelectedProductTypeId] =
+    useState<string>("");
+  const [selectedbrandId, setSelectedBrandId] = useState<string>("");
   const [modelId, setModelId] = useState<string>("");
-  const [submitLoading, setSubmitLoading] = useState(false);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const id = useParams();
+  const [isLoadingBrands, setIsLoadingBrands] = useState(false);
+  const [brandOptions, setBrandOptions] = useState<any[]>([]);
+
+  // State for image uploads and previews
+  const [selectedImages, setSelectedImages] = useState<File[]>([]); // new uploads
+  const [selectedImagePreviews, setSelectedImagePreviews] = useState<string[]>([]); // new upload previews
+  const [existingImages, setExistingImages] = useState<string[]>([]); // URLs of images from backend
+  const [removedExistingIndexes, setRemovedExistingIndexes] = useState<number[]>([]); // indexes of removed existing images
+  const [apiError, setApiError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+  const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-admin", "Dealer"];
+
 
   const {
     register,
@@ -70,15 +79,22 @@ export default function DealerAddProducts() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(dealerProductSchema) as any,
-    defaultValues: {
-      is_universal: false,
-      is_consumable: false,
-      brochure_available: "no",
-      active: "yes",
-      is_returnable: false,
-    },
   });
-
+  // Handle image file input change
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setSelectedImages((prev) => [...prev, ...filesArray]);
+      filesArray.forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSelectedImagePreviews((prev) => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+      setValue("images", ""); // not used for validation here
+    }
+  };
   // Parallel fetch for categories, subcategories, types, and year ranges
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -104,22 +120,34 @@ export default function DealerAddProducts() {
     fetchInitialData();
   }, []);
 
-  // Model options (fetch brands by type)
+  // Fetch brands when product type changes
   useEffect(() => {
     if (!selectedProductTypeId) {
-      setFilteredBrandOptions([]);
+      setBrandOptions([]);
       return;
     }
+
+    let isMounted = true;
     const fetchBrandsByType = async () => {
+      setIsLoadingBrands(true);
       try {
         const response = await getBrandByType(selectedProductTypeId);
-        setFilteredBrandOptions(response.data.map((brand: any) => brand));
+        console.log("Brand Options:", response.data);
+        if (isMounted) {
+          setBrandOptions(response.data.map((brand: any) => brand));
+        }
       } catch (error) {
-        setFilteredBrandOptions([]);
+        if (isMounted) setBrandOptions([]);
         console.error("Failed to fetch brands by type:", error);
+      } finally {
+        if (isMounted) setIsLoadingBrands(false);
       }
     };
+
     fetchBrandsByType();
+    return () => {
+      isMounted = false;
+    };
   }, [selectedProductTypeId]);
 
   // Fetch models when brand changes
@@ -132,14 +160,16 @@ export default function DealerAddProducts() {
       try {
         const response = await getModelByBrand(selectedbrandId);
         setModelOptions(response.data.map((model: any) => model));
+        console.log("Model Options:", response.data);
       } catch (error) {
+        setModelOptions([]);
         console.error("Failed to fetch models by brand:", error);
       }
     };
     fetchModelsByBrand();
   }, [selectedbrandId]);
 
-  // Fetch variants by model
+  // Fetch variants when model changes
   useEffect(() => {
     if (!modelId) {
       setVarientOptions([]);
@@ -157,67 +187,294 @@ export default function DealerAddProducts() {
     fetchVarientByModel();
   }, [modelId]);
 
-  // Handle search tags input and Submit
-  const onSubmit = async (data: FormValues) => {
-    setSubmitLoading(true);
-    try {
-      const userId = auth.user && auth.user._id;
-      if (!userId) {
-        showToast("User ID not found in token", "error");
-        setSubmitLoading(false);
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!id.id || typeof id.id !== "string") {
+        setApiError("Product ID is missing or invalid.");
         return;
       }
-      // Add created_by to data
-      const dataWithCreatedBy = { ...data, created_by: userId };
+
+      setIsLoadingProduct(true);
+      setApiError("");
+      
+      try {
+        const response = await getProductById(id.id);
+        // response is ProductResponse, which has data: Product[]
+        const data = response.data;
+        if (Array.isArray(data) && data.length > 0) {
+          setProduct(data[0]);
+        } else if (
+          typeof data === "object" &&
+          data !== null &&
+          !Array.isArray(data)
+        ) {
+          setProduct(data as Product);
+        } else {
+          setProduct(null);
+          setApiError("Product not found.");
+        }
+        console.log("getProducts API response:", response);
+      } catch (error: any) {
+        console.error("getProducts API error:", error);
+        setApiError(
+          error.response?.data?.message || 
+          error.message || 
+          "Failed to fetch product details."
+        );
+        setProduct(null);
+      } finally {
+        setIsLoadingProduct(false);
+      }
+    };
+    
+    fetchProducts();
+  }, [id.id]);
+
+  // Populate form with fetched product data
+  useEffect(() => {
+    if (product) {
+      reset({
+        sku_code: product.sku_code || "",
+        manufacturer_part_name: product.manufacturer_part_name || "",
+        product_name: product.product_name || "",
+        brand: product.brand?._id || "",
+        hsn_code: product.hsn_code ? Number(product.hsn_code) : undefined,
+        category: product.category?._id || "",
+        sub_category: product.sub_category?._id || "",
+        product_type: product.product_type || "",
+        no_of_stock: product.no_of_stock,
+        selling_price: product.selling_price,
+        updatedBy: product.updated_at || "",
+        fulfillment_priority: product.fulfillment_priority,
+        admin_notes: product.admin_notes || "",
+        make: product.make && product.make.length > 0 ? product.make[0] : "",
+       
+        model: product.model?._id || "",
+        year_range:
+          product.year_range && product.year_range.length > 0
+            ? product.year_range[0]._id
+            : "",
+        variant:
+          product.variant && product.variant.length > 0
+            ? product.variant[0]._id
+            : "",
+        fitment_notes: product.fitment_notes || "",
+        is_universal: typeof product.is_universal === "boolean" ? product.is_universal : false,
+        is_consumable: typeof product.is_consumable === "boolean" ? product.is_consumable : false,
+        keySpecifications: product.key_specifications || "",
+        dimensions: "",
+        weight: product.weight?.toString() || "",
+        certifications: product.certifications || "",
+        warranty: product.warranty ? Number(product.warranty) : undefined,
+        images: product.images?.join(",") || "",
+        videoUrl: "",
+        brochure_available: product.brochure_available ? "yes" : "no",
+        mrp_with_gst: product.mrp_with_gst ? Number(product.mrp_with_gst) : undefined,
+        gst_percentage: product.gst_percentage ? Number(product.gst_percentage) : undefined,
+        is_returnable: typeof product.is_returnable === "boolean" ? product.is_returnable : product.is_returnable === "yes",
+        return_policy: product.return_policy || "",
+        availableDealers: "",
+        quantityPerDealer: "",
+        dealerMargin: "",
+        dealerPriorityOverride: "",
+        stockExpiryRule: "",
+        lastStockUpdate: product.available_dealers?.last_stock_update || "",
+        LastinquiredAt: product.last_stock_inquired || "",
+        seo_title: product.seo_title || "",
+        searchTags: product.search_tags?.join(",") || "",
+        search_tags: product.search_tags || [],
+        seo_description: product.seo_description || "",
+      });
+      // Initialize image previews for existing images
+      if (product.images && Array.isArray(product.images)) {
+        setExistingImages(product.images);
+      } else {
+        setExistingImages([]);
+      }
+      setSelectedImages([]);
+      setSelectedImagePreviews([]);
+      setRemovedExistingIndexes([]);
+    }
+  }, [product, reset]);
+
+  // Initialize dependent state variables when product loads
+  useEffect(() => {
+    if (!product) return;
+
+    // Set product type ID for brand dependency
+    if (typeOptions.length > 0) {
+      const selectedTypeObj = typeOptions.find(
+        (t) => t.type_name === product.product_type || t._id === product.product_type
+      );
+      if (selectedTypeObj) {
+        setSelectedProductTypeId(selectedTypeObj._id);
+      }
+    }
+
+    // Set brand ID for model dependency
+    if (product.brand?._id) {
+      setSelectedBrandId(product.brand._id);
+    }
+
+    // Set model ID for variant dependency
+    if (product.model?._id) {
+      setModelId(product.model._id);
+    }
+  }, [product, typeOptions]);
+
+  // Prepopulate dependent dropdowns in correct order after product data loads
+
+  
+  useEffect(() => {
+    if (!product) return;
+
+    // Product Type
+    if (typeOptions.length > 0) {
+      const selectedTypeObj = typeOptions.find(
+        (t) =>
+          t.type_name === product.product_type || t._id === product.product_type
+      );
+      if (selectedTypeObj) {
+        setValue("product_type", selectedTypeObj.type_name);
+        setValue("vehicle_type", selectedTypeObj._id); // Set ID for Select component
+      }
+    }
+  }, [product, typeOptions, setValue]);
+
+  useEffect(() => {
+    // Brand
+    if (product && brandOptions.length > 0 && product.brand) {
+      const selectedBrandObj = brandOptions.find(
+        (b) =>
+          b.brand_name === product.brand?.brand_name ||
+          b._id === product.brand?._id
+      );
+      if (selectedBrandObj) {
+        setSelectedBrandId(selectedBrandObj._id);
+        setValue("brand", selectedBrandObj._id); // Set ID, not name
+      }
+    }
+  }, [product, brandOptions, setValue]);
+
+  useEffect(() => {
+    // Model
+    if (product && modelOptions.length > 0 && product.model) {
+      const selectedModelObj = modelOptions.find(
+        (m) =>
+          m.model_name === product.model?.model_name ||
+          m._id === product.model?._id
+      );
+      if (selectedModelObj) {
+        setModelId(selectedModelObj._id);
+        setValue("model", selectedModelObj._id); // Set ID, not name
+      }
+    }
+  }, [product, modelOptions, setValue]);
+
+  useEffect(() => {
+    // Variant
+    if (
+      product &&
+      varientOptions.length > 0 &&
+      product.variant &&
+      product.variant.length > 0
+    ) {
+      const selectedVariantObj = varientOptions.find(
+        (v) =>
+          v.variant_name === product.variant?.[0]?.variant_name ||
+          v._id === product.variant?.[0]?._id
+      );
+      if (selectedVariantObj) {
+        setValue("variant", selectedVariantObj._id); // Set ID, not name
+      }
+    }
+  }, [product, varientOptions, setValue]);
+
+  useEffect(() => {
+    // Year Range
+    if (
+      product &&
+      yearRangeOptions.length > 0 &&
+      product.year_range &&
+      product.year_range.length > 0
+    ) {
+      const selectedYearObj = yearRangeOptions.find(
+        (y) =>
+          y.year_name === product.year_range?.[0]?.year_name ||
+          y._id === product.year_range?.[0]?._id
+      );
+      if (selectedYearObj) {
+        setValue("year_range", selectedYearObj._id); // Set ID for Select component
+      }
+    }
+  }, [product, yearRangeOptions, setValue]);
+
+  const onSubmit = async (data: FormValues) => {
+    setApiError("");
+    setIsSubmitting(true);
+
+    if (typeof id.id === "string") {
+      const preparedData = {
+        ...data,
+        hsn_code: data.hsn_code ? Number(data.hsn_code) : undefined,
+        is_universal: typeof data.is_universal === "boolean" ? data.is_universal : data.is_universal === "yes",
+        is_consumable: typeof data.is_consumable === "boolean" ? data.is_consumable : data.is_consumable === "yes",
+      };
+
+      // Always use FormData for images update
       const formData = new FormData();
-      Object.entries(dataWithCreatedBy).forEach(([key, value]) => {
-        if (key !== "images" && key !== "searchTagsArray") {
+      // Append all prepared fields except images
+      Object.entries(preparedData).forEach(([key, value]) => {
+        if (key !== "images" && value != null) {
           if (Array.isArray(value)) {
-            // For arrays, append as comma-separated string (FormData does not support arrays natively)
-            formData.append(key, value.join(","));
-          } else if (typeof value === "number") {
-            formData.append(key, value.toString());
+            value.forEach((v) => formData.append(`${key}[]`, v));
           } else {
-            formData.append(
-              key,
-              typeof value === "boolean" ? String(value) : value ?? ""
-            );
+            formData.append(key, value.toString());
           }
         }
       });
-      if (imageFiles.length > 0) {
-        imageFiles.forEach((file) => {
-          formData.append("images", file);
-        });
+      // Append new image files
+      selectedImages.forEach((file) => {
+        formData.append("images", file);
+      });
+      // Append remaining existing images (not removed)
+      existingImages.forEach((url, idx) => {
+        if (!removedExistingIndexes.includes(idx)) {
+          formData.append("existingImages", url);
+        }
+      });
+      // Debug: Log FormData contents
+      console.log("FormData contents:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ": " + pair[1]);
       }
-      await addProduct(formData);
-      console.log("Product submitted:", dataWithCreatedBy);
-      showToast("Product created successfully ", "success");
-      setImageFiles([]);
-      setImagePreviews([]);
-      reset(); // Reset the form after successful submission
-    } catch (error) {
-      console.error("Failed to submit product:", error);
-      showToast("Failed to create product", "error");
-    } finally {
-      setSubmitLoading(false);
+      try {
+        const response = await editProduct(id.id, formData);
+        showToast("Product updated successfully", "success");
+        setApiError("");
+      } catch (error: any) {
+        console.error("Failed to edit product (FormData):", error);
+        showToast("Failed to update product", "error");
+        console.error(
+          "Error details:",
+          error.response?.data || error.message
+        );
+        setApiError(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to update product"
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      console.error("Product ID is missing or invalid.");
+      showToast("Invalid product ID", "error");
+      setApiError("Product ID is missing or invalid.");
+      setIsSubmitting(false);
     }
   };
-
-  // Prevent form submission on Enter key in any input
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    if (e.key === "Enter") {
-      // Only allow Enter to submit if the target is a textarea or the submit button
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName !== "TEXTAREA" &&
-        target.getAttribute("type") !== "submit"
-      ) {
-        e.preventDefault();
-      }
-    }
-  };
-    if (!auth || !allowedRoles.includes(auth.user.role)) {
+    if (!auth || !allowedRoles.includes(auth.role)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-red-600 font-bold">
@@ -228,34 +485,51 @@ export default function DealerAddProducts() {
   }
 
   return (
-    <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen ">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">
-            Add Product
-          </h1>
-          <p className="text-base font-medium font-sans text-gray-500">Add your product description</p>
+    
+    <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen">
+      {apiError && (
+        <div className="mb-4 p-2 bg-red-100 text-red-800 rounded">
+          {apiError}
         </div>
-        {/* Save button removed from here */}
-      </div>
+      )}
+      
+      {isLoadingProduct ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+            <p className="mt-2 text-gray-600">Loading product details...</p>
+          </div>
+        </div>
+      ) : !product ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-gray-600">Product not found or failed to load.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+                Edit Product
+              </h1>
+              <p className="text-sm text-gray-500">
+                Edit your product details below
+              </p>
+            </div>
+          </div>
       <form
-        id="add-product-form"
-        onSubmit={handleSubmit(onSubmit, (errors) => {
-          console.log("Form validation failed", errors);
-        })}
-        onKeyDown={handleKeyDown}
+        id="edit-product-form"
+        onSubmit={handleSubmit(onSubmit)}
         className="space-y-6"
       >
-        {/* Hidden input for created_by (snake_case) */}
-        <input type="hidden" {...register("created_by")} />
         {/* Core Product Identity */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-bold text-lg font-sans">
+            <CardTitle className="text-red-600 font-semibold text-lg">
               Core Product Identity
             </CardTitle>
-            <p className="text-sm text-[#737373] font-medium font-sans">
+            <p className="text-sm text-gray-500">
               Classify the product for catalog structure, filterability, and
               business logic.
             </p>
@@ -263,14 +537,11 @@ export default function DealerAddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Sku Code */}
             <div className="space-y-2">
-              <Label
-                htmlFor="skuCode"
-                className="text-base font-medium font-sans">
-              
+              <Label htmlFor="skuCode" className="text-sm font-medium">
                 Sku Code
               </Label>
               <Input
-                id="skuCode"
+                id="sku_code"
                 placeholder="Enter Sku Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("sku_code")}
@@ -283,11 +554,11 @@ export default function DealerAddProducts() {
             </div>
             {/* No. of Stock */}
             <div className="space-y-2">
-              <Label htmlFor="noOfStock" className="text-base font-medium font-sans">
+              <Label htmlFor="noOfStock" className="text-sm font-medium">
                 No. of Stock
               </Label>
               <Input
-                id="noOfStock"
+                id="no_of_stock"
                 type="number"
                 step="1"
                 min="0"
@@ -305,12 +576,12 @@ export default function DealerAddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="manufacturerPartNumber"
-                className="text-base font-medium font-sans"
+                className="text-sm font-medium"
               >
                 Manufacturer Part Number (MPN)
               </Label>
               <Input
-                id="manufacturerPartNumber"
+                id="manufacturer_part_name"
                 placeholder="Part Number"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("manufacturer_part_name")}
@@ -323,11 +594,11 @@ export default function DealerAddProducts() {
             </div>
             {/* Product Name */}
             <div className="space-y-2">
-              <Label htmlFor="productName" className="text-base font-medium font-sans">
+              <Label htmlFor="productName" className="text-sm font-medium">
                 Product Name
               </Label>
               <Input
-                id="productName"
+                id="product_name"
                 placeholder="Enter Product Name"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("product_name")}
@@ -338,25 +609,18 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
+            {/* Brand */}
 
             {/* HSN Code */}
             <div className="space-y-2">
-              <Label htmlFor="hsnCode" className="text-base font-medium font-sans">
+              <Label htmlFor="hsnCode" className="text-sm font-medium">
                 HSN Code
               </Label>
               <Input
-                id="hsnCode"
+                id="hsn_code"
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                type="number"
-                {...register("hsn_code", {
-                  valueAsNumber: true,
-                  required: "HSN Code is required",
-                  validate: (value) =>
-                    value === undefined || isNaN(value)
-                      ? "Invalid input: expected number"
-                      : true,
-                })}
+                {...register("hsn_code")}
               />
               {errors.hsn_code && (
                 <span className="text-red-500 text-sm">
@@ -366,12 +630,12 @@ export default function DealerAddProducts() {
             </div>
             {/* Category */}
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-base font-medium font-sans">
+              <Label htmlFor="category" className="text-sm font-medium">
                 Category
               </Label>
               <Select
+                value={watch("category") || ""}
                 onValueChange={(value) => setValue("category", value)}
-                value={undefined} // Let react-hook-form control value if needed
               >
                 <SelectTrigger
                   id="category"
@@ -401,14 +665,15 @@ export default function DealerAddProducts() {
             </div>
             {/* Sub-category */}
             <div className="space-y-2">
-              <Label htmlFor="subCategory" className="text-base font-medium font-sans">
+              <Label htmlFor="subCategory" className="text-sm font-medium">
                 Sub-category
               </Label>
               <Select
+                value={watch("sub_category") || ""}
                 onValueChange={(value) => setValue("sub_category", value)}
               >
                 <SelectTrigger
-                  id="subCategory"
+                  id="sub_category"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -435,7 +700,7 @@ export default function DealerAddProducts() {
             </div>
             {/* Product Type (OE, OEM, Aftermarket) */}
             <div className="space-y-2">
-              <Label htmlFor="productType" className="text-base font-medium font-sans">
+              <Label htmlFor="productType" className="text-sm font-medium">
                 Product Type
               </Label>
               <Select
@@ -460,20 +725,20 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-            {/* Vehicle Type (keep as is) */}
+            {/* Vehicle Type */}
             <div className="space-y-2">
-              <Label htmlFor="vehicleType" className="text-base font-medium font-sans">
+              <Label htmlFor="vehicle_type" className="text-sm font-medium">
                 Vehicle Type
               </Label>
               <Select
+                value={watch("vehicle_type") || ""}
                 onValueChange={(value) => {
                   setValue("vehicle_type", value);
                   setSelectedProductTypeId(value);
                 }}
-                defaultValue={watch("vehicle_type")}
               >
                 <SelectTrigger
-                  id="vehicleType"
+                  id="vehicle_type"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -484,9 +749,9 @@ export default function DealerAddProducts() {
                       Loading...
                     </SelectItem>
                   ) : (
-                    typeOptions.map((cat) => (
-                      <SelectItem key={cat._id} value={cat._id}>
-                        {cat.type_name}
+                    typeOptions.map((type) => (
+                      <SelectItem key={type._id} value={type._id}>
+                        {type.type_name}
                       </SelectItem>
                     ))
                   )}
@@ -498,47 +763,57 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
+            
           </CardContent>
         </Card>
-
         {/* Vehicle Compatibility */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-bold text-lg font-sans">
+            <CardTitle className="text-red-600 font-semibold text-lg">
               Vehicle Compatibility
             </CardTitle>
-            <p className="text-sm text-[#737373] font-medium font-sans">
+            <p className="text-sm text-gray-500">
               Specify which vehicle make, model, and variant the product is
               compatible with.
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Make */}
+            {/* Brand */}
             <div className="space-y-2">
-              <Label htmlFor="brand" className="text-base font-medium font-sans">
+              <Label htmlFor="brand" className="text-sm font-medium">
                 Brand
               </Label>
               <Select
+                value={watch("brand") || ""}
                 onValueChange={(value) => {
-                  setSelectedBrandId(value);
                   setValue("brand", value);
+
+                  setSelectedBrandId(value);
                 }}
               >
                 <SelectTrigger
                   id="brand"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
-                  <SelectValue placeholder="Select" />
+                  <SelectValue placeholder="Select Product Type first" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredBrandOptions.length === 0 ? (
+                  {!selectedProductTypeId ? (
+                    <SelectItem value="no-type" disabled>
+                      Please select product type first
+                    </SelectItem>
+                  ) : isLoadingBrands ? (
                     <SelectItem value="loading" disabled>
-                      Please select Product Type first
+                      Loading brands...
+                    </SelectItem>
+                  ) : brandOptions.length === 0 ? (
+                    <SelectItem value="no-brands" disabled>
+                      No brands found
                     </SelectItem>
                   ) : (
-                    filteredBrandOptions.map((option) => (
-                      <SelectItem key={option._id} value={option._id}>
-                        {option.brand_name}
+                    brandOptions.map((brand) => (
+                      <SelectItem key={brand._id} value={brand._id}>
+                        {brand.brand_name}
                       </SelectItem>
                     ))
                   )}
@@ -550,8 +825,9 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="make" className="text-base font-medium font-sans">
+              <Label htmlFor="make" className="text-sm font-medium">
                 Make
               </Label>
               <Input
@@ -566,15 +842,15 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-
-            {/* Model */}
             <div className="space-y-2">
-              <Label htmlFor="model" className="text-base font-medium font-sans">
+              <Label htmlFor="model" className="text-sm font-medium">
                 Model
               </Label>
               <Select
+                value={watch("model") || ""}
                 onValueChange={(value) => {
                   setValue("model", value);
+
                   setModelId(value);
                 }}
               >
@@ -582,21 +858,17 @@ export default function DealerAddProducts() {
                   id="model"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
-                  <SelectValue placeholder="Select" />
+                  <SelectValue placeholder="Select Brand first" />
                 </SelectTrigger>
                 <SelectContent>
-                  {selectedbrandId && modelOptions.length === 0 ? (
-                    <SelectItem value="no-models" disabled>
-                      No models found
-                    </SelectItem>
-                  ) : modelOptions.length === 0 ? (
+                  {modelOptions.length === 0 ? (
                     <SelectItem value="loading" disabled>
-                      Please select Make first
+                      {selectedbrandId ? "Loading..." : "Select Brand first"}
                     </SelectItem>
                   ) : (
-                    modelOptions.map((option) => (
-                      <SelectItem key={option._id} value={option._id}>
-                        {option.model_name}
+                    modelOptions.map((model) => (
+                      <SelectItem key={model._id} value={model._id}>
+                        {model.model_name}
                       </SelectItem>
                     ))
                   )}
@@ -608,64 +880,30 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-            {/* Year Range */}
+                 {/* Variant */}
             <div className="space-y-2">
-              <Label htmlFor="yearRange" className="text-base font-medium font-sans">
-                Year Range
-              </Label>
-              <Select onValueChange={(value) => setValue("year_range", value)}>
-                <SelectTrigger
-                  id="yearRange"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearRangeOptions.length === 0 ? (
-                    <SelectItem value="loading" disabled>
-                      Loading...
-                    </SelectItem>
-                  ) : (
-                    yearRangeOptions.map((option) => (
-                      <SelectItem key={option._id} value={option._id}>
-                        {option.year_name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.year_range && (
-                <span className="text-red-500 text-sm">
-                  {errors.year_range.message}
-                </span>
-              )}
-            </div>
-            {/* Variant */}
-            <div className="space-y-2">
-              <Label htmlFor="variant" className="text-base font-medium font-sans">
+              <Label htmlFor="variant" className="text-sm font-medium">
                 Variant
               </Label>
-              <Select onValueChange={(value) => setValue("variant", value)}>
+              <Select
+                value={watch("variant") || ""}
+                onValueChange={(value) => setValue("variant", value)}
+              >
                 <SelectTrigger
                   id="variant"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
-                  <SelectValue placeholder="Select" />
+                  <SelectValue placeholder="Select Model first" />
                 </SelectTrigger>
                 <SelectContent>
-                  {varientOptions.length === 0 && modelId.length === 0 ? (
-                    <SelectItem value="no-varient" disabled>
-                      {" "}
-                      Vairent not found{" "}
-                    </SelectItem>
-                  ) : varientOptions.length === 0 ? (
+                  {varientOptions.length === 0 ? (
                     <SelectItem value="loading" disabled>
-                      please select model first
+                      {modelId ? "Loading..." : "Select Model first"}
                     </SelectItem>
                   ) : (
-                    varientOptions.map((option) => (
-                      <SelectItem key={option._id} value={option._id}>
-                        {option.variant_name}
+                    varientOptions.map((variant) => (
+                      <SelectItem key={variant._id} value={variant._id}>
+                        {variant.variant_name}
                       </SelectItem>
                     ))
                   )}
@@ -677,13 +915,49 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
+            {/* Year Range */}
+            <div className="space-y-2">
+              <Label htmlFor="yearRange" className="text-sm font-medium">
+                Year Range
+              </Label>
+              <Select
+                value={watch("year_range") || ""}
+                onValueChange={(value) => setValue("year_range", value)}
+              >
+                <SelectTrigger
+                  id="year_range"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearRangeOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      Loading...
+                    </SelectItem>
+                  ) : (
+                    yearRangeOptions.map((year) => (
+                      <SelectItem key={year._id} value={year._id}>
+                        {year.year_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.year_range && (
+                <span className="text-red-500 text-sm">
+                  {errors.year_range.message}
+                </span>
+              )}
+            </div>
+       
             {/* Fitment Notes */}
             <div className="space-y-2">
-              <Label htmlFor="fitmentNotes" className="text-base font-medium font-sans">
+              <Label htmlFor="fitmentNotes" className="text-sm font-medium">
                 Fitment Notes
               </Label>
               <Input
-                id="fitmentNotes"
+                id="fitment_notes"
                 placeholder="Enter Fitment Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("fitment_notes")}
@@ -698,12 +972,12 @@ export default function DealerAddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="fulfillmentPriority"
-                className="text-base font-medium font-sans"
+                className="text-sm font-medium"
               >
                 Fulfillment Priority
               </Label>
               <Input
-                id="fulfillmentPriority"
+                id="fulfillment_priority"
                 type="number"
                 step="1"
                 min="0"
@@ -719,17 +993,15 @@ export default function DealerAddProducts() {
             </div>
             {/* Is Universal */}
             <div className="space-y-2">
-              <Label htmlFor="isUniversal" className="text-base font-medium font-sans">
+              <Label htmlFor="isUniversal" className="text-sm font-medium">
                 Is Universal
               </Label>
               <Select
-                onValueChange={(value) =>
-                  setValue("is_universal", value === "yes")
-                }
-                defaultValue="no"
+                value={typeof watch("is_universal") === "boolean" ? (watch("is_universal") ? "yes" : "no") : ""}
+                onValueChange={(value) => setValue("is_universal", value === "yes")}
               >
                 <SelectTrigger
-                  id="isUniversal"
+                  id="is_universal"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -747,14 +1019,13 @@ export default function DealerAddProducts() {
             </div>
           </CardContent>
         </Card>
-
         {/* Technical Specifications */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-bold text-lg font-sans">
+            <CardTitle className="text-red-600 font-semibold text-lg">
               Technical Specifications
             </CardTitle>
-            <p className="text-sm text-[#737373] font-medium font-sans">
+            <p className="text-sm text-gray-500">
               Add all relevant technical details to help users understand the
               product quality and features.
             </p>
@@ -764,7 +1035,7 @@ export default function DealerAddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="keySpecifications"
-                className="text-base font-medium font-sans"
+                className="text-sm font-medium"
               >
                 Key Specifications
               </Label>
@@ -782,7 +1053,7 @@ export default function DealerAddProducts() {
             </div>
             {/* Dimensions */}
             <div className="space-y-2">
-              <Label htmlFor="dimensions" className="text-base font-medium font-sans">
+              <Label htmlFor="dimensions" className="text-sm font-medium">
                 Dimensions
               </Label>
               <Input
@@ -799,7 +1070,7 @@ export default function DealerAddProducts() {
             </div>
             {/* Weight */}
             <div className="space-y-2">
-              <Label htmlFor="weight" className="text-base font-medium font-sans">
+              <Label htmlFor="weight" className="text-sm font-medium">
                 Weight
               </Label>
               <Input
@@ -816,7 +1087,7 @@ export default function DealerAddProducts() {
             </div>
             {/* Certifications */}
             <div className="space-y-2">
-              <Label htmlFor="certifications" className="text-base font-medium font-sans">
+              <Label htmlFor="certifications" className="text-sm font-medium">
                 Certifications
               </Label>
               <Input
@@ -833,19 +1104,14 @@ export default function DealerAddProducts() {
             </div>
             {/* Warranty */}
             <div className="space-y-2">
-              <Label htmlFor="warranty" className="text-base font-medium font-sans">
+              <Label htmlFor="warranty" className="text-sm font-medium">
                 Warranty
               </Label>
               <Input
                 id="warranty"
-                type="number"
-                step="1"
-                min="0"
                 placeholder="Enter Warranty"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("warranty", {
-                  setValueAs: (v) => (v === "" ? undefined : Number(v)),
-                })}
+                {...register("warranty")}
               />
               {errors.warranty && (
                 <span className="text-red-500 text-sm">
@@ -855,17 +1121,15 @@ export default function DealerAddProducts() {
             </div>
             {/* Is Consumable */}
             <div className="space-y-2">
-              <Label htmlFor="isConsumable" className="text-base font-medium font-sans">
+              <Label htmlFor="isConsumable" className="text-sm font-medium">
                 Is Consumable
               </Label>
               <Select
-                onValueChange={(value) =>
-                  setValue("is_consumable", value === "yes")
-                }
-                defaultValue="no"
+                value={typeof watch("is_consumable") === "boolean" ? (watch("is_consumable") ? "yes" : "no") : ""}
+                onValueChange={(value) => setValue("is_consumable", value === "yes")}
               >
                 <SelectTrigger
-                  id="isConsumable"
+                  id="is_consumable"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -883,22 +1147,21 @@ export default function DealerAddProducts() {
             </div>
           </CardContent>
         </Card>
-
         {/* Media & Documentation */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-bold text-lg font-sanss">
+            <CardTitle className="text-red-600 font-semibold text-lg">
               Media & Documentation
             </CardTitle>
-            <p className="text-sm text-[#737373] font-medium font-sans">
+            <p className="text-sm text-gray-500">
               Upload product images, videos, and brochures to enhance product
               representation and credibility.
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Images */}
+            {/* Images Upload with Preview */}
             <div className="space-y-2">
-              <Label htmlFor="images" className="text-base font-medium font-sans">
+              <Label htmlFor="images" className="text-sm font-medium">
                 Images
               </Label>
               <input
@@ -906,52 +1169,52 @@ export default function DealerAddProducts() {
                 type="file"
                 accept="image/*"
                 multiple
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  setImageFiles((prev) => [...prev, ...files]);
-                  // Generate previews for new files
-                  files.forEach((file) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setImagePreviews((prev) => [...prev, reader.result as string]);
-                    };
-                    reader.readAsDataURL(file);
-                  });
-                  setValue("images", files.length > 0 ? files.map(f => f.name).join(",") : ""); // for validation
-                }}
+                onChange={handleImageChange}
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
               />
-              <Button
-                type="button"
-                className="bg-gray-50 border border-gray-200 rounded-[8px] p-4 w-full text-left text-gray-700 hover:bg-gray-100"
-                onClick={() => document.getElementById("images")?.click()}
-              >
-                {imageFiles.length > 0 ? `${imageFiles.length} image(s) selected` : "Choose Images"}
-              </Button>
-              {imagePreviews.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {imagePreviews.map((preview, idx) => (
-                    <div key={idx} className="relative inline-block">
+              <div className="flex flex-wrap gap-2 mt-2">
+                {/* Existing images from backend, not removed */}
+                {existingImages.map((src, idx) =>
+                  removedExistingIndexes.includes(idx) ? null : (
+                    <div key={"existing-" + idx} className="relative inline-block">
                       <img
-                        src={preview}
-                        alt={`Preview ${idx + 1}`}
-                        className="max-h-24 rounded border"
+                        src={src}
+                        alt={`Existing ${idx + 1}`}
+                        className="h-20 w-20 object-cover rounded"
                       />
                       <button
                         type="button"
                         className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                        onClick={() => {
-                          setImageFiles((prev) => prev.filter((_, i) => i !== idx));
-                          setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
-                        }}
+                        onClick={() => setRemovedExistingIndexes((prev) => [...prev, idx])}
                         title="Remove"
                       >
                         ×
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  )
+                )}
+                {/* New uploads */}
+                {selectedImagePreviews.map((src, idx) => (
+                  <div key={"new-" + idx} className="relative inline-block">
+                    <img
+                      src={src}
+                      alt={`Preview ${idx + 1}`}
+                      className="h-20 w-20 object-cover rounded"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                      onClick={() => {
+                        setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
+                        setSelectedImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+                      }}
+                      title="Remove"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
               {errors.images && (
                 <span className="text-red-500 text-sm">
                   {errors.images.message}
@@ -960,12 +1223,12 @@ export default function DealerAddProducts() {
             </div>
             {/* Video URL */}
             <div className="space-y-2">
-              <Label htmlFor="videoUrl" className="text-base font-medium font-sans">
+              <Label htmlFor="videoUrl" className="text-sm font-medium">
                 Video URL
               </Label>
               <Input
                 id="videoUrl"
-                placeholder="Past Link"
+                placeholder="Paste Link"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("videoUrl")}
               />
@@ -979,16 +1242,16 @@ export default function DealerAddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="brouchureAvailable"
-                className="text-base font-medium font-sans"
+                className="text-sm font-medium"
               >
                 Brochure Available
               </Label>
               <Select
+                value={watch("brochure_available") || ""}
                 onValueChange={(value) => setValue("brochure_available", value)}
-                defaultValue="no"
               >
                 <SelectTrigger
-                  id="brouchureAvailable"
+                  id="brochure_available"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
                   <SelectValue placeholder="Select" />
@@ -1006,30 +1269,28 @@ export default function DealerAddProducts() {
             </div>
           </CardContent>
         </Card>
-
         {/* Pricing details */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-bold text-lg font-sans">
+            <CardTitle className="text-red-600 font-semibold text-lg">
               Pricing & Tax
             </CardTitle>
-            <p className="text-sm text-[#737373] font-medium font-sans">
+            <p className="text-sm text-gray-500">
               Provide the pricing and tax information required for listing and
               billing.
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* MRP (with GST) */}
+            {/* MRP (with gst) */}
             <div className="space-y-2">
-              <Label htmlFor="mrp" className="text-base font-medium font-sans">
+              <Label htmlFor="mrp" className="text-sm font-medium">
                 MRP (with GST)
               </Label>
               <Input
-                id="mrp"
-                type="number"
+                id="mrp_with_gst"
                 placeholder="Enter MRP"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("mrp_with_gst", { valueAsNumber: true })}
+                {...register("mrp_with_gst")}
               />
               {errors.mrp_with_gst && (
                 <span className="text-red-500 text-sm">
@@ -1037,10 +1298,10 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-            {/* Selling Price (Required) */}
+            {/* Selling Price */}
             <div className="space-y-2">
-              <Label htmlFor="selling_price" className="text-base font-medium font-sans">
-                Selling Price <span className="text-red-500">*</span>
+              <Label htmlFor="sellingPrice" className="text-sm font-medium">
+                Selling Price
               </Label>
               <Input
                 id="selling_price"
@@ -1049,10 +1310,7 @@ export default function DealerAddProducts() {
                 min="0"
                 placeholder="Enter Selling Price"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("selling_price", {
-                  valueAsNumber: true,
-                  required: true,
-                })}
+                {...register("selling_price", { valueAsNumber: true })}
               />
               {errors.selling_price && (
                 <span className="text-red-500 text-sm">
@@ -1062,17 +1320,14 @@ export default function DealerAddProducts() {
             </div>
             {/* GST % */}
             <div className="space-y-2">
-              <Label htmlFor="gst" className="text-base font-medium font-sans">
+              <Label htmlFor="gst" className="text-sm font-medium">
                 GST %
               </Label>
               <Input
                 id="gst_percentage"
-                type="number"
                 placeholder="Enter GST"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("gst_percentage", {
-                  valueAsNumber: true,
-                })}
+                {...register("gst_percentage")}
               />
               {errors.gst_percentage && (
                 <span className="text-red-500 text-sm">
@@ -1080,28 +1335,17 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-            {/* Returnable */}
+            {/* is_returnable */}
             <div className="space-y-2">
-              <Label htmlFor="returnable" className="text-base font-medium font-sans">
+              <Label htmlFor="returnable" className="text-sm font-medium">
                 Returnable
               </Label>
-              <Select
-                onValueChange={(value) =>
-                  setValue("is_returnable", value === "yes")
-                }
-                value={watch("is_returnable") ? "yes" : "no"}
-              >
-                <SelectTrigger
-                  id="returnable"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="returnable"
+                placeholder="Enter Returnable"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("is_returnable")}
+              />
               {errors.is_returnable && (
                 <span className="text-red-500 text-sm">
                   {errors.is_returnable.message}
@@ -1110,11 +1354,11 @@ export default function DealerAddProducts() {
             </div>
             {/* Return Policy */}
             <div className="space-y-2">
-              <Label htmlFor="returnPolicy" className="text-base font-medium font-sans">
+              <Label htmlFor="return_policy" className="text-sm font-medium">
                 Return Policy
               </Label>
               <Input
-                id="returnPolicy"
+                id="return_policy"
                 placeholder="Enter Return Policy"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("return_policy")}
@@ -1127,21 +1371,20 @@ export default function DealerAddProducts() {
             </div>
           </CardContent>
         </Card>
-
         {/* Dealer-Level Mapping & Routing */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-bold text-lg font-sans">
+            <CardTitle className="text-red-600 font-semibold text-lg">
               Dealer-Level Mapping & Routing
             </CardTitle>
-            <p className="text-sm text-[#737373] font-medium font-sans">
+            <p className="text-sm text-gray-500">
               Dealer product quantity and quality
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Available Dealers */}
             <div className="space-y-2">
-              <Label htmlFor="availableDealers" className="text-base font-medium font-sans">
+              <Label htmlFor="availableDealers" className="text-sm font-medium">
                 Available Dealers
               </Label>
               <Input
@@ -1160,7 +1403,7 @@ export default function DealerAddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="quantityPerDealer"
-                className="text-base font-medium font-sans"
+                className="text-sm font-medium"
               >
                 Quantity per Dealer
               </Label>
@@ -1178,7 +1421,7 @@ export default function DealerAddProducts() {
             </div>
             {/* Dealer Margin % */}
             <div className="space-y-2">
-              <Label htmlFor="dealerMargin" className="text-base font-medium font-sans">
+              <Label htmlFor="dealerMargin" className="text-sm font-medium">
                 Dealer Margin %
               </Label>
               <Input
@@ -1197,7 +1440,7 @@ export default function DealerAddProducts() {
             <div className="space-y-2">
               <Label
                 htmlFor="dealerPriorityOverride"
-                className="text-base font-medium font-sans"
+                className="text-sm font-medium"
               >
                 Dealer Priority Override
               </Label>
@@ -1215,7 +1458,7 @@ export default function DealerAddProducts() {
             </div>
             {/* Stock Expiry Rule */}
             <div className="space-y-2">
-              <Label htmlFor="stockExpiryRule" className="text-base font-medium font-sans">
+              <Label htmlFor="stockExpiryRule" className="text-sm font-medium">
                 Stock Expiry Rule
               </Label>
               <Input
@@ -1232,7 +1475,7 @@ export default function DealerAddProducts() {
             </div>
             {/* Last Stock Update */}
             <div className="space-y-2">
-              <Label htmlFor="lastStockUpdate" className="text-base font-medium font-sans">
+              <Label htmlFor="lastStockUpdate" className="text-sm font-medium">
                 Last Stock Update
               </Label>
               <Input
@@ -1247,13 +1490,30 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
+            {/* Last Inquired At */}
+            <div className="space-y-2">
+              <Label htmlFor="LastinquiredAt" className="text-sm font-medium">
+                Last Inquired At
+              </Label>
+              <Input
+                id="LastinquiredAt"
+                placeholder="Enter Last Inquired At"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("LastinquiredAt")}
+              />
+              {errors.LastinquiredAt && (
+                <span className="text-red-500 text-sm">
+                  {errors.LastinquiredAt.message}
+                </span>
+              )}
+            </div>
             {/* Admin Notes */}
             <div className="space-y-2">
-              <Label htmlFor="adminNotes" className="text-base font-medium font-sans">
+              <Label htmlFor="admin_notes" className="text-sm font-medium">
                 Admin Notes
               </Label>
               <Input
-                id="adminNotes"
+                id="admin_notes"
                 placeholder="Enter Admin Notes"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("admin_notes")}
@@ -1266,26 +1526,24 @@ export default function DealerAddProducts() {
             </div>
           </CardContent>
         </Card>
-
         {/* SEO & Search Optimization */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600 font-bold text-lg font-sans">
+            <CardTitle className="text-red-600 font-semibold text-lg">
               SEO & Search Optimization
             </CardTitle>
-            <p className="text-sm text-[#737373] font-medium font-sans">
-              Provide the pricing and tax information required for listing and
-              billing.
+            <p className="text-sm text-gray-500">
+              Optimize product visibility and search performance.
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* SEO Title */}
             <div className="space-y-2">
-              <Label htmlFor="seoTitle" className="text-base font-medium font-sans">
+              <Label htmlFor="seo_title" className="text-sm font-medium">
                 SEO Title
               </Label>
               <Input
-                id="seoTitle"
+                id="seo_title"
                 placeholder="Enter SEO Title"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("seo_title")}
@@ -1296,9 +1554,10 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-            {/* Search Tags (chip input) */}
+
+            {/* Search Tags Array (Chips) */}
             <div className="space-y-2">
-              <Label htmlFor="searchTagsArray" className="text-base font-medium font-sans">
+              <Label htmlFor="searchTagsArray" className="text-sm font-medium">
                 Search Tags
               </Label>
               <TagsInput
@@ -1308,7 +1567,7 @@ export default function DealerAddProducts() {
                     : []
                 }
                 onChange={(tags: string[]) => setValue("search_tags", tags)}
-                name="searchTagsArray"
+                name="search_tags"
                 placeHolder="Add tag and press enter"
               />
               {errors.search_tags && (
@@ -1318,12 +1577,12 @@ export default function DealerAddProducts() {
               )}
             </div>
             {/* SEO Description */}
-            <div className="space-y-2">
-              <Label htmlFor="seoDescription" className="text-base font-medium font-sans">
+            <div className="space-y-2 col-span-full">
+              <Label htmlFor="seoDescription" className="text-sm font-medium">
                 SEO Description
               </Label>
               <Input
-                id="seoDescription"
+                id="seo_description"
                 placeholder="Enter SEO Description"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("seo_description")}
@@ -1337,18 +1596,18 @@ export default function DealerAddProducts() {
           </CardContent>
         </Card>
         <div className="flex justify-end pt-4">
-
-          <DynamicButton
-          variant="default"
-          type="submit"
-          customClassName="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
-          disabled={submitLoading}
-          loading={submitLoading}
-          loadingText="Adding..."
-          text="Add Product"
-          />
+          <Button
+            type="submit"
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Updating..." : "Update Product"}
+          </Button>
         </div>
       </form>
+        </>
+      )}
+      
     </div>
   );
 }

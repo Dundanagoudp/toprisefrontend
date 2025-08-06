@@ -4,7 +4,6 @@ import { useParams, useRouter } from "next/navigation"
 import { Productcard } from "../productCard"
 
 const Button = dynamic(() => import("@/components/ui/button").then((mod) => mod.Button), { ssr: false })
-// Dealer type for static data, matching the fields used in the UI
 type Dealer = {
   dealer_id: string
   legal_name: string
@@ -44,10 +43,10 @@ export default function Dealerprofile() {
   const router = useRouter()
   const id = useParams<{ id: string }>()
 
-  const handleEdit = () => {
-    // Use a static ID or the actual ID if available from the URL
-    router.push(`/dealer/dashboard/dealer/edit/${id.id || "static-dealer-id"}`)
-  }
+  // const handleEdit = () => {
+  //   // Use a static ID or the actual ID if available from the URL
+  //   router.push(`/dealer/dashboard/dealer/edit/${id.id || "static-dealer-id"}`)
+  // }
 
   const dealer = staticDealer
 
@@ -64,7 +63,7 @@ export default function Dealerprofile() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="default" className="bg-red-500 hover:bg-red-600 text-white font-mono" onClick={handleEdit}>
+            <Button variant="default" className="bg-red-500 hover:bg-red-600 text-white font-mono" >
               Edit
             </Button>
           </div>
