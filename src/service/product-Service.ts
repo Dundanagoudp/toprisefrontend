@@ -41,6 +41,28 @@ export async function aproveProduct(
     throw error;
   }
 }
+/**
+ * Rejects a product by sending a PATCH request with rejection details
+ * @param data - FormData containing rejection information
+ * @param productId - Unique identifier of the product to reject
+ * @returns Promise resolving to the product rejection response
+ * @throws Re-throws any API errors after logging
+ */
+export async function rejectProduct(
+  data: FormData,
+  productId: string
+): Promise<ProductResponse> {
+  try {
+    const { data: responseData } = await apiClient.patch(
+      `/category/products/v1/reject/${productId}`,
+      data
+    );
+    return responseData;
+  } catch (error) {
+    console.error(`Failed to reject product ${productId}:`, error);
+    throw error;
+  }
+}
 
 export async function deactivateProduct(
   productId: string

@@ -1,11 +1,23 @@
+'use client';
 import Link from "next/link";
+import ContactDialog from "./popup/contactus";
+import { on } from "events";
+import { useState } from "react";
 
 export default function Footer() {
+    const [contactUsOpen, setContactUsOpen] = useState(false);
+    const [isOpen , setIsOpen] = useState<boolean>(false);
+
+  const handleContactUsClick = () => {
+    setContactUsOpen(true);
+    setIsOpen(false);
+  };
+
   const footerLinks = [
-    { label: "About us", href: "#about" },
+    { label: "Contact us", onClick: handleContactUsClick },
   
     { label: "Terms & Conditions", href: "/TermsAndConditions" },
-    { label: "Privacy & Policy", href: "/PrivacyPolicy" },
+    { label: "Privacy Policy", href: "/PrivacyPolicy" },
     { label: "Shipping & Returns", href: "/ShippingAndReturnPolicy" },
     
   ];
@@ -31,12 +43,22 @@ export default function Footer() {
             <nav className="space-y-3">
               {footerLinks.map((link, index) => (
                 <div key={index}>
-                  <Link
-                    href={link.href}
-                    className="text-gray-300 hover:text-white transition-colors duration-200 block"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.href ? (
+                    <Link
+                      href={link.href}
+                      className="text-gray-300 hover:text-white transition-colors duration-200 block"
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={link.onClick}
+                      className="text-gray-300 hover:text-white transition-colors duration-200 block bg-transparent border-none p-0 m-0 cursor-pointer"
+                    >
+                      {link.label}
+                    </button>
+                  )}
                 </div>
               ))}
             </nav>
@@ -50,6 +72,7 @@ export default function Footer() {
           </p>
         </div>
       </div>
+      <ContactDialog  open={contactUsOpen} onClose={() => setContactUsOpen(false)}/>
     </footer>
   );
 }

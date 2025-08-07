@@ -20,27 +20,41 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
+import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
+import { useRouter } from "next/navigation";
 
+// Helper function to get status color classes
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Approved":
+      return "text-green-600 font-medium";
+    case "Rejected":
+      return "text-red-600 font-medium";
+    case "Pending":
+      return "text-yellow-600 font-medium";
+    default:
+      return "text-gray-700";
+  }
+};
 
-export default function CreatedProduct({ searchQuery }: { searchQuery: string }) {
+export default function ApprovedProduct({ searchQuery }: { searchQuery: string }) {
   const dispatch = useAppDispatch();
-  const products = useAppSelector((state) => state.productLiveStatus.products);
+  // Use the correct state for products with live status
+  const allProducts = useAppSelector((state) => state.productLiveStatus.products);
+  const loading = useAppSelector((state) => state.productLiveStatus.loading);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
- const [currentPage, setCurrentPage] = useState(1);
-    const [loading, setLoading] = useState(false);
-   const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const route = useRouter()
+  const itemsPerPage = 10;
 
-  // Fetch products on mount and when page changes
+  // Fetch products on component mount
   useEffect(() => {
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
         const response = await getProducts();
-        setLoadingProducts(false);
-        dispatch(fetchProductsSuccess(response.data));
-        console.log("API Response:", response);
         const data = response.data;
         if (Array.isArray(data)) {
           const mapped = data.map((item) => ({
@@ -55,27 +69,34 @@ export default function CreatedProduct({ searchQuery }: { searchQuery: string })
             liveStatus: item.live_status || "Pending",
           }));
           dispatch(fetchProductsWithLiveStatus(mapped));
-          setTotalProducts(response.data.length || 0);
-        } else {
-          setTotalProducts(0);
         }
       } catch (error) {
         console.error("Failed to fetch products:", error);
-        setTotalProducts(0);
       } finally {
         setLoadingProducts(false);
       }
     };
 
-    fetchProducts();
-  }, [ dispatch]);
+    // Only fetch if we don't have products in the store
+    if (!allProducts || allProducts.length === 0) {
+      fetchProducts();
+    }
+  }, [dispatch, allProducts]);
 
-  // Filter products by search query
+  // Filter products by approved live status and search query
   const filteredProducts = React.useMemo(() => {
-    if (!products) return [];
-    if (!searchQuery || searchQuery.trim() === "") return products;
+    if (!allProducts || !Array.isArray(allProducts)) return [];
+    
+    // First filter by approved live status
+    const approvedProducts = allProducts.filter(
+      (product: any) => product.liveStatus === "Approved"
+    );
+    
+    // Then filter by search query if provided
+    if (!searchQuery || searchQuery.trim() === "") return approvedProducts;
+    
     const q = searchQuery.trim().toLowerCase();
-    return products.filter(
+    return approvedProducts.filter(
       (product: any) =>
         product.name?.toLowerCase().includes(q) ||
         product.category?.toLowerCase().includes(q) ||
@@ -83,40 +104,52 @@ export default function CreatedProduct({ searchQuery }: { searchQuery: string })
         product.subCategory?.toLowerCase().includes(q) ||
         product.productType?.toLowerCase().includes(q)
     );
-  }, [products, searchQuery]);
-      const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-    const paginatedData = filteredProducts.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
+  }, [allProducts, searchQuery]);
+
+  // Update total products count when filtered products change
+  useEffect(() => {
+    setTotalProducts(filteredProducts.length);
+  }, [filteredProducts]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedData = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   // Selection handlers
   const handleSelectOne = (id: string) => {
-    setSelectedProducts((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-    );
+    const newSelectedProducts = selectedProducts.includes(id) 
+      ? selectedProducts.filter((pid) => pid !== id) 
+      : [...selectedProducts, id];
+    setSelectedProducts(newSelectedProducts);
+    // Always dispatch as array of product IDs
+    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
+
   const allSelected =
     filteredProducts.length > 0 &&
     filteredProducts.every((p: any) => selectedProducts.includes(p.id));
+
   const handleSelectAll = () => {
-    setSelectedProducts(
-      allSelected ? [] : filteredProducts.map((p: any) => p.id)
-    );
+    const newSelectedProducts = allSelected ? [] : filteredProducts.map((p: any) => p.id);
+    setSelectedProducts(newSelectedProducts);
+    // Always dispatch as array of product IDs
+    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
-  // Dummy handlers for edit/view (replace with navigation if needed)
+
   const handleEditProduct = (id: string) => {
     // Implement navigation or modal logic here
-    alert(`Edit product ${id}`);
+       route.push(`/user/dashboard/product/productedit/${id}`);
   };
   const handleViewProduct = (id: string) => {
-    // Implement navigation or modal logic here
-    alert(`View product ${id}`);
+    route.push(`/user/dashboard/product/product-details/${id}`);
   };
 
+
   return (
-    <div>
+    <div className="px-4">
       <Table>
         <TableHeader>
           <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
@@ -134,6 +167,7 @@ export default function CreatedProduct({ searchQuery }: { searchQuery: string })
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display]">Brand</TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">Type</TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">QC Status</TableHead>
+            <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">Product status</TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">Action</TableHead>
           </TableRow>
         </TableHeader>
@@ -182,6 +216,11 @@ export default function CreatedProduct({ searchQuery }: { searchQuery: string })
               </TableCell>
               <TableCell className="px-6 py-4 font-[Red Hat Display]">
                 <span className={`b2 `}>{product.qcStatus}</span>
+              </TableCell>
+              <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                <span className={`b2 ${getStatusColor(product.liveStatus)}`}>
+                  {product.liveStatus}
+                </span>
               </TableCell>
               <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
                 <DropdownMenu>
