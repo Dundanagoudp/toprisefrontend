@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Red_Hat_Display, Poppins } from "next/font/google";
+import { Plus_Jakarta_Sans, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/store/provider";
 import { ToastProvider } from "@/components/ui/toast";
 
-const redHatDisplay = Red_Hat_Display({
-  variable: "--font-red-hat-display",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],
 });
 
@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${redHatDisplay.variable} ${poppins.variable} antialiased`}
+        className={`${plusJakartaSans.variable} ${poppins.variable} antialiased`}
       >
         <ToastProvider>
           <Providers>{children}</Providers>
