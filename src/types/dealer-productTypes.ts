@@ -183,3 +183,15 @@ export interface PermissionCheckResponse {
   };
 }
 
+// --- Update Stock By Dealer API Types ---
+export interface UpdateStockByDealerRequest {
+  dealerId: string;
+  quantity: number;
+}
+
+export interface UpdateStockByDealerResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+}
+

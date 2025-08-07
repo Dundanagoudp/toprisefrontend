@@ -3,7 +3,9 @@ import {
   DealerOrdersApiResponse, 
   DealerOrder,
   UpdateOrderStatusRequest,
-  UpdateOrderStatusResponse 
+  UpdateOrderStatusResponse,
+  DealerPickList,
+  DealerPickListApiResponse
 } from "@/types/dealerOrder-types";
 import { getCookie, getAuthToken } from "@/utils/auth";
 
@@ -87,3 +89,21 @@ export const updateOrderStatusByDealer = async (
   }
 };
 
+/**
+ * Get dealer pick list by dealer ID
+ * @param dealerId - The dealer ID to fetch pick list for
+ * @returns Promise<DealerPickList[]>
+ */
+export const getDealerPickList = async (dealerId: string): Promise<DealerPickList[]> => {
+  try {
+    const response = await apiClient.get<DealerPickListApiResponse>(
+      `/orders/api/orders/picklists/dealer/${dealerId}`
+    );
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching dealer pick list:", error);
+    throw error;
+  }
+};
+
+//  Picklist of orders
