@@ -175,7 +175,7 @@ const handleBulkReject = useCallback(() => {
          );
          // Update Redux for all deactivated products
          updatedProducts.forEach((id) => {
-           dispatch(updateProductLiveStatus({ id, liveStatus: "Deactivated" }));
+           dispatch(updateProductLiveStatus({ id, liveStatus: "Pending" }));
          });
           showToast("Deactivated successfully", "success");
     
@@ -390,6 +390,7 @@ const handleBulkReject = useCallback(() => {
            
               }}
             />
+            
     </div>
   );
 }
