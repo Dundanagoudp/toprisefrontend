@@ -1,11 +1,14 @@
 "use client"
 import dynamic from "next/dynamic"
 import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Productcard } from "../productCard"
+import { getCurrentDealerProfile } from "@/service/dealer-profile"
+import type { DealerProfile } from "@/types/dealer-profiletypes"
 
 const Button = dynamic(() => import("@/components/ui/button").then((mod) => mod.Button), { ssr: false })
-// Dealer type for static data, matching the fields used in the UI
-type Dealer = {
+
+type DealerDisplay = {
   dealer_id: string
   legal_name: string
   trade_name: string
@@ -22,34 +25,86 @@ type Dealer = {
   sla_max_dispatch_time: number
 }
 
-// Static data for the dealer, matching the screenshot content
-const staticDealer: Dealer = {
-  dealer_id: "DLR302",
-  legal_name: "Shree Auto Spares Pvt Ltd",
-  trade_name: "ShreeAuto",
-  gstin: "27ABCDE1234F1Z2",
-  pan: "ABCDE1234F",
-  state: "Maharashtra",
-  pincode: "411026",
-  address: "Plot 14, MIDC Bhosari, Pune",
-  contact_person: "Rakesh Jadhav",
-  mobile_number: "+91 98200 12345",
-  email: "dealer@shreeauto.in",
-  default_margin_percent: 18.0,
-  sla_type: "SLA Type", 
-  sla_max_dispatch_time: 24,
-}
-
 export default function Dealerprofile() {
   const router = useRouter()
-  const id = useParams<{ id: string }>()
+  const params = useParams<{ id: string }>()
+  const [dealer, setDealer] = useState<DealerDisplay | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleEdit = () => {
-    // Use a static ID or the actual ID if available from the URL
-    router.push(`/dealer/dashboard/dealer/edit/${id.id || "static-dealer-id"}`)
+  useEffect(() => {
+    const fetchDealerProfile = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Get dealer profile from API
+        const dealerProfile = await getCurrentDealerProfile()
+        
+        // Transform API data to display format
+        const displayData: DealerDisplay = {
+          dealer_id: dealerProfile._id || "N/A",
+          legal_name: dealerProfile.username || "N/A",
+          trade_name: dealerProfile.username || "N/A",
+          gstin: "N/A", 
+          pan: "N/A", // Not available in current API response
+          state: "N/A", // Not available in current API response
+          pincode: "N/A", // Not available in current API response
+          address: dealerProfile.address?.length > 0 ? dealerProfile.address[0]?.street || "N/A" : "N/A",
+          contact_person: dealerProfile.username || "N/A",
+          mobile_number: dealerProfile.phone_Number || "N/A",
+          email: dealerProfile.email || "N/A",
+          default_margin_percent: 0, // Not available in current API response
+          sla_type: "N/A", // Not available in current API response
+          sla_max_dispatch_time: 0, // Not available in current API response
+        }
+        
+        setDealer(displayData)
+      } catch (err) {
+        console.error("Error fetching dealer profile:", err)
+        setError(err instanceof Error ? err.message : "Failed to fetch dealer profile")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDealerProfile()
+  }, [])
+
+  // const handleEdit = () => {
+  //   // Navigate to edit page with current dealer ID
+  //   const dealerId = dealer?.dealer_id || params.id
+  //   router.push(`/dealer/dashboard/dealer/edit/${dealerId}`)
+  // }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dealer profile...</p>
+        </div>
+      </div>
+    )
   }
 
-  const dealer = staticDealer
+  if (error) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">Error</div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="default"
+            className="bg-blue-500 hover:bg-blue-600"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -57,16 +112,19 @@ export default function Dealerprofile() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-
             <div className="ml-2">
               <h1 className="text-xl md:text-2xl font-bold text-gray-900 ">Personal Details</h1>
               <p className="text-base font-medium font-sans text-gray-500">Add your personal Details</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="default" className="bg-red-500 hover:bg-red-600 text-white font-mono" onClick={handleEdit}>
+            {/* <Button 
+              variant="default" 
+              className="bg-red-500 hover:bg-red-600 text-white font-mono"
+              onClick={handleEdit}
+            >
               Edit
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>
