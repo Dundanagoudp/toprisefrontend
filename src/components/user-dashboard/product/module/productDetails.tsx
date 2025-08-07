@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,12 +18,14 @@ import { aproveProduct, deactivateProduct } from "@/service/product-Service";
 import DynamicButton from "../../../common/button/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchProductByIdSuccess, fetchProductByIdRequest, fetchProductByIdFailure } from "@/store/slice/product/productByIdSlice";
+import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
 
 export default function ViewProductDetails() {
   const [status, setStatus] = React.useState<string>("Created");
   const [product, setProduct] = React.useState<Product | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [isEditLoading, setIsEditLoading] = React.useState<boolean>(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const id = useParams<{ id: string }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -50,6 +52,9 @@ export default function ViewProductDetails() {
       await aproveProduct(id.id);
     } else if (newStatus === "Pending") {
       await deactivateProduct(id.id);
+    }
+    else if (newStatus === "Rejected") {
+      setIsRejectDialogOpen(true);
     }
   };
   const handleEdit = (idObj: { id: string }) => {
@@ -426,6 +431,15 @@ export default function ViewProductDetails() {
           </div>
         </div>
       </div>
+           <RejectReason
+                    isOpen={isRejectDialogOpen}
+                    onClose={() => setIsRejectDialogOpen(false)}
+                    onSubmit={(data) => {
+                   
+                      setIsRejectDialogOpen(false);
+                 
+                    }}
+                  />
     </div>
   );
 }
