@@ -36,7 +36,7 @@ const routeList: RouteProps[] = [
   },
   {
     href: "/PrivacyPolicy",
-    label: "Privacy and Policy",
+    label: "Privacy Policy",
   },
   {
     href: "/ShippingAndReturnPolicy",

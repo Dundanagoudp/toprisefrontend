@@ -135,7 +135,7 @@ const getStatusColor = (status: string) => {
 
 export default function ProductManagement() {
   const payload = getTokenPayload();
-  const auth = useAppSelector((state) => state.auth.user);
+  const auth = useAppSelector((state) => state.auth);
   const products = useAppSelector((state) => state.productLiveStatus.products);
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
   const product = useAppSelector((state) => state.product.products);
@@ -144,8 +144,7 @@ export default function ProductManagement() {
   const route = useRouter();
   const { showToast } = useGlobalToast();
 
-  const isAllowed =
-    payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
+
 
   const [searchInput, setSearchInput] = useState(""); // Input field value
   const [searchQuery, setSearchQuery] = useState(""); // Actual search query for filtering
@@ -165,6 +164,7 @@ export default function ProductManagement() {
   const [viewProductLoading, setViewProductLoading] = useState<string | null>(
     null
   );
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
 
   const cardsPerPage = 10;
 
@@ -480,6 +480,15 @@ export default function ProductManagement() {
       </div>
     );
   }
+      if (!auth || !allowedRoles.includes(auth.user.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -515,8 +524,8 @@ export default function ProductManagement() {
             </div>
             {/* Right: Upload, Add Product */}
             <div className="flex items-center gap-3 w-full lg:w-auto justify-start grid-ro-2 sm:justify-end">
-              {(auth?.role === "Super-admin" ||
-                auth?.role === "Inventory-admin") && (
+              {(auth?.user.role === "Super-admin" ||
+                auth?.user.role === "Inventory-admin") && (
                 <>
                   <DynamicButton
                     variant="default"
