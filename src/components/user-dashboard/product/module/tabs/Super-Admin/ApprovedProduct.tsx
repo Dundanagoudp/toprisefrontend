@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchProductsWithLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
-import { getProducts } from "@/service/product-Service";
+import { aproveProduct, deactivateProduct, getProducts } from "@/service/product-Service";
 
 import Image from "next/image";
 import {
@@ -18,10 +18,11 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { ChevronDown, MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -47,6 +48,7 @@ export default function ApprovedProduct({ searchQuery }: { searchQuery: string }
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
   const route = useRouter()
+  const {showToast} = useGlobalToast();
   const itemsPerPage = 10;
 
   // Fetch products on component mount
@@ -146,6 +148,24 @@ export default function ApprovedProduct({ searchQuery }: { searchQuery: string }
   const handleViewProduct = (id: string) => {
     route.push(`/user/dashboard/product/product-details/${id}`);
   };
+  const handleStatusChange = async (productId: string, newStatus: string) => {
+    try {
+      if(newStatus === "Active") {
+          await aproveProduct(productId);
+          showToast('Product activated successfully', 'success');
+       
+      }
+      else if(newStatus === "Inactive") {
+        await deactivateProduct(productId);
+        showToast('Product deactivated successfully', 'success');
+      }
+    
+     
+    } catch (error) {
+      console.error("Failed to update product status:", error);
+      showToast('Failed to update product status', 'error');
+    }
+  };
 
 
   return (
@@ -214,9 +234,33 @@ export default function ApprovedProduct({ searchQuery }: { searchQuery: string }
               <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
                 <span className="text-gray-700 b2 font-[Red Hat Display]">{product.productType}</span>
               </TableCell>
-              <TableCell className="px-6 py-4 font-[Red Hat Display]">
-                <span className={`b2 `}>{product.qcStatus}</span>
-              </TableCell>
+             <TableCell className="px-6 py-4 font-[Red Hat Display]">
+               <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                   <Button 
+                     variant="ghost" 
+                     className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(product.liveStatus)}`}
+                   >
+                     <span className="b2">{product.liveStatus}</span>
+                     <ChevronDown className="h-4 w-4 ml-2" />
+                   </Button>
+                 </DropdownMenuTrigger>
+                 <DropdownMenuContent align="start" className="min-w-[120px]">
+                   <DropdownMenuItem 
+                     onClick={() => handleStatusChange(product.id, "Active")}
+                     className="text-green-600 focus:text-green-600"
+                   >
+                     Activate
+                   </DropdownMenuItem>
+                   <DropdownMenuItem 
+                     onClick={() => handleStatusChange(product.id, "Inactive")}
+                     className="text-red-600 focus:text-red-600"
+                   >
+                     Deactivate
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
+               </DropdownMenu>
+             </TableCell>
               <TableCell className="px-6 py-4 font-[Red Hat Display]">
                 <span className={`b2 ${getStatusColor(product.liveStatus)}`}>
                   {product.liveStatus}
