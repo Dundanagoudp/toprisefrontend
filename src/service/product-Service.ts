@@ -11,8 +11,6 @@ export async function getProducts(): Promise<ProductResponse> {
   }
 }
 
-
-
 export async function uploadBulkProducts(
   formData: FormData
 ): Promise<ProductResponse> {
@@ -335,3 +333,4 @@ export async function uploadLogs(
     throw error;
   }
 }
+

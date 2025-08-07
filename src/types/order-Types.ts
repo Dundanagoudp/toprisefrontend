@@ -2,10 +2,7 @@ export interface orderResponse {
     success: boolean;
     message: string;
     data: Order[];
-    
 }
-
-
 interface Order {
   _id: string;
   orderId: string;
