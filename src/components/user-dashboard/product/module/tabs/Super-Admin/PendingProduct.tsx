@@ -310,7 +310,7 @@ export default function PendingProduct({
             onClick={() => handleViewProduct(product.id)}
           >
             <div className="font-medium text-gray-900 b2 font-sans">
-              {product.name}
+              {product.name.length > 8 ? `${product.name.substring(0, 8)}...` : product.name}
             </div>
             <div className="text-xs text-gray-500 mt-1 md:hidden">
               {product.category} • {product.brand}
@@ -318,12 +318,12 @@ export default function PendingProduct({
           </TableCell>
           <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
             <span className="text-gray-700 b2 font-sans">
-              {product.category}
+              {product.category.length > 8 ? `${product.category.substring(0, 8)}...` : product.category}
             </span>
           </TableCell>
           <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
             <span className="text-gray-700 b2 font-[Red Hat Display]">
-              {product.subCategory}
+              {product.subCategory.length > 8 ? `${product.subCategory.substring(0, 8)}...` : product.subCategory}
             </span>
           </TableCell>
           <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">

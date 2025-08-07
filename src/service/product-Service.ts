@@ -75,6 +75,51 @@ export async function deactivateProduct(
     throw error;
   }
 }
+export async function approveBulkProducts
+(
+  data: string | any
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.patch(
+      `/category/products/v1/bulk/approve`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to approve product:", error);
+    throw error;
+  }
+}
+export async function deactivateBulkProducts
+(
+  data: string | any
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.patch(
+      `/category/products/v1/deactivateProduct/bulk`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to  deactivate product:", error);
+    throw error;
+  }
+}
+export async function rejectBulkProducts
+(
+  data: string | any
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.patch(
+      `/category/products/v1/bulk/reject`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to reject product:", error);
+    throw error;
+  }
+}
 
 export async function getCategories(): Promise<ProductResponse> {
   try {

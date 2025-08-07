@@ -234,14 +234,14 @@ export default function RejectedProduct({ searchQuery }: { searchQuery: string }
                 className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
                 onClick={() => handleViewProduct(product.id)}
               >
-                <div className="font-medium text-gray-900 b2 font-sans ">{product.name}</div>
+                <div className="font-medium text-gray-900 b2 font-sans ">{product.name.length>8?product.name.slice(0,8)+"...":product.name}</div>
                 <div className="text-xs text-gray-500 mt-1 md:hidden">{product.category} • {product.brand}</div>
               </TableCell>
               <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-                <span className="text-gray-700 b2 font-sans">{product.category}</span>
+                <span className="text-gray-700 b2 font-sans">{product.category.length>8?product.category.slice(0,8)+"...":product.category}</span>
               </TableCell>
               <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-                <span className="text-gray-700 b2 font-[Red Hat Display]">{product.subCategory}</span>
+                <span className="text-gray-700 b2 font-[Red Hat Display]">{product.subCategory.length>8?product.subCategory.slice(0,8)+"...":product.subCategory}</span>
               </TableCell>
               <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
                 <span className="text-gray-700 b2 font-[Red Hat Display]">{product.brand}</span>
