@@ -166,6 +166,7 @@ const getStatusColor = (status: string) => {
     setViewProductLoading(true);
     try{
       route.push(`/user/dashboard/product/product-details/${id}`);
+      dispatch(fetchProductIdForBulkActionSuccess([id]));
     }catch(e){
       console.log(e);
     }

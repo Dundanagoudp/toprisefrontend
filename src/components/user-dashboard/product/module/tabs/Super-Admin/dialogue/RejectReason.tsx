@@ -67,13 +67,14 @@ export default function RejectReason( { isOpen, onClose }: RejectReasonProps) {
         if (Array.isArray(selectedProducts) && selectedProducts.length > 0) {
       for (const productId of selectedProducts) {
         await rejectProduct(payload, productId);
+         showToast("Rejected successfully", "success")
         dispatch(updateProductLiveStatus({ id: productId, liveStatus: "Rejected" }));
         await new Promise(resolve => setTimeout(resolve, 1000))
       }
     }
         
         
-        showToast("Brand created successfully!", "success")
+       
         
         // Reset form and close dialog
         reset()
