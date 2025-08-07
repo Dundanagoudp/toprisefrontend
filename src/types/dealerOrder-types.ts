@@ -105,3 +105,33 @@ export enum PaymentType {
   PREPAID = "Prepaid",
   CREDIT = "Credit"
 }
+
+// Dealer Pick List Item Interface
+export interface DealerPickListItem {
+  sku: string;
+  quantity: number;
+  barcode: string;
+  _id: string;
+}
+
+// Dealer Pick List Interface
+export interface DealerPickList {
+  _id: string;
+  linkedOrderId: string;
+  dealerId: string;
+  fulfilmentStaff: string;
+  skuList: DealerPickListItem[];
+  scanStatus: string;
+  invoiceGenerated: boolean;
+  updatedAt: string;
+  createdAt: string;
+  __v: number;
+  dealerInfo: any;
+}
+
+// Dealer Pick List API Response
+export interface DealerPickListApiResponse {
+  success: boolean;
+  message: string;
+  data: DealerPickList[];
+}

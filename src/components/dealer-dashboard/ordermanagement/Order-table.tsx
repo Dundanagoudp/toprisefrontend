@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Filter, ChevronDown, Edit, Eye, MoreHorizontal } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -11,13 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
@@ -38,8 +30,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
-import { getOrdersByDealerId, updateOrderStatusByDealer } from "@/service/dealerOrder-services";
-import { DealerOrder } from "@/types/dealerOrder-types";
+import { getOrdersByDealerId, updateOrderStatusByDealer, getDealerPickList } from "@/service/dealerOrder-services";
+import { DealerOrder, DealerPickList } from "@/types/dealerOrder-types";
 import {
   fetchOrdersFailure,
   fetchOrdersRequest,
@@ -50,6 +42,7 @@ import useDebounce from "@/utils/useDebounce";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import DealerProductsModal from "./DealerProductsModal";
 import { getCookie, getAuthToken } from "@/utils/auth";
+import PickListModal from "./PickListModal";
 
 interface Order {
   id: string;
@@ -83,6 +76,12 @@ export default function OrdersTable() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedOrderProducts, setSelectedOrderProducts] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState("");
+
+  // Pick List Modal state
+  const [pickListModalOpen, setPickListModalOpen] = useState(false);
+  const [pickListData, setPickListData] = useState<DealerPickList[]>([]);
+  const [pickListOrderId, setPickListOrderId] = useState("");
+  const [pickListLoading, setPickListLoading] = useState(false);
 
   // Filtered orders must be declared before pagination logic
   const [currentPage, setCurrentPage] = useState(1);
@@ -164,6 +163,27 @@ export default function OrdersTable() {
     } catch (error) {
       console.error("Error updating order status:", error);
       showToast("Failed to update order status. Please try again.", "error");
+    }
+  };
+
+  const handleViewPickList = async (order: any) => {
+    setPickListOrderId(order.orderId);
+    setPickListLoading(true);
+    try {
+      // Try to get dealerId from order.dealerMapping[0].dealerId
+      const dealerId = order.dealerMapping && order.dealerMapping[0]?.dealerId;
+      if (!dealerId) {
+        showToast("Dealer ID not found for this order.", "error");
+        setPickListLoading(false);
+        return;
+      }
+      const data = await getDealerPickList(dealerId);
+      setPickListData(data);
+      setPickListModalOpen(true);
+    } catch (error) {
+      showToast("Failed to fetch pick list.", "error");
+    } finally {
+      setPickListLoading(false);
     }
   };
 
@@ -379,7 +399,7 @@ export default function OrdersTable() {
                         </TableCell>
                         <TableCell
                           className="px-6 py-4 font-medium cursor-pointer hover:text-blue-600"
-                          onClick={() => handleViewOrder(order.id)}
+                          onClick={() => handleViewPickList(order)}
                         >
                           {order.orderId}
                         </TableCell>
@@ -473,6 +493,14 @@ export default function OrdersTable() {
         onClose={() => setViewModalOpen(false)}
         products={selectedOrderProducts}
         orderId={selectedOrderId}
+      />
+
+      {/* Pick List Modal */}
+      <PickListModal
+        isOpen={pickListModalOpen}
+        onClose={() => setPickListModalOpen(false)}
+        pickLists={pickListData}
+        orderId={pickListOrderId}
       />
     </div>
   );

@@ -1008,8 +1008,8 @@ export default function DealerAddProducts() {
         </Card>
 
         {/* Pricing details */}
-        <Card className="border-gray-200 shadow-sm">
-          <CardHeader>
+        {/* <Card className="border-gray-200 shadow-sm"> */}
+          {/* <CardHeader>
             <CardTitle className="text-red-600 font-bold text-lg font-sans">
               Pricing & Tax
             </CardTitle>
@@ -1017,10 +1017,10 @@ export default function DealerAddProducts() {
               Provide the pricing and tax information required for listing and
               billing.
             </p>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          </CardHeader> */}
+          {/* <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
             {/* MRP (with GST) */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="mrp" className="text-base font-medium font-sans">
                 MRP (with GST)
               </Label>
@@ -1036,9 +1036,9 @@ export default function DealerAddProducts() {
                   {errors.mrp_with_gst.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Selling Price (Required) */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="selling_price" className="text-base font-medium font-sans">
                 Selling Price <span className="text-red-500">*</span>
               </Label>
@@ -1059,9 +1059,9 @@ export default function DealerAddProducts() {
                   {errors.selling_price.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* GST % */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="gst" className="text-base font-medium font-sans">
                 GST %
               </Label>
@@ -1079,9 +1079,9 @@ export default function DealerAddProducts() {
                   {errors.gst_percentage.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Returnable */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="returnable" className="text-base font-medium font-sans">
                 Returnable
               </Label>
@@ -1107,9 +1107,9 @@ export default function DealerAddProducts() {
                   {errors.is_returnable.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Return Policy */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="returnPolicy" className="text-base font-medium font-sans">
                 Return Policy
               </Label>
@@ -1124,9 +1124,9 @@ export default function DealerAddProducts() {
                   {errors.return_policy.message}
                 </span>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </div> */}
+          {/* </CardContent> */}
+        {/* </Card> */}
 
         {/* Dealer-Level Mapping & Routing */}
         <Card className="border-gray-200 shadow-sm">
@@ -1139,23 +1139,6 @@ export default function DealerAddProducts() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Available Dealers */}
-            <div className="space-y-2">
-              <Label htmlFor="availableDealers" className="text-base font-medium font-sans">
-                Available Dealers
-              </Label>
-              <Input
-                id="availableDealers"
-                placeholder="Enter Available Dealers"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("availableDealers")}
-              />
-              {errors.availableDealers && (
-                <span className="text-red-500 text-sm">
-                  {errors.availableDealers.message}
-                </span>
-              )}
-            </div>
             {/* Quantity per Dealer */}
             <div className="space-y-2">
               <Label
@@ -1177,110 +1160,23 @@ export default function DealerAddProducts() {
               )}
             </div>
             {/* Dealer Margin % */}
-            <div className="space-y-2">
-              <Label htmlFor="dealerMargin" className="text-base font-medium font-sans">
-                Dealer Margin %
-              </Label>
-              <Input
-                id="dealerMargin"
-                placeholder="Enter Margin"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("dealerMargin")}
-              />
-              {errors.dealerMargin && (
-                <span className="text-red-500 text-sm">
-                  {errors.dealerMargin.message}
-                </span>
-              )}
-            </div>
-            {/* Dealer Priority Override */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="dealerPriorityOverride"
-                className="text-base font-medium font-sans"
-              >
-                Dealer Priority Override
-              </Label>
-              <Input
-                id="dealerPriorityOverride"
-                placeholder="Enter Override"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("dealerPriorityOverride")}
-              />
-              {errors.dealerPriorityOverride && (
-                <span className="text-red-500 text-sm">
-                  {errors.dealerPriorityOverride.message}
-                </span>
-              )}
-            </div>
-            {/* Stock Expiry Rule */}
-            <div className="space-y-2">
-              <Label htmlFor="stockExpiryRule" className="text-base font-medium font-sans">
-                Stock Expiry Rule
-              </Label>
-              <Input
-                id="stockExpiryRule"
-                placeholder="Enter Rule"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("stockExpiryRule")}
-              />
-              {errors.stockExpiryRule && (
-                <span className="text-red-500 text-sm">
-                  {errors.stockExpiryRule.message}
-                </span>
-              )}
-            </div>
-            {/* Last Stock Update */}
-            <div className="space-y-2">
-              <Label htmlFor="lastStockUpdate" className="text-base font-medium font-sans">
-                Last Stock Update
-              </Label>
-              <Input
-                id="lastStockUpdate"
-                placeholder="Enter Update"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("lastStockUpdate")}
-              />
-              {errors.lastStockUpdate && (
-                <span className="text-red-500 text-sm">
-                  {errors.lastStockUpdate.message}
-                </span>
-              )}
-            </div>
-            {/* Admin Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="adminNotes" className="text-base font-medium font-sans">
-                Admin Notes
-              </Label>
-              <Input
-                id="adminNotes"
-                placeholder="Enter Admin Notes"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("admin_notes")}
-              />
-              {errors.admin_notes && (
-                <span className="text-red-500 text-sm">
-                  {errors.admin_notes.message}
-                </span>
-              )}
-            </div>
           </CardContent>
         </Card>
 
         {/* SEO & Search Optimization */}
-        <Card className="border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-red-600 font-bold text-lg font-sans">
+        {/* <Card className="border-gray-200 shadow-sm">
+          <CardHeader> */}
+            {/* <CardTitle className="text-red-600 font-bold text-lg font-sans">
               SEO & Search Optimization
-            </CardTitle>
-            <p className="text-sm text-[#737373] font-medium font-sans">
+            </CardTitle> */}
+            {/* <p className="text-sm text-[#737373] font-medium font-sans">
               Provide the pricing and tax information required for listing and
               billing.
-            </p>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </p> */}
+          {/* </CardHeader> */}
+          {/* <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
             {/* SEO Title */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="seoTitle" className="text-base font-medium font-sans">
                 SEO Title
               </Label>
@@ -1295,9 +1191,9 @@ export default function DealerAddProducts() {
                   {errors.seo_title.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Search Tags (chip input) */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="searchTagsArray" className="text-base font-medium font-sans">
                 Search Tags
               </Label>
@@ -1316,9 +1212,9 @@ export default function DealerAddProducts() {
                   {errors.search_tags.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* SEO Description */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="seoDescription" className="text-base font-medium font-sans">
                 SEO Description
               </Label>
@@ -1333,9 +1229,9 @@ export default function DealerAddProducts() {
                   {errors.seo_description.message}
                 </span>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </div> */}
+          {/* </CardContent>
+        </Card> */}
         <div className="flex justify-end pt-4">
 
           <DynamicButton
