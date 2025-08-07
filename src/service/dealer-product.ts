@@ -41,8 +41,6 @@ export const getProductsByDealerId = async (dealerId?: string): Promise<Product[
     throw error;
   }
 };
-
-
 //  check permission for dealer to access product
 
 export const checkDealerProductPermission = async (dealerId: string): Promise<PermissionCheckResponse> => {
@@ -56,6 +54,30 @@ export const checkDealerProductPermission = async (dealerId: string): Promise<Pe
     return response.data;
   } catch (error) {
     console.error("Error checking dealer product permission:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update stock for a product by dealer
+ * @param productId - Product ID (path param)
+ * @param dealerId - Dealer ID (in body)
+ * @param quantity - New quantity (in body)
+ */
+export const updateStockByDealer = async (
+  productId: string,
+  dealerId: string,
+  quantity: number
+) => {
+  try {
+    // Use 'dealerId' as the field name in the request body
+    const response = await apiClient.put(`/category/products/v1/update-stockByDealer/${productId}`, {
+      dealerId,
+      quantity,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating stock by dealer:', error);
     throw error;
   }
 };

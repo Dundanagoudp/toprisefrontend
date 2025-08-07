@@ -16,10 +16,13 @@ import SearchInput from "@/components/common/search/SearchInput"
 import DynamicButton from "@/components/common/button/button"
 import DataTable from "@/components/common/table/DataTable"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
+import UpdateStockModal from "./modules/UpdateStockModal";
 
 // API and Types
-import { getProductsByDealerId, checkDealerProductPermission } from "@/service/dealer-product";
-import { Product, PermissionCheckResponse } from "@/types/dealer-productTypes";
+import { getProductsByDealerId, checkDealerProductPermission, updateStockByDealer } from "@/service/dealer-product";
+import { Product, PermissionCheckResponse, UpdateStockByDealerRequest } from "@/types/dealer-productTypes";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -191,6 +194,10 @@ export default function DealerAssignTable() {
   const [viewProductLoading, setViewProductLoading] = useState<string | null>(null)
   const [permission, setPermission] = useState<PermissionCheckResponse | null>(null);
   const [loadingPermission, setLoadingPermission] = useState(true);
+  const [showUpdateStockModal, setShowUpdateStockModal] = useState(false);
+  const [updateStockProduct, setUpdateStockProduct] = useState<Product | null>(null);
+  const [updateStockLoading, setUpdateStockLoading] = useState(false);
+  const [updateStockQuantity, setUpdateStockQuantity] = useState<number>(0);
 
   const cardsPerPage = 10
 
@@ -362,6 +369,89 @@ export default function DealerAssignTable() {
   const handleEditProduct = (id: string) => {
     router.push(`/dealer/dashboard/product/productedit/${id}`)
   }
+
+  // Handler for Updated Stocks
+  const handleUpdatedStocks = (id: string) => {
+    const product = products.find((p) => p._id === id);
+    if (!product) return;
+    // Find dealer info for this dealer (assume dealerId is available)
+    let dealerId = undefined;
+    try {
+      const { getCookie, getAuthToken } = require("@/utils/auth");
+      dealerId = getCookie("dealerId");
+      if (!dealerId) {
+        const token = getAuthToken();
+        if (token) {
+          const payloadBase64 = token.split(".")[1];
+          if (payloadBase64) {
+            const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+            const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+            const payloadJson = atob(paddedBase64);
+            const payload = JSON.parse(payloadJson);
+            dealerId = payload.dealerId || payload.id;
+          }
+        }
+      }
+    } catch {}
+    if (!dealerId) {
+      showToast("Dealer ID not found.", "error");
+      return;
+    }
+    // Find dealer's stock for this product
+    const dealerStock = product.available_dealers?.find((d) => d.dealers_Ref === dealerId);
+    setUpdateStockProduct(product);
+    setUpdateStockQuantity(dealerStock?.quantity_per_dealer || 0);
+    setShowUpdateStockModal(true);
+  };
+
+  const handleUpdateStockSubmit = async () => {
+    if (!updateStockProduct) return;
+    setUpdateStockLoading(true);
+    let dealerId = undefined;
+    try {
+      const { getCookie, getAuthToken } = require("@/utils/auth");
+      dealerId = getCookie("dealerId");
+      if (!dealerId) {
+        const token = getAuthToken();
+        if (token) {
+          const payloadBase64 = token.split(".")[1];
+          if (payloadBase64) {
+            const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+            const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+            const payloadJson = atob(paddedBase64);
+            const payload = JSON.parse(payloadJson);
+            dealerId = payload.dealerId || payload.id;
+          }
+        }
+      }
+    } catch {}
+    if (!dealerId) {
+      showToast("Dealer ID not found.", "error");
+      setUpdateStockLoading(false);
+      return;
+    }
+    try {
+      await updateStockByDealer(updateStockProduct._id, dealerId, updateStockQuantity);
+      showToast("Stock updated successfully!", "success");
+      // Update local state
+      setProducts((prev) => prev.map((p) => {
+        if (p._id === updateStockProduct._id) {
+          return {
+            ...p,
+            available_dealers: p.available_dealers?.map((d) =>
+              d.dealers_Ref === dealerId ? { ...d, quantity_per_dealer: updateStockQuantity } : d
+            ) || [],
+          };
+        }
+        return p;
+      }));
+      setShowUpdateStockModal(false);
+    } catch (err) {
+      showToast("Failed to update stock.", "error");
+    } finally {
+      setUpdateStockLoading(false);
+    }
+  };
 
   // Handlers for Bulk upload
   const handleUploadBulk = () => {
@@ -535,6 +625,33 @@ export default function DealerAssignTable() {
                   header: "Status",
                   render: (product: Product) => getStatusBadge(product.live_status),
                 },
+                {
+                  key: "quantity_per_dealer",
+                  header: "Quantity",
+                  render: (product: Product) => {
+                    // Find dealerId
+                    let dealerId = undefined;
+                    try {
+                      const { getCookie, getAuthToken } = require("@/utils/auth");
+                      dealerId = getCookie("dealerId");
+                      if (!dealerId) {
+                        const token = getAuthToken();
+                        if (token) {
+                          const payloadBase64 = token.split(".")[1];
+                          if (payloadBase64) {
+                            const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+                            const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+                            const payloadJson = atob(paddedBase64);
+                            const payload = JSON.parse(payloadJson);
+                            dealerId = payload.dealerId || payload.id;
+                          }
+                        }
+                      }
+                    } catch {}
+                    const dealerStock = product.available_dealers?.find((d) => d.dealers_Ref === dealerId);
+                    return dealerStock?.quantity_per_dealer ?? "-";
+                  },
+                },
               ]}
               actions={[
                 ...(canViewProduct ? [{
@@ -544,6 +661,10 @@ export default function DealerAssignTable() {
                 ...(canEditProduct ? [{
                   label: "Edit",
                   onClick: (product: Product) => handleEditProduct(product._id),
+                }] : []),
+                ...(canEditProduct ? [{
+                  label: "Update Stocks",
+                  onClick: (product: Product) => handleUpdatedStocks(product._id),
                 }] : []),
               ]}
               mobileCard={(product: Product) => (
@@ -568,7 +689,7 @@ export default function DealerAssignTable() {
                     </div>
                   </div>
                 </div>
-              )}
+              )} 
             />
             <DynamicPagination
               currentPage={currentPage}
@@ -581,6 +702,16 @@ export default function DealerAssignTable() {
           )}
         </CardContent>
       </Card>
+      {/* Update Stock Modal */}
+      <UpdateStockModal
+        open={showUpdateStockModal}
+        onClose={() => setShowUpdateStockModal(false)}
+        onSubmit={handleUpdateStockSubmit}
+        loading={updateStockLoading}
+        product={updateStockProduct}
+        quantity={updateStockQuantity}
+        setQuantity={setUpdateStockQuantity}
+      />
     </div>
   )
 }
