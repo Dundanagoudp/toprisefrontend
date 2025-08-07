@@ -21,6 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 // Helper function to get status color classes
@@ -165,7 +166,48 @@ export default function RejectedProduct({ searchQuery }: { searchQuery: string }
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedData.map((product: any, index: number) => (
+          {loadingProducts?(  Array.from({ length: 5 }).map((_, index) => (
+        <TableRow
+          key={`skeleton-${index}`}
+          className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+            index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+          }`}
+        >
+          <TableCell className="px-4 py-4 w-8">
+            <Skeleton className="h-4 w-4 rounded" />
+          </TableCell>
+          <TableCell className="px-6 py-4">
+            <Skeleton className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md" />
+          </TableCell>
+          <TableCell className="px-6 py-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-[150px]" />
+              <Skeleton className="h-3 w-[100px] md:hidden" />
+            </div>
+          </TableCell>
+          <TableCell className="px-6 py-4 hidden md:table-cell">
+            <Skeleton className="h-4 w-[100px]" />
+          </TableCell>
+          <TableCell className="px-6 py-4 hidden lg:table-cell">
+            <Skeleton className="h-4 w-[120px]" />
+          </TableCell>
+          <TableCell className="px-6 py-4 hidden md:table-cell">
+            <Skeleton className="h-4 w-[80px]" />
+          </TableCell>
+          <TableCell className="px-6 py-4 hidden lg:table-cell">
+            <Skeleton className="h-4 w-[80px]" />
+          </TableCell>
+          <TableCell className="px-6 py-4">
+            <Skeleton className="h-4 w-[60px]" />
+          </TableCell>
+          <TableCell className="px-6 py-4">
+            <Skeleton className="h-8 w-[120px]" />
+          </TableCell>
+          <TableCell className="px-6 py-4 text-center">
+            <Skeleton className="h-8 w-8 rounded-full mx-auto" />
+          </TableCell>
+        </TableRow>
+      ))):(paginatedData.map((product: any, index: number) => (
             <TableRow
               key={product.id}
               className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"}`}
@@ -234,7 +276,8 @@ export default function RejectedProduct({ searchQuery }: { searchQuery: string }
                 </DropdownMenu>
               </TableCell>
             </TableRow>
-          ))}
+          )))}
+          
         </TableBody>
       </Table>
       {/* Pagination - moved outside of table */}
