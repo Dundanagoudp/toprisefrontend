@@ -1,14 +1,6 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Pencil } from "lucide-react";
 import { getProductById, getProducts } from "@/service/product-Service";
 import { useParams, useRouter } from "next/navigation";
@@ -108,19 +100,6 @@ export default function DealerProdutView() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Select onValueChange={handleStatusChange} value={status}>
-              <SelectTrigger
-                className={`min-w-[120px] ${getStatusColor(status)}`}
-              >
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Created">Created</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
             <DynamicButton
               variant= "outline"
               customClassName=" bg-red-50 border-red-200 hover:bg-red-100 hover:text-red-600 text-red-600"
@@ -348,19 +327,12 @@ export default function DealerProdutView() {
               product
                 ? [
                     {
-                      label: "Available Dealers",
-                      value: product.available_dealers
-                        ? JSON.stringify(product.available_dealers)
-                        : "-",
-                    },
-                    {
                       label: "Quantity per Dealer",
                       value:
                         product.no_of_stock !== undefined
                           ? String(product.no_of_stock)
                           : "-",
                     },
-                    // Dealer Margin % not present in Product type
                     {
                       label: "Dealer Priority Override",
                       value:
@@ -368,11 +340,9 @@ export default function DealerProdutView() {
                           ? String(product.fulfillment_priority)
                           : "-",
                     },
-                    // Stock Expiry Rule not present in Product type
                     {
                       label: "Last Stock Update",
-                      value:
-                        product.available_dealers?.last_stock_update || "-",
+                      value: product.available_dealers?.last_stock_update || "-",
                     },
                     {
                       label: "Last Inquired At",
@@ -381,7 +351,49 @@ export default function DealerProdutView() {
                   ]
                 : []
             }
-          />
+          >
+            {product && product.available_dealers && Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Available Dealers</h4>
+                <div className="space-y-2">
+                  {product.available_dealers.map((dealer: any, index: number) => (
+                    <div key={index} className="bg-gray-50 p-3 rounded-md">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Dealer ID:</span>
+                          <span className="ml-2 font-medium">{dealer.dealers_Ref || "-"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Quantity:</span>
+                          <span className="ml-2 font-medium">{dealer.quantity_per_dealer || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Margin %:</span>
+                          <span className="ml-2 font-medium">{dealer.dealer_margin || dealer.aler_margin || "-"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Priority:</span>
+                          <span className="ml-2 font-medium">{dealer.dealer_priority_override || "-"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">In Stock:</span>
+                          <span className={`ml-2 font-medium ${dealer.inStock ? "text-green-600" : "text-red-600"}`}>
+                            {dealer.inStock ? "Yes" : "No"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Last Update:</span>
+                          <span className="ml-2 font-medium">
+                            {dealer.last_stock_update ? new Date(dealer.last_stock_update).toLocaleDateString() : "-"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Productcard>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* SEO & Search Optimization */}

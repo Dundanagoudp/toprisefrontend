@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { IoMdArrowDropdown } from "react-icons/io"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Custom components and hooks
 import useDebounce from "@/utils/useDebounce"
@@ -37,6 +38,142 @@ const getStatusBadge = (status: string) => {
   }
 }
 
+// Shimmer Loader Component
+const ShimmerLoader = () => {
+  return (
+    <div className="w-full">
+      <Card className="shadow-sm rounded-none">
+        {/* Header Shimmer */}
+        <CardHeader className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 gap-4 w-full">
+            {/* Left: Search, Filters */}
+            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3 w-full lg:w-auto">
+              <Skeleton className="h-10 w-full sm:w-80 lg:w-96" />
+              <Skeleton className="h-10 w-20" />
+            </div>
+            {/* Right: Add Product, Send Approval */}
+            <div className="flex items-center gap-3 w-full lg:w-auto justify-start sm:justify-end">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+        </CardHeader>
+        
+        {/* Table Shimmer */}
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            {/* Desktop Table Shimmer */}
+            <div className="hidden lg:block">
+              <div className="bg-white border-b border-gray-200">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-4" />
+                        </th>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-16" />
+                        </th>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-20" />
+                        </th>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-24" />
+                        </th>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-20" />
+                        </th>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-16" />
+                        </th>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-20" />
+                        </th>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-16" />
+                        </th>
+                        <th className="px-6 py-4 text-left">
+                          <Skeleton className="h-4 w-20" />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.from({ length: 10 }).map((_, idx) => (
+                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <Skeleton className="w-5 h-5 rounded" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-4 w-32 mb-2" />
+                            <Skeleton className="h-3 w-24" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-4 w-20" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-4 w-24" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-4 w-16" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-4 w-20" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-6 w-16 rounded-full" />
+                          </td>
+                          <td className="px-6 py-4">
+                            <Skeleton className="h-8 w-8 rounded" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            
+            {/* Mobile Card Shimmer */}
+            <div className="block lg:hidden">
+              <div className="space-y-4 p-4">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <Card key={idx} className="p-4">
+                    <div className="flex items-start space-x-4">
+                      <Skeleton className="w-5 h-5 rounded" />
+                      <Skeleton className="w-16 h-12 rounded-md" />
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                        <Skeleton className="h-3 w-1/3" />
+                      </div>
+                      <Skeleton className="w-8 h-8 rounded" />
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          {/* Pagination Shimmer */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <Skeleton className="h-4 w-32" />
+            <div className="flex items-center space-x-2">
+              <Skeleton className="h-8 w-8 rounded" />
+              <Skeleton className="h-8 w-8 rounded" />
+              <Skeleton className="h-8 w-8 rounded" />
+              <Skeleton className="h-8 w-8 rounded" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 export default function DealerAssignTable() {
   const router = useRouter()
   const { showToast } = useToast()
@@ -56,6 +193,13 @@ export default function DealerAssignTable() {
   const [loadingPermission, setLoadingPermission] = useState(true);
 
   const cardsPerPage = 10
+
+  // Permission-based controls
+  const canAddProduct = permission?.data?.userPermissions?.write || false;
+  const canEditProduct = permission?.data?.userPermissions?.update || false;
+  const canViewProduct = permission?.data?.userPermissions?.read || false;
+  const canDeleteProduct = permission?.data?.userPermissions?.delete || false;
+  const hasAnyPermission = canAddProduct || canEditProduct || canViewProduct || canDeleteProduct;
 
   // Debounced search functionality
   const performSearch = useCallback(
@@ -241,6 +385,11 @@ export default function DealerAssignTable() {
     }
   }, [cleanupDebounce])
 
+  // Show shimmer loader while loading
+  if (loadingProducts || loadingPermission) {
+    return <ShimmerLoader />
+  }
+
   return (
     <div className="w-full">
       <Card className="shadow-sm rounded-none">
@@ -269,48 +418,61 @@ export default function DealerAssignTable() {
             </div>
             {/* Right: Add Product, Send Approval */}
             <div className="flex items-center gap-3 w-full lg:w-auto justify-start grid-ro-2 sm:justify-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className="flex items-center gap-2 bg-[#FDEAEA] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] h-[40px] justify-center font-[Poppins] font-medium border border-[#FDEAEA] hover:bg-[#f8d2d2] transition"
-                    disabled={addProductLoading}
-                  >
-                    Add Product
-                    <IoMdArrowDropdown style={{ fontSize: "20px" }} />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-41 shadow-lg">
-                  <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={handleAddProduct}>
-                    <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center">
-                      <Plus className="w-3 h-3 text-white" />
-                    </div>
-                    <span className="text-red-600">Manually</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={handleUploadBulk}>
-                    <div className="w-4 h-4 rounded flex items-center justify-center">
-                      <Image src="/assets/uploadFile.svg" alt="Upload" className="w-5 h-5" width={20} height={20} />
-                    </div>
-                    <span className="text-blue-600">Upload</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DynamicButton
-                variant="default"
-                customClassName="flex items-center gap-3 bg-green-50 border-green-600 hover:bg-green-50 text-green-600 rounded-[8px] px-4 py-2 min-w-[140px] h-[40px] justify-center font-[Poppins] font-regular"
-                disabled={sendApprovalLoading}
-                loading={sendApprovalLoading}
-                loadingText="Sending..."
-                icon={<Send />}
-                text="Send Approval"
-                // onClick={handleSendApproval}
-              />
+              {canAddProduct && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="flex items-center gap-2 bg-[#FDEAEA] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] h-[40px] justify-center font-[Poppins] font-medium border border-[#FDEAEA] hover:bg-[#f8d2d2] transition"
+                      disabled={addProductLoading}
+                    >
+                      Add Product
+                      <IoMdArrowDropdown style={{ fontSize: "20px" }} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-41 shadow-lg">
+                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={handleAddProduct}>
+                      <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center">
+                        <Plus className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-red-600">Manually</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={handleUploadBulk}>
+                      <div className="w-4 h-4 rounded flex items-center justify-center">
+                        <Image src="/assets/uploadFile.svg" alt="Upload" className="w-5 h-5" width={20} height={20} />
+                      </div>
+                      <span className="text-blue-600">Upload</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              {canEditProduct && (
+                <DynamicButton
+                  variant="default"
+                  customClassName="flex items-center gap-3 bg-green-50 border-green-600 hover:bg-green-50 text-green-600 rounded-[8px] px-4 py-2 min-w-[140px] h-[40px] justify-center font-[Poppins] font-regular"
+                  disabled={sendApprovalLoading}
+                  loading={sendApprovalLoading}
+                  loadingText="Sending..."
+                  icon={<Send />}
+                  text="Send Approval"
+                  // onClick={handleSendApproval}
+                />
+              )}
             </div>
           </div>
         </CardHeader>
         {/* Product Table */}
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <DataTable<Product>
+          {!loadingPermission && !hasAnyPermission && (
+            <div className="flex items-center justify-center p-8">
+              <div className="text-center">
+                <div className="text-gray-500 text-lg font-medium mb-2">No Permissions Available</div>
+                <div className="text-gray-400 text-sm">You don't have permission to view or manage products.</div>
+              </div>
+            </div>
+          )}
+          {!loadingPermission && hasAnyPermission && (
+            <div className="overflow-x-auto">
+              <DataTable<Product>
               data={paginatedDataWithId}
               loading={loadingProducts}
               currentPage={currentPage}
@@ -340,7 +502,10 @@ export default function DealerAssignTable() {
                   key: "name",
                   header: "Name",
                   render: (product: Product) => (
-                    <div className="cursor-pointer" onClick={() => handleViewProduct(product._id)}>
+                    <div 
+                      className={canViewProduct ? "cursor-pointer" : "cursor-default"} 
+                      onClick={canViewProduct ? () => handleViewProduct(product._id) : undefined}
+                    >
                       <div className="font-medium text-gray-900 b2 font-sans">{product.product_name}</div>
                     </div>
                   ),
@@ -372,14 +537,14 @@ export default function DealerAssignTable() {
                 },
               ]}
               actions={[
-                {
+                ...(canViewProduct ? [{
                   label: "View Details",
                   onClick: (product: Product) => handleViewProduct(product._id),
-                },
-                {
+                }] : []),
+                ...(canEditProduct ? [{
                   label: "Edit",
                   onClick: (product: Product) => handleEditProduct(product._id),
-                },
+                }] : []),
               ]}
               mobileCard={(product: Product) => (
                 <div className="flex items-start space-x-4">
@@ -413,16 +578,9 @@ export default function DealerAssignTable() {
               itemsPerPage={cardsPerPage}
             />
           </div>
+          )}
         </CardContent>
       </Card>
-      {viewProductLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
-            <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
-            <p className="text-lg font-medium text-gray-700">Loading product details...</p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

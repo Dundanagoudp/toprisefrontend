@@ -27,14 +27,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast as GlobalToast } from "@/components/ui/toast";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-} from "@/components/ui/pagination";
 import SearchInput from "@/components/common/search/SearchInput";
 import DynamicButton from "@/components/common/button/button";
 import {
@@ -194,7 +186,7 @@ export default function OrdersTable() {
           skusCount: order.orderDetails.skus?.length || 0,
           dealers: order.orderDetails.dealerMapping?.length || 0,
           dealerMapping: order.orderDetails.dealerMapping || [],
-          status: order.status, // Use backend status directly
+          status: order.status, 
           deliveryCharges: order.orderDetails.order_Amount,
           orderType: order.orderDetails.orderType,
           orderSource: order.orderDetails.orderSource,
