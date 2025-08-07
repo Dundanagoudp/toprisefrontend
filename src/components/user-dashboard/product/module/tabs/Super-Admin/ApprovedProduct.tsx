@@ -212,38 +212,38 @@ export default function ApprovedProduct({
       <Table>
   <TableHeader>
     <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-      <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
+      <TableHead className="px-4 py-4 w-8 font-sans">
         <Checkbox
           checked={allSelected}
           onCheckedChange={handleSelectAll}
           aria-label="Select all"
         />
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">
         Image
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-sans">
         Name
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-sans">
         Category
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-sans">
         Sub Category
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-sans">
         Brand
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-sans">
         Type
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-sans">
         QC Status
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-sans">
         Product status
       </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">
+      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-sans">
         Action
       </TableHead>
     </TableRow>
@@ -321,42 +321,42 @@ export default function ApprovedProduct({
             </div>
           </TableCell>
           <TableCell
-            className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
+            className="px-6 py-4 cursor-pointer font-sans"
             onClick={() => handleViewProduct(product.id)}
           >
             <div className="font-medium text-gray-900 b2 font-sans">
-              {product.name}
+              {product.name.length > 8? `${product.name.substring(0, 8)}...` : product.name}
             </div>
             <div className="text-xs text-gray-500 mt-1 md:hidden">
               {product.category} • {product.brand}
             </div>
           </TableCell>
-          <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+          <TableCell className="px-6 py-4 hidden md:table-cell font-sans">
             <span className="text-gray-700 b2 font-sans">
-              {product.category}
+              {product.category.length > 8 ? `${product.category.substring(0, 8)}...` : product.category}
             </span>
           </TableCell>
-          <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-            <span className="text-gray-700 b2 font-[Red Hat Display]">
-              {product.subCategory}
+          <TableCell className="px-6 py-4 hidden lg:table-cell font-sans">
+            <span className="text-gray-700 b2 font-sans">
+              {product.subCategory.length > 8 ? `${product.subCategory.substring(0, 8)}...` : product.subCategory}
             </span>
           </TableCell>
-          <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-            <span className="text-gray-700 b2 font-[Red Hat Display]">
+          <TableCell className="px-6 py-4 hidden md:table-cell font-sans">
+            <span className="text-gray-700 b2 font-sans">
               {product.brand}
             </span>
           </TableCell>
-          <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-            <span className="text-gray-700 b2 font-[Red Hat Display]">
+          <TableCell className="px-6 py-4 hidden lg:table-cell font-sans">
+            <span className="text-gray-700 b2 font-sans">
               {product.productType}
             </span>
           </TableCell>
-          <TableCell className="px-6 py-4 font-[Red Hat Display]">
+          <TableCell className="px-6 py-4 font-sans">
             <span className={`b2 ${getStatusColor(product.qcStatus)}`}>
               {product.qcStatus}
             </span>
           </TableCell>
-          <TableCell className="px-6 py-4 font-[Red Hat Display]">
+          <TableCell className="px-6 py-4 font-sans">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -385,7 +385,7 @@ export default function ApprovedProduct({
               </DropdownMenuContent>
             </DropdownMenu>
           </TableCell>
-          <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
+          <TableCell className="px-6 py-4 text-center font-sans">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

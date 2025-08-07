@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { set } from "zod";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { aproveProduct, deactivateProduct, rejectProduct } from "@/service/product-Service";
+import { approveBulkProducts, aproveProduct, deactivateBulkProducts, deactivateProduct, rejectProduct } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
@@ -132,22 +132,23 @@ useEffect(() => {
 
   // Bulk operation handlers for Select component
   const handleBulkApprove = async () => {
-    if (selectedProducts.length === 0) return;
+    const productIds = Object.values(selectedProducts);
+    if (productIds.length === 0) return;
     try {
       const updatedProducts: any[] = [];
+      const requestBody = { productIds };
+      await approveBulkProducts(requestBody);
       await Promise.all(
-        selectedProducts.map(async (id) => {
+        productIds.map(async (id) => {
           
-             await aproveProduct(id);
-             updatedProducts.push(id);
-           })
-         );
-         // Update Redux for all approved products
-         updatedProducts.forEach((id) => {
-           dispatch(updateProductLiveStatus({ id, liveStatus: "Approved" }));
-         });
-          showToast("Approved successfully", "success");
-     
+          updatedProducts.push(id);
+        })
+      );
+      // Update Redux for all approved products
+      updatedProducts.forEach((id) => {
+        dispatch(updateProductLiveStatus({ id, liveStatus: "Approved" }));
+      });
+      showToast("Approved successfully", "success");
     } catch (error) {
       console.error("Bulk approve failed:", error);
       showToast("Approved failed", "error");
@@ -160,15 +161,17 @@ const handleBulkReject = useCallback(() => {
   }
   setIsRejectDialogOpen(true);
 }, [selectedProducts, showToast]);
-
+// Bulk Deactivate handler
   const handleBulkDeactivate = async () => {
-    if (selectedProducts.length === 0) return;
+       const productIds = Object.values(selectedProducts);
+       if (productIds.length === 0) return;
     try {
             const updatedProducts: any[] = [];
+             const requestBody = { productIds };
+      await deactivateBulkProducts(requestBody);
+       showToast("Deactivated successfully", "success");
       await Promise.all(
-        selectedProducts.map(async (id) => {
-             await deactivateProduct(id);
-             console.log("ID:", id);
+        productIds.map(async (id) => {
              updatedProducts.push(id);
            })
          );
@@ -176,7 +179,7 @@ const handleBulkReject = useCallback(() => {
          updatedProducts.forEach((id) => {
            dispatch(updateProductLiveStatus({ id, liveStatus: "Pending" }));
          });
-          showToast("Deactivated successfully", "success");
+         
     
     } catch (error) {
       console.error("Bulk deactivate failed:", error);
@@ -371,7 +374,7 @@ const handleBulkReject = useCallback(() => {
   )}
           </div>
           {/* Tab Content */}
-          <div className="min-h-[400px]">{renderTabContent()}</div>
+          <div className="min-h-[400px] font-sans">{renderTabContent()}</div>
         </CardContent>
       </Card>
           <UploadBulkCard
