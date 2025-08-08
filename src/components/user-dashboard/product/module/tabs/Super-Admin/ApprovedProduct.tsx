@@ -9,6 +9,7 @@ import {
   aproveProduct,
   deactivateProduct,
   getProducts,
+  getProductsByPage,
 } from "@/service/product-Service";
 
 import Image from "next/image";
@@ -83,7 +84,7 @@ export default function ApprovedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        const response = await getProducts();
+        const response = await getProductsByPage(currentPage, itemsPerPage);
         const data = response.data;
         if (Array.isArray(data)) {
           const mapped = data.map((item) => ({

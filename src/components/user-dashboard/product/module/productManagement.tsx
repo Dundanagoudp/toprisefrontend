@@ -14,7 +14,6 @@ import RejectedProduct from "./tabs/Super-Admin/RejectedProduct";
 import PendingProduct from "./tabs/Super-Admin/PendingProduct";
 import UploadBulkCard from "./uploadBulk";
 import { useRouter } from "next/navigation";
-
 import { set } from "zod";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -81,9 +80,6 @@ const getStatusColor = (status: string) => {
   }
 };
 
-useEffect(() => {
-  console.log("Selected Products updated:", selectedProducts);
-}, [selectedProducts]);
 
   const performSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -192,8 +188,8 @@ const handleBulkReject = useCallback(() => {
         id: "Created",
         label: "Created",
         component: CreatedProduct,
-        // component: ShowCreated,
-        // buttonConfig: {
+        //  component: ShowCreated,
+        //   buttonConfig: {
         //   text: "Add Created",
         //   action: handleCreatedAction,
         // },
@@ -202,7 +198,7 @@ const handleBulkReject = useCallback(() => {
         id: "Approved",
         label: "Approved",
         component: ApprovedProduct,
-        // buttonConfig: {
+        //   buttonConfig: {
         //   text: "Add Approved",
         //   action: handleApprovedAction,
         // },
@@ -211,8 +207,8 @@ const handleBulkReject = useCallback(() => {
         id: "Pending",
         label: "Pending",
         component: PendingProduct, // Assuming you have a PendingProduct component
-        // component: ShowPending,
-        // buttonConfig: {
+        //   component: ShowPending,
+        //   buttonConfig: {
         //   text: "Add Pending",
         //   action: handlePendingAction,
         // },
@@ -221,8 +217,8 @@ const handleBulkReject = useCallback(() => {
         id: "Rejected",
         label: "Rejected",
         component: RejectedProduct,
-        // component: ShowRejected,
-        // buttonConfig: {
+        //   component: ShowRejected,
+        //   buttonConfig: {
         //   text: "Add Rejected",
         //   action: handleRejectedAction,
         // },
@@ -379,8 +375,7 @@ const handleBulkReject = useCallback(() => {
       </Card>
           <UploadBulkCard
               isOpen={isModalOpen}
-              onClose={handleCloseModal}
-              
+              onClose={handleCloseModal} 
               mode={bulkMode}
             />
             <RejectReason
