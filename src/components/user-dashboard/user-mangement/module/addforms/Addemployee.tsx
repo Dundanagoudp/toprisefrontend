@@ -66,36 +66,11 @@ export default function Addemployee() {
   return (
     <div className="flex-1 p-4 md:p-6 bg-neutral-50 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Add employee</h1>
-          <p className="text-sm text-gray-500">Add your employee details</p>
-        </div>
-        <Button
-          type="submit"
-          form="add-employee-form"
-          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
-          disabled={submitLoading}
-        >
-          {submitLoading ? (
-            <span className="flex items-center gap-2">
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-              </svg>
-              Saving...
-            </span>
-          ) : (
-            "Save"
-          )}
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Add employee</h1>
+        <p className="text-sm text-gray-500">Add your employee details</p>
       </div>
-      <form id="add-employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Personal & Contact Information */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
@@ -234,6 +209,32 @@ export default function Addemployee() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Save Button */}
+        <div className="flex justify-end pt-4">
+          <Button
+            type="submit"
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
+            disabled={submitLoading}
+          >
+            {submitLoading ? (
+              <span className="flex items-center gap-2">
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                Saving...
+              </span>
+            ) : (
+              "Save"
+            )}
+          </Button>
+        </div>
       </form>
     </div>
   )

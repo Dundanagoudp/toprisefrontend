@@ -38,6 +38,7 @@ import { useAppSelector } from "@/store/hooks";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import DynamicButton from "@/components/common/button/button";
 import { dealerProductSchema } from "@/lib/schemas/product-schema";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 type FormValues = z.infer<typeof dealerProductSchema>;
 
@@ -59,6 +60,8 @@ export default function DealerAddProducts() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [formData, setFormData] = useState<FormValues | null>(null);
   const allowedRoles = ["Super-admin", "Inventory-admin", "Dealer"];
 
   const {
@@ -166,6 +169,13 @@ export default function DealerAddProducts() {
 
   // Handle search tags input and Submit
   const onSubmit = async (data: FormValues) => {
+    setFormData(data)
+    setShowConfirmDialog(true)
+  }
+
+  const handleConfirmSubmit = async () => {
+    if (!formData) return
+    
     setSubmitLoading(true);
     try {
       const userId = auth.user && auth.user._id;
@@ -176,20 +186,20 @@ export default function DealerAddProducts() {
       }
       // Add created_by and dealer ID to data
       const dataWithCreatedBy = { 
-        ...data, 
+        ...formData, 
         created_by: userId,
         addedByDealerId: userId // Use the same user ID as dealer ID
       };
-      const formData = new FormData();
+      const formDataObj = new FormData();
       Object.entries(dataWithCreatedBy).forEach(([key, value]) => {
         if (key !== "images" && key !== "searchTagsArray") {
           if (Array.isArray(value)) {
             // For arrays, append as comma-separated string (FormData does not support arrays natively)
-            formData.append(key, value.join(","));
+            formDataObj.append(key, value.join(","));
           } else if (typeof value === "number") {
-            formData.append(key, value.toString());
+            formDataObj.append(key, value.toString());
           } else {
-            formData.append(
+            formDataObj.append(
               key,
               typeof value === "boolean" ? String(value) : value ?? ""
             );
@@ -198,10 +208,10 @@ export default function DealerAddProducts() {
       });
       if (imageFiles.length > 0) {
         imageFiles.forEach((file) => {
-          formData.append("images", file);
+          formDataObj.append("images", file);
         });
       }
-      await addProductByDealer(formData);
+      await addProductByDealer(formDataObj);
       console.log("Product submitted:", dataWithCreatedBy);
       showToast("Product created successfully ", "success");
       setImageFiles([]);
@@ -213,7 +223,7 @@ export default function DealerAddProducts() {
     } finally {
       setSubmitLoading(false);
     }
-  };
+  }
 
   // Prevent form submission on Enter key in any input
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
@@ -1277,6 +1287,15 @@ export default function DealerAddProducts() {
           text="Add Product"
           />
         </div>
+        <ConfirmationDialog
+          isOpen={showConfirmDialog}
+          onClose={() => setShowConfirmDialog(false)}
+          onConfirm={handleConfirmSubmit}
+          title="Add Product"
+          description="Are you sure you want to add this product?"
+          confirmText="Yes, Add Product"
+          cancelText="No, Cancel"
+        />
       </form>
     </div>
   );

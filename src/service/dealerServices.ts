@@ -98,7 +98,6 @@ export async function setSlaType(dealerId: string, data: any): Promise<SlaTypesR
   }
 }
 
-
 // patch disble dealer 
 
 export async function disableDealer(dealerId: string): Promise<ApiResponse<Dealer>> {
@@ -107,6 +106,16 @@ export async function disableDealer(dealerId: string): Promise<ApiResponse<Deale
     return response.data
   } catch (error) {
     console.error(`Failed to disable dealer with id ${dealerId}:`, error)
+    throw error
+  }
+}
+
+export async function enableDealer(dealerId: string): Promise<ApiResponse<Dealer>> {
+  try {
+    const response = await apiClient.patch(`/users/api/users/enable-dealer/${dealerId}`)
+    return response.data
+  } catch (error) {
+    console.error(`Failed to enable dealer with id ${dealerId}:`, error)
     throw error
   }
 }

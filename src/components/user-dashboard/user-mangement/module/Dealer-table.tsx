@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAllDealers } from "@/service/dealerServices";
-import { disableDealer } from "@/service/dealerServices";
+import { disableDealer, enableDealer } from "@/service/dealerServices";
 import type { Dealer, Category } from "@/types/dealer-types";
 import { useToast as useToastMessage } from "@/components/ui/toast";
 import { getAllCategories } from "@/service/dealerServices";
@@ -63,6 +63,7 @@ export default function Dealertable({
   const [editDealerLoading, setEditDealerLoading] = useState(false);
   const [addDealerLoading, setAddDealerLoading] = useState(false);
   const [disablingId, setDisablingId] = useState<string | null>(null);
+  const [enablingId, setEnablingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDealers();
@@ -132,6 +133,21 @@ export default function Dealertable({
       showToast("Failed to disable dealer. Please try again.", "error");
     } finally {
       setDisablingId(null);
+    }
+  };
+
+  const handleEnableDealer = async (dealerId: string) => {
+    try {
+      setEnablingId(dealerId);
+      await enableDealer(dealerId);
+      setDealers((prev) =>
+        prev.map((d) => (d._id === dealerId ? { ...d, is_active: true } : d))
+      );
+      showToast("Dealer Enabled Successfully", "success");
+    } catch (error) {
+      showToast("Failed to enable dealer. Please try again.", "error");
+    } finally {
+      setEnablingId(null);
     }
   };
 
@@ -332,6 +348,23 @@ export default function Dealertable({
                         </span>
                       ) : (
                         "Disable Dealer"
+                      )}
+                    </DropdownMenuItem>
+                  )}
+                  {!dealer.is_active && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (enablingId) return;
+                        handleEnableDealer(dealer._id);
+                      }}
+                    >
+                      {enablingId === dealer._id ? (
+                        <span className="flex items-center">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enabling...
+                        </span>
+                      ) : (
+                        "Enable Dealer"
                       )}
                     </DropdownMenuItem>
                   )}
