@@ -13,12 +13,15 @@ import { addEmployee } from "@/service/employeeServices"
 import { useToast } from "@/hooks/use-toast"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { useAppSelector } from "@/store/hooks"
 
 export default function Addemployee() {
   const [submitLoading, setSubmitLoading] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [formData, setFormData] = useState<EmployeeFormValues | null>(null)
   const { toast } = useToast()
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -97,6 +100,17 @@ export default function Addemployee() {
     } finally {
       setSubmitLoading(false)
     }
+  }
+
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
   }
 
   return (

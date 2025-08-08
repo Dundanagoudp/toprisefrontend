@@ -19,6 +19,7 @@ import { useToast as useToastMessage } from "@/components/ui/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import AssignSLAForm from "../../dealer-management/module/popups/assignSLA";
+import { useAppSelector } from "@/store/hooks";
 
 interface DealertableProps {
   search?: string;
@@ -40,6 +41,8 @@ export default function Dealertable({
   const [loading, setLoading] = useState(true);
   const { showToast } = useToastMessage();
   const itemsPerPage = 10;
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
   
   // Sort dealers based on sortField and sortDirection
   const sortedDealers = [...dealers].sort((a, b) => {
@@ -337,6 +340,17 @@ export default function Dealertable({
   }
 
 
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[1000px] max-w-full">
@@ -480,71 +494,75 @@ export default function Dealertable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() =>
-                      {
-                        setEditDealerLoading(true);
-                        router.push(
-                          `/user/dashboard/user/edit-dealer/${dealer._id}`
-                        )}
+                    {auth && allowedRoles.includes(auth.role) && (
+                      <DropdownMenuItem
+                        onClick={() =>
+                        {
+                          setEditDealerLoading(true);
+                          router.push(
+                            `/user/dashboard/user/edit-dealer/${dealer._id}`
+                          )}
+                          
+                        }
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {auth && allowedRoles.includes(auth.role) && (
+                      <DropdownMenuItem
+                        onClick={() => {
                         
-                      }
-                    >
-                      Edit
-                    </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                    
-                      setSelectedDealerId(dealer._id);
-                      setSlaFormOpen(true);
-                    }}
-                  >
-                    Assign SLA
-                  </DropdownMenuItem>
-                  {dealer.is_active && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (disablingId) return;
-                        handleDisableDealer(dealer._id);
-                      }}
-                    >
-                      {disablingId === dealer._id ? (
-                        <span className="flex items-center">
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Disabling...
-                        </span>
-                      ) : (
-                        "Disable Dealer"
-                      )}
-                    </DropdownMenuItem>
-                  )}
-                  {!dealer.is_active && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (enablingId) return;
-                        handleEnableDealer(dealer._id);
-                      }}
-                    >
-                      {enablingId === dealer._id ? (
-                        <span className="flex items-center">
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enabling...
-                        </span>
-                      ) : (
-                        "Enable Dealer"
-                      )}
-                    </DropdownMenuItem>
-                  )}
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setViewDealerLoading(true);
-                        router.push(
-                          `/user/dashboard/user/dealerview/${dealer._id}`
-                        );
-                      }}
-                    >
-                      View Details
-                    </DropdownMenuItem>
+                          setSelectedDealerId(dealer._id);
+                          setSlaFormOpen(true);
+                        }}
+                      >
+                        Assign SLA
+                      </DropdownMenuItem>
+                    )}
+                    {auth && allowedRoles.includes(auth.role) && dealer.is_active && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (disablingId) return;
+                          handleDisableDealer(dealer._id);
+                        }}
+                      >
+                        {disablingId === dealer._id ? (
+                          <span className="flex items-center">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Disabling...
+                          </span>
+                        ) : (
+                          "Disable Dealer"
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    {auth && allowedRoles.includes(auth.role) && !dealer.is_active && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (enablingId) return;
+                          handleEnableDealer(dealer._id);
+                        }}
+                      >
+                        {enablingId === dealer._id ? (
+                          <span className="flex items-center">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Enabling...
+                          </span>
+                        ) : (
+                          "Enable Dealer"
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setViewDealerLoading(true);
+                          router.push(
+                            `/user/dashboard/user/dealerview/${dealer._id}`
+                          );
+                        }}
+                      >
+                        View Details
+                      </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </td>

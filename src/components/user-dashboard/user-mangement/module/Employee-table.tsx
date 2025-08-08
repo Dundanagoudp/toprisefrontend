@@ -18,6 +18,7 @@ import { getAllEmployees } from "@/service/employeeServices"
 import type { Employee } from "@/types/employee-types"
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
+import { useAppSelector } from "@/store/hooks"
 
 interface EmployeeTableProps {
   sortField?: string;
@@ -37,6 +38,8 @@ export default function EmployeeTable({
   const [employees, setEmployees] = useState<Employee[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -130,6 +133,17 @@ export default function EmployeeTable({
         Failed to load employees: {error.message}
       </div>
     )
+  }
+
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -296,10 +310,14 @@ export default function EmployeeTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => router.push(`/dashboard/employees/edit-employee/${employee._id}`)}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>Delete</DropdownMenuItem>
+                      {auth && allowedRoles.includes(auth.role) && (
+                        <DropdownMenuItem onClick={() => router.push(`/dashboard/employees/edit-employee/${employee._id}`)}>
+                          Edit
+                        </DropdownMenuItem>
+                      )}
+                      {auth && allowedRoles.includes(auth.role) && (
+                        <DropdownMenuItem>Delete</DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/employeeview/${employee._id}`)}>
                         View Details
                       </DropdownMenuItem>

@@ -18,6 +18,7 @@ import {  SlaType } from "@/types/sla-types"
 import { getAllEmployees } from "@/service/employeeServices"
 import { Employee } from "@/types/employee-types"
 import { set } from "zod"
+import { useAppSelector } from "@/store/hooks"
 
 export default function EditDealer() {
   const { showToast } = useGlobalToast();
@@ -31,6 +32,8 @@ export default function EditDealer() {
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
 
   const form = useForm<DealerFormValues>({
     resolver: zodResolver(dealerSchema) as any,
@@ -175,6 +178,17 @@ export default function EditDealer() {
     } finally {
       setSubmitLoading(false)
     }
+  }
+
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
   }
 
   if (isLoadingData) {
