@@ -17,6 +17,7 @@ import { useState, useEffect, Fragment, useRef } from "react"
 import type { User, Category } from "@/types/dealer-types"
 import { useRouter } from "next/navigation"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { useAppSelector } from "@/store/hooks"
 
 export default function AddDealer() {
   const { showToast } = useGlobalToast();
@@ -28,6 +29,8 @@ export default function AddDealer() {
   const [submitLoading, setSubmitLoading] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [formData, setFormData] = useState<DealerFormValues | null>(null)
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
 
   const form = useForm<DealerFormValues>({
     resolver: zodResolver(dealerSchema) as any, 
@@ -119,6 +122,17 @@ export default function AddDealer() {
     } finally {
       setSubmitLoading(false)
     }
+  }
+
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
   }
 
   if (isLoadingData) {

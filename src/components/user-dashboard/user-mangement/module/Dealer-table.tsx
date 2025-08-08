@@ -1,7 +1,7 @@
   // Handle SLA Form submit
 
 "use client";
-import { MoreHorizontal, Loader2 } from "lucide-react";
+import { MoreHorizontal, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,31 +12,91 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAllDealers } from "@/service/dealerServices";
-import { disableDealer, enableDealer } from "@/service/dealerServices";
+import { getAllDealers, disableDealer, enableDealer } from "@/service/dealerServices";
+import { getAllCategories } from "@/service/dealerServices";
 import type { Dealer, Category } from "@/types/dealer-types";
 import { useToast as useToastMessage } from "@/components/ui/toast";
-import { getAllCategories } from "@/service/dealerServices";
 import { Skeleton } from "@/components/ui/skeleton";
-import AssignSLAForm from "../../dealer-management/module/popups/assignSLA";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
+import AssignSLAForm from "../../dealer-management/module/popups/assignSLA";
+import { useAppSelector } from "@/store/hooks";
 
 interface DealertableProps {
   search?: string;
   role?: string;
+  sortField?: string;
+  sortDirection?: "asc" | "desc";
+  onSort?: (field: string) => void;
 }
 
 export default function Dealertable({
   search = "",
   role = "",
+  sortField = "",
+  sortDirection = "asc",
+  onSort
 }: DealertableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [loading, setLoading] = useState(true);
   const { showToast } = useToastMessage();
   const itemsPerPage = 10;
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
+  
+  // Sort dealers based on sortField and sortDirection
+  const sortedDealers = [...dealers].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let aValue: any;
+    let bValue: any;
+    
+    switch (sortField) {
+      case "legalName":
+        aValue = a.legal_name?.toLowerCase() || "";
+        bValue = b.legal_name?.toLowerCase() || "";
+        break;
+      case "tradeName":
+        aValue = a.trade_name?.toLowerCase() || "";
+        bValue = b.trade_name?.toLowerCase() || "";
+        break;
+      case "email":
+        aValue = a.user_id.email?.toLowerCase() || "";
+        bValue = b.user_id.email?.toLowerCase() || "";
+        break;
+      case "phone":
+        aValue = a.user_id.phone_Number?.toLowerCase() || "";
+        bValue = b.user_id.phone_Number?.toLowerCase() || "";
+        break;
+      case "contactPerson":
+        aValue = a.contact_person.name?.toLowerCase() || "";
+        bValue = b.contact_person.name?.toLowerCase() || "";
+        break;
+      case "role":
+        aValue = a.user_id.role?.toLowerCase() || "";
+        bValue = b.user_id.role?.toLowerCase() || "";
+        break;
+      case "status":
+        aValue = a.is_active ? "active" : "inactive";
+        bValue = b.is_active ? "active" : "inactive";
+        break;
+      case "category":
+        aValue = a.categories_allowed?.join(", ")?.toLowerCase() || "";
+        bValue = b.categories_allowed?.join(", ")?.toLowerCase() || "";
+        break;
+      default:
+        return 0;
+    }
+    
+    if (sortDirection === "asc") {
+      return aValue.localeCompare(bValue);
+    } else {
+      return bValue.localeCompare(aValue);
+    }
+  });
+  
   // Filter dealers by search and role
-  const filteredDealers = dealers.filter((dealer) => {
+  const filteredDealers = sortedDealers.filter((dealer) => {
     const searchLower = search.toLowerCase();
     const matchesSearch =
       dealer.legal_name.toLowerCase().includes(searchLower) ||
@@ -109,6 +169,21 @@ export default function Dealertable({
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
+  const handleSort = (field: string) => {
+    if (onSort) {
+      onSort(field);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ChevronUp className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === "asc" ? 
+      <ChevronUp className="w-4 h-4 text-[#C72920]" /> : 
+      <ChevronDown className="w-4 h-4 text-[#C72920]" />;
+  };
+
   const getStatusBadge = (isActive: boolean) => {
     return (
       <span
@@ -154,36 +229,78 @@ export default function Dealertable({
   if (loading) {
     return (
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px]">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-                S. No.
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+        <table className="w-full min-w-[1000px] max-w-full">
+                  <thead>
+          <tr className="border-b border-gray-200 bg-gray-50">
+            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+              S. No.
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("legalName")}
+            >
+              <div className="flex items-center gap-1">
                 Legal Name
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                {getSortIcon("legalName")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("tradeName")}
+            >
+              <div className="flex items-center gap-1">
                 Trade Name
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                {getSortIcon("tradeName")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("email")}
+            >
+              <div className="flex items-center gap-1">
                 Email/Phone
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                {getSortIcon("email")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("contactPerson")}
+            >
+              <div className="flex items-center gap-1">
                 Contact Person
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                {getSortIcon("contactPerson")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("role")}
+            >
+              <div className="flex items-center gap-1">
                 Role
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                {getSortIcon("role")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("status")}
+            >
+              <div className="flex items-center gap-1">
                 Status
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                {getSortIcon("status")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("category")}
+            >
+              <div className="flex items-center gap-1">
                 Category
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"></th>
-            </tr>
-          </thead>
+                {getSortIcon("category")}
+              </div>
+            </th>
+            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"></th>
+          </tr>
+        </thead>
           <tbody>
             {[...Array(10)].map((_, idx) => (
               <tr key={idx} className="border-b border-gray-100">
@@ -223,36 +340,89 @@ export default function Dealertable({
   }
 
 
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[800px]">
+      <table className="w-full min-w-[1000px] max-w-full">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">
               S. No.
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-              Legal Name
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-36"
+              onClick={() => handleSort("legalName")}
+            >
+              <div className="flex items-center gap-1">
+                Legal Name
+                {getSortIcon("legalName")}
+              </div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-              Trade Name
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-36"
+              onClick={() => handleSort("tradeName")}
+            >
+              <div className="flex items-center gap-1">
+                Trade Name
+                {getSortIcon("tradeName")}
+              </div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-              Email/Phone
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-44"
+              onClick={() => handleSort("email")}
+            >
+              <div className="flex items-center gap-1">
+                Email/Phone
+                {getSortIcon("email")}
+              </div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-              Contact Person
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-36"
+              onClick={() => handleSort("contactPerson")}
+            >
+              <div className="flex items-center gap-1">
+                Contact Person
+                {getSortIcon("contactPerson")}
+              </div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-              Role
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-20"
+              onClick={() => handleSort("role")}
+            >
+              <div className="flex items-center gap-1">
+                Role
+                {getSortIcon("role")}
+              </div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-              Status
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-16"
+              onClick={() => handleSort("status")}
+            >
+              <div className="flex items-center gap-1">
+                Status
+                {getSortIcon("status")}
+              </div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-              Category
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-32"
+              onClick={() => handleSort("category")}
+            >
+              <div className="flex items-center gap-1">
+                Category
+                {getSortIcon("category")}
+              </div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"></th>
+            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12"></th>
           </tr>
         </thead>
         <tbody>
@@ -262,49 +432,60 @@ export default function Dealertable({
               className="border-b border-gray-100 hover:bg-gray-50"
             >
               <td className="p-3 md:p-4 text-gray-600 text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-              <td className="p-3 md:p-4 text-gray-600 text-sm">
-                {dealer.legal_name}
-              </td>
-              <td className="p-3 md:p-4 font-medium text-gray-900 text-sm">
-                {dealer.trade_name}
-              </td>
-              <td className="p-3 md:p-4 text-gray-600 text-sm">
-                <div>
-                  <div>{dealer.user_id.email}</div>
-                  <div className="text-xs text-gray-500">
-                    {dealer.user_id.phone_Number}
-                  </div>
-                </div>
-              </td>
-              <td className="p-3 md:p-4 text-gray-600 text-sm">
-                <div>
-                  <div>{dealer.contact_person.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {dealer.contact_person.email}
-                  </div>
-                </div>
-              </td>
-              <td className="p-3 md:p-4 text-gray-600 text-sm">
-                {dealer.user_id.role}
-              </td>
-              <td className="p-3 md:p-4">{getStatusBadge(dealer.is_active)}</td>
-              <td className="p-3 md:p-4 text-gray-600 text-sm">
-                <div className="flex flex-wrap gap-1">
-                  {dealer.categories_allowed.map((categoryId, idx) => {
-                    const category = categories.find(
-                      (cat) => cat._id === categoryId
-                    );
-                    return (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
-                      >
-                        {category ? category.category_name : categoryId}
-                      </span>
-                    );
-                  })}
-                </div>
-              </td>
+                             <td className="p-3 md:p-4 text-gray-600 text-sm">
+                 <div className="truncate max-w-[140px]" title={dealer.legal_name}>
+                   {dealer.legal_name}
+                 </div>
+               </td>
+               <td className="p-3 md:p-4 font-medium text-gray-900 text-sm">
+                 <div className="truncate max-w-[140px]" title={dealer.trade_name}>
+                   {dealer.trade_name}
+                 </div>
+               </td>
+               <td className="p-3 md:p-4 text-gray-600 text-sm">
+                 <div className="max-w-[170px]">
+                   <div className="truncate" title={dealer.user_id.email}>
+                     {dealer.user_id.email}
+                   </div>
+                   <div className="text-xs text-gray-500 truncate" title={dealer.user_id.phone_Number}>
+                     {dealer.user_id.phone_Number}
+                   </div>
+                 </div>
+               </td>
+               <td className="p-3 md:p-4 text-gray-600 text-sm">
+                 <div className="max-w-[140px]">
+                   <div className="truncate" title={dealer.contact_person.name}>
+                     {dealer.contact_person.name}
+                   </div>
+                   <div className="text-xs text-gray-500 truncate" title={dealer.contact_person.email}>
+                     {dealer.contact_person.email}
+                   </div>
+                 </div>
+               </td>
+               <td className="p-3 md:p-4 text-gray-600 text-sm">
+                 <div className="truncate max-w-[60px]" title={dealer.user_id.role}>
+                   {dealer.user_id.role}
+                 </div>
+               </td>
+               <td className="p-3 md:p-4">{getStatusBadge(dealer.is_active)}</td>
+               <td className="p-3 md:p-4 text-gray-600 text-sm">
+                 <div className="flex flex-wrap gap-1 max-w-[120px]">
+                   {dealer.categories_allowed.map((categoryId, idx) => {
+                     const category = categories.find(
+                       (cat) => cat._id === categoryId
+                     );
+                     return (
+                       <span
+                         key={idx}
+                         className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded truncate max-w-[100px]"
+                         title={category ? category.category_name : categoryId}
+                       >
+                         {category ? category.category_name : categoryId}
+                       </span>
+                     );
+                   })}
+                 </div>
+               </td>
               <td className="p-3 md:p-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -313,71 +494,75 @@ export default function Dealertable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() =>
-                      {
-                        setEditDealerLoading(true);
-                        router.push(
-                          `/user/dashboard/user/edit-dealer/${dealer._id}`
-                        )}
+                    {auth && allowedRoles.includes(auth.role) && (
+                      <DropdownMenuItem
+                        onClick={() =>
+                        {
+                          setEditDealerLoading(true);
+                          router.push(
+                            `/user/dashboard/user/edit-dealer/${dealer._id}`
+                          )}
+                          
+                        }
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {auth && allowedRoles.includes(auth.role) && (
+                      <DropdownMenuItem
+                        onClick={() => {
                         
-                      }
-                    >
-                      Edit
-                    </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                    
-                      setSelectedDealerId(dealer._id);
-                      setSlaFormOpen(true);
-                    }}
-                  >
-                    Assign SLA
-                  </DropdownMenuItem>
-                  {dealer.is_active && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (disablingId) return;
-                        handleDisableDealer(dealer._id);
-                      }}
-                    >
-                      {disablingId === dealer._id ? (
-                        <span className="flex items-center">
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Disabling...
-                        </span>
-                      ) : (
-                        "Disable Dealer"
-                      )}
-                    </DropdownMenuItem>
-                  )}
-                  {!dealer.is_active && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (enablingId) return;
-                        handleEnableDealer(dealer._id);
-                      }}
-                    >
-                      {enablingId === dealer._id ? (
-                        <span className="flex items-center">
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enabling...
-                        </span>
-                      ) : (
-                        "Enable Dealer"
-                      )}
-                    </DropdownMenuItem>
-                  )}
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setViewDealerLoading(true);
-                        router.push(
-                          `/user/dashboard/user/dealerview/${dealer._id}`
-                        );
-                      }}
-                    >
-                      View Details
-                    </DropdownMenuItem>
+                          setSelectedDealerId(dealer._id);
+                          setSlaFormOpen(true);
+                        }}
+                      >
+                        Assign SLA
+                      </DropdownMenuItem>
+                    )}
+                    {auth && allowedRoles.includes(auth.role) && dealer.is_active && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (disablingId) return;
+                          handleDisableDealer(dealer._id);
+                        }}
+                      >
+                        {disablingId === dealer._id ? (
+                          <span className="flex items-center">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Disabling...
+                          </span>
+                        ) : (
+                          "Disable Dealer"
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    {auth && allowedRoles.includes(auth.role) && !dealer.is_active && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (enablingId) return;
+                          handleEnableDealer(dealer._id);
+                        }}
+                      >
+                        {enablingId === dealer._id ? (
+                          <span className="flex items-center">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Enabling...
+                          </span>
+                        ) : (
+                          "Enable Dealer"
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setViewDealerLoading(true);
+                          router.push(
+                            `/user/dashboard/user/dealerview/${dealer._id}`
+                          );
+                        }}
+                      >
+                        View Details
+                      </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </td>
