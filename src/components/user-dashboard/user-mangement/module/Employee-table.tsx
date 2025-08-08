@@ -1,6 +1,6 @@
 "use client"
 
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -19,7 +19,17 @@ import type { Employee } from "@/types/employee-types"
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image"
 
-export default function EmployeeTable() {
+interface EmployeeTableProps {
+  sortField?: string;
+  sortDirection?: "asc" | "desc";
+  onSort?: (field: string) => void;
+}
+
+export default function EmployeeTable({ 
+  sortField = "", 
+  sortDirection = "asc", 
+  onSort 
+}: EmployeeTableProps) {
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -44,13 +54,75 @@ export default function EmployeeTable() {
     fetchEmployees()
   }, [])
 
-  const totalItems = employees.length
+  // Sort employees based on sortField and sortDirection
+  const sortedEmployees = [...employees].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let aValue: any;
+    let bValue: any;
+    
+    switch (sortField) {
+      case "name":
+        aValue = a.First_name?.toLowerCase() || "";
+        bValue = b.First_name?.toLowerCase() || "";
+        break;
+      case "id":
+        aValue = a.employee_id?.toLowerCase() || "";
+        bValue = b.employee_id?.toLowerCase() || "";
+        break;
+      case "email":
+        aValue = a.email?.toLowerCase() || "";
+        bValue = b.email?.toLowerCase() || "";
+        break;
+      case "phone":
+        aValue = a.mobile_number?.toLowerCase() || "";
+        bValue = b.mobile_number?.toLowerCase() || "";
+        break;
+      case "role":
+        aValue = a.role?.toLowerCase() || "";
+        bValue = b.role?.toLowerCase() || "";
+        break;
+      case "department":
+        aValue = a.role?.toLowerCase() || "";
+        bValue = b.role?.toLowerCase() || "";
+        break;
+      case "status":
+        aValue = a.status?.toLowerCase() || "";
+        bValue = b.status?.toLowerCase() || "";
+        break;
+      default:
+        return 0;
+    }
+    
+    if (sortDirection === "asc") {
+      return aValue.localeCompare(bValue);
+    } else {
+      return bValue.localeCompare(aValue);
+    }
+  });
+
+  const totalItems = sortedEmployees.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const paginatedData = employees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const paginatedData = sortedEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page)
   }
+
+  const handleSort = (field: string) => {
+    if (onSort) {
+      onSort(field);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ChevronUp className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === "asc" ? 
+      <ChevronUp className="w-4 h-4 text-[#C72920]" /> : 
+      <ChevronDown className="w-4 h-4 text-[#C72920]" />;
+  };
 
   if (error) {
     return (
@@ -69,13 +141,69 @@ export default function EmployeeTable() {
               <Checkbox />
             </th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Profile</th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Name</th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">ID</th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Email</th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Phone</th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Role</th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Department</th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Status</th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("name")}
+            >
+              <div className="flex items-center gap-1">
+                Name
+                {getSortIcon("name")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("id")}
+            >
+              <div className="flex items-center gap-1">
+                ID
+                {getSortIcon("id")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("email")}
+            >
+              <div className="flex items-center gap-1">
+                Email
+                {getSortIcon("email")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("phone")}
+            >
+              <div className="flex items-center gap-1">
+                Phone
+                {getSortIcon("phone")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("role")}
+            >
+              <div className="flex items-center gap-1">
+                Role
+                {getSortIcon("role")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("department")}
+            >
+              <div className="flex items-center gap-1">
+                Department
+                {getSortIcon("department")}
+              </div>
+            </th>
+            <th 
+              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("status")}
+            >
+              <div className="flex items-center gap-1">
+                Status
+                {getSortIcon("status")}
+              </div>
+            </th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Actions</th>
           </tr>
         </thead>

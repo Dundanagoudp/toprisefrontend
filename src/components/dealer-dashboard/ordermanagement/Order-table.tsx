@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Search, Filter, ChevronDown, Edit, Eye, MoreHorizontal } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Search, Filter, ChevronDown, Edit, Eye, MoreHorizontal, ChevronUp } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -72,6 +72,10 @@ export default function OrdersTable() {
   const error = useAppSelector((state: any) => state.order.error);
   const [orderDetails, setOrderDetails] = useState<any>(null);
   
+  // Sorting state
+  const [sortField, setSortField] = useState("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  
   // Modal state
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedOrderProducts, setSelectedOrderProducts] = useState([]);
@@ -86,14 +90,77 @@ export default function OrdersTable() {
   // Filtered orders must be declared before pagination logic
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const filteredOrders = searchQuery
-    ? ordersState.filter(
-        (order: any) =>
-          order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.number?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : ordersState;
+  
+  // Sort and filter orders
+  const filteredAndSortedOrders = useMemo(() => {
+    let currentOrders = searchQuery
+      ? ordersState.filter(
+          (order: any) =>
+            order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            order.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            order.number?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : ordersState;
+
+    // Sort orders
+    if (sortField) {
+      currentOrders.sort((a: any, b: any) => {
+        let aValue: any;
+        let bValue: any;
+        
+        switch (sortField) {
+          case "orderId":
+            aValue = a.orderId?.toLowerCase() || "";
+            bValue = b.orderId?.toLowerCase() || "";
+            break;
+          case "date":
+            aValue = new Date(a.orderDate).getTime();
+            bValue = new Date(b.orderDate).getTime();
+            break;
+          case "customer":
+            aValue = a.customer?.toLowerCase() || "";
+            bValue = b.customer?.toLowerCase() || "";
+            break;
+          case "number":
+            aValue = a.number?.toLowerCase() || "";
+            bValue = b.number?.toLowerCase() || "";
+            break;
+          case "payment":
+            aValue = a.payment?.toLowerCase() || "";
+            bValue = b.payment?.toLowerCase() || "";
+            break;
+          case "value":
+            aValue = parseFloat(a.value?.replace(/[^0-9.-]+/g, "")) || 0;
+            bValue = parseFloat(b.value?.replace(/[^0-9.-]+/g, "")) || 0;
+            break;
+          case "skus":
+            aValue = Array.isArray(a.skus) ? a.skus.length : 1;
+            bValue = Array.isArray(b.skus) ? b.skus.length : 1;
+            break;
+          case "dealers":
+            aValue = a.dealers || 0;
+            bValue = b.dealers || 0;
+            break;
+          case "status":
+            aValue = a.status?.toLowerCase() || "";
+            bValue = b.status?.toLowerCase() || "";
+            break;
+          default:
+            return 0;
+        }
+        
+        if (sortDirection === "asc") {
+          return aValue.localeCompare ? aValue.localeCompare(bValue) : aValue - bValue;
+        } else {
+          return bValue.localeCompare ? bValue.localeCompare(aValue) : bValue - aValue;
+        }
+      });
+    }
+    
+    return currentOrders;
+  }, [ordersState, searchQuery, sortField, sortDirection]);
+
+  const filteredOrders = filteredAndSortedOrders;
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedData = filteredOrders.slice(
@@ -254,6 +321,25 @@ export default function OrdersTable() {
     setCurrentPage(1);
   };
 
+  // Handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ChevronUp className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === "asc" ? 
+      <ChevronUp className="w-4 h-4 text-[#C72920]" /> : 
+      <ChevronDown className="w-4 h-4 text-[#C72920]" />;
+  };
+
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 rounded text-xs font-medium";
     switch (status) {
@@ -320,32 +406,86 @@ export default function OrdersTable() {
                   <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
                     <Checkbox aria-label="Select all" />
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Order ID
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("orderId")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Order ID
+                      {getSortIcon("orderId")}
+                    </div>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Date
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("date")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Date
+                      {getSortIcon("date")}
+                    </div>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Customer
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("customer")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Customer
+                      {getSortIcon("customer")}
+                    </div>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Number
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("number")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Number
+                      {getSortIcon("number")}
+                    </div>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Payment
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("payment")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Payment
+                      {getSortIcon("payment")}
+                    </div>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Value
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("value")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Value
+                      {getSortIcon("value")}
+                    </div>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    No.of Skus
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("skus")}
+                  >
+                    <div className="flex items-center gap-1">
+                      No.of Skus
+                      {getSortIcon("skus")}
+                    </div>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Dealer
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("dealers")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Dealer
+                      {getSortIcon("dealers")}
+                    </div>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Status
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={() => handleSort("status")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Status
+                      {getSortIcon("status")}
+                    </div>
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
                     Actions

@@ -22,7 +22,22 @@ export default function Usermangement() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
+  
+  // Sorting state
+  const [sortField, setSortField] = useState("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  
   const router = useRouter();
+
+  // Handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
 
 
   return (
@@ -129,8 +144,18 @@ export default function Usermangement() {
       {/* Table Content - Mobile responsive */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {activeTab === "employee"
-          ? <Employeetable />
-          : <Dealertable search={search} role={role === "all" ? "" : role} />}
+          ? <Employeetable 
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+            />
+          : <Dealertable 
+              search={search} 
+              role={role === "all" ? "" : role}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+            />}
       </div>
       <FileUploadModal
         isOpen={uploadOpen}
