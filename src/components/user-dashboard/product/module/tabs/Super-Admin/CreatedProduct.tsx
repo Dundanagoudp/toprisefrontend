@@ -8,6 +8,7 @@ import {
   aproveProduct,
   deactivateProduct,
   getProducts,
+  getProductsByPage,
 } from "@/service/product-Service";
 
 import Image from "next/image";
@@ -82,8 +83,8 @@ export default function CreatedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        const response = await getProducts();
-
+        const response = await getProductsByPage(currentPage, itemsPerPage);
+        console.log("API Response:", response);
         dispatch(fetchProductsSuccess(response.data));
         console.log("API Response:", response);
         const data = response.data;

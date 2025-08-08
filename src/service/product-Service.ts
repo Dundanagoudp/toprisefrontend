@@ -10,6 +10,15 @@ export async function getProducts(): Promise<ProductResponse> {
     throw error;
   }
 }
+export async function getProductsByPage(page: number, limit: number): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/products/v1/get-all-products/pagination?page=${page}&limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    console.error(" Failed to fetch products:", error);
+    throw error;
+  }
+}
 
 export async function uploadBulkProducts(
   formData: FormData
