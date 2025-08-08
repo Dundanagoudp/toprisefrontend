@@ -351,6 +351,24 @@ export async function addProduct(productData:FormData | any): Promise<ProductRes
   }
 }
 
+// dealer dashboard product add
+// api/category/products/v1/createProductByDealer
+
+export async function addProductByDealer(
+  productData: FormData | any
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(
+      `/category/products/v1/createProductByDealer`,
+      productData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to add product by dealer:", error);
+    throw error;
+  }
+}
+
 export async function editBulkProducts(
   formData: FormData
 ): Promise<ProductResponse> {

@@ -13,8 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAllDealers } from "@/service/dealerServices";
+import { disableDealer } from "@/service/dealerServices";
 import type { Dealer, Category } from "@/types/dealer-types";
-import { toast } from "@/hooks/use-toast";
+import { useToast as useToastMessage } from "@/components/ui/toast";
 import { getAllCategories } from "@/service/dealerServices";
 import { Skeleton } from "@/components/ui/skeleton";
 import AssignSLAForm from "../../dealer-management/module/popups/assignSLA";
@@ -32,6 +33,7 @@ export default function Dealertable({
   const [currentPage, setCurrentPage] = useState(1);
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToastMessage();
   const itemsPerPage = 10;
   // Filter dealers by search and role
   const filteredDealers = dealers.filter((dealer) => {
@@ -60,6 +62,7 @@ export default function Dealertable({
   const [viewDealerLoading, setViewDealerLoading] = useState(false);
   const [editDealerLoading, setEditDealerLoading] = useState(false);
   const [addDealerLoading, setAddDealerLoading] = useState(false);
+  const [disablingId, setDisablingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDealers();
@@ -69,11 +72,7 @@ export default function Dealertable({
   const handleSLAFormSubmit = (data: any) => {
     setSlaFormOpen(false);
     setSelectedDealerId(null);
-    toast({
-      title: "SLA Assigned",
-      description: "SLA has been assigned successfully.",
-      variant: "success",
-    });
+    showToast("SLA has been assigned successfully.", "success");
     // Optionally, refresh dealers or perform other actions here
   };
 
@@ -87,11 +86,7 @@ export default function Dealertable({
       }
     } catch (error) {
       console.error("Failed to fetch dealers:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch dealers",
-        variant: "destructive",
-      });
+      showToast("Failed to fetch dealers", "error");
     } finally {
       setLoading(false);
     }
@@ -105,11 +100,7 @@ export default function Dealertable({
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch categories",
-        variant: "destructive",
-      });
+      showToast("Failed to fetch categories", "error");
     }
   };
 
@@ -127,6 +118,21 @@ export default function Dealertable({
         {isActive ? "Active" : "Inactive"}
       </span>
     );
+  };
+
+  const handleDisableDealer = async (dealerId: string) => {
+    try {
+      setDisablingId(dealerId);
+      await disableDealer(dealerId);
+      setDealers((prev) =>
+        prev.map((d) => (d._id === dealerId ? { ...d, is_active: false } : d))
+      );
+      showToast("Dealer Disabled Successfully", "success");
+    } catch (error) {
+      showToast("Failed to disable dealer. Please try again.", "error");
+    } finally {
+      setDisablingId(null);
+    }
   };
 
   if (loading) {
@@ -312,6 +318,23 @@ export default function Dealertable({
                   >
                     Assign SLA
                   </DropdownMenuItem>
+                  {dealer.is_active && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (disablingId) return;
+                        handleDisableDealer(dealer._id);
+                      }}
+                    >
+                      {disablingId === dealer._id ? (
+                        <span className="flex items-center">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Disabling...
+                        </span>
+                      ) : (
+                        "Disable Dealer"
+                      )}
+                    </DropdownMenuItem>
+                  )}
                     <DropdownMenuItem
                       onClick={() => {
                         setViewDealerLoading(true);
