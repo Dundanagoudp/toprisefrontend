@@ -1,9 +1,8 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { FileUp, ImageUp, X } from "lucide-react";
+import { FileUp, X } from "lucide-react";
 import React, { ChangeEvent, useState } from "react";
-import { uploadBulkProducts , editBulkProducts} from "@/service/product-Service";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import {
     Dialog,
@@ -20,59 +19,39 @@ import { uploadDealerBulk } from "@/service/dealerServices";
 interface UploadBulkCardProps {
   isOpen: boolean;
   onClose: () => void;
-  mode?: 'upload' | 'edit'|'uploadDealer';
 }
 
 
-export default function FileUploadModal ({ isOpen, onClose, mode = 'upload' }: UploadBulkCardProps) {
+export default function FileUploadModal ({ isOpen, onClose }: UploadBulkCardProps) {
   const {showToast} = useGlobalToast();
-  const [imageZipFile, setImageZipFile] = useState<File | null>(null);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const auth = useAppSelector((state) => state.auth.user);
   const [uploadMessage, setUploadMessage] = useState('');
-  const [logs, setLogs] = useState<any[]>([]);
-  const [isLogOpen, setIsLogOpen] = useState(false);
   const route = useRouter();
 
-
-  const imageInputRef = React.useRef<HTMLInputElement>(null);
   const csvInputRef = React.useRef<HTMLInputElement>(null);
-    const allowedRoles = [ "Super-admin", "Inventory-admin"];
-// Handle file change for both image and CSV files
-    const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fileType: string) => {
+  const allowedRoles = [ "Super-admin", "Inventory-admin"];
+// Handle file change for CSV files
+    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     const file = files && files[0];
     if (file) {
-      if (fileType === 'image') {
-        setImageZipFile(file);
-      } else {
-        setCsvFile(file);
-      }
+      setCsvFile(file);
     }
   };
     const resetState = () => {
-    setImageZipFile(null);
     setCsvFile(null);
     setIsUploading(false);
-  
   };
    const handleClose = () => {
     resetState();
     onClose();
   };
     const handleUpload = async () => {
-      // Ensure both files are selected before uploading
-      if (mode === 'edit' && !csvFile) {
-        setUploadMessage('Please select the CSV file for editing.');
-        return;
-      }
-        if (mode === 'uploadDealer' && !csvFile) {
-        setUploadMessage('Please select the CSV file for editing.');
-        return;
-      }
-      if (mode === 'upload' && (!imageZipFile || !csvFile)) {
-        setUploadMessage('Please select the Image.zip file and CSV file for upload.');
+      // Ensure CSV file is selected before uploading
+      if (!csvFile) {
+        setUploadMessage('Please select the CSV file for dealer upload.');
         return;
       }
 
@@ -80,60 +59,22 @@ export default function FileUploadModal ({ isOpen, onClose, mode = 'upload' }: U
       setUploadMessage('');
 
       const formData = new FormData();
-      if (mode === 'upload') {
-        if (imageZipFile) {
-          formData.append('imageZip', imageZipFile);
-        }
-        if (csvFile) {
-          formData.append('dataFile', csvFile);
-        }
+      if (csvFile) {
+        formData.append('file', csvFile);
       }
-      if (mode === 'edit') {
-        if (csvFile) {
-          formData.append('editsFile', csvFile);
-        }
-      }
-      if (mode === 'uploadDealer') {
-        if (csvFile) {
-          formData.append('file', csvFile);
-        }
-      }
-   
 
       try {
-        let response;
-        if (mode === 'edit') {
-          response = await editBulkProducts(formData);
-          showToast("Updated successfully", "success");
-          console.log('Editing bulk upload with formData:');
-        }
-        else if (mode === 'uploadDealer') {
-          response = await uploadDealerBulk(formData);
-          showToast("Uploaded successfully", "success");
-          console.log('Uploading dealer bulk upload with formData:');
-        }
-        else {
-          response = await uploadBulkProducts(formData);
-          showToast("Uploaded successfully", "success");
-          console.log('Uploading bulk upload with formData:');
-        }
+        const response = await uploadDealerBulk(formData);
+        showToast("Uploaded successfully", "success");
+        console.log('Uploading dealer bulk upload with formData:');
 
         if (response) {
-          setUploadMessage(response.message || (mode === 'edit' ? 'Files edited successfully!' : mode === 'uploadDealer' ? 'Dealer files uploaded successfully!' : 'Files uploaded successfully!'));
-          setImageZipFile(null);
+          setUploadMessage(response.message || 'Dealer files uploaded successfully!');
           setCsvFile(null);
           handleClose();
-            if (mode === 'uploadDealer') {
-            route.push(`/user/dashboard/product`);
-            } else {
-            route.push(`/user/dashboard/product/Logs`);
-            }
-          // const logsResponse = await getProductLogs();
-          // setLogs(logsResponse.data);
-          setIsLogOpen(true);
-         
+          route.push(`/user/dashboard/user`);
         } else {
-          setUploadMessage((mode === 'edit' ? 'Edit failed. Please try again.' : mode === 'uploadDealer' ? 'Dealer  failed. Please try again.': 'Upload failed. Please try again.'));
+          setUploadMessage('Dealer upload failed. Please try again.');
         }
       } catch (error: any) {
         console.error('Error uploading files:', error);
@@ -144,14 +85,9 @@ export default function FileUploadModal ({ isOpen, onClose, mode = 'upload' }: U
         setIsUploading(false);
       }
     };
-   const handleRemoveFile = (fileType: string) => {
-    if (fileType === 'image') {
-      setImageZipFile(null);
-      if(imageInputRef.current) imageInputRef.current.value = '';
-    } else {
-      setCsvFile(null);
-      if(csvInputRef.current) csvInputRef.current.value = '';
-    }
+   const handleRemoveFile = () => {
+    setCsvFile(null);
+    if(csvInputRef.current) csvInputRef.current.value = '';
   };
   if (!auth || !allowedRoles.includes(auth.role)) {
     return (
@@ -171,43 +107,9 @@ return (
         <DialogTitle className="text-2xl font-semibold text-gray-800">Upload File</DialogTitle>
       </DialogHeader>
       <div className="space-y-6 py-4">
-        <p className="text-gray-500">Drag and drop the files as per the requirement</p>
+        <p className="text-gray-500">Upload dealer CSV file</p>
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Only show image upload if not uploadDealer mode */}
-          {mode !== 'uploadDealer' && (
-            <div 
-              className={`flex-1 flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed transition-colors duration-200 ${
-                  imageZipFile ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50 text-red-600 hover:bg-red-100'
-                } cursor-pointer`}
-              onClick={() => imageInputRef.current?.click()}
-            >
-              {imageZipFile ? (
-                <div className="text-center">
-                  <p className="text-sm font-medium">{imageZipFile.name}</p>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleRemoveFile('image'); }}
-                    className="mt-2 text-red-500 hover:text-red-700"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <ImageUp className="w-12 h-12 mb-2" />
-                  <span className="text-lg font-medium">Upload Image.zip file</span>
-                </>
-              )}
-              <input
-                type="file"
-                ref={imageInputRef}
-                onChange={(e) => handleFileChange(e, 'image')}
-                className="hidden"
-                accept=".zip"
-              />
-            </div>
-          )}
-
-          {/* Upload CSV file section (always shown, but label changes for uploadDealer) */}
+          {/* Upload CSV file section */}
           <div 
             className={`flex-1 flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed transition-colors duration-200 ${
                 csvFile ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
@@ -218,7 +120,7 @@ return (
               <div className="text-center">
                 <p className="text-sm font-medium">{csvFile.name}</p>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleRemoveFile('csv'); }}
+                  onClick={(e) => { e.stopPropagation(); handleRemoveFile(); }}
                   className="mt-2 text-gray-500 hover:text-gray-700"
                 >
                   <X size={20} />
@@ -227,13 +129,13 @@ return (
             ) : (
               <>
                 <FileUp className="w-12 h-12 mb-2" />
-                <span className="text-lg font-medium">{mode === 'uploadDealer' ? 'Upload Dealer CSV file' : 'Upload CSV file'}</span>
+                <span className="text-lg font-medium">Upload Dealer CSV file</span>
               </>
             )}
             <input
               type="file"
               ref={csvInputRef}
-              onChange={(e) => handleFileChange(e, 'csv')}
+              onChange={(e) => handleFileChange(e)}
               className="hidden"
               accept=".csv"
             />
@@ -245,25 +147,10 @@ return (
         <Button variant="outline" onClick={handleClose}>Cancel</Button>
         <Button
           className="bg-red-600 text-white hover:bg-red-700"
-          disabled={
-            (mode === 'edit' || mode === 'uploadDealer'
-              ? !csvFile
-              : !imageZipFile || !csvFile
-            ) || isUploading
-          }
+          disabled={!csvFile || isUploading}
           onClick={handleUpload}
         >
-          {isUploading
-            ? (mode === 'edit'
-                ? 'Editing...'
-                : mode === 'uploadDealer'
-                  ? 'Uploading...'
-                  : 'Uploading...')
-            : (mode === 'edit'
-                ? 'Edit Bulk'
-                : mode === 'uploadDealer'
-                  ? 'Upload Dealer CSV'
-                  : 'Upload')}
+          {isUploading ? 'Uploading...' : 'Upload Dealer CSV'}
         </Button>
       </DialogFooter>
     </DialogContent>

@@ -10,14 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAllDealers } from "@/service/dealerServices";
@@ -25,8 +17,8 @@ import type { Dealer, Category } from "@/types/dealer-types";
 import { toast } from "@/hooks/use-toast";
 import { getAllCategories } from "@/service/dealerServices";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRef } from "react";
 import AssignSLAForm from "../../dealer-management/module/popups/assignSLA";
+import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 
 interface DealertableProps {
   search?: string;
@@ -41,8 +33,6 @@ export default function Dealertable({
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [loading, setLoading] = useState(true);
   const itemsPerPage = 10;
-  const totalItems = dealers.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
   // Filter dealers by search and role
   const filteredDealers = dealers.filter((dealer) => {
     const searchLower = search.toLowerCase();
@@ -57,20 +47,19 @@ export default function Dealertable({
       !role || dealer.user_id.role?.toLowerCase() === role.toLowerCase();
     return matchesSearch && matchesRole;
   });
+  const totalItems = filteredDealers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const paginatedData = filteredDealers.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [visibleCount, setVisibleCount] = useState(10);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const loaderRef = useRef<HTMLDivElement | null>(null);
-const [slaFormOpen, setSlaFormOpen] = useState(false);
-const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null);
-const [viewDealerLoading, setViewDealerLoading] = useState(false);
-const [editDealerLoading, setEditDealerLoading] = useState(false);
-const [addDealerLoading, setAddDealerLoading] = useState(false);
+  const [slaFormOpen, setSlaFormOpen] = useState(false);
+  const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null);
+  const [viewDealerLoading, setViewDealerLoading] = useState(false);
+  const [editDealerLoading, setEditDealerLoading] = useState(false);
+  const [addDealerLoading, setAddDealerLoading] = useState(false);
 
   useEffect(() => {
     fetchDealers();
@@ -87,28 +76,7 @@ const [addDealerLoading, setAddDealerLoading] = useState(false);
     });
     // Optionally, refresh dealers or perform other actions here
   };
-  useEffect(() => {
-    if (!loaderRef.current) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          !loading &&
-          !isFetchingMore &&
-          visibleCount < dealers.length
-        ) {
-          setIsFetchingMore(true);
-          setTimeout(() => {
-            setVisibleCount((prev) => Math.min(prev + 10, dealers.length));
-            setIsFetchingMore(false);
-          }, 800); // Simulate network delay for smooth shimmer
-        }
-      },
-      { threshold: 1 }
-    );
-    observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [loading, isFetchingMore, visibleCount, dealers.length]);
+
 
   const fetchDealers = async () => {
     try {
@@ -266,12 +234,12 @@ const [addDealerLoading, setAddDealerLoading] = useState(false);
           </tr>
         </thead>
         <tbody>
-          {filteredDealers.slice(0, visibleCount).map((dealer, index) => (
+          {paginatedData.map((dealer, index) => (
             <tr
               key={dealer._id}
               className="border-b border-gray-100 hover:bg-gray-50"
             >
-              <td className="p-3 md:p-4 text-gray-600 text-sm">{index + 1}</td>
+              <td className="p-3 md:p-4 text-gray-600 text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">
                 {dealer.legal_name}
               </td>
@@ -359,52 +327,17 @@ const [addDealerLoading, setAddDealerLoading] = useState(false);
               </td>
             </tr>
           ))}
-          {isFetchingMore &&
-            [...Array(3)].map((_, idx) => (
-              <tr key={"skeleton-" + idx} className="border-b border-gray-100">
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-8" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-24" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-24" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-28" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-24" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-16" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-14" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-20" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-8" />
-                </td>
-              </tr>
-            ))}
         </tbody>
       </table>
-      <div ref={loaderRef} className="h-8 flex items-center justify-center">
-        {visibleCount < dealers.length && !isFetchingMore && (
-          <span className="text-gray-400 text-xs animate-pulse">
-            Scroll to load more...
-          </span>
-        )}
-        {visibleCount >= dealers.length && (
-          <span className="text-gray-400 text-xs">
-            No more dealers to load.
-          </span>
-        )}
-      </div>
+      
+      {/* Dynamic Pagination */}
+      <DynamicPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        totalItems={totalItems}
+        itemsPerPage={itemsPerPage}
+      />
       <AssignSLAForm
         open={slaFormOpen}
         onClose={() => setSlaFormOpen(false)}

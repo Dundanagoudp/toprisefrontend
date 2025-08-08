@@ -135,7 +135,6 @@ export default function Usermangement() {
       <FileUploadModal
         isOpen={uploadOpen}
         onClose={() => setUploadOpen(false)}
-        mode="uploadDealer"
       />
     
     </div>
