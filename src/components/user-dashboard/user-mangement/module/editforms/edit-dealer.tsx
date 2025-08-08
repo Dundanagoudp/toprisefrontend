@@ -519,7 +519,7 @@ export default function EditDealer() {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="">No SLA Types</SelectItem>
+                          <SelectItem value="no-sla-types" disabled>No SLA Types</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

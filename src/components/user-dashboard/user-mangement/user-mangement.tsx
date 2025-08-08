@@ -3,18 +3,23 @@
 import { useState } from "react"
 import Employeetable from "./module/Employee-table"
 import Dealertable from "./module/Dealer-table"
-import { Search, Upload, Plus, Filter } from "lucide-react"
+import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Image from "next/image"
 import addSquare from "../../../../public/assets/addSquare.svg";
 import { useRouter } from "next/navigation";
+import DynamicButton from "@/components/common/button/button";
+import uploadFile from "../../../../public/assets/uploadFile.svg";
+import FileUploadModal from "./module/Employee-upload"
 
 
 export default function Usermangement() {
   const [activeTab, setActiveTab] = useState("employee")
   const [addLoading, setAddLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const router = useRouter();
@@ -78,6 +83,22 @@ export default function Usermangement() {
           </div>
 
           <div className="flex items-center gap-3 justify-end">
+            {activeTab === "dealer" && (
+              <DynamicButton
+                variant="default"
+                customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
+                onClick={() => {
+                  setUploadLoading(true);
+                  setUploadOpen(true);
+                  setTimeout(() => setUploadLoading(false), 800);
+                }}
+                disabled={uploadLoading}
+                loading={uploadLoading}
+                loadingText="Opening..."
+                icon={<Image src={uploadFile} alt="Upload" className="h-4 w-4" />}
+                text="Upload"
+              />
+            )}
             <Button
               className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
               variant="default"
@@ -111,6 +132,10 @@ export default function Usermangement() {
           ? <Employeetable />
           : <Dealertable search={search} role={role === "all" ? "" : role} />}
       </div>
+      <FileUploadModal
+        isOpen={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+      />
     
     </div>
   )
