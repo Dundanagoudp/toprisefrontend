@@ -1,7 +1,9 @@
 export interface ProductResponse {
   success: boolean;
   message: string;
-  data: Product[];
+  data: {
+    products: Product[];
+  }
 }
 
 export interface Product {
