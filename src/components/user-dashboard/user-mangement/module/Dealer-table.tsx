@@ -24,6 +24,7 @@ import { useAppSelector } from "@/store/hooks";
 interface DealertableProps {
   search?: string;
   role?: string;
+  status?: string;
   sortField?: string;
   sortDirection?: "asc" | "desc";
   onSort?: (field: string) => void;
@@ -32,6 +33,7 @@ interface DealertableProps {
 export default function Dealertable({
   search = "",
   role = "",
+  status = "",
   sortField = "",
   sortDirection = "asc",
   onSort
@@ -95,7 +97,7 @@ export default function Dealertable({
     }
   });
   
-  // Filter dealers by search and role
+  // Filter dealers by search, role, and status
   const filteredDealers = sortedDealers.filter((dealer) => {
     const searchLower = search.toLowerCase();
     const matchesSearch =
@@ -105,9 +107,11 @@ export default function Dealertable({
       dealer.user_id.phone_Number.toLowerCase().includes(searchLower) ||
       dealer.contact_person.name.toLowerCase().includes(searchLower) ||
       dealer.contact_person.email.toLowerCase().includes(searchLower);
-    const matchesRole =
-      !role || dealer.user_id.role?.toLowerCase() === role.toLowerCase();
-    return matchesSearch && matchesRole;
+    
+    const matchesRole = !role || dealer.user_id.role?.toLowerCase() === role.toLowerCase();
+    const matchesStatus = !status || (status === "active" ? dealer.is_active : !dealer.is_active);
+    
+    return matchesSearch && matchesRole && matchesStatus;
   });
   const totalItems = filteredDealers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
