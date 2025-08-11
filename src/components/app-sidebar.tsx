@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
    LogOutIcon as LogOut,
    LogOutIcon,
+   SettingsIcon,
  
 } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
@@ -85,6 +86,11 @@ const data = {
       url: "/user/dashboard/contentManagement",
       icon: BoxIcon,
     },
+    {
+      title: "Settings",
+      url: "/user/dashboard/setting",
+      icon: SettingsIcon,
+    }
   ],
 }
 
