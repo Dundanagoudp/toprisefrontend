@@ -65,14 +65,6 @@ export function AddRoleModal({ children, moduleName, onRoleAdded }: AddRoleModal
       <DialogContent className="sm:max-w-md p-6 rounded-lg shadow-lg">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <DialogTitle className="text-2xl font-bold">Add Role</DialogTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setOpen(false)}
-            className="text-gray-500 hover:bg-gray-100"
-          >
-            <X className="h-5 w-5" />
-          </Button>
         </DialogHeader>
         <div className="grid gap-6 py-4">
           <div className="grid gap-2">
