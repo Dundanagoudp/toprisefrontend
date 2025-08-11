@@ -9,7 +9,15 @@ import { DynamicButton } from "@/components/common/button"
 
 export default function SettingPage() {
   const [activeSetting, setActiveSetting] = useState("Permission Access")
-  const [activeModule, setActiveModule] = useState("Dealer") 
+  const [activeModule, setActiveModule] = useState("Dealer")
+
+  // Roles per module
+  const rolesPerModule: Record<string, string[]> = {
+    Dealer: ["Dealer"],
+    "Order Management": ["Super Admin"],
+    "Employee Management": ["Inventory Admin"],
+  }
+
   const settingsNav = [
     { name: "Permission Access", id: "Permission Access" },
     { name: "Delivery Charge", id: "Delivery Charge" },
@@ -32,24 +40,20 @@ export default function SettingPage() {
 
   return (
     <div className="flex flex-col p-6 gap-6">
-      <div className="flex items-center justify-end">
-        <div className="flex gap-2">
-          <DynamicButton
-            text="Create Module"
-            customClassName="bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white"
-          />
-          {activeSetting === "Permission Access" && activeModule === "Order Management" && (
+      {activeSetting === "Permission Access" && (
+        <div className="flex items-center justify-end">
+          <div className="flex gap-2">
             <DynamicButton
-              variant="outline"
-              icon={<Plus className="w-4 h-4" />}
-              text="Add Role"
-              customClassName="border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent"
+              text="Create Module"
+              customClassName="bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white"
             />
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
+
+      <div className="grid grid-cols-1 md:grid-cols-[250px_1fr_1fr] gap-6">
+        
         {/* Left Column: Setting Categories */}
         <div className="flex flex-col gap-2">
           {settingsNav.map((item) => (
@@ -65,92 +69,96 @@ export default function SettingPage() {
           ))}
         </div>
 
-        {/* Right Column: Content for selected setting */}
-        <div className="flex flex-col gap-6">
-          {activeSetting === "Permission Access" && (
-            <>
-              <h2 className="h5 font-bold">Permission Access</h2>
-              <div className={`grid grid-cols-1 ${activeModule === "Dealer" ? "lg:grid-cols-2" : ""} gap-6`}>
-                {/* Module and Roles Permission Access */}
-                <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-2 gap-4 font-semibold text-sm text-gray-600">
-                    <div>Module</div>
-                    <div>Roles Permission Access</div>
-                  </div>
-                  {modules.map((moduleItem) => (
-                    <div
-                      key={moduleItem.id}
-                      className={`grid grid-cols-2 gap-4 items-center py-2 border-b border-gray-200 cursor-pointer ${
-                        activeModule === moduleItem.id ? "text-primary-red" : ""
-                      }`}
-                      onClick={() => setActiveModule(moduleItem.id)}
-                    >
-                      <div>{moduleItem.name}</div>
-                      <div className="flex items-center justify-between">
-                        <span className={activeModule === moduleItem.id ? "text-primary-red" : ""}>
-                          {moduleItem.id === "Dealer"
-                            ? "Dealer"
-                            : moduleItem.id === "Order Management"
-                              ? "Super Admin"
-                              : "Inventory Admin"}
-                        </span>
-                        <Trash2 className="w-4 h-4 text-gray-500 cursor-pointer hover:text-red-500" />
-                      </div>
-                    </div>
-                  ))}
-
-                  {activeModule !== "Order Management" && (
-                    <DynamicButton
-                      variant="outline"
-                      icon={<Plus className="w-4 h-4" />}
-                      text="Add Role"
-                      customClassName="w-fit border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent"
-                    />
-                  )}
-                </div>
-
-                {/* Dealer Details Cards - Only show if activeModule is "Dealer" */}
-                {activeModule === "Dealer" && (
-                  <div className="flex flex-col gap-4">
-                    <DynamicButton
-                      variant="outline"
-                      icon={<Plus className="w-4 h-4" />}
-                      text="Add Role"
-                      customClassName="w-fit border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent self-end"
-                    />
-                    <DealerDetailsCard
-                      dealerId="056789"
-                      dealerName="A. Sharma"
-                      email="ABC@gmail.com"
-                      phone="+91 8523694712"
-                      allowedFields="True"
-                      permissions="Read/Write/Update"
-                    />
-                    <DealerDetailsCard
-                      dealerId="056789"
-                      dealerName="A. Sharma"
-                      email="ABC@gmail.com"
-                      phone="+91 8523694712"
-                      allowedFields="True"
-                      permissions="Read/Write/Update"
-                    />
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Conditional rendering for Delivery Charge Settings */}
-          {activeSetting === "Delivery Charge" && <DeliveryChargeSettings />}
-
-          {/* Placeholder for other settings */}
-          {activeSetting !== "Permission Access" && activeSetting !== "Delivery Charge" && (
-            <div className="flex items-center justify-center h-64 text-gray-500">
-              Content for {activeSetting} will be displayed here.
+        {/* Middle Column: Module and Roles Permission Access */}
+        {activeSetting === "Permission Access" && (
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-4 font-semibold text-sm text-gray-600">
+              <div>Module</div>
+              <div>Roles Permission Access</div>
             </div>
-          )}
-        </div>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Module List */}
+              <div className="flex flex-col gap-2">
+                {modules.map((moduleItem) => (
+                  <div
+                    key={moduleItem.id}
+                    className={`py-2 cursor-pointer ${activeModule === moduleItem.id ? "text-primary-red" : ""}`}
+                    onClick={() => setActiveModule(moduleItem.id)}
+                  >
+                    {moduleItem.name}
+                  </div>
+                ))}
+              </div>
+              {/* Roles List for Active Module */}
+              <RolesPermissionAccess
+                roles={rolesPerModule[activeModule] || []}
+                activeModule={activeModule}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Right Column: Dealer Details Cards - Only show if activeModule is "Dealer" */}
+        {activeSetting === "Permission Access" && activeModule === "Dealer" && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between font-semibold text-sm text-gray-600 mb-2">
+              <div>Dealer Details</div>
+              <DynamicButton
+                variant="outline"
+                icon={<Plus className="w-4 h-4" />}
+                text="Add Role"
+                customClassName="w-fit border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent"
+              />
+            </div>
+            <DealerDetailsCard
+              dealerId="056789"
+              dealerName="A. Sharma"
+              email="ABC@gmail.com"
+              phone="+91 8523694712"
+              allowedFields="True"
+              permissions="Read/Write/Update"
+            />
+            <DealerDetailsCard
+              dealerId="056789"
+              dealerName="A. Sharma"
+              email="ABC@gmail.com"
+              phone="+91 8523694712"
+              allowedFields="True"
+              permissions="Read/Write/Update"
+            />
+          </div>
+        )}
+
+        {/* Conditional rendering for Delivery Charge Settings */}
+        {activeSetting === "Delivery Charge" && <DeliveryChargeSettings />}
+
+        {/* Placeholder for other settings */}
+        {activeSetting !== "Permission Access" && activeSetting !== "Delivery Charge" && (
+          <div className="flex items-center justify-center h-64 text-gray-500">
+            Content for {activeSetting} will be displayed here.
+          </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+// RolesPermissionAccess component
+function RolesPermissionAccess({ roles, activeModule }: { roles: string[]; activeModule: string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {roles.map((role) => (
+        <div key={role} className="flex items-center justify-between py-2">
+          <span className={activeModule === "Dealer" && role === "Dealer" ? "text-primary-red" : ""}>{role}</span>
+          <Trash2 className="w-4 h-4 text-gray-500 cursor-pointer hover:text-red-500" />
+        </div>
+      ))}
+      <DynamicButton
+        variant="outline"
+        icon={<Plus className="w-4 h-4" />}
+        text="Add Role"
+        customClassName="w-fit border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent mt-2"
+      />
     </div>
   )
 }
