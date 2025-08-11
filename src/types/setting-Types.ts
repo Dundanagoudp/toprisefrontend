@@ -118,7 +118,7 @@ export interface AddPermissionsResponse {
 export interface AddRolesToModuleRequest {
   module: string
   roles: string[]
-  updatedBy: string | User
+  updatedBy?: string | User
 }
 
 export interface AddRolesToModuleResponse {
@@ -130,7 +130,7 @@ export interface AddRolesToModuleResponse {
 export interface RemoveRoleFromModuleRequest {
   module: string
   role: string
-  updatedBy: string | User
+  updatedBy?: string | User
 }
 
 export interface RemoveRoleFromModuleResponse {
@@ -142,7 +142,7 @@ export interface RemoveRoleFromModuleResponse {
 export interface UpdateModuleRequest {
   module: string
   newModuleName: string
-  updatedBy: string | User
+  updatedBy?: string | User
 }
 
 export interface UpdateModuleResponse {
@@ -162,7 +162,7 @@ export interface UpdateUserPermissionsRequest {
     update: boolean
     delete: boolean
   }
-  updatedBy: string | User
+  updatedBy?: string | User
 }
 
 export interface UpdateUserPermissionsResponse {
@@ -175,7 +175,7 @@ export interface RemoveUserPermissionsRequest {
   module: string
   role: string
   userId: string | User
-  updatedBy: string | User
+  updatedBy?: string | User
 }
 
 export interface RemoveUserPermissionsResponse {

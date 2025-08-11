@@ -7,16 +7,23 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge" 
+import { Badge } from "@/components/ui/badge"
+import { createModuleWithRoles } from "@/service/settingServices"
+import type { AddModuleRequest } from "@/types/setting-Types"
+import { useToast } from "@/components/ui/toast"
+
 interface CreateModuleModalProps {
-  children: React.ReactNode 
+  children: React.ReactNode
+  onModuleCreated?: () => void
 }
 
-export function CreateModuleModal({ children }: CreateModuleModalProps) {
+export function CreateModuleModal({ children, onModuleCreated }: CreateModuleModalProps) {
   const [open, setOpen] = useState(false)
   const [moduleName, setModuleName] = useState("")
   const [roles, setRoles] = useState<string[]>([])
   const [currentRoleInput, setCurrentRoleInput] = useState("")
+  const [loading, setLoading] = useState(false)
+  const { showToast } = useToast()
 
   const handleAddRole = () => {
     if (currentRoleInput.trim() && !roles.includes(currentRoleInput.trim())) {
@@ -29,14 +36,42 @@ export function CreateModuleModal({ children }: CreateModuleModalProps) {
     setRoles(roles.filter((role) => role !== roleToRemove))
   }
 
-  const handleSave = () => {
-    // Here you would typically send the moduleName and roles to your backend
-    console.log("Saving Module:", { module: moduleName, roles })
-    // Reset form and close modal
-    setModuleName("")
-    setRoles([])
-    setCurrentRoleInput("")
-    setOpen(false)
+  const handleSave = async () => {
+    if (!moduleName.trim()) {
+      showToast("Module name is required", "error")
+      return
+    }
+
+    if (roles.length === 0) {
+      showToast("At least one role is required", "error")
+      return
+    }
+
+    try {
+      setLoading(true)
+      const requestData: AddModuleRequest = {
+        module: moduleName.trim(),
+        roles: roles
+        // Removed updatedBy field to fix 500 error
+      }
+
+      await createModuleWithRoles(requestData)
+      showToast("Module created successfully", "success")
+      
+      // Reset form and close modal
+      setModuleName("")
+      setRoles([])
+      setCurrentRoleInput("")
+      setOpen(false)
+      
+      // Call callback to refresh modules list
+      onModuleCreated?.()
+    } catch (error) {
+      console.error("Error creating module:", error)
+      showToast("Failed to create module", "error")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -113,8 +148,9 @@ export function CreateModuleModal({ children }: CreateModuleModalProps) {
           type="submit"
           className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-lg font-semibold"
           onClick={handleSave}
+          disabled={loading}
         >
-          Save
+          {loading ? "Creating..." : "Save"}
         </Button>
       </DialogContent>
     </Dialog>
