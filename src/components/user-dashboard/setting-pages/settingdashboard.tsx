@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DeliveryChargeSettings } from "./modules/delivery-charge-settings"
 import { DynamicButton } from "@/components/common/button"
+import { CreateModuleModal } from "./modules/popups/create-module-modal"
+import { AddRoleModal } from "./modules/popups/add-role-modal"
+import { EditPermissionModal } from "./modules/popups/edit-permission-modal"
 
 export default function SettingPage() {
   const [activeSetting, setActiveSetting] = useState("Permission Access")
@@ -43,10 +46,12 @@ export default function SettingPage() {
       {activeSetting === "Permission Access" && (
         <div className="flex items-center justify-end">
           <div className="flex gap-2">
-            <DynamicButton
-              text="Create Module"
-              customClassName="bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white"
-            />
+            <CreateModuleModal>
+              <DynamicButton
+                text="Create Module"
+                customClassName="bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white"
+              />
+            </CreateModuleModal>
           </div>
         </div>
       )}
@@ -71,29 +76,51 @@ export default function SettingPage() {
 
         {/* Middle Column: Module and Roles Permission Access */}
         {activeSetting === "Permission Access" && (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4 font-semibold text-sm text-gray-600">
-              <div>Module</div>
-              <div>Roles Permission Access</div>
+          <div className="flex flex-col gap-6">
+            {/* Headers */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="font-semibold text-base text-black">Module</div>
+              <div className="font-semibold text-base text-black">Roles Permission Access</div>
             </div>
+            
+            {/* Content */}
             <div className="grid grid-cols-2 gap-4">
               {/* Module List */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {modules.map((moduleItem) => (
                   <div
                     key={moduleItem.id}
-                    className={`py-2 cursor-pointer ${activeModule === moduleItem.id ? "text-primary-red" : ""}`}
+                    className={`py-2 px-3 cursor-pointer transition-colors ${
+                      activeModule === moduleItem.id 
+                        ? "text-red-600 font-medium" 
+                        : "text-black hover:text-gray-700"
+                    }`}
                     onClick={() => setActiveModule(moduleItem.id)}
                   >
                     {moduleItem.name}
                   </div>
                 ))}
               </div>
+              
               {/* Roles List for Active Module */}
-              <RolesPermissionAccess
-                roles={rolesPerModule[activeModule] || []}
-                activeModule={activeModule}
-              />
+              <div className="flex flex-col gap-3">
+                {rolesPerModule[activeModule]?.map((role) => (
+                  <div key={role} className="flex items-center justify-between py-2 px-3">
+                    <span className={activeModule === "Dealer" && role === "Dealer" ? "text-red-600" : "text-black"}>
+                      {role}
+                    </span>
+                    <Trash2 className="w-4 h-4 text-gray-600 cursor-pointer hover:text-red-500 transition-colors" />
+                  </div>
+                ))}
+                <AddRoleModal>
+                  <DynamicButton
+                    variant="outline"
+                    icon={<Plus className="w-4 h-4" />}
+                    text="Add Role"
+                    customClassName="w-fit border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700 bg-white mt-2"
+                  />
+                </AddRoleModal>
+              </div>
             </div>
           </div>
         )}
@@ -103,12 +130,14 @@ export default function SettingPage() {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between font-semibold text-sm text-gray-600 mb-2">
               <div>Dealer Details</div>
-              <DynamicButton
-                variant="outline"
-                icon={<Plus className="w-4 h-4" />}
-                text="Add Role"
-                customClassName="w-fit border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent"
-              />
+              <AddRoleModal>
+                <DynamicButton
+                  variant="outline"
+                  icon={<Plus className="w-4 h-4" />}
+                  text="Add Dealer"
+                  customClassName="w-fit border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700 bg-white"
+                />
+              </AddRoleModal>
             </div>
             <DealerDetailsCard
               dealerId="056789"
@@ -143,25 +172,7 @@ export default function SettingPage() {
   )
 }
 
-// RolesPermissionAccess component
-function RolesPermissionAccess({ roles, activeModule }: { roles: string[]; activeModule: string }) {
-  return (
-    <div className="flex flex-col gap-2">
-      {roles.map((role) => (
-        <div key={role} className="flex items-center justify-between py-2">
-          <span className={activeModule === "Dealer" && role === "Dealer" ? "text-primary-red" : ""}>{role}</span>
-          <Trash2 className="w-4 h-4 text-gray-500 cursor-pointer hover:text-red-500" />
-        </div>
-      ))}
-      <DynamicButton
-        variant="outline"
-        icon={<Plus className="w-4 h-4" />}
-        text="Add Role"
-        customClassName="w-fit border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent mt-2"
-      />
-    </div>
-  )
-}
+
 
 interface DealerDetailsCardProps {
   dealerId: string
@@ -184,9 +195,11 @@ function DealerDetailsCard({ dealerId, dealerName, email, phone, allowedFields, 
             <Check className="h-4 w-4 text-white" />
           </Checkbox>
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
-              <Pencil className="w-4 h-4" />
-            </Button>
+            <EditPermissionModal>
+              <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-700">
+                <Pencil className="w-4 h-4" />
+              </Button>
+            </EditPermissionModal>
             <Button variant="ghost" size="icon" className="text-gray-500 hover:text-red-500">
               <Trash2 className="w-4 h-4" />
             </Button>
