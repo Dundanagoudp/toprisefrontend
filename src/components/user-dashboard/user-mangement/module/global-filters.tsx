@@ -1,8 +1,9 @@
 "use client"
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
-import { Filter, SlidersHorizontal, X, Search, ChevronDown } from "lucide-react"
+import { Filter, SlidersHorizontal, X, ChevronDown } from "lucide-react"
 import DynamicButton from "@/components/common/button/button"
+import SearchInput from "@/components/common/search/SearchInput"
 
 interface GlobalFiltersProps {
   type: "employee" | "dealer"
@@ -118,95 +119,29 @@ export default function GlobalFilters({
     status.charAt(0).toUpperCase() + status.slice(1)
 
   return (
-    <div className="space-y-4">
-      <header className="flex flex-col md:flex-row gap-3 md:items-center">
-        <div className="flex items-center gap-3">
-          <SlidersHorizontal className="size-5 text-foreground/80" aria-hidden="true" />
-          <h2 className="text-xl font-semibold">
-            {type === "employee" ? "Employee" : "Dealer"} Filters
-          </h2>
-        </div>
-        <div className="md:ml-auto">
-          <button
-            ref={triggerRef}
-            onClick={() => setOpen((o) => !o)}
-            className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
-            aria-expanded={open}
-          >
-            <Filter className="size-4" /> Filters
-            {appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ""}
-          </button>
-        </div>
-      </header>
-
-      {/* Inline controls (always visible) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="relative flex-1 max-w-full md:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            placeholder={`Search ${type === "employee" ? "employees" : "dealers"}...`}
-            className="pl-10 bg-gray-50 border border-gray-200 rounded-md h-9 w-full outline-none focus:ring-2 focus:ring-gray-200"
+    <div className="relative">
+      <div className="flex items-center gap-3">
+        {/* Search field */}
+        <div className="flex-1 max-w-full md:max-w-md">
+          <SearchInput
             value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={onSearchChange}
+            onClear={() => onSearchChange("")}
+            placeholder={`Search ${type === "employee" ? "employees" : "dealers"}...`}
+            className="w-full"
           />
         </div>
 
-        {/* Role select */}
-        <div className="relative">
-          <SelectLike
-            label="Role"
-            value={currentRole}
-            onChange={onRoleChange}
-            options={["all", ...roles]}
-            display={(v) => (v === "all" ? "All Roles" : getRoleDisplayName(v))}
-          />
-        </div>
-
-        {/* Status select */}
-        <div className="relative">
-          <SelectLike
-            label="Status"
-            value={currentStatus}
-            onChange={onStatusChange}
-            options={["all", ...statuses]}
-            display={(v) => (v === "all" ? "All Statuses" : getStatusDisplayName(v))}
-          />
-        </div>
-
-        <DynamicButton
-          variant="outline"
-          customClassName="flex items-center gap-2 border-gray-300 hover:bg-gray-50"
-          onClick={onResetFilters}
-          icon={<Filter className="h-4 w-4" />}
-          text="Reset"
-        />
-      </div>
-
-      {/* Applied chips */}
-      <div className="flex flex-wrap items-center gap-2">
-        {search && (
-          <Chip label={`Search: ${search}`} onRemove={() => onSearchChange("")} />
-        )}
-        {currentRole !== "all" && (
-          <Chip
-            label={`Role: ${getRoleDisplayName(currentRole)}`}
-            onRemove={() => onRoleChange("all")}
-          />
-        )}
-        {currentStatus !== "all" && (
-          <Chip
-            label={`Status: ${getStatusDisplayName(currentStatus)}`}
-            onRemove={() => onStatusChange("all")}
-          />
-        )}
-        {appliedFiltersCount > 0 && (
-          <button
-            onClick={clearAll}
-            className="text-sm px-2 py-1 rounded-md hover:bg-muted inline-flex items-center"
-          >
-            Clear all
-          </button>
-        )}
+        {/* Filter button */}
+        <button
+          ref={triggerRef}
+          onClick={() => setOpen((o) => !o)}
+          className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+          aria-expanded={open}
+        >
+          <Filter className="size-4" /> Filters
+          {appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ""}
+        </button>
       </div>
 
       {/* Panel */}
@@ -368,7 +303,6 @@ function SelectLike<T extends string>({
     </div>
   )
 }
-
 function PanelContent(props: {
   type: "employee" | "dealer"
   draftSearch: string
@@ -384,19 +318,6 @@ function PanelContent(props: {
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Search</label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            placeholder={`Search ${type === "employee" ? "employees" : "dealers"}...`}
-            className="pl-10 bg-white border border-gray-200 rounded-md h-9 w-full outline-none focus:ring-2 focus:ring-gray-200"
-            value={draftSearch}
-            onChange={(e) => setDraftSearch(e.target.value)}
-          />
-        </div>
-      </div>
 
       {/* Collapsible Role */}
       <Collapsible title="Role">
@@ -480,3 +401,4 @@ function Collapsible({ title, children }: { title: string; children: React.React
     </div>
   )
 }
+
