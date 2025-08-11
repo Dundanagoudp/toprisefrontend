@@ -21,12 +21,18 @@ import Image from "next/image"
 import { useAppSelector } from "@/store/hooks"
 
 interface EmployeeTableProps {
+  search?: string;
+  role?: string;
+  status?: string;
   sortField?: string;
   sortDirection?: "asc" | "desc";
   onSort?: (field: string) => void;
 }
 
 export default function EmployeeTable({ 
+  search = "",
+  role = "",
+  status = "",
   sortField = "", 
   sortDirection = "asc", 
   onSort 
@@ -56,6 +62,11 @@ export default function EmployeeTable({
     }
     fetchEmployees()
   }, [])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, role, status]);
 
   // Sort employees based on sortField and sortDirection
   const sortedEmployees = [...employees].sort((a, b) => {
@@ -104,9 +115,39 @@ export default function EmployeeTable({
     }
   });
 
-  const totalItems = sortedEmployees.length
+  // Filter employees by search, role, and status
+  const filteredEmployees = sortedEmployees.filter((employee) => {
+    const searchLower = search.toLowerCase();
+    const matchesSearch =
+      employee.First_name?.toLowerCase().includes(searchLower) ||
+      employee.employee_id?.toLowerCase().includes(searchLower) ||
+      employee.email?.toLowerCase().includes(searchLower) ||
+      employee.mobile_number?.toLowerCase().includes(searchLower);
+    
+    // Handle role filtering - match the actual role values in the data
+    const matchesRole = !role || 
+      (role === "Sales" && employee.role === "Sales") ||
+      (role === "Fulfillment-Staff" && employee.role === "Fulfillment-Staff") ||
+      (role === "General" && (employee.role !== "Sales" && employee.role !== "Fulfillment-Staff"));
+    
+    // Handle status filtering - if status is null/undefined, treat as "Active"
+    const employeeStatus = employee.status || "Active";
+    const matchesStatus = !status || employeeStatus.toLowerCase() === status.toLowerCase();
+    
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  const totalItems = filteredEmployees.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const paginatedData = sortedEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  
+  // Reset to page 1 when filters change and current page is out of bounds
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+  
+  const paginatedData = filteredEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page)

@@ -17,6 +17,7 @@ import DynamicButton from "@/components/common/button/button"
 import DataTable from "@/components/common/table/DataTable"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import UpdateStockModal from "./modules/UpdateStockModal";
+import ProductFilters from "./ProductFilters"
 
 // API and Types
 import { getProductsByDealerId, checkDealerProductPermission, updateStockByDealer } from "@/service/dealer-product";
@@ -199,6 +200,11 @@ export default function DealerAssignTable() {
   const [updateStockLoading, setUpdateStockLoading] = useState(false);
   const [updateStockQuantity, setUpdateStockQuantity] = useState<number>(0);
   
+  // Filter state
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterBrand, setFilterBrand] = useState("all");
+  
   // Sorting state
   const [sortField, setSortField] = useState("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -235,6 +241,14 @@ export default function DealerAssignTable() {
     setSearchInput("")
     setSearchQuery("")
     setIsSearching(false)
+    setCurrentPage(1)
+  }
+
+  // Reset all filters
+  const handleResetFilters = () => {
+    setFilterStatus("all")
+    setFilterCategory("all")
+    setFilterBrand("all")
     setCurrentPage(1)
   }
 
@@ -307,6 +321,21 @@ export default function DealerAssignTable() {
       currentProducts = currentProducts.filter((product) => product.live_status === "Rejected")
     }
 
+    // Filter by status
+    if (filterStatus !== "all") {
+      currentProducts = currentProducts.filter((product) => product.live_status === filterStatus)
+    }
+
+    // Filter by category
+    if (filterCategory !== "all") {
+      currentProducts = currentProducts.filter((product) => product.category?.category_name === filterCategory)
+    }
+
+    // Filter by brand
+    if (filterBrand !== "all") {
+      currentProducts = currentProducts.filter((product) => product.brand?.brand_name === filterBrand)
+    }
+
     // Filter by search query
     if (searchQuery.trim() !== "") {
       const q = searchQuery.trim().toLowerCase()
@@ -368,7 +397,7 @@ export default function DealerAssignTable() {
     }
     
     return currentProducts
-  }, [products, searchQuery, selectedTab, sortField, sortDirection])
+  }, [products, searchQuery, selectedTab, filterStatus, filterCategory, filterBrand, sortField, sortDirection])
 
   const totalPages = Math.ceil(filteredProducts.length / cardsPerPage)
   const paginatedData = filteredProducts.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)
@@ -568,14 +597,19 @@ export default function DealerAssignTable() {
                 isLoading={isSearching}
                 placeholder="Search Spare parts"
               />
-              {/* Filter Buttons */}
-              <div className="flex gap-2 sm:gap-3">
-                <DynamicButton
-                  variant="outline"
-                  customClassName="bg-transparent border-gray-300 hover:bg-gray-50 min-w-[100px]"
-                  text="Filters"
-                />
-              </div>
+              {/* Product Filters */}
+              <ProductFilters
+                search={searchInput}
+                onSearchChange={handleSearchChange}
+                currentStatus={filterStatus}
+                onStatusChange={setFilterStatus}
+                currentCategory={filterCategory}
+                onCategoryChange={setFilterCategory}
+                currentBrand={filterBrand}
+                onBrandChange={setFilterBrand}
+                onResetFilters={handleResetFilters}
+                products={products}
+              />
             </div>
             {/* Right: Add Product, Send Approval */}
             <div className="flex items-center gap-3 w-full lg:w-auto justify-start grid-ro-2 sm:justify-end">
