@@ -9,6 +9,7 @@ import {
   aproveProduct,
   deactivateProduct,
   getProducts,
+  getProductsByPage,
 } from "@/service/product-Service";
 
 import Image from "next/image";
@@ -65,69 +66,53 @@ export default function PendingProduct({
 }) {
   const dispatch = useAppDispatch();
   // Use the correct state for products with live status
-  const allProducts = useAppSelector(
-    (state) => state.productLiveStatus.products
-  );
 
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
+  const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const route = useRouter();
   const { showToast } = useGlobalToast();
   const itemsPerPage = 10;
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoadingProducts(true);
-      try {
-        const response = await getProducts();
-        const data = response.data;
-        if (Array.isArray(data)) {
-          const mapped = data.map((item) => ({
-            id: item._id,
-            image: item.images[0] || item.model.model_image,
-            name: item.product_name || item.manufacturer_part_name || "-",
-            category: item.category?.category_name || "-",
-            subCategory: item.sub_category?.subcategory_name || "-",
-            brand: item.brand?.brand_name || "-",
-            productType: item.product_type || "-",
-            qcStatus: item.Qc_status || "Pending",
-            liveStatus: item.live_status || "Pending",
-          }));
-          dispatch(fetchProductsWithLiveStatus(mapped));
-        }
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      } finally {
-        setLoadingProducts(false);
+useEffect(() => {
+  const fetchProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const response = await getProductsByPage(currentPage, itemsPerPage);
+      if (response.data?.products && Array.isArray(response.data.products)) {
+        setPaginatedProducts(response.data.products);
       }
-    };
-
-    // Only fetch if we don't have products in the store
-    if (!allProducts || allProducts.length === 0) {
-      fetchProducts();
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+      showToast("Failed to fetch products", "error");
+    } finally {
+      setLoadingProducts(false);
     }
-  }, [dispatch, allProducts]);
+  };
+
+  fetchProducts();
+}, [currentPage]);
 
   // Filter products by pending live status and search query
   const filteredProducts = React.useMemo(() => {
-    if (!allProducts || !Array.isArray(allProducts)) return [];
+    if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
     // First filter by pending live status
-    const pendingProducts = allProducts.filter(
-      (product: any) => product.liveStatus === "Pending"
+    const pendingProducts = paginatedProducts.filter(
+      (product: any) => product.live_status === "Pending"
     );
     // Then filter by search query if provided
     if (!searchQuery || searchQuery.trim() === "") return pendingProducts;
     const q = searchQuery.trim().toLowerCase();
     return pendingProducts.filter(
       (product: any) =>
-        product.name?.toLowerCase().includes(q) ||
+        product.product_name?.toLowerCase().includes(q) ||
         product.category?.toLowerCase().includes(q) ||
         product.brand?.toLowerCase().includes(q) ||
         product.subCategory?.toLowerCase().includes(q) ||
         product.productType?.toLowerCase().includes(q)
     );
-  }, [allProducts, searchQuery]);
+  }, [paginatedProducts, searchQuery]);
 
   // Update total products count when filtered products change
   useEffect(() => {
@@ -175,11 +160,10 @@ export default function PendingProduct({
   const handleSelectAll = () => {
     const newSelectedProducts = allSelected
       ? []
-      : filteredProducts.map((p: any) => p.id);
+      : filteredProducts.map((p: any) => p._id);
     setSelectedProducts(newSelectedProducts);
- 
+    // Always dispatch as array of product IDs
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
-
   };
 
   // Dummy handlers for edit/view (replace with navigation if needed)
@@ -195,219 +179,237 @@ export default function PendingProduct({
     <div className="">
       <div className="w-full overflow-x-auto">
         <Table>
-  <TableHeader>
-    <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-      <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
-        <Checkbox
-          checked={allSelected}
-          onCheckedChange={handleSelectAll}
-          aria-label="Select all"
-        />
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-        Image
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">
-        Name
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
-        Category
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-[Red Hat Display]">
-        Sub Category
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display]">
-        Brand
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
-        Type
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
-        QC Status
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
-        Product status
-      </TableHead>
-      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">
-        Action
-      </TableHead>
-    </TableRow>
-  </TableHeader>
-  <TableBody>
-    {loadingProducts ? (
-      // Show skeleton rows when loading
-      Array.from({ length: 5 }).map((_, index) => (
-        <TableRow
-          key={`skeleton-${index}`}
-          className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-            index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-          }`}
-        >
-          <TableCell className="px-4 py-4 w-8">
-            <Skeleton className="h-4 w-4 rounded" />
-          </TableCell>
-          <TableCell className="px-6 py-4">
-            <Skeleton className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md" />
-          </TableCell>
-          <TableCell className="px-6 py-4">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-[150px]" />
-              <Skeleton className="h-3 w-[100px] md:hidden" />
-            </div>
-          </TableCell>
-          <TableCell className="px-6 py-4 hidden md:table-cell">
-            <Skeleton className="h-4 w-[100px]" />
-          </TableCell>
-          <TableCell className="px-6 py-4 hidden lg:table-cell">
-            <Skeleton className="h-4 w-[120px]" />
-          </TableCell>
-          <TableCell className="px-6 py-4 hidden md:table-cell">
-            <Skeleton className="h-4 w-[80px]" />
-          </TableCell>
-          <TableCell className="px-6 py-4 hidden lg:table-cell">
-            <Skeleton className="h-4 w-[80px]" />
-          </TableCell>
-          <TableCell className="px-6 py-4">
-            <Skeleton className="h-4 w-[60px]" />
-          </TableCell>
-          <TableCell className="px-6 py-4">
-            <Skeleton className="h-8 w-[120px]" />
-          </TableCell>
-          <TableCell className="px-6 py-4 text-center">
-            <Skeleton className="h-8 w-8 rounded-full mx-auto" />
-          </TableCell>
-        </TableRow>
-      ))
-    ) : (
-      // Original content when not loading
-      paginatedData.map((product: any, index: number) => (
-        <TableRow
-          key={product.id}
-          className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-            index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-          }`}
-        >
-          <TableCell className="px-4 py-4 w-8 font-[Poppins]">
-            <Checkbox
-              checked={selectedProducts.includes(product.id)}
-              onCheckedChange={() => handleSelectOne(product.id)}
-              aria-label="Select row"
-            />
-          </TableCell>
-          <TableCell className="px-6 py-4 font-[Poppins]">
-            <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-              <Image
-                src={product.image || "/placeholder.svg"}
-                alt={product.name}
-                width={80}
-                height={64}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </TableCell>
-          <TableCell
-            className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
-            onClick={() => handleViewProduct(product.id)}
-          >
-            <div className="font-medium text-gray-900 b2 font-sans">
-              {product.name.length > 8 ? `${product.name.substring(0, 8)}...` : product.name}
-            </div>
-            <div className="text-xs text-gray-500 mt-1 md:hidden">
-              {product.category} • {product.brand}
-            </div>
-          </TableCell>
-          <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-            <span className="text-gray-700 b2 font-sans">
-              {product.category.length > 8 ? `${product.category.substring(0, 8)}...` : product.category}
-            </span>
-          </TableCell>
-          <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-            <span className="text-gray-700 b2 font-[Red Hat Display]">
-              {product.subCategory.length > 8 ? `${product.subCategory.substring(0, 8)}...` : product.subCategory}
-            </span>
-          </TableCell>
-          <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-            <span className="text-gray-700 b2 font-[Red Hat Display]">
-              {product.brand}
-            </span>
-          </TableCell>
-          <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-            <span className="text-gray-700 b2 font-[Red Hat Display]">
-              {product.productType}
-            </span>
-          </TableCell>
-          <TableCell className="px-6 py-4 font-[Red Hat Display]">
-            <span className={`b2 ${getStatusColor(product.qcStatus)}`}>
-              {product.qcStatus}
-            </span>
-          </TableCell>
-          <TableCell className="px-6 py-4 font-[Red Hat Display]">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(
-                    product.liveStatus
-                  )}`}
-                >
-                  <span className="b2">{product.liveStatus}</span>
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="min-w-[120px]"
-              >
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange(product.id, "Active")}
-                  className="text-green-600 focus:text-green-600"
-                >
-                  Activate
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleStatusChange(product.id, "Inactive")
-                  }
-                  className="text-red-600 focus:text-red-600"
-                >
-                  Deactivate
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-          <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => handleEditProduct(product.id)}
-                >
-                  Edit Product
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => handleViewProduct(product.id)}
-                >
-                  View Details
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-        </TableRow>
-      ))
-    )}
-  </TableBody>
-</Table>
+          <TableHeader>
+            <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
+              <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Select all"
+                />
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+                Image
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">
+                Name
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
+                Category
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-[Red Hat Display]">
+                Sub Category
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display]">
+                Brand
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
+                Type
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+                QC Status
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+                Product status
+              </TableHead>
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">
+                Action
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loadingProducts
+              ? // Show skeleton rows when loading
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow
+                    key={`skeleton-${index}`}
+                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                    }`}
+                  >
+                    <TableCell className="px-4 py-4 w-8">
+                      <Skeleton className="h-4 w-4 rounded" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Skeleton className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-[150px]" />
+                        <Skeleton className="h-3 w-[100px] md:hidden" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden md:table-cell">
+                      <Skeleton className="h-4 w-[100px]" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden lg:table-cell">
+                      <Skeleton className="h-4 w-[120px]" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden md:table-cell">
+                      <Skeleton className="h-4 w-[80px]" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden lg:table-cell">
+                      <Skeleton className="h-4 w-[80px]" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Skeleton className="h-4 w-[60px]" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Skeleton className="h-8 w-[120px]" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-center">
+                      <Skeleton className="h-8 w-8 rounded-full mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              : // Original content when not loading
+                paginatedData.map((product: any, index: number) => (
+                  <TableRow
+                    key={product._id}
+                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                    }`}
+                  >
+                    <TableCell className="px-4 py-4 w-8 font-[Poppins]">
+                      <Checkbox
+                        checked={selectedProducts.includes(product._id)}
+                        onCheckedChange={() => handleSelectOne(product._id)}
+                        aria-label="Select row"
+                      />
+                    </TableCell>
+                    <TableCell className="px-6 py-4 font-[Poppins]">
+                      <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                        <Image
+                          src={product.images[0] || "/placeholder.svg"}
+                          alt={product.manufacturer_part_name}
+                          width={80}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell
+                      className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
+                      onClick={() => handleViewProduct(product._id)}
+                    >
+                      <div className="font-medium text-gray-900 b2 font-sans">
+                        {product.manufacturer_part_name.length > 8
+                          ? `${product.manufacturer_part_name.substring(
+                              0,
+                              8
+                            )}...`
+                          : product.manufacturer_part_name}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1 md:hidden">
+                        {product.category?.category_name} •{" "}
+                        {product.brand?.brand_name}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                      <span className="text-gray-700 b2 font-sans">
+                        {product.category?.category_name.length > 8
+                          ? `${product.category.category_name.substring(
+                              0,
+                              8
+                            )}...`
+                          : product.category?.category_name}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
+                      <span className="text-gray-700 b2 font-[Red Hat Display]">
+                        {product.sub_category?.subcategory_name.length > 8
+                          ? `${product.sub_category.subcategory_name.substring(
+                              0,
+                              8
+                            )}...`
+                          : product.sub_category?.subcategory_name}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                      <span className="text-gray-700 b2 font-[Red Hat Display]">
+                        {product.brand?.brand_name}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
+                      <span className="text-gray-700 b2 font-[Red Hat Display]">
+                        {product.product_type}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                      <span
+                        className={`b2 ${getStatusColor(product.Qc_status)}`}
+                      >
+                        {product.Qc_status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(
+                              product.live_status
+                            )}`}
+                          >
+                            <span className="b2">{product.live_status}</span>
+                            <ChevronDown className="h-4 w-4 ml-2" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="start"
+                          className="min-w-[120px]"
+                        >
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleStatusChange(product._id, "Active")
+                            }
+                            className="text-green-600 focus:text-green-600"
+                          >
+                            Activate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleStatusChange(product._id, "Inactive")
+                            }
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            Deactivate
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-gray-100"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handleEditProduct(product._id)}
+                          >
+                            Edit Product
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handleViewProduct(product._id)}
+                          >
+                            View Details
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+          </TableBody>
+        </Table>
       </div>
       {/* Pagination - moved outside of table */}
       {totalProducts > 0 && totalPages > 1 && (
