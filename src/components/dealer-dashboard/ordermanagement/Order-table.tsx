@@ -43,6 +43,7 @@ import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import DealerProductsModal from "./DealerProductsModal";
 import { getCookie, getAuthToken } from "@/utils/auth";
 import PickListModal from "./PickListModal";
+import OrderFilters from "./OrderFilters";
 
 interface Order {
   id: string;
@@ -75,6 +76,10 @@ export default function OrdersTable() {
   // Sorting state
   const [sortField, setSortField] = useState("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  // Filters state
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPayment, setFilterPayment] = useState<string>("all");
   
   // Modal state
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -93,14 +98,26 @@ export default function OrdersTable() {
   
   // Sort and filter orders
   const filteredAndSortedOrders = useMemo(() => {
-    let currentOrders = searchQuery
-      ? ordersState.filter(
-          (order: any) =>
-            order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.number?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : ordersState;
+    let currentOrders = ordersState;
+
+    // Apply search
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
+      currentOrders = currentOrders.filter(
+        (order: any) =>
+          order.orderId?.toLowerCase().includes(q) ||
+          order.customer?.toLowerCase().includes(q) ||
+          order.number?.toLowerCase().includes(q)
+      );
+    }
+
+    // Apply filters
+    if (filterStatus !== "all") {
+      currentOrders = currentOrders.filter((o: any) => String(o.status) === filterStatus);
+    }
+    if (filterPayment !== "all") {
+      currentOrders = currentOrders.filter((o: any) => String(o.payment) === filterPayment);
+    }
 
     // Sort orders
     if (sortField) {
@@ -158,7 +175,7 @@ export default function OrdersTable() {
     }
     
     return currentOrders;
-  }, [ordersState, searchQuery, sortField, sortDirection]);
+  }, [ordersState, searchQuery, filterStatus, filterPayment, sortField, sortDirection]);
 
   const filteredOrders = filteredAndSortedOrders;
 
@@ -379,13 +396,19 @@ export default function OrdersTable() {
                 onClear={handleClearSearch}
                 isLoading={isSearching}
               />
-              <div className="flex gap-2 sm:gap-3">
-                <DynamicButton
-                  variant="outline"
-                  text="Filters"
-                  icon={<Filter className="h-4 w-4 mr-2" />}
-                />
-              </div>
+              <OrderFilters
+                search={searchInput}
+                onSearchChange={handleSearchChange}
+                currentStatus={filterStatus}
+                onStatusChange={setFilterStatus}
+                currentPayment={filterPayment}
+                onPaymentChange={setFilterPayment}
+                onResetFilters={() => {
+                  setFilterStatus("all");
+                  setFilterPayment("all");
+                }}
+                orders={ordersState}
+              />
             </div>
           </div>
           {/* Orders Section Header */}
