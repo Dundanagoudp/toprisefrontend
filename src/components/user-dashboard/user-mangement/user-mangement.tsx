@@ -3,22 +3,56 @@
 import { useState } from "react"
 import Employeetable from "./module/Employee-table"
 import Dealertable from "./module/Dealer-table"
-import { Search, Upload, Plus, Filter } from "lucide-react"
+import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Image from "next/image"
 import addSquare from "../../../../public/assets/addSquare.svg";
 import { useRouter } from "next/navigation";
+import DynamicButton from "@/components/common/button/button";
+import uploadFile from "../../../../public/assets/uploadFile.svg";
+import FileUploadModal from "./module/Employee-upload"
+import { useAppSelector } from "@/store/hooks"
 
 
 export default function Usermangement() {
   const [activeTab, setActiveTab] = useState("employee")
   const [addLoading, setAddLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
+  
+  // Sorting state
+  const [sortField, setSortField] = useState("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  
   const router = useRouter();
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
 
+  // Handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 p-4 md:p-6 bg-white">
@@ -78,29 +112,47 @@ export default function Usermangement() {
           </div>
 
           <div className="flex items-center gap-3 justify-end">
-            <Button
-              className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
-              variant="default"
-              onClick={async () => {
-                setAddLoading(true);
-                if (activeTab === "employee") {
-                  router.push("/user/dashboard/user/addemployee");
-                } else {
-                  router.push("/user/dashboard/user/adddealer");
-                }
-                setTimeout(() => setAddLoading(false), 1000); // Simulate loading
-              }}
-              disabled={addLoading}
-            >
-              {addLoading ? (
-                <svg className="animate-spin h-5 w-5 text-[#C72920]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
-              ) : (
-                <Image src={addSquare} alt="Add" className="h-4 w-4" />
-              )}
-              <span className="b3 font-RedHat">
-                {activeTab === "employee" ? "Add Employee" : "Add Dealer"}
-              </span>
-            </Button>
+            {activeTab === "dealer" && auth && allowedRoles.includes(auth.role) && (
+              <DynamicButton
+                variant="default"
+                customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
+                onClick={() => {
+                  setUploadLoading(true);
+                  setUploadOpen(true);
+                  setTimeout(() => setUploadLoading(false), 800);
+                }}
+                disabled={uploadLoading}
+                loading={uploadLoading}
+                loadingText="Opening..."
+                icon={<Image src={uploadFile} alt="Upload" className="h-4 w-4" />}
+                text="Upload"
+              />
+            )}
+            {auth && allowedRoles.includes(auth.role) && (
+              <Button
+                className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
+                variant="default"
+                onClick={async () => {
+                  setAddLoading(true);
+                  if (activeTab === "employee") {
+                    router.push("/user/dashboard/user/addemployee");
+                  } else {
+                    router.push("/user/dashboard/user/adddealer");
+                  }
+                  setTimeout(() => setAddLoading(false), 1000); // Simulate loading
+                }}
+                disabled={addLoading}
+              >
+                {addLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-[#C72920]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                ) : (
+                  <Image src={addSquare} alt="Add" className="h-4 w-4" />
+                )}
+                <span className="b3 font-RedHat">
+                  {activeTab === "employee" ? "Add Employee" : "Add Dealer"}
+                </span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -108,9 +160,23 @@ export default function Usermangement() {
       {/* Table Content - Mobile responsive */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {activeTab === "employee"
-          ? <Employeetable />
-          : <Dealertable search={search} role={role === "all" ? "" : role} />}
+          ? <Employeetable 
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+            />
+          : <Dealertable 
+              search={search} 
+              role={role === "all" ? "" : role}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+            />}
       </div>
+      <FileUploadModal
+        isOpen={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+      />
     
     </div>
   )

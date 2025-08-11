@@ -16,6 +16,8 @@ import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useState, useEffect, Fragment, useRef } from "react"
 import type { User, Category } from "@/types/dealer-types"
 import { useRouter } from "next/navigation"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { useAppSelector } from "@/store/hooks"
 
 export default function AddDealer() {
   const { showToast } = useGlobalToast();
@@ -25,6 +27,10 @@ export default function AddDealer() {
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [allCategories, setAllCategories] = useState<Category[]>([])
   const [submitLoading, setSubmitLoading] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [formData, setFormData] = useState<DealerFormValues | null>(null)
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
 
   const form = useForm<DealerFormValues>({
     resolver: zodResolver(dealerSchema) as any, 
@@ -92,10 +98,17 @@ export default function AddDealer() {
   }
 
   const onSubmit = async (data: DealerFormValues) => {
+    setFormData(data)
+    setShowConfirmDialog(true)
+  }
+
+  const handleConfirmSubmit = async () => {
+    if (!formData) return
+    
     setSubmitLoading(true)
     try {
       // Ensure remarks is always a string
-      const safeData = { ...data, password: data.password ?? "", remarks: data.remarks ?? "" };
+      const safeData = { ...formData, password: formData.password ?? "", remarks: formData.remarks ?? "" };
       const response = await createDealer(safeData)
       if (response.success) {
         showToast("Dealer created successfully", "success");
@@ -109,6 +122,17 @@ export default function AddDealer() {
     } finally {
       setSubmitLoading(false)
     }
+  }
+
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
   }
 
   if (isLoadingData) {
@@ -576,6 +600,16 @@ export default function AddDealer() {
           </div>
         </form>
       </Form>
+
+              <ConfirmationDialog
+          isOpen={showConfirmDialog}
+          onClose={() => setShowConfirmDialog(false)}
+          onConfirm={handleConfirmSubmit}
+          title="Add Dealer"
+          description="Are you sure you want to add this dealer?"
+          confirmText="Yes, Add Dealer"
+          cancelText="No, Cancel"
+        />
     </div>
   )
 }

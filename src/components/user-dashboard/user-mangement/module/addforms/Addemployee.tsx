@@ -12,10 +12,16 @@ import { useState } from "react"
 import { addEmployee } from "@/service/employeeServices"
 import { useToast } from "@/hooks/use-toast"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
+import { useAppSelector } from "@/store/hooks"
 
 export default function Addemployee() {
   const [submitLoading, setSubmitLoading] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [formData, setFormData] = useState<EmployeeFormValues | null>(null)
   const { toast } = useToast()
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const auth = useAppSelector((state) => state.auth.user);
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -27,35 +33,68 @@ export default function Addemployee() {
       role: "",
       employeeId: "",
       fullName: "",
+      department: "",
+      designation: "",
     },
   })
 
-  const onSubmit = async (data: EmployeeFormValues) => {
+  const handleFormSubmit = (data: EmployeeFormValues) => {
+    setFormData(data)
+    setShowConfirmation(true)
+  }
+
+  const handleConfirmSubmit = async () => {
+    if (!formData) return
+    
     setSubmitLoading(true)
     try {
       const payload = {
-        email: data.email,
-        username: data.username,
-        password: data.password,
-        phone_Number: data.mobileNumber,
-        role: data.role,
-        employee_id: data.employeeId,
-        First_name: data.fullName,
-        mobile_number: data.mobileNumber,
-        employeeRole: data.role,
+        email: formData.email,
+        username: formData.username,
+        password: formData.password,
+        phone_Number: formData.mobileNumber,
+        role: formData.role,
+        employee_id: formData.employeeId,
+        First_name: formData.fullName,
+        mobile_number: formData.mobileNumber,
+        employeeRole: formData.role,
+        department: formData.department,
+        designation: formData.designation,
       }
+      
+      console.log("Submitting payload:", payload)
       const response = await addEmployee(payload)
+      
+      console.log("API Response:", response)
+      
       toast({
-        title: "Success!",
-        description: response.message || "Employee added successfully.",
-        variant: "success",
+        title: "Employee Added Successfully! 🎉",
+        description: `Employee "${formData.fullName}" has been added to the system successfully.`,
+        variant: "default",
       })
       form.reset()
+      setFormData(null)
     } catch (error: any) {
       console.error("Failed to add employee:", error)
+      
+      // Better error handling
+      let errorMessage = "Failed to add employee. Please try again."
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.message) {
+        errorMessage = error.message
+      } else if (error.response?.status === 400) {
+        errorMessage = "Invalid data provided. Please check your inputs."
+      } else if (error.response?.status === 409) {
+        errorMessage = "Employee with this email or username already exists."
+      } else if (error.response?.status === 500) {
+        errorMessage = "Server error. Please try again later."
+      }
+      
       toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to add employee. Please try again.",
+        title: "Error Adding Employee ❌",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -63,39 +102,25 @@ export default function Addemployee() {
     }
   }
 
+  // Role-based access control
+  if (!auth || !allowedRoles.includes(auth.role)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-4 md:p-6 bg-neutral-50 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Add employee</h1>
-          <p className="text-sm text-gray-500">Add your employee details</p>
-        </div>
-        <Button
-          type="submit"
-          form="add-employee-form"
-          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
-          disabled={submitLoading}
-        >
-          {submitLoading ? (
-            <span className="flex items-center gap-2">
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-              </svg>
-              Saving...
-            </span>
-          ) : (
-            "Save"
-          )}
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Add employee</h1>
+        <p className="text-sm text-gray-500">Add your employee details</p>
       </div>
-      <form id="add-employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         {/* Personal & Contact Information */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
@@ -105,7 +130,7 @@ export default function Addemployee() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
+                Full Name *
               </label>
               <Input
                 id="fullName"
@@ -119,7 +144,7 @@ export default function Addemployee() {
             </div>
             <div>
               <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-1">
-                Employee ID
+                Employee ID *
               </label>
               <Input
                 id="employeeId"
@@ -133,7 +158,7 @@ export default function Addemployee() {
             </div>
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                Username
+                Username *
               </label>
               <Input
                 id="username"
@@ -147,7 +172,7 @@ export default function Addemployee() {
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
+                Password *
               </label>
               <Input
                 id="password"
@@ -162,6 +187,7 @@ export default function Addemployee() {
             </div>
           </CardContent>
         </Card>
+        
         {/* Contact Information */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
@@ -171,7 +197,7 @@ export default function Addemployee() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                Mobile Number
+                Mobile Number *
               </label>
               <Input
                 id="mobileNumber"
@@ -185,7 +211,7 @@ export default function Addemployee() {
             </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                Email *
               </label>
               <Input
                 id="email"
@@ -199,16 +225,17 @@ export default function Addemployee() {
             </div>
           </CardContent>
         </Card>
+        
         {/* Role Information */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-red-600 font-semibold text-lg">Role Information</CardTitle>
-            <p className="text-sm text-gray-500">Define the employee's role.</p>
+            <p className="text-sm text-gray-500">Define the employee's role and position.</p>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                Role
+                Role *
               </label>
               <Select
                 value={form.watch("role")}
@@ -232,9 +259,74 @@ export default function Addemployee() {
                 <p className="text-red-500 text-xs mt-1">{form.formState.errors.role.message}</p>
               )}
             </div>
+            <div>
+              <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
+                Department *
+              </label>
+              <Input
+                id="department"
+                placeholder="Department"
+                {...form.register("department")}
+                className="bg-gray-50 border-gray-200"
+              />
+              {form.formState.errors.department && (
+                <p className="text-red-500 text-xs mt-1">{form.formState.errors.department.message}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-1">
+                Designation *
+              </label>
+              <Input
+                id="designation"
+                placeholder="Designation"
+                {...form.register("designation")}
+                className="bg-gray-50 border-gray-200"
+              />
+              {form.formState.errors.designation && (
+                <p className="text-red-500 text-xs mt-1">{form.formState.errors.designation.message}</p>
+              )}
+            </div>
           </CardContent>
         </Card>
+
+        {/* Save Button */}
+        <div className="flex justify-end pt-4">
+          <Button
+            type="submit"
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={submitLoading || !form.formState.isValid}
+          >
+            {submitLoading ? (
+              <span className="flex items-center gap-2">
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                Adding...
+              </span>
+            ) : (
+              "Add Employee"
+            )}
+          </Button>
+        </div>
       </form>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showConfirmation}
+        onClose={() => setShowConfirmation(false)}
+        onConfirm={handleConfirmSubmit}
+        title="Confirm Add Employee"
+        description={`Are you sure you want to add "${formData?.fullName}" as a new employee? This action cannot be undone.`}
+        confirmText="Yes, Add Employee"
+        cancelText="Cancel"
+      />
     </div>
   )
 }

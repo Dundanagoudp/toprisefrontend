@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useMemo } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Plus, Loader2, Send } from 'lucide-react'
+import { Plus, Loader2, Send, ChevronUp, ChevronDown } from 'lucide-react'
 import { useToast } from "@/components/ui/toast"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -198,6 +198,10 @@ export default function DealerAssignTable() {
   const [updateStockProduct, setUpdateStockProduct] = useState<Product | null>(null);
   const [updateStockLoading, setUpdateStockLoading] = useState(false);
   const [updateStockQuantity, setUpdateStockQuantity] = useState<number>(0);
+  
+  // Sorting state
+  const [sortField, setSortField] = useState("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const cardsPerPage = 10
 
@@ -315,8 +319,56 @@ export default function DealerAssignTable() {
           product.product_type?.toLowerCase().includes(q),
       )
     }
+
+    // Sort products
+    if (sortField) {
+      currentProducts.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+        
+        switch (sortField) {
+          case "name":
+            aValue = a.product_name?.toLowerCase() || "";
+            bValue = b.product_name?.toLowerCase() || "";
+            break;
+          case "category":
+            aValue = a.category?.category_name?.toLowerCase() || "";
+            bValue = b.category?.category_name?.toLowerCase() || "";
+            break;
+          case "subCategory":
+            aValue = a.sub_category?.subcategory_name?.toLowerCase() || "";
+            bValue = b.sub_category?.subcategory_name?.toLowerCase() || "";
+            break;
+          case "brand":
+            aValue = a.brand?.brand_name?.toLowerCase() || "";
+            bValue = b.brand?.brand_name?.toLowerCase() || "";
+            break;
+          case "productType":
+            aValue = a.product_type?.toLowerCase() || "";
+            bValue = b.product_type?.toLowerCase() || "";
+            break;
+          case "status":
+            aValue = a.live_status?.toLowerCase() || "";
+            bValue = b.live_status?.toLowerCase() || "";
+            break;
+          case "quantity":
+            aValue = a.available_dealers?.[0]?.quantity_per_dealer || 0;
+            bValue = b.available_dealers?.[0]?.quantity_per_dealer || 0;
+            break;
+          default:
+            return 0;
+        }
+        
+        if (sortDirection === "asc") {
+          return aValue.localeCompare ? aValue.localeCompare(bValue) : aValue - bValue;
+        } else {
+          return bValue.localeCompare ? bValue.localeCompare(aValue) : bValue - aValue;
+        }
+      });
+    }
+    
     return currentProducts
-  }, [products, searchQuery, selectedTab])
+  }, [products, searchQuery, selectedTab, sortField, sortDirection])
 
   const totalPages = Math.ceil(filteredProducts.length / cardsPerPage)
   const paginatedData = filteredProducts.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)
@@ -468,6 +520,25 @@ export default function DealerAssignTable() {
   //   // }, 1000)
   // }
 
+  // Handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ChevronUp className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === "asc" ? 
+      <ChevronUp className="w-4 h-4 text-[#C72920]" /> : 
+      <ChevronDown className="w-4 h-4 text-[#C72920]" />;
+  };
+
   // Cleanup debounce timer on unmount
   useEffect(() => {
     return () => {
@@ -590,7 +661,15 @@ export default function DealerAssignTable() {
                 },
                 {
                   key: "name",
-                  header: "Name",
+                  header: (
+                    <div 
+                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                      onClick={() => handleSort("name")}
+                    >
+                      Name
+                      {getSortIcon("name")}
+                    </div>
+                  ),
                   render: (product: Product) => (
                     <div 
                       className={canViewProduct ? "cursor-pointer" : "cursor-default"} 
@@ -602,32 +681,80 @@ export default function DealerAssignTable() {
                 },
                 {
                   key: "categories",
-                  header: "Categories",
+                  header: (
+                    <div 
+                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                      onClick={() => handleSort("category")}
+                    >
+                      Categories
+                      {getSortIcon("category")}
+                    </div>
+                  ),
                   render: (product: Product) => product.category?.category_name || "N/A",
                 },
                 {
                   key: "subCategories",
-                  header: "Sub Categories",
+                  header: (
+                    <div 
+                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                      onClick={() => handleSort("subCategory")}
+                    >
+                      Sub Categories
+                      {getSortIcon("subCategory")}
+                    </div>
+                  ),
                   render: (product: Product) => product.sub_category?.subcategory_name || "N/A",
                 },
                 {
                   key: "brand",
-                  header: "Brand",
+                  header: (
+                    <div 
+                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                      onClick={() => handleSort("brand")}
+                    >
+                      Brand
+                      {getSortIcon("brand")}
+                    </div>
+                  ),
                   render: (product: Product) => product.brand?.brand_name || "N/A",
                 },
                 {
                   key: "productType",
-                  header: "Product type",
+                  header: (
+                    <div 
+                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                      onClick={() => handleSort("productType")}
+                    >
+                      Product type
+                      {getSortIcon("productType")}
+                    </div>
+                  ),
                   render: (product: Product) => product.product_type || "N/A",
                 },
                 {
                   key: "status",
-                  header: "Status",
+                  header: (
+                    <div 
+                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                      onClick={() => handleSort("status")}
+                    >
+                      Status
+                      {getSortIcon("status")}
+                    </div>
+                  ),
                   render: (product: Product) => getStatusBadge(product.live_status),
                 },
                 {
                   key: "quantity_per_dealer",
-                  header: "Quantity",
+                  header: (
+                    <div 
+                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                      onClick={() => handleSort("quantity")}
+                    >
+                      Quantity
+                      {getSortIcon("quantity")}
+                    </div>
+                  ),
                   render: (product: Product) => {
                     // Find dealerId
                     let dealerId = undefined;
