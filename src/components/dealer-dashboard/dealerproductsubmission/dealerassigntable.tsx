@@ -216,7 +216,10 @@ export default function DealerAssignTable() {
   const canEditProduct = permission?.data?.userPermissions?.update || false;
   const canViewProduct = permission?.data?.userPermissions?.read || false;
   const canDeleteProduct = permission?.data?.userPermissions?.delete || false;
-  const hasAnyPermission = canAddProduct || canEditProduct || canViewProduct || canDeleteProduct;
+  const canUpdateStock = permission?.data?.userPermissions?.update || false; // Allow stock updates if user can edit
+  const hasAnyPermission = canAddProduct || canEditProduct || canViewProduct || canDeleteProduct || canUpdateStock;
+
+
 
   // Debounced search functionality
   const performSearch = useCallback(
@@ -405,6 +408,23 @@ export default function DealerAssignTable() {
   // Add id property to each product for DataTable generic constraint
   const paginatedDataWithId = paginatedData.map((p) => ({ ...p, id: p._id as string }))
 
+  // Create actions array
+  const tableActions = [
+    ...(canViewProduct ? [{
+      label: "View Details",
+      onClick: (product: Product) => handleViewProduct(product._id),
+    }] : []),
+    ...(canEditProduct ? [{
+      label: "Edit",
+      onClick: (product: Product) => handleEditProduct(product._id),
+    }] : []),
+    // Always show Update Stocks action
+    {
+      label: "Update Stocks",
+      onClick: (product: Product) => handleUpdatedStocks(product._id),
+    },
+  ];
+
   // Selection state and handlers
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const allSelected = paginatedData.length > 0 && paginatedData.every((p) => selectedProducts.includes(p._id))
@@ -454,8 +474,12 @@ export default function DealerAssignTable() {
   // Handler for Updated Stocks
   const handleUpdatedStocks = (id: string) => {
     const product = products.find((p) => p._id === id);
-    if (!product) return;
-    // Find dealer info for this dealer (assume dealerId is available)
+    if (!product) {
+      showToast("Product not found.", "error");
+      return;
+    }
+    
+    // Find dealer info for this dealer
     let dealerId = undefined;
     try {
       const { getCookie, getAuthToken } = require("@/utils/auth");
@@ -473,22 +497,37 @@ export default function DealerAssignTable() {
           }
         }
       }
-    } catch {}
+    } catch (error) {
+      console.error("Error getting dealerId:", error);
+    }
+    
     if (!dealerId) {
       showToast("Dealer ID not found.", "error");
       return;
     }
+    
     // Find dealer's stock for this product
     const dealerStock = product.available_dealers?.find((d) => d.dealers_Ref === dealerId);
+    
     setUpdateStockProduct(product);
     setUpdateStockQuantity(dealerStock?.quantity_per_dealer || 0);
     setShowUpdateStockModal(true);
   };
 
   const handleUpdateStockSubmit = async () => {
-    if (!updateStockProduct) return;
+    if (!updateStockProduct) {
+      showToast("No product selected for stock update.", "error");
+      return;
+    }
+    
+    if (updateStockQuantity < 0) {
+      showToast("Quantity cannot be negative.", "error");
+      return;
+    }
+    
     setUpdateStockLoading(true);
     let dealerId = undefined;
+    
     try {
       const { getCookie, getAuthToken } = require("@/utils/auth");
       dealerId = getCookie("dealerId");
@@ -505,15 +544,20 @@ export default function DealerAssignTable() {
           }
         }
       }
-    } catch {}
+    } catch (error) {
+      console.error("Error getting dealerId:", error);
+    }
+    
     if (!dealerId) {
-      showToast("Dealer ID not found.", "error");
+      showToast("Dealer ID not found. Please log in again.", "error");
       setUpdateStockLoading(false);
       return;
     }
+    
     try {
       await updateStockByDealer(updateStockProduct._id, dealerId, updateStockQuantity);
       showToast("Stock updated successfully!", "success");
+      
       // Update local state
       setProducts((prev) => prev.map((p) => {
         if (p._id === updateStockProduct._id) {
@@ -526,9 +570,12 @@ export default function DealerAssignTable() {
         }
         return p;
       }));
+      
       setShowUpdateStockModal(false);
-    } catch (err) {
-      showToast("Failed to update stock.", "error");
+    } catch (error: any) {
+      console.error("Error updating stock:", error);
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to update stock.";
+      showToast(errorMessage, "error");
     } finally {
       setUpdateStockLoading(false);
     }
@@ -652,6 +699,7 @@ export default function DealerAssignTable() {
                   // onClick={handleSendApproval}
                 />
               )}
+
             </div>
           </div>
         </CardHeader>
@@ -814,20 +862,7 @@ export default function DealerAssignTable() {
                   },
                 },
               ]}
-              actions={[
-                ...(canViewProduct ? [{
-                  label: "View Details",
-                  onClick: (product: Product) => handleViewProduct(product._id),
-                }] : []),
-                ...(canEditProduct ? [{
-                  label: "Edit",
-                  onClick: (product: Product) => handleEditProduct(product._id),
-                }] : []),
-                ...(canEditProduct ? [{
-                  label: "Update Stocks",
-                  onClick: (product: Product) => handleUpdatedStocks(product._id),
-                }] : []),
-              ]}
+              actions={tableActions}
               mobileCard={(product: Product) => (
                 <div className="flex items-start space-x-4">
                   <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
@@ -863,16 +898,16 @@ export default function DealerAssignTable() {
           )}
         </CardContent>
       </Card>
-      {/* Update Stock Modal */}
-      <UpdateStockModal
-        open={showUpdateStockModal}
-        onClose={() => setShowUpdateStockModal(false)}
-        onSubmit={handleUpdateStockSubmit}
-        loading={updateStockLoading}
-        product={updateStockProduct}
-        quantity={updateStockQuantity}
-        setQuantity={setUpdateStockQuantity}
-      />
+             {/* Update Stock Modal */}
+       <UpdateStockModal
+         open={showUpdateStockModal}
+         onClose={() => setShowUpdateStockModal(false)}
+         onSubmit={handleUpdateStockSubmit}
+         loading={updateStockLoading}
+         product={updateStockProduct}
+         quantity={updateStockQuantity}
+         setQuantity={setUpdateStockQuantity}
+       />
     </div>
   )
 }
