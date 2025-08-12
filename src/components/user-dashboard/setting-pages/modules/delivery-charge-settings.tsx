@@ -1,57 +1,94 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import { Card, CardContent } from "@/components/ui/card"
+import { Loader2, Edit } from "lucide-react"
+import { getAppSettings } from "@/service/deliverychargeServices"
+import { DeliveryChargeEditModal } from "@/components/user-dashboard/setting-pages/modules/popups/delivery-charge-edit-modal"
+import type { AppSettings } from "@/types/deliverycharge-Types"
 
 export function DeliveryChargeSettings() {
+  const [settings, setSettings] = useState<AppSettings | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const fetchSettings = async () => {
+    setLoading(true)
+    const response = await getAppSettings()
+    setSettings(response.data)
+    setLoading(false)
+  }
+
+  const handleSettingsUpdate = (updatedSettings: AppSettings) => {
+    setSettings(updatedSettings)
+  }
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-[#c72920]" />
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <h2 className="h5 font-bold">Delivery Charge</h2>
-      <Card>
-        <CardHeader>
-          <CardTitle>General Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
+    <div className="p-6">
+      <Card className="max-w-2xl">
+        <CardContent className="p-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="enable-delivery-charge">Enable Delivery Charge</Label>
-            <Switch id="enable-delivery-charge" />
+            <div className="flex items-center gap-3">
+              <input type="checkbox" className="w-4 h-4 text-[#c72920]" defaultChecked />
+              <div className="grid grid-cols-3 gap-8 flex-1">
+                <div>
+                  <div className="text-sm text-gray-600">Delivery Charge</div>
+                  <div className="font-medium">₹{settings?.deliveryCharge || 0}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Min Order Value</div>
+                  <div className="font-medium">₹{settings?.minimumOrderValue || 0}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Status</div>
+                  <div className="font-medium text-green-600">Active</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setIsModalOpen(true)} className="h-8 w-8 p-0">
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="default-charge">Default Delivery Charge Amount</Label>
-            <Input id="default-charge" type="number" placeholder="e.g., 5.00" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="min-order-for-free">Minimum Order Value for Free Delivery</Label>
-            <Input id="min-order-for-free" type="number" placeholder="e.g., 50.00" />
+
+          <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-8">
+            <div>
+              <div className="text-sm text-gray-600">SMTP Host</div>
+              <div className="font-medium">{settings?.smtp?.host || "Not configured"}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">SMTP Port</div>
+              <div className="font-medium">{settings?.smtp?.port || "Not set"}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">Email From</div>
+              <div className="font-medium">{settings?.smtp?.fromEmail || "Not set"}</div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Zone-Based Delivery</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="enable-zone-delivery">Enable Zone-Based Delivery</Label>
-            <Switch id="enable-zone-delivery" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="zone-1-charge">Zone 1 Delivery Charge</Label>
-            <Input id="zone-1-charge" type="number" placeholder="e.g., 3.00" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="zone-2-charge">Zone 2 Delivery Charge</Label>
-            <Input id="zone-2-charge" type="number" placeholder="e.g., 7.50" />
-          </div>
-          {/* You can add more zones here */}
-        </CardContent>
-      </Card>
-
-      <Button className="bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white self-end">Save Changes</Button>
+      <DeliveryChargeEditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        settings={settings}
+        onUpdate={handleSettingsUpdate}
+      />
     </div>
   )
 }
