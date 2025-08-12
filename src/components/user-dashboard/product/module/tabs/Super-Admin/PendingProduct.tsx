@@ -59,71 +59,82 @@ const getStatusColor = (status: string) => {
       return "text-gray-700";
   }
 };
+
 export default function PendingProduct({
   searchQuery,
 }: {
   searchQuery: string;
 }) {
   const dispatch = useAppDispatch();
-  // Use the correct state for products with live status
-
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
-  const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [totalPages, setTotalPages] = useState<number>(0);
   const route = useRouter();
   const { showToast } = useGlobalToast();
-  const itemsPerPage = 10;
-useEffect(() => {
-  const fetchProducts = async () => {
-    setLoadingProducts(true);
-    try {
-      const response = await getProductsByPage(currentPage, itemsPerPage);
-      if (response.data?.products && Array.isArray(response.data.products)) {
-        setPaginatedProducts(response.data.products);
-      }
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-      showToast("Failed to fetch products", "error");
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
 
-  fetchProducts();
-}, [currentPage]);
+  // Fetch all products for client-side filtering and pagination
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      setLoadingProducts(true);
+      try {
+        const res = await getProductsByPage(
+          currentPage,
+          itemsPerPage,
+          "Pending"
+        );
+        const data = res.data;
+
+        if (data?.products) {
+          setAllProducts(data.products);
+          setTotalProducts(data.pagination.totalItems);
+          setTotalPages(data.pagination.totalPages);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+        showToast("Failed to fetch products", "error");
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    fetchAllProducts();
+  }, [currentPage, itemsPerPage]);
 
   // Filter products by pending live status and search query
   const filteredProducts = React.useMemo(() => {
-    if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
-    // First filter by pending live status
-    const pendingProducts = paginatedProducts.filter(
-      (product: any) => product.live_status === "Pending"
-    );
-    // Then filter by search query if provided
-    if (!searchQuery || searchQuery.trim() === "") return pendingProducts;
-    const q = searchQuery.trim().toLowerCase();
-    return pendingProducts.filter(
-      (product: any) =>
-        product.product_name?.toLowerCase().includes(q) ||
-        product.category?.toLowerCase().includes(q) ||
-        product.brand?.toLowerCase().includes(q) ||
-        product.subCategory?.toLowerCase().includes(q) ||
-        product.productType?.toLowerCase().includes(q)
-    );
-  }, [paginatedProducts, searchQuery]);
+    if (!allProducts || !Array.isArray(allProducts)) return [];
 
-  // Update total products count when filtered products change
+    let filtered = [...allProducts];
+
+    if (searchQuery && searchQuery.trim() !== "") {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(
+        (product) =>
+          product.manufacturer_part_name?.toLowerCase().includes(q) ||
+          product.category?.category_name?.toLowerCase().includes(q) ||
+          product.brand?.brand_name?.toLowerCase().includes(q) ||
+          product.sub_category?.subcategory_name?.toLowerCase().includes(q) ||
+          product.product_type?.toLowerCase().includes(q)
+      );
+    }
+
+    return filtered;
+  }, [allProducts, searchQuery]);
+
+  // Update total products count and reset to page 1 when filtered products change
   useEffect(() => {
     setTotalProducts(filteredProducts.length);
+    setCurrentPage(1); // Reset to first page when filter changes
   }, [filteredProducts]);
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedData = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Calculate pagination
 
   // Selection handlers
   const handleSelectOne = (id: string) => {
@@ -131,9 +142,9 @@ useEffect(() => {
       ? selectedProducts.filter((pid) => pid !== id)
       : [...selectedProducts, id];
     setSelectedProducts(newSelectedProducts);
-    // Always dispatch as array of product IDs
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
+
   const handleStatusChange = async (productId: string, newStatus: string) => {
     try {
       if (newStatus === "Active") {
@@ -142,37 +153,80 @@ useEffect(() => {
           updateProductLiveStatus({ id: productId, liveStatus: "Approved" })
         );
         showToast("Product activated successfully", "success");
+
+        // Update local state
+        setAllProducts((prev) =>
+          prev.map((product) =>
+            product._id === productId
+              ? { ...product, live_status: "Approved" }
+              : product
+          )
+        );
       } else if (newStatus === "Inactive") {
         await deactivateProduct(productId);
         dispatch(
           updateProductLiveStatus({ id: productId, liveStatus: "Pending" })
         );
         showToast("Product deactivated successfully", "success");
+
+        // Update local state
+        setAllProducts((prev) =>
+          prev.map((product) =>
+            product._id === productId
+              ? { ...product, live_status: "Pending" }
+              : product
+          )
+        );
       }
     } catch (error) {
       console.error("Failed to update product status:", error);
       showToast("Failed to update product status", "error");
     }
   };
+
   const allSelected =
-    filteredProducts.length > 0 &&
-    filteredProducts.every((p: any) => selectedProducts.includes(p.id));
+    allProducts.length > 0 &&
+    allProducts.every((p: any) => selectedProducts.includes(p._id));
+
   const handleSelectAll = () => {
     const newSelectedProducts = allSelected
-      ? []
-      : filteredProducts.map((p: any) => p._id);
+      ? selectedProducts.filter((id) => !allProducts.some((p) => p._id === id))
+      : [
+          ...selectedProducts,
+          ...allProducts
+            .map((p: any) => p._id)
+            .filter((id) => !selectedProducts.includes(id)),
+        ];
     setSelectedProducts(newSelectedProducts);
-    // Always dispatch as array of product IDs
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
-  // Dummy handlers for edit/view (replace with navigation if needed)
+  // Navigation handlers
   const handleEditProduct = (id: string) => {
-    // Implement navigation or modal logic here
     route.push(`/user/dashboard/product/productedit/${id}`);
   };
+
   const handleViewProduct = (id: string) => {
     route.push(`/user/dashboard/product/product-details/${id}`);
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
   };
 
   return (
@@ -219,8 +273,7 @@ useEffect(() => {
           </TableHeader>
           <TableBody>
             {loadingProducts
-              ? // Show skeleton rows when loading
-                Array.from({ length: 5 }).map((_, index) => (
+              ? Array.from({ length: 5 }).map((_, index) => (
                   <TableRow
                     key={`skeleton-${index}`}
                     className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
@@ -262,8 +315,7 @@ useEffect(() => {
                     </TableCell>
                   </TableRow>
                 ))
-              : // Original content when not loading
-                paginatedData.map((product: any, index: number) => (
+              : filteredProducts.map((product: any, index: number) => (
                   <TableRow
                     key={product._id}
                     className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
@@ -411,7 +463,8 @@ useEffect(() => {
           </TableBody>
         </Table>
       </div>
-      {/* Pagination - moved outside of table */}
+
+      {/* Pagination */}
       {totalProducts > 0 && totalPages > 1 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
           {/* Left: Showing X-Y of Z products */}
@@ -425,6 +478,7 @@ useEffect(() => {
           <div className="flex justify-center sm:justify-end">
             <Pagination>
               <PaginationContent>
+                {/* Previous Button */}
                 <PaginationItem>
                   <PaginationPrevious
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -435,32 +489,38 @@ useEffect(() => {
                     }
                   />
                 </PaginationItem>
-                {Array.from({ length: Math.min(totalPages, 3) }).map(
-                  (_, idx) => {
-                    let pageNum;
-                    if (totalPages <= 3) {
-                      pageNum = idx + 1;
-                    } else if (currentPage <= 2) {
-                      pageNum = idx + 1;
-                    } else if (currentPage >= totalPages - 1) {
-                      pageNum = totalPages - 2 + idx;
-                    } else {
-                      pageNum = currentPage - 1 + idx;
-                    }
-                    if (pageNum < 1 || pageNum > totalPages) return null;
-                    return (
-                      <PaginationItem key={pageNum} className="hidden sm:block">
-                        <PaginationLink
-                          isActive={currentPage === pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="cursor-pointer"
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
+
+                {/* Numbered Page Buttons (max 3) */}
+                {(() => {
+                  let pages = [];
+                  if (totalPages <= 3) {
+                    // Case 1: Few pages, just show all
+                    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                  } else if (currentPage <= 2) {
+                    // Case 2: Near the start
+                    pages = [1, 2, 3];
+                  } else if (currentPage >= totalPages - 1) {
+                    // Case 3: Near the end
+                    pages = [totalPages - 2, totalPages - 1, totalPages];
+                  } else {
+                    // Case 4: Middle pages
+                    pages = [currentPage - 1, currentPage, currentPage + 1];
                   }
-                )}
+
+                  return pages.map((pageNum) => (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        isActive={currentPage === pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ));
+                })()}
+
+                {/* Next Button */}
                 <PaginationItem>
                   <PaginationNext
                     onClick={() =>

@@ -269,6 +269,11 @@ const handleBulkReject = useCallback(() => {
                   customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
                   text="Requests"
                 />
+                     <DynamicButton
+                  variant="outline"
+                  customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
+                  text="Export"
+                />
               </div>
             </div>
             {/* Right: Upload, Add Product */}
