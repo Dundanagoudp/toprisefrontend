@@ -33,8 +33,6 @@ export default function Addemployee() {
       role: "",
       employeeId: "",
       fullName: "",
-      department: "",
-      designation: "",
     },
   })
 
@@ -58,8 +56,6 @@ export default function Addemployee() {
         First_name: formData.fullName,
         mobile_number: formData.mobileNumber,
         employeeRole: formData.role,
-        department: formData.department,
-        designation: formData.designation,
       }
       
       console.log("Submitting payload:", payload)
@@ -230,9 +226,9 @@ export default function Addemployee() {
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-red-600 font-semibold text-lg">Role Information</CardTitle>
-            <p className="text-sm text-gray-500">Define the employee's role and position.</p>
+          <p className="text-sm text-gray-500">Define the employee's role.</p>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <CardContent className="grid grid-cols-1 md:grid-cols-1 gap-6">
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
                 Role *
@@ -257,34 +253,6 @@ export default function Addemployee() {
               </Select>
               {form.formState.errors.role && (
                 <p className="text-red-500 text-xs mt-1">{form.formState.errors.role.message}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
-                Department *
-              </label>
-              <Input
-                id="department"
-                placeholder="Department"
-                {...form.register("department")}
-                className="bg-gray-50 border-gray-200"
-              />
-              {form.formState.errors.department && (
-                <p className="text-red-500 text-xs mt-1">{form.formState.errors.department.message}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-1">
-                Designation *
-              </label>
-              <Input
-                id="designation"
-                placeholder="Designation"
-                {...form.register("designation")}
-                className="bg-gray-50 border-gray-200"
-              />
-              {form.formState.errors.designation && (
-                <p className="text-red-500 text-xs mt-1">{form.formState.errors.designation.message}</p>
               )}
             </div>
           </CardContent>

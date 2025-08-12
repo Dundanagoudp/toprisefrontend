@@ -16,7 +16,15 @@ interface GlobalFiltersProps {
   onResetFilters: () => void
 }
 
-const EMPLOYEE_ROLES = ["Sales", "Fulfillment-Staff", "General"] as const
+const EMPLOYEE_ROLES = [
+  "Super-admin",
+  "Fulfillment-Admin",
+  "Fulfillment-Staff",
+  "Inventory-Admin",
+  "Inventory-Staff",
+  "Dealer",
+  "User",
+] as const
 const EMPLOYEE_STATUSES = ["Active", "Inactive"] as const
 
 const DEALER_ROLES = ["admin", "user", "dealer"] as const
@@ -111,9 +119,6 @@ export default function GlobalFilters({
     document.addEventListener("mousedown", onClick)
     return () => document.removeEventListener("mousedown", onClick)
   }, [open, isDesktop])
-
-  const getRoleDisplayName = (role: string) =>
-    type === "employee" && role === "Fulfillment-Staff" ? "Fulfillment" : role
 
   const getStatusDisplayName = (status: string) =>
     status.charAt(0).toUpperCase() + status.slice(1)
@@ -343,7 +348,7 @@ function PanelContent(props: {
                     checked={draftRole === r}
                     onChange={() => setDraftRole(r)}
                   />
-                  <span className="text-sm">{type === "employee" && r === "Fulfillment-Staff" ? "Fulfillment" : r}</span>
+                  <span className="text-sm">{r}</span>
                 </label>
               </li>
             ))}

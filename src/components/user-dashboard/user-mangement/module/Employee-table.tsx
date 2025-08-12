@@ -17,7 +17,6 @@ import { useRouter } from "next/navigation"
 import { getAllEmployees } from "@/service/employeeServices"
 import type { Employee } from "@/types/employee-types"
 import { Skeleton } from "@/components/ui/skeleton"
-import Image from "next/image"
 import { useAppSelector } from "@/store/hooks"
 
 interface EmployeeTableProps {
@@ -125,10 +124,7 @@ export default function EmployeeTable({
       employee.mobile_number?.toLowerCase().includes(searchLower);
     
     // Handle role filtering - match the actual role values in the data
-    const matchesRole = !role || 
-      (role === "Sales" && employee.role === "Sales") ||
-      (role === "Fulfillment-Staff" && employee.role === "Fulfillment-Staff") ||
-      (role === "General" && (employee.role !== "Sales" && employee.role !== "Fulfillment-Staff"));
+    const matchesRole = !role || (employee.role?.toLowerCase() === role.toLowerCase());
     
     // Handle status filtering - if status is null/undefined, treat as "Active"
     const employeeStatus = employee.status || "Active";
@@ -195,7 +191,6 @@ export default function EmployeeTable({
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
               <Checkbox />
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">Profile</th>
             <th 
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
               onClick={() => handleSort("name")}
@@ -241,15 +236,7 @@ export default function EmployeeTable({
                 {getSortIcon("role")}
               </div>
             </th>
-            <th 
-              className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
-              onClick={() => handleSort("department")}
-            >
-              <div className="flex items-center gap-1">
-                Department
-                {getSortIcon("department")}
-              </div>
-            </th>
+            {/* Removed Department column as it's not in API response */}
             <th 
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
               onClick={() => handleSort("status")}
@@ -271,9 +258,6 @@ export default function EmployeeTable({
                   <Skeleton className="h-4 w-4" />
                 </td>
                 <td className="p-3 md:p-4">
-                  <Skeleton className="w-8 h-8 md:w-10 md:h-10 object-cover" />
-                </td>
-                <td className="p-3 md:p-4">
                   <Skeleton className="h-4 w-24" />
                 </td>
                 <td className="p-3 md:p-4">
@@ -284,9 +268,6 @@ export default function EmployeeTable({
                 </td>
                 <td className="p-3 md:p-4">
                   <Skeleton className="h-4 w-20" />
-                </td>
-                <td className="p-3 md:p-4">
-                  <Skeleton className="h-4 w-16" />
                 </td>
                 <td className="p-3 md:p-4">
                   <Skeleton className="h-4 w-16" />
@@ -306,35 +287,13 @@ export default function EmployeeTable({
                 <td className="p-3 md:p-4">
                   <Checkbox />
                 </td>
-                <td className="p-3 md:p-4">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 flex items-center justify-center">
-  <Image
-                  src="/assets/FAQ.png"
-                  alt={employee.First_name}
-                  width={40}
-                  height={40}
-                  className="w-8 h-8 md:w-10 md:h-10 object-cover"
-                />                  </div>
-                </td>
                 <td className="p-3 md:p-4 font-medium text-gray-900 text-sm">{employee.First_name}</td>
                 <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.employee_id}</td>
                 <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.email}</td>
                 <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.mobile_number}</td>
-                <td className="p-3 md:p-4 text-gray-600 text-sm">
-                  {employee.role === "Sales"
-                    ? "Sales"
-                    : employee.role === "Fulfillment-Staff"
-                      ? "Fulfillment"
-                      : "General"}
-                </td>
-                <td className="p-3 md:p-4 text-gray-600 text-sm">
-                  {employee.role === "Sales"
-                    ? "Sales"
-                    : employee.role === "Fulfillment-Staff"
-                      ? "Fulfillment"
-                      : "General"}
-                </td>
-                <td className="p-3 md:p-4">
+                {/* Removed Department cell to match updated columns */}
+                <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.role || "-"}</td>
+                 <td className="p-3 md:p-4 text-gray-600 text-sm">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
                       employee.status === "Active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
@@ -351,14 +310,14 @@ export default function EmployeeTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      {auth && allowedRoles.includes(auth.role) && (
+                      {/* {auth && allowedRoles.includes(auth.role) && (
                         <DropdownMenuItem onClick={() => router.push(`/dashboard/employees/edit-employee/${employee._id}`)}>
                           Edit
                         </DropdownMenuItem>
                       )}
                       {auth && allowedRoles.includes(auth.role) && (
                         <DropdownMenuItem>Delete</DropdownMenuItem>
-                      )}
+                      )} */}
                       <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/employeeview/${employee._id}`)}>
                         View Details
                       </DropdownMenuItem>
