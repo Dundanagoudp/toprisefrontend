@@ -23,31 +23,38 @@ export default function SettingPage() {
 
   return (
     <div className="flex flex-col p-3 gap-3">
-      <div className="flex flex-col md:flex-row">
-        {/* Left Column: Setting Categories (now a separate sidebar) */}
-        <div className="md:w-[250px] w-full flex md:flex-col flex-row gap-1 p-2 md:overflow-visible overflow-x-auto border-b md:border-0">
-          {settingsNav.map((item) => (
-            <div
-              key={item.id}
-              className={`py-1 px-2 rounded-md cursor-pointer whitespace-nowrap ${
-                activeSetting === item.id ? "text-primary-red font-medium bg-gray-50" : "hover:bg-gray-50"
-              }`}
-              onClick={() => setActiveSetting(item.id)}
-            >
-              {item.name}
-            </div>
-          ))}
+      <div className="flex flex-col lg:flex-row">
+        {/* <CHANGE> Improved mobile tab navigation with better scrolling and spacing */}
+        <div className="lg:w-[250px] w-full flex lg:flex-col flex-row gap-2 p-3 lg:overflow-visible overflow-x-auto border-b lg:border-0 lg:border-r lg:border-gray-200">
+          <div className="flex lg:flex-col flex-row gap-2 lg:gap-1 min-w-max lg:min-w-0">
+            {settingsNav.map((item) => (
+              <button
+                key={item.id}
+                className={`py-2 px-3 lg:py-2 lg:px-3 rounded-lg cursor-pointer whitespace-nowrap text-sm font-medium transition-all duration-200 min-w-max lg:min-w-0 lg:w-full text-left ${
+                  activeSetting === item.id
+                    ? "text-[#c72920]"
+                    : "text-gray-700 hover:text-[#c72920]"
+                }`}
+                onClick={() => setActiveSetting(item.id)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 p-3 md:mt-0 mt-3">
+        {/* <CHANGE> Better spacing and padding for main content area */}
+        <div className="flex-1 p-4 lg:p-6">
           {activeSetting === "Permission Access" && <PermissionAccess />}
           {activeSetting === "Delivery Charge" && <DeliveryChargeSettings />}
           
           {/* Placeholder for other settings */}
           {activeSetting !== "Permission Access" && activeSetting !== "Delivery Charge" && (
-            <div className="flex items-center justify-center h-48 text-gray-500">
-              Content for {activeSetting} will be displayed here.
+            <div className="flex items-center justify-center h-48 text-gray-500 bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <div className="text-lg font-medium mb-2">Coming Soon</div>
+                <div className="text-sm">Content for {activeSetting} will be displayed here.</div>
+              </div>
             </div>
           )}
         </div>
@@ -55,5 +62,3 @@ export default function SettingPage() {
     </div>
   )
 }
-
-
