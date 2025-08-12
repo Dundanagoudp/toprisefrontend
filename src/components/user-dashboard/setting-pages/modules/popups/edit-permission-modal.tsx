@@ -94,13 +94,13 @@ export function EditPermissionModal({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md p-6 rounded-lg shadow-lg">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <DialogTitle className="text-2xl font-bold">Edit Permission</DialogTitle>
+      <DialogContent className="sm:max-w-md p-4 md:p-6 rounded-lg shadow-lg">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-4">
+          <DialogTitle className="text-xl md:text-2xl font-bold">Edit Permission</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-4 md:gap-6 py-3 md:py-4">
           <div className="grid gap-2">
-            <Label htmlFor="allowed-fields" className="text-base font-medium">
+            <Label htmlFor="allowed-fields" className="text-sm md:text-base font-medium">
               Allowed Fields
             </Label>
             <Input
@@ -111,9 +111,9 @@ export function EditPermissionModal({
             />
           </div>
           
-          <div className="grid gap-4">
-            <Label className="text-base font-medium">Permissions</Label>
-            <div className="space-y-3">
+          <div className="grid gap-3 md:gap-4">
+            <Label className="text-sm md:text-base font-medium">Permissions</Label>
+            <div className="space-y-2 md:space-y-3">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="read"
@@ -159,7 +159,7 @@ export function EditPermissionModal({
         </div>
         <Button
           type="submit"
-          className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-lg font-semibold"
+          className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-base md:text-lg font-semibold"
           onClick={handleSave}
           disabled={loading}
         >

@@ -23,13 +23,13 @@ export default function SettingPage() {
 
   return (
     <div className="flex flex-col p-3 gap-3">
-      <div className="flex">
+      <div className="flex flex-col md:flex-row">
         {/* Left Column: Setting Categories (now a separate sidebar) */}
-        <div className="w-[250px] flex flex-col gap-1 p-2">
+        <div className="md:w-[250px] w-full flex md:flex-col flex-row gap-1 p-2 md:overflow-visible overflow-x-auto border-b md:border-0">
           {settingsNav.map((item) => (
             <div
               key={item.id}
-              className={`py-1 px-2 rounded-md cursor-pointer ${
+              className={`py-1 px-2 rounded-md cursor-pointer whitespace-nowrap ${
                 activeSetting === item.id ? "text-primary-red font-medium bg-gray-50" : "hover:bg-gray-50"
               }`}
               onClick={() => setActiveSetting(item.id)}
@@ -40,7 +40,7 @@ export default function SettingPage() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 p-3">
+        <div className="flex-1 p-3 md:mt-0 mt-3">
           {activeSetting === "Permission Access" && <PermissionAccess />}
           {activeSetting === "Delivery Charge" && <DeliveryChargeSettings />}
           
