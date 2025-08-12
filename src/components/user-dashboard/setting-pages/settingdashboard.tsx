@@ -30,10 +30,10 @@ export default function SettingPage() {
             {settingsNav.map((item) => (
               <button
                 key={item.id}
-                className={`py-2 px-3 lg:py-2 lg:px-3 rounded-lg cursor-pointer whitespace-nowrap text-sm font-medium transition-all duration-200 min-w-max lg:min-w-0 lg:w-full text-left ${
+                className={`py-2 px-3 lg:py-2 lg:px-3 rounded-lg cursor-pointer whitespace-nowrap text-base font-normal transition-all duration-200 min-w-max lg:min-w-0 lg:w-full text-left ${
                   activeSetting === item.id
-                    ? "text-[#c72920]"
-                    : "text-gray-700 hover:text-[#c72920]"
+                    ? "text-[#c72920] font-semibold"
+                    : "text-black"
                 }`}
                 onClick={() => setActiveSetting(item.id)}
               >
