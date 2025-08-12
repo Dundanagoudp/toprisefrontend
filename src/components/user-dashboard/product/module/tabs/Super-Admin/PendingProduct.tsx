@@ -11,7 +11,6 @@ import {
   getProducts,
   getProductsByPage,
 } from "@/service/product-Service";
-
 import Image from "next/image";
 import {
   Table,
@@ -39,11 +38,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
-import { id } from "zod/v4/locales";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 
 // Helper function to get status color classes
@@ -66,35 +64,36 @@ export default function PendingProduct({
   searchQuery: string;
 }) {
   const dispatch = useAppDispatch();
+  const { showToast } = useGlobalToast();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
   const [totalProducts, setTotalProducts] = useState<number>(0);
-  const [products, setProducts] = useState<any[]>([]);
-  const [pagination, setPagination] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [totalPages, setTotalPages] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewProductLoading, setViewProductLoading] = useState(false);
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const itemsPerPage = 10;
   const route = useRouter();
-  const { showToast } = useGlobalToast();
 
-  // Fetch all products for client-side filtering and pagination
+  // Fetch products when component mounts or when pagination changes
   useEffect(() => {
-    const fetchAllProducts = async () => {
+    const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        const res = await getProductsByPage(
+        const response = await getProductsByPage(
           currentPage,
           itemsPerPage,
           "Pending"
         );
-        const data = res.data;
-
-        if (data?.products) {
-          setAllProducts(data.products);
-          setTotalProducts(data.pagination.totalItems);
-          setTotalPages(data.pagination.totalPages);
+        if (response.data) {
+          setPaginatedProducts(response.data.products || []);
+          setTotalProducts(response.data.pagination?.totalItems || 0);
+          setTotalPages(response.data.pagination?.totalPages || 0);
+        } else {
+          console.error("Unexpected API response structure:", response.data);
+          showToast("Unexpected API response structure", "error");
         }
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -104,16 +103,17 @@ export default function PendingProduct({
       }
     };
 
-    fetchAllProducts();
-  }, [currentPage, itemsPerPage]);
+    fetchProducts();
+  }, [currentPage, itemsPerPage, searchQuery]);
 
-  // Filter products by pending live status and search query
+  // Filter and sort products
   const filteredProducts = React.useMemo(() => {
-    if (!allProducts || !Array.isArray(allProducts)) return [];
+    if (!paginatedProducts) return [];
 
-    let filtered = [...allProducts];
+    let filtered = [...paginatedProducts];
 
-    if (searchQuery && searchQuery.trim() !== "") {
+    // Filter by search query if provided
+    if (searchQuery?.trim()) {
       const q = searchQuery.trim().toLowerCase();
       filtered = filtered.filter(
         (product) =>
@@ -125,16 +125,49 @@ export default function PendingProduct({
       );
     }
 
+    // Sort if sort field is specified
+    if (sortField) {
+      filtered.sort((a, b) => {
+        // Handle sorting for product name
+        if (sortField === "manufacturer_part_name") {
+          const nameA = a.manufacturer_part_name?.toLowerCase() || "";
+          const nameB = b.manufacturer_part_name?.toLowerCase() || "";
+          if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
+          if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
+          return 0;
+        }
+        // Handle sorting for price (assuming there's a price field)
+        if (sortField === "price") {
+          const priceA = Number(a.price) || 0;
+          const priceB = Number(b.price) || 0;
+          if (priceA < priceB) return sortDirection === "asc" ? -1 : 1;
+          if (priceA > priceB) return sortDirection === "asc" ? 1 : -1;
+          return 0;
+        }
+        return 0;
+      });
+    }
+
     return filtered;
-  }, [allProducts, searchQuery]);
+  }, [paginatedProducts, searchQuery, sortField, sortDirection]);
 
-  // Update total products count and reset to page 1 when filtered products change
-  useEffect(() => {
-    setTotalProducts(filteredProducts.length);
-    setCurrentPage(1); // Reset to first page when filter changes
-  }, [filteredProducts]);
+  const handleSortByName = () => {
+    if (sortField === "manufacturer_part_name") {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField("manufacturer_part_name");
+      setSortDirection("asc");
+    }
+  };
 
-  // Calculate pagination
+  const handleSortByPrice = () => {
+    if (sortField === "price") {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField("price");
+      setSortDirection("asc");
+    }
+  };
 
   // Selection handlers
   const handleSelectOne = (id: string) => {
@@ -153,9 +186,8 @@ export default function PendingProduct({
           updateProductLiveStatus({ id: productId, liveStatus: "Approved" })
         );
         showToast("Product activated successfully", "success");
-
         // Update local state
-        setAllProducts((prev) =>
+        setPaginatedProducts((prev) =>
           prev.map((product) =>
             product._id === productId
               ? { ...product, live_status: "Approved" }
@@ -168,9 +200,8 @@ export default function PendingProduct({
           updateProductLiveStatus({ id: productId, liveStatus: "Pending" })
         );
         showToast("Product deactivated successfully", "success");
-
         // Update local state
-        setAllProducts((prev) =>
+        setPaginatedProducts((prev) =>
           prev.map((product) =>
             product._id === productId
               ? { ...product, live_status: "Pending" }
@@ -185,20 +216,28 @@ export default function PendingProduct({
   };
 
   const allSelected =
-    allProducts.length > 0 &&
-    allProducts.every((p: any) => selectedProducts.includes(p._id));
+    filteredProducts.length > 0 &&
+    filteredProducts.every((product: any) =>
+      selectedProducts.includes(product._id)
+    );
 
   const handleSelectAll = () => {
-    const newSelectedProducts = allSelected
-      ? selectedProducts.filter((id) => !allProducts.some((p) => p._id === id))
-      : [
-          ...selectedProducts,
-          ...allProducts
-            .map((p: any) => p._id)
-            .filter((id) => !selectedProducts.includes(id)),
-        ];
-    setSelectedProducts(newSelectedProducts);
-    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
+    if (allSelected) {
+      const newSelectedProducts = selectedProducts.filter(
+        (id) => !filteredProducts.some((product: any) => product._id === id)
+      );
+      setSelectedProducts(newSelectedProducts);
+      dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
+    } else {
+      const filteredProductIds = filteredProducts.map(
+        (product: any) => product._id
+      );
+      const newSelectedProducts = Array.from(
+        new Set([...selectedProducts, ...filteredProductIds])
+      );
+      setSelectedProducts(newSelectedProducts);
+      dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
+    }
   };
 
   // Navigation handlers
@@ -207,30 +246,18 @@ export default function PendingProduct({
   };
 
   const handleViewProduct = (id: string) => {
-    route.push(`/user/dashboard/product/product-details/${id}`);
-  };
-
-  // Pagination handlers
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+    setViewProductLoading(true);
+    try {
+      route.push(`/user/dashboard/product/product-details/${id}`);
+    } catch (e) {
+      console.log(e);
+    } finally {
+      setViewProductLoading(false);
     }
   };
 
   return (
-    <div className="">
+    <div className="px-4">
       <div className="w-full overflow-x-auto">
         <Table>
           <TableHeader>
@@ -245,8 +272,22 @@ export default function PendingProduct({
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
                 Image
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">
-                Name
+              <TableHead
+                className="text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer select-none"
+                onClick={handleSortByName}
+              >
+                <div className="flex items-center">
+                  Name
+                  {sortField === "product_name" && (
+                    <span className="ml-1">
+                      {sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                      )}
+                    </span>
+                  )}
+                </div>
               </TableHead>
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
                 Category
@@ -259,6 +300,21 @@ export default function PendingProduct({
               </TableHead>
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
                 Type
+              </TableHead>
+              <TableHead
+                className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
+                onClick={handleSortByPrice}
+              >
+                Price
+                {sortField === "price" && (
+                  <span className="ml-1">
+                    {sortDirection === "asc" ? (
+                      <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                    )}
+                  </span>
+                )}
               </TableHead>
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
                 QC Status
@@ -304,6 +360,9 @@ export default function PendingProduct({
                     <TableCell className="px-6 py-4 hidden lg:table-cell">
                       <Skeleton className="h-4 w-[80px]" />
                     </TableCell>
+                    <TableCell className="px-6 py-4 hidden lg:table-cell">
+                      <Skeleton className="h-4 w-[80px]" />
+                    </TableCell>
                     <TableCell className="px-6 py-4">
                       <Skeleton className="h-4 w-[60px]" />
                     </TableCell>
@@ -341,11 +400,11 @@ export default function PendingProduct({
                       </div>
                     </TableCell>
                     <TableCell
-                      className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
+                      className="px-6 py-4 cursor-pointer font-sans"
                       onClick={() => handleViewProduct(product._id)}
                     >
                       <div className="font-medium text-gray-900 b2 font-sans">
-                        {product.manufacturer_part_name.length > 8
+                        {product.manufacturer_part_name?.length > 8
                           ? `${product.manufacturer_part_name.substring(
                               0,
                               8
@@ -357,9 +416,9 @@ export default function PendingProduct({
                         {product.brand?.brand_name}
                       </div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                    <TableCell className="px-6 py-4 hidden md:table-cell font-sans">
                       <span className="text-gray-700 b2 font-sans">
-                        {product.category?.category_name.length > 8
+                        {product.category?.category_name?.length > 8
                           ? `${product.category.category_name.substring(
                               0,
                               8
@@ -367,9 +426,9 @@ export default function PendingProduct({
                           : product.category?.category_name}
                       </span>
                     </TableCell>
-                    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-                      <span className="text-gray-700 b2 font-[Red Hat Display]">
-                        {product.sub_category?.subcategory_name.length > 8
+                    <TableCell className="px-6 py-4 hidden lg:table-cell font-sans">
+                      <span className="text-gray-700 b2 font-sans">
+                        {product.sub_category?.subcategory_name?.length > 8
                           ? `${product.sub_category.subcategory_name.substring(
                               0,
                               8
@@ -377,14 +436,19 @@ export default function PendingProduct({
                           : product.sub_category?.subcategory_name}
                       </span>
                     </TableCell>
-                    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-                      <span className="text-gray-700 b2 font-[Red Hat Display]">
+                    <TableCell className="px-6 py-4 hidden md:table-cell font-sans">
+                      <span className="text-gray-700 b2 font-sans">
                         {product.brand?.brand_name}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 hidden lg:table-cell font-sans">
+                      <span className="text-gray-700 b2 font-sans">
+                        {product.product_type}
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
                       <span className="text-gray-700 b2 font-[Red Hat Display]">
-                        {product.product_type}
+                        {product.price || "N/A"}
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-[Red Hat Display]">
@@ -394,7 +458,7 @@ export default function PendingProduct({
                         {product.Qc_status}
                       </span>
                     </TableCell>
-                    <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                    <TableCell className="px-6 py-4 font-sans">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -430,7 +494,7 @@ export default function PendingProduct({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
+                    <TableCell className="px-6 py-4 text-center font-sans">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -535,6 +599,18 @@ export default function PendingProduct({
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
+          </div>
+        </div>
+      )}
+
+      {/* Loading spinner for product view */}
+      {viewProductLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
+            <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
+            <p className="text-lg font-medium text-gray-700">
+              Loading product details...
+            </p>
           </div>
         </div>
       )}

@@ -39,7 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Loader2, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
@@ -110,6 +110,7 @@ export default function CreatedProduct({
   const handleSortByName = () => {
     if (sortField === "product_name") {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+
     } else {
       setSortField("product_name");
       setSortDirection("asc");
@@ -249,7 +250,7 @@ export default function CreatedProduct({
               Name
               {sortField === "product_name" && (
                 <span className="ml-1">
-                  {sortDirection === "asc" ? "▲" : "▼"}
+                  {sortDirection === "asc" ? <ChevronUp className="w-4 h-4 text-[#C72920]" /> : <ChevronDown className="w-4 h-4 text-[#C72920]" />}
                 </span>
               )}
             </TableHead>
@@ -272,7 +273,7 @@ export default function CreatedProduct({
               Price
               {sortField === "mrp_with_gst" && (
                 <span className="ml-1">
-                  {sortDirection === "asc" ? "▲" : "▼"}
+                  {sortDirection === "asc" ?<ChevronUp className="w-4 h-4 text-[#C72920]" /> : <ChevronDown className="w-4 h-4 text-[#C72920]" />}
                 </span>
               )}
             </TableHead>

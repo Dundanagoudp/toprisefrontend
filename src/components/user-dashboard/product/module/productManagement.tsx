@@ -17,12 +17,12 @@ import { useRouter } from "next/navigation";
 import { set } from "zod";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { approveBulkProducts, aproveProduct, deactivateBulkProducts, deactivateProduct, rejectProduct } from "@/service/product-Service";
+import { approveBulkProducts, aproveProduct, deactivateBulkProducts, deactivateProduct, exportCSV, rejectProduct } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
 import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
-
+import { fetchAndDownloadCSV } from "@/components/common/ExportCsv";
 
 type TabType = "Created" | "Approved" | "Pending" | "Rejected";
 interface TabConfig {
@@ -98,7 +98,13 @@ const getStatusColor = (status: string) => {
     setIsSearching(value.trim() !== "");
     debouncedSearch(value);
   };
-
+  const handleDownload = async () => {
+    try {
+      await fetchAndDownloadCSV(exportCSV, 'products_export.csv');
+    } catch (error) {
+      alert('Failed to export data. Please try again.');
+    }
+  };
   const handleClearSearch = () => {
     setSearchInput("");
     setSearchQuery("");
@@ -273,6 +279,7 @@ const handleBulkReject = useCallback(() => {
                   variant="outline"
                   customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
                   text="Export"
+                  onClick={handleDownload}
                 />
               </div>
             </div>

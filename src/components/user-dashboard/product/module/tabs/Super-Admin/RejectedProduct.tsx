@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchProductsWithLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { getProducts, getProductsByPage } from "@/service/product-Service";
-
 import Image from "next/image";
 import {
   Table,
@@ -55,44 +54,35 @@ export default function RejectedProduct({
   searchQuery: string;
 }) {
   const dispatch = useAppDispatch();
-  // Use the correct state for products with live status
-  // const allProducts = useAppSelector((state) => state.productLiveStatus.products);
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const route = useRouter();
   const itemsPerPage = 10;
 
-  // Fetch products on component mount
+  // Fetch products when component mounts or when pagination changes
   useEffect(() => {
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        const response = await getProductsByPage(currentPage, itemsPerPage);
-        if (response.data?.products && Array.isArray(response.data.products)) {
-          console.log("API Response:", response.data.products);
-          setPaginatedProducts(response.data.products);
+        const response = await getProductsByPage(
+          currentPage,
+          itemsPerPage,
+          "Rejected"
+        );
+        if (response.data) {
+          setPaginatedProducts(response.data.products || []);
+          setTotalProducts(response.data.pagination?.totalItems || 0);
+          setTotalPages(response.data.pagination?.totalPages || 0);
         } else {
           console.error("Unexpected API response structure:", response.data);
         }
-        const data = response.data;
-        // if (Array.isArray(data)) {
-        //   const mapped = data.map((item) => ({
-        //     id: item._id,
-        //     image: item.images[0] || item.model.model_image,
-        //     name: item.product_name || item.manufacturer_part_name || "-",
-        //     category: item.category?.category_name || "-",
-        //     subCategory: item.sub_category?.subcategory_name || "-",
-        //     brand: item.brand?.brand_name || "-",
-        //     productType: item.product_type || "-",
-        //     qcStatus: item.Qc_status || "Pending",
-        //     liveStatus: item.live_status || "Pending",
-        //   }));
-        //   dispatch(fetchProductsWithLiveStatus(mapped));
-        // }
       } catch (error) {
         console.error("Failed to fetch products:", error);
       } finally {
@@ -100,45 +90,48 @@ export default function RejectedProduct({
       }
     };
 
-    // Only fetch if we don't have products in the store
-    if (!paginatedProducts || paginatedProducts.length === 0) {
-      fetchProducts();
-    }
-  }, [dispatch, paginatedProducts]);
+    fetchProducts();
+  }, [currentPage, itemsPerPage]);
 
-  // Filter products by rejected live status and search query
+  // Filter products by search query only (pagination is handled server-side)
   const filteredProducts = React.useMemo(() => {
     if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
 
-    // First filter by rejected live status
-    const rejectedProducts = paginatedProducts.filter(
-      (product: any) => product.live_status === "Rejected"
-    );
+    // Step 1: Filter products based on search query
+    let filtered = [...paginatedProducts];
+    if (searchQuery && searchQuery.trim() !== "") {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = paginatedProducts.filter(
+        (product: any) =>
+          product.name?.toLowerCase().includes(q) ||
+          product.category?.toLowerCase().includes(q) ||
+          product.brand?.toLowerCase().includes(q) ||
+          product.subCategory?.toLowerCase().includes(q) ||
+          product.productType?.toLowerCase().includes(q)
+      );
+    }
 
-    // Then filter by search query if provided
-    if (!searchQuery || searchQuery.trim() === "") return rejectedProducts;
+    // Step 2: Sort filtered products based on sortField and sortDirection
+    if (sortField === "product_name") {
+      filtered.sort((a, b) => {
+        const nameA = a.name?.toLowerCase() || "";
+        const nameB = b.name?.toLowerCase() || "";
+        if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
+        if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    } else if (sortField === "mrp_with_gst") {
+      filtered.sort((a, b) => {
+        const priceA = Number(a.mrp_with_gst) || 0;
+        const priceB = Number(b.mrp_with_gst) || 0;
+        if (priceA < priceB) return sortDirection === "asc" ? -1 : 1;
+        if (priceA > priceB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
 
-    const q = searchQuery.trim().toLowerCase();
-    return rejectedProducts.filter(
-      (product: any) =>
-        product.name?.toLowerCase().includes(q) ||
-        product.category?.toLowerCase().includes(q) ||
-        product.brand?.toLowerCase().includes(q) ||
-        product.subCategory?.toLowerCase().includes(q) ||
-        product.productType?.toLowerCase().includes(q)
-    );
-  }, [paginatedProducts, searchQuery]);
-
-  // Update total products count when filtered products change
-  useEffect(() => {
-    setTotalProducts(filteredProducts.length);
-  }, [filteredProducts]);
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedData = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    return filtered;
+  }, [paginatedProducts, searchQuery, sortField, sortDirection]);
 
   // Selection handlers
   const handleSelectOne = (id: string) => {
@@ -146,9 +139,11 @@ export default function RejectedProduct({
       prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
     );
   };
+
   const allSelected =
     filteredProducts.length > 0 &&
     filteredProducts.every((p: any) => selectedProducts.includes(p.id));
+
   const handleSelectAll = () => {
     setSelectedProducts(
       allSelected ? [] : filteredProducts.map((p: any) => p.id)
@@ -156,11 +151,29 @@ export default function RejectedProduct({
   };
 
   const handleEditProduct = (id: string) => {
-    // Implement navigation or modal logic here
     route.push(`/user/dashboard/product/productedit/${id}`);
   };
+
   const handleViewProduct = (id: string) => {
     route.push(`/user/dashboard/product/product-details/${id}`);
+  };
+  //sorting products by name
+  const handleSortByName = () => {
+    if (sortField === "product_name") {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField("product_name");
+      setSortDirection("asc");
+    }
+  };
+  // 1. Update the sort handler to support price
+  const handleSortByPrice = () => {
+    if (sortField === "mrp_with_gst") {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField("mrp_with_gst");
+      setSortDirection("asc");
+    }
   };
 
   return (
@@ -178,8 +191,16 @@ export default function RejectedProduct({
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
               Image
             </TableHead>
-            <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">
+            <TableHead
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer select-none"
+              onClick={handleSortByName}
+            >
               Name
+              {sortField === "product_name" && (
+                <span className="ml-1">
+                  {sortDirection === "asc" ? "▲" : "▼"}
+                </span>
+              )}
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
               Category
@@ -192,6 +213,17 @@ export default function RejectedProduct({
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
               Type
+            </TableHead>
+            <TableHead
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
+              onClick={handleSortByPrice}
+            >
+              Price
+              {sortField === "mrp_with_gst" && (
+                <span className="ml-1">
+                  {sortDirection === "asc" ? "▲" : "▼"}
+                </span>
+              )}
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
               QC Status
@@ -248,7 +280,7 @@ export default function RejectedProduct({
                   </TableCell>
                 </TableRow>
               ))
-            : paginatedData.map((product: any, index: number) => (
+            : filteredProducts.map((product: any, index: number) => (
                 <TableRow
                   key={product._id}
                   className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
@@ -314,6 +346,12 @@ export default function RejectedProduct({
                       {product.product_type}
                     </span>
                   </TableCell>
+                  {/* //price */}
+                  <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                    <span className="text-gray-700 b2 font-[Red Hat Display]">
+                      {product.mrp_with_gst || "N/A"}
+                    </span>
+                  </TableCell>
                   <TableCell className="px-6 py-4 font-[Red Hat Display]">
                     <span className={`b2`}>{product.Qc_status}</span>
                   </TableCell>
@@ -356,17 +394,16 @@ export default function RejectedProduct({
               ))}
         </TableBody>
       </Table>
-      {/* Pagination - moved outside of table */}
+
+      {/* Updated Pagination */}
       {totalProducts > 0 && totalPages > 1 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
-          {/* Left: Showing X-Y of Z products */}
           <div className="text-sm text-gray-600 text-center sm:text-left">
             {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
               currentPage * itemsPerPage,
               totalProducts
             )} of ${totalProducts} products`}
           </div>
-          {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">
             <Pagination>
               <PaginationContent>
@@ -380,32 +417,31 @@ export default function RejectedProduct({
                     }
                   />
                 </PaginationItem>
-                {Array.from({ length: Math.min(totalPages, 3) }).map(
-                  (_, idx) => {
-                    let pageNum;
-                    if (totalPages <= 3) {
-                      pageNum = idx + 1;
-                    } else if (currentPage <= 2) {
-                      pageNum = idx + 1;
-                    } else if (currentPage >= totalPages - 1) {
-                      pageNum = totalPages - 2 + idx;
-                    } else {
-                      pageNum = currentPage - 1 + idx;
-                    }
-                    if (pageNum < 1 || pageNum > totalPages) return null;
-                    return (
-                      <PaginationItem key={pageNum} className="hidden sm:block">
-                        <PaginationLink
-                          isActive={currentPage === pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="cursor-pointer"
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
+
+                {(() => {
+                  let pages = [];
+                  if (totalPages <= 3) {
+                    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                  } else if (currentPage <= 2) {
+                    pages = [1, 2, 3];
+                  } else if (currentPage >= totalPages - 1) {
+                    pages = [totalPages - 2, totalPages - 1, totalPages];
+                  } else {
+                    pages = [currentPage - 1, currentPage, currentPage + 1];
                   }
-                )}
+                  return pages.map((pageNum) => (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        isActive={currentPage === pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ));
+                })()}
+
                 <PaginationItem>
                   <PaginationNext
                     onClick={() =>

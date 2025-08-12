@@ -1,39 +1,39 @@
-"use client"
+"use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react"
-import { Filter, SlidersHorizontal, X, ChevronDown } from "lucide-react"
-import DynamicButton from "@/components/common/button/button"
-import SearchInput from "@/components/common/search/SearchInput"
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Filter, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import DynamicButton from "@/components/common/button/button";
+import SearchInput from "@/components/common/search/SearchInput";
 
 interface GlobalFiltersProps {
-  type: "employee" | "dealer"
-  search: string
-  onSearchChange: (search: string) => void
-  currentRole: string
-  onRoleChange: (role: string) => void
-  currentStatus: string
-  onStatusChange: (status: string) => void
-  onResetFilters: () => void
+  type: "employee" | "dealer";
+  search: string;
+  onSearchChange: (search: string) => void;
+  currentRole: string;
+  onRoleChange: (role: string) => void;
+  currentStatus: string;
+  onStatusChange: (status: string) => void;
+  onResetFilters: () => void;
 }
 
-const EMPLOYEE_ROLES = ["Sales", "Fulfillment-Staff", "General"] as const
-const EMPLOYEE_STATUSES = ["Active", "Inactive"] as const
+const EMPLOYEE_ROLES = ["Sales", "Fulfillment-Staff", "General"] as const;
+const EMPLOYEE_STATUSES = ["Active", "Inactive"] as const;
 
-const DEALER_ROLES = ["admin", "user", "dealer"] as const
-const DEALER_STATUSES = ["active", "inactive"] as const
+const DEALER_ROLES = ["admin", "user", "dealer"] as const;
+const DEALER_STATUSES = ["active", "inactive"] as const;
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true
-    return window.matchMedia(query).matches
-  })
+    if (typeof window === "undefined") return true;
+    return window.matchMedia(query).matches;
+  });
   useEffect(() => {
-    const media = window.matchMedia(query)
-    const listener = () => setMatches(media.matches)
-    media.addEventListener("change", listener)
-    return () => media.removeEventListener("change", listener)
-  }, [query])
-  return matches
+    const media = window.matchMedia(query);
+    const listener = () => setMatches(media.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [query]);
+  return matches;
 }
 
 export default function GlobalFilters({
@@ -46,77 +46,80 @@ export default function GlobalFilters({
   onStatusChange,
   onResetFilters,
 }: GlobalFiltersProps) {
-  const isDesktop = useMediaQuery("(min-width: 768px)")
-  const [open, setOpen] = useState(false)
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Draft state for panel
-  const [draftSearch, setDraftSearch] = useState(search)
-  const [draftRole, setDraftRole] = useState(currentRole)
-  const [draftStatus, setDraftStatus] = useState(currentStatus)
+  const [draftSearch, setDraftSearch] = useState(search);
+  const [draftRole, setDraftRole] = useState(currentRole);
+  const [draftStatus, setDraftStatus] = useState(currentStatus);
 
   // Sync draft when opened
   useEffect(() => {
     if (open) {
-      setDraftSearch(search)
-      setDraftRole(currentRole)
-      setDraftStatus(currentStatus)
+      setDraftSearch(search);
+      setDraftRole(currentRole);
+      setDraftStatus(currentStatus);
     }
-  }, [open, search, currentRole, currentStatus])
+  }, [open, search, currentRole, currentStatus]);
 
-  const roles = type === "employee" ? EMPLOYEE_ROLES : DEALER_ROLES
-  const statuses = type === "employee" ? EMPLOYEE_STATUSES : DEALER_STATUSES
+  const roles = type === "employee" ? EMPLOYEE_ROLES : DEALER_ROLES;
+  const statuses = type === "employee" ? EMPLOYEE_STATUSES : DEALER_STATUSES;
 
   const appliedFiltersCount = useMemo(
-    () => (search ? 1 : 0) + (currentRole !== "all" ? 1 : 0) + (currentStatus !== "all" ? 1 : 0),
+    () =>
+      (search ? 1 : 0) +
+      (currentRole !== "all" ? 1 : 0) +
+      (currentStatus !== "all" ? 1 : 0),
     [search, currentRole, currentStatus]
-  )
+  );
 
   const clearAll = () => {
-    onSearchChange("")
-    onRoleChange("all")
-    onStatusChange("all")
-  }
+    onSearchChange("");
+    onRoleChange("all");
+    onStatusChange("all");
+  };
 
   const applyDraft = () => {
-    onSearchChange(draftSearch)
-    onRoleChange(draftRole)
-    onStatusChange(draftStatus)
-    setOpen(false)
-  }
+    onSearchChange(draftSearch);
+    onRoleChange(draftRole);
+    onStatusChange(draftStatus);
+    setOpen(false);
+  };
 
   // Close panel on ESC
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false)
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [open])
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   // Simple outside click close for desktop popover
-  const popoverRef = useRef<HTMLDivElement | null>(null)
+  const popoverRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!open || !isDesktop) return
+    if (!open || !isDesktop) return;
     const onClick = (e: MouseEvent) => {
-      if (!popoverRef.current) return
+      if (!popoverRef.current) return;
       if (
         !popoverRef.current.contains(e.target as Node) &&
         !triggerRef.current?.contains(e.target as Node)
       ) {
-        setOpen(false)
+        setOpen(false);
       }
-    }
-    document.addEventListener("mousedown", onClick)
-    return () => document.removeEventListener("mousedown", onClick)
-  }, [open, isDesktop])
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open, isDesktop]);
 
   const getRoleDisplayName = (role: string) =>
-    type === "employee" && role === "Fulfillment-Staff" ? "Fulfillment" : role
+    type === "employee" && role === "Fulfillment-Staff" ? "Fulfillment" : role;
 
   const getStatusDisplayName = (status: string) =>
-    status.charAt(0).toUpperCase() + status.slice(1)
+    status.charAt(0).toUpperCase() + status.slice(1);
 
   return (
     <div className="relative">
@@ -127,7 +130,9 @@ export default function GlobalFilters({
             value={search}
             onChange={onSearchChange}
             onClear={() => onSearchChange("")}
-            placeholder={`Search ${type === "employee" ? "employees" : "dealers"}...`}
+            placeholder={`Search ${
+              type === "employee" ? "employees" : "dealers"
+            }...`}
             className="w-full"
           />
         </div>
@@ -145,12 +150,9 @@ export default function GlobalFilters({
       </div>
 
       {/* Panel */}
-      {open && (
-        isDesktop ? (
-          <div
-            ref={popoverRef}
-            className="relative"
-          >
+      {open &&
+        (isDesktop ? (
+          <div ref={popoverRef} className="relative">
             <div className="absolute right-0 z-50 w-[340px] rounded-md border bg-white shadow-md">
               <div className="p-4 space-y-4">
                 <PanelContent
@@ -172,9 +174,9 @@ export default function GlobalFilters({
                   <button
                     className="flex-1 h-9 rounded-md border text-sm"
                     onClick={() => {
-                      setDraftSearch("")
-                      setDraftRole("all")
-                      setDraftStatus("all")
+                      setDraftSearch("");
+                      setDraftRole("all");
+                      setDraftStatus("all");
                     }}
                   >
                     Reset
@@ -205,15 +207,18 @@ export default function GlobalFilters({
                 />
               </div>
               <div className="p-4 border-t flex gap-2">
-                <button className="flex-1 h-10 rounded-md bg-black text-white" onClick={applyDraft}>
+                <button
+                  className="flex-1 h-10 rounded-md bg-black text-white"
+                  onClick={applyDraft}
+                >
                   Apply
                 </button>
                 <button
                   className="flex-1 h-10 rounded-md border"
                   onClick={() => {
-                    setDraftSearch("")
-                    setDraftRole("all")
-                    setDraftStatus("all")
+                    setDraftSearch("");
+                    setDraftRole("all");
+                    setDraftStatus("all");
                   }}
                 >
                   Reset
@@ -221,10 +226,9 @@ export default function GlobalFilters({
               </div>
             </div>
           </div>
-        )
-      )}
+        ))}
     </div>
-  )
+  );
 }
 
 function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
@@ -239,7 +243,7 @@ function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
         <X className="size-3.5" />
       </button>
     </span>
-  )
+  );
 }
 
 function SelectLike<T extends string>({
@@ -249,25 +253,25 @@ function SelectLike<T extends string>({
   options,
   display,
 }: {
-  label: string
-  value: T
-  onChange: (v: T) => void
-  options: T[]
-  display: (v: T) => string
+  label: string;
+  value: T;
+  onChange: (v: T) => void;
+  options: T[];
+  display: (v: T) => string;
 }) {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      if (!open) return
-      if (!containerRef.current) return
-      if (!containerRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", onDoc)
-    return () => document.removeEventListener("mousedown", onDoc)
-  }, [open])
+      if (!open) return;
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
 
-  const current = display(value)
+  const current = display(value);
 
   return (
     <div className="relative" ref={containerRef}>
@@ -289,8 +293,8 @@ function SelectLike<T extends string>({
                     value === opt ? "bg-gray-100" : ""
                   }`}
                   onClick={() => {
-                    onChange(opt)
-                    setOpen(false)
+                    onChange(opt);
+                    setOpen(false);
                   }}
                 >
                   {display(opt)}
@@ -301,24 +305,31 @@ function SelectLike<T extends string>({
         </div>
       )}
     </div>
-  )
+  );
 }
 function PanelContent(props: {
-  type: "employee" | "dealer"
-  draftSearch: string
-  setDraftSearch: (v: string) => void
-  draftRole: string
-  setDraftRole: (v: string) => void
-  draftStatus: string
-  setDraftStatus: (v: string) => void
+  type: "employee" | "dealer";
+  draftSearch: string;
+  setDraftSearch: (v: string) => void;
+  draftRole: string;
+  setDraftRole: (v: string) => void;
+  draftStatus: string;
+  setDraftStatus: (v: string) => void;
 }) {
-  const { type, draftSearch, setDraftSearch, draftRole, setDraftRole, draftStatus, setDraftStatus } = props
-  const roles = type === "employee" ? EMPLOYEE_ROLES : DEALER_ROLES
-  const statuses = type === "employee" ? EMPLOYEE_STATUSES : DEALER_STATUSES
+  const {
+    type,
+    draftSearch,
+    setDraftSearch,
+    draftRole,
+    setDraftRole,
+    draftStatus,
+    setDraftStatus,
+  } = props;
+  const roles = type === "employee" ? EMPLOYEE_ROLES : DEALER_ROLES;
+  const statuses = type === "employee" ? EMPLOYEE_STATUSES : DEALER_STATUSES;
 
   return (
     <div className="space-y-4">
-
       {/* Collapsible Role */}
       <Collapsible title="Role">
         <div className="rounded-md border">
@@ -343,7 +354,11 @@ function PanelContent(props: {
                     checked={draftRole === r}
                     onChange={() => setDraftRole(r)}
                   />
-                  <span className="text-sm">{type === "employee" && r === "Fulfillment-Staff" ? "Fulfillment" : r}</span>
+                  <span className="text-sm">
+                    {type === "employee" && r === "Fulfillment-Staff"
+                      ? "Fulfillment"
+                      : r}
+                  </span>
                 </label>
               </li>
             ))}
@@ -375,7 +390,9 @@ function PanelContent(props: {
                     checked={draftStatus === s}
                     onChange={() => setDraftStatus(s)}
                   />
-                  <span className="text-sm">{s.charAt(0).toUpperCase() + s.slice(1)}</span>
+                  <span className="text-sm">
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </span>
                 </label>
               </li>
             ))}
@@ -383,11 +400,17 @@ function PanelContent(props: {
         </div>
       </Collapsible>
     </div>
-  )
+  );
 }
 
-function Collapsible({ title, children }: { title: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(true)
+function Collapsible({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(true);
   return (
     <div>
       <button
@@ -395,10 +418,11 @@ function Collapsible({ title, children }: { title: string; children: React.React
         onClick={() => setOpen((o) => !o)}
       >
         {title}
-        <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`size-4 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
       {open && <div className="pt-1">{children}</div>}
     </div>
-  )
+  );
 }
-
