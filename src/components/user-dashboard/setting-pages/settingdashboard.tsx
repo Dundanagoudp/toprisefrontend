@@ -19,6 +19,7 @@ import {
 import type { PermissionModule, AccessPermissionRole, UserPermissionDetails } from "@/types/setting-Types"
 import { useToast } from "@/components/ui/toast"
 import { Skeleton } from "@/components/ui/skeleton"
+import { DeliveryChargeSettings } from "./modules/delivery-charge-settings"
 
 export default function SettingPage() {
   const [activeSetting, setActiveSetting] = useState("Permission Access")
@@ -309,7 +310,8 @@ export default function SettingPage() {
             )}
 
             {/* Conditional rendering for Delivery Charge Settings */}
-            {/* {activeSetting === "Delivery Charge" && <DeliveryChargeSettings />} */}
+            {activeSetting === "Delivery Charge" && <DeliveryChargeSettings />}
+            
             {/* Placeholder for other settings */}
             {activeSetting !== "Permission Access" && activeSetting !== "Delivery Charge" && (
               <div className="flex items-center justify-center h-48 text-gray-500">
