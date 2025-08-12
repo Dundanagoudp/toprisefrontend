@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { addRolesToModule } from "@/service/settingServices"
 import type { AddRolesToModuleRequest } from "@/types/setting-Types"
 import { useToast } from "@/components/ui/toast"
@@ -17,15 +18,26 @@ interface AddRoleModalProps {
   onRoleAdded?: () => void
 }
 
+// Predefined role options
+const ROLE_OPTIONS = [
+  "Super-admin",
+  "Fulfillment-Admin",
+  "Fulfillment-Staff",
+  "Inventory-Admin",
+  "Inventory-Staff",
+  "Dealer",
+  "User",
+]
+
 export function AddRoleModal({ children, moduleName, onRoleAdded }: AddRoleModalProps) {
   const [open, setOpen] = useState(false)
-  const [roleName, setRoleName] = useState("")
+  const [selectedRole, setSelectedRole] = useState("")
   const [loading, setLoading] = useState(false)
   const { showToast } = useToast()
 
   const handleSave = async () => {
-    if (!roleName.trim()) {
-      showToast("Role name is required", "error")
+    if (!selectedRole) {
+      showToast("Please select a role", "error")
       return
     }
 
@@ -38,7 +50,7 @@ export function AddRoleModal({ children, moduleName, onRoleAdded }: AddRoleModal
       setLoading(true)
       const requestData: AddRolesToModuleRequest = {
         module: moduleName,
-        roles: [roleName.trim()]
+        roles: [selectedRole]
         // Removed updatedBy field to fix 500 error
       }
 
@@ -46,7 +58,7 @@ export function AddRoleModal({ children, moduleName, onRoleAdded }: AddRoleModal
       showToast("Role added successfully", "success")
       
       // Reset form and close modal
-      setRoleName("")
+      setSelectedRole("")
       setOpen(false)
       
       // Call callback to refresh roles list
@@ -82,12 +94,18 @@ export function AddRoleModal({ children, moduleName, onRoleAdded }: AddRoleModal
             <Label htmlFor="role" className="text-base font-medium">
               Role Name
             </Label>
-            <Input
-              id="role"
-              placeholder="Enter role name (e.g., Super Admin)"
-              value={roleName}
-              onChange={(e) => setRoleName(e.target.value)}
-            />
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <SelectTrigger id="role" className="w-full">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLE_OPTIONS.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <Button
