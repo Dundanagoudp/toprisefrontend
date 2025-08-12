@@ -14,6 +14,7 @@ import {
   getModuleRoles,
   removeRoleFromModule,
   getPermissionsByModuleAndRole,
+  removeUserPermissions,
 } from "@/service/settingServices"
 import type { PermissionModule, AccessPermissionRole, UserPermissionDetails } from "@/types/setting-Types"
 import { useToast } from "@/components/ui/toast"
@@ -39,8 +40,8 @@ export default function SettingPage() {
   useEffect(() => {
     if (activeModule) {
       fetchModuleRoles(activeModule)
-      setActiveRole("") // Reset active role when module changes
-      setUserPermissions([]) // Clear permissions when module changes
+      setActiveRole("") 
+      setUserPermissions([]) 
     }
   }, [activeModule])
 
@@ -56,7 +57,6 @@ export default function SettingPage() {
       setLoading(true)
       const response = await getAllModules()
       setModules(response.data)
-      // Set first module as active if available
       if (response.data.length > 0 && !activeModule) {
         setActiveModule(response.data[0].module)
       }
@@ -114,15 +114,31 @@ export default function SettingPage() {
         // Removed updatedBy field to fix 500 error
       })
       showToast("Role removed successfully", "success")
-      fetchModuleRoles(activeModule) // Refresh roles
+      fetchModuleRoles(activeModule) 
     } catch (error) {
       console.error("Error removing role:", error)
       showToast("Failed to remove role", "error")
     }
   }
 
+  const handleRemoveUserPermission = async (userId: string) => {
+    try {
+      await removeUserPermissions({
+        module: activeModule,
+        role: activeRole,
+        userId: userId,
+        // Removed updatedBy field to fix 500 error
+      })
+      showToast("User permission removed successfully", "success")
+      fetchUserPermissions(activeModule, activeRole) // Refresh the permissions list
+    } catch (error) {
+      console.error("Error removing user permission:", error)
+      showToast("Failed to remove user permission", "error")
+    }
+  }
+
   const handleModuleCreated = () => {
-    fetchModules() // Refresh modules list
+    fetchModules() 
   }
 
   const handleRoleAdded = () => {
@@ -169,12 +185,12 @@ export default function SettingPage() {
         <div className="flex-1 p-3">
           {/* The "Permission Access" title and "Create Module" button are now correctly positioned here */}
           {activeSetting === "Permission Access" && (
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="text-1xl font-bold">Permission Access</h2>
+            <div className="flex items-center justify-between mb-9">
+              <h2 className="text-xl font-bold">Permission Access</h2>
               <CreateModuleModal onModuleCreated={handleModuleCreated}>
                 <DynamicButton
                   text="Create Module"
-                  customClassName="bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white"
+                  customClassName="h-9 px-4 bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white rounded-md shadow-sm"
                 />
               </CreateModuleModal>
             </div>
@@ -283,6 +299,7 @@ export default function SettingPage() {
                       permission={permission}
                       moduleName={activeModule}
                       roleName={activeRole}
+                      onRemovePermission={handleRemoveUserPermission}
                     />
                   ))
                 ) : (
@@ -310,9 +327,10 @@ interface UserPermissionCardProps {
   permission: UserPermissionDetails
   moduleName: string
   roleName: string
+  onRemovePermission: (userId: string) => Promise<void>
 }
 
-function UserPermissionCard({ permission, moduleName, roleName }: UserPermissionCardProps) {
+function UserPermissionCard({ permission, moduleName, roleName, onRemovePermission }: UserPermissionCardProps) {
   // Extract user data - userId can be either string or User object
   const user = typeof permission.userId === "string" ? null : permission.userId
   const userId = typeof permission.userId === "string" ? permission.userId : permission.userId._id
@@ -332,6 +350,7 @@ function UserPermissionCard({ permission, moduleName, roleName }: UserPermission
           <Checkbox
             id={`permission-${permission._id}`}
             className="data-[state=checked]:bg-[var(--new-300)] data-[state=checked]:border-[var(--new-300)]"
+            defaultChecked
           >
             <Check className="h-4 w-4 text-white" />
           </Checkbox>
@@ -352,7 +371,12 @@ function UserPermissionCard({ permission, moduleName, roleName }: UserPermission
                 <Pencil className="w-4 h-4" />
               </Button>
             </EditPermissionModal>
-            <Button variant="ghost" size="icon" className="text-gray-500 hover:text-red-500">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-gray-500 hover:text-red-500"
+              onClick={() => onRemovePermission(userId)}
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -376,7 +400,7 @@ function UserPermissionCard({ permission, moduleName, roleName }: UserPermission
           </div>
           <div>
             <div className="text-gray-500">Allowed Fields</div>
-            <div className="font-medium">{permission.allowedFields.join(", ") || "None"}</div>
+            <div className="font-medium">{permission.allowedFields?.join(", ") || "None"}</div>
           </div>
           <div>
             <div className="text-gray-500">Permissions</div>
