@@ -245,13 +245,13 @@ export default function PermissionAccess() {
         {activeModule && activeRole && (
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between font-semibold text-xs sm:text-sm text-gray-600 mb-1 gap-2 flex-wrap">
-              <div className="text-sm md:text-base">{activeRole} Details</div>
+              {/* <div className="text-sm md:text-base">{activeRole} Details</div>
               <DynamicButton
                 variant="outline"
                 icon={<Plus className="w-4 h-4" />}
                 text="Add Dealer"
                 customClassName="w-full sm:w-fit border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700 bg-white"
-              />
+              /> */}
             </div>
 
             {permissionsLoading ? (
