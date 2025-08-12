@@ -14,6 +14,7 @@ import DynamicButton from "@/components/common/button/button";
 import uploadFile from "../../../../public/assets/uploadFile.svg";
 import FileUploadModal from "./module/Employee-upload"
 import { useAppSelector } from "@/store/hooks"
+import GlobalFilters from "./module/global-filters"
 
 
 export default function Usermangement() {
@@ -23,6 +24,7 @@ export default function Usermangement() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
+  const [status, setStatus] = useState("");
   
   // Sorting state
   const [sortField, setSortField] = useState("");
@@ -40,6 +42,16 @@ export default function Usermangement() {
       setSortField(field);
       setSortDirection("asc");
     }
+  };
+
+  // Handle filter changes from GlobalFilters
+  const handleSearchChange = (search: string) => setSearch(search);
+  const handleRoleChange = (role: string) => setRole(role);
+  const handleStatusChange = (status: string) => setStatus(status);
+  const handleResetFilters = () => {
+    setSearch("");
+    setRole("");
+    setStatus("");
   };
 
 
@@ -87,28 +99,16 @@ export default function Usermangement() {
         {/* Search and Actions Bar - Mobile responsive */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-4 md:mb-6">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-            <div className="relative flex-1 max-w-full md:max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search Spare parts"
-                className="pl-10 bg-gray-50 border-gray-200 w-full"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Select value={role} onValueChange={setRole} defaultValue="all">
-                <SelectTrigger className="w-full sm:w-32">
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="dealer">Dealer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <GlobalFilters 
+              type={activeTab as "employee" | "dealer"}
+              search={search}
+              onSearchChange={handleSearchChange}
+              currentRole={role || "all"}
+              onRoleChange={handleRoleChange}
+              currentStatus={status || "all"}
+              onStatusChange={handleStatusChange}
+              onResetFilters={handleResetFilters}
+            />
           </div>
 
           <div className="flex items-center gap-3 justify-end">
@@ -161,6 +161,9 @@ export default function Usermangement() {
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {activeTab === "employee"
           ? <Employeetable 
+              search={search}
+              role={role === "all" ? "" : role}
+              status={status === "all" ? "" : status}
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={handleSort}
@@ -168,6 +171,7 @@ export default function Usermangement() {
           : <Dealertable 
               search={search} 
               role={role === "all" ? "" : role}
+              status={status === "all" ? "" : status}
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={handleSort}
