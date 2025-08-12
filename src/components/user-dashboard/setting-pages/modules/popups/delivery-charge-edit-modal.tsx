@@ -51,14 +51,14 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-6 rounded-lg shadow-lg">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <DialogTitle className="text-2xl font-bold">Edit Delivery Settings</DialogTitle>
+      <DialogContent className="sm:max-w-md p-4 md:p-6 rounded-lg shadow-lg">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-4">
+          <DialogTitle className="text-xl md:text-2xl font-bold">Edit Delivery Settings</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-4 md:gap-6 py-3 md:py-4">
           <div className="grid gap-2">
-            <Label htmlFor="delivery-charge" className="text-base font-medium">
+            <Label htmlFor="delivery-charge" className="text-sm md:text-base font-medium">
               Delivery Charge
             </Label>
             <Input
@@ -71,7 +71,7 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="minimum-order" className="text-base font-medium">
+            <Label htmlFor="minimum-order" className="text-sm md:text-base font-medium">
               Minimum Order Value
             </Label>
             <Input
@@ -86,7 +86,7 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
 
         <Button
           type="submit"
-          className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-lg font-semibold"
+          className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-base md:text-lg font-semibold"
           onClick={handleSave}
           disabled={isLoading}
         >

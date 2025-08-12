@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { createModuleWithRoles } from "@/service/settingServices"
 import type { AddModuleRequest } from "@/types/setting-Types"
 import { useToast } from "@/components/ui/toast"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface CreateModuleModalProps {
   children: React.ReactNode
@@ -21,15 +22,28 @@ export function CreateModuleModal({ children, onModuleCreated }: CreateModuleMod
   const [open, setOpen] = useState(false)
   const [moduleName, setModuleName] = useState("")
   const [roles, setRoles] = useState<string[]>([])
-  const [currentRoleInput, setCurrentRoleInput] = useState("")
+  const [selectedRole, setSelectedRole] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const { showToast } = useToast()
 
+  const ALL_ROLES: string[] = [
+    "Super-admin",
+    "Fulfillment-Admin",
+    "Fulfillment-Staff",
+    "Inventory-Admin",
+    "Inventory-Staff",
+    "Dealer",
+    "User"
+  ]
+
+  const availableRoles = ALL_ROLES.filter((role) => !roles.includes(role))
+
   const handleAddRole = () => {
-    if (currentRoleInput.trim() && !roles.includes(currentRoleInput.trim())) {
-      setRoles([...roles, currentRoleInput.trim()])
-      setCurrentRoleInput("")
+    if (!selectedRole) return
+    if (!roles.includes(selectedRole)) {
+      setRoles([...roles, selectedRole])
     }
+    setSelectedRole(undefined)
   }
 
   const handleRemoveRole = (roleToRemove: string) => {
@@ -61,7 +75,7 @@ export function CreateModuleModal({ children, onModuleCreated }: CreateModuleMod
       // Reset form and close modal
       setModuleName("")
       setRoles([])
-      setCurrentRoleInput("")
+      setSelectedRole(undefined)
       setOpen(false)
       
       // Call callback to refresh modules list
@@ -77,13 +91,13 @@ export function CreateModuleModal({ children, onModuleCreated }: CreateModuleMod
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md p-6 rounded-lg shadow-lg">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <DialogTitle className="text-2xl font-bold">Create Module</DialogTitle>
+      <DialogContent className="sm:max-w-md p-4 md:p-6 rounded-lg shadow-lg">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-4">
+          <DialogTitle className="text-xl md:text-2xl font-bold">Create Module</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-4 md:gap-6 py-3 md:py-4">
           <div className="grid gap-2">
-            <Label htmlFor="module-name" className="text-base font-medium">
+            <Label htmlFor="module-name" className="text-sm md:text-base font-medium">
               Module Name
             </Label>
             <Input
@@ -94,27 +108,26 @@ export function CreateModuleModal({ children, onModuleCreated }: CreateModuleMod
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="role-input" className="text-base font-medium">
-              Roles
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="role-input"
-                placeholder="Add a role (e.g., admin)"
-                value={currentRoleInput}
-                onChange={(e) => setCurrentRoleInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault()
-                    handleAddRole()
-                  }
-                }}
-              />
+            <Label className="text-sm md:text-base font-medium">Roles</Label>
+            <div className="flex gap-2 flex-col sm:flex-row">
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-full sm:min-w-[220px]">
+                  <SelectValue placeholder={availableRoles.length ? "Select a role" : "All roles added"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRoles.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handleAddRole}
-                className="border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent"
+                disabled={!selectedRole}
+                className="border-[var(--new-300)] text-[var(--new-300)] hover:bg-[var(--new-50)] hover:text-[var(--new-400)] bg-transparent self-start"
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -138,7 +151,7 @@ export function CreateModuleModal({ children, onModuleCreated }: CreateModuleMod
         </div>
         <Button
           type="submit"
-          className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-lg font-semibold"
+          className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-base md:text-lg font-semibold"
           onClick={handleSave}
           disabled={loading}
         >

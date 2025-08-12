@@ -74,13 +74,13 @@ export function AddRoleModal({ children, moduleName, onRoleAdded }: AddRoleModal
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md p-6 rounded-lg shadow-lg">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <DialogTitle className="text-2xl font-bold">Add Role</DialogTitle>
+      <DialogContent className="sm:max-w-md p-4 md:p-6 rounded-lg shadow-lg">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-3 md:pb-4">
+          <DialogTitle className="text-xl md:text-2xl font-bold">Add Role</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-4 md:gap-6 py-3 md:py-4">
           <div className="grid gap-2">
-            <Label htmlFor="module-name" className="text-base font-medium">
+            <Label htmlFor="module-name" className="text-sm md:text-base font-medium">
               Module Name
             </Label>
             <Input
@@ -91,7 +91,7 @@ export function AddRoleModal({ children, moduleName, onRoleAdded }: AddRoleModal
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="role" className="text-base font-medium">
+            <Label htmlFor="role" className="text-sm md:text-base font-medium">
               Role Name
             </Label>
             <Select value={selectedRole} onValueChange={setSelectedRole}>
@@ -110,7 +110,7 @@ export function AddRoleModal({ children, moduleName, onRoleAdded }: AddRoleModal
         </div>
         <Button
           type="submit"
-          className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-lg font-semibold"
+          className="w-full bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white py-2 text-base md:text-lg font-semibold"
           onClick={handleSave}
           disabled={loading}
         >

@@ -151,12 +151,12 @@ export default function PermissionAccess() {
   return (
     <div className="flex flex-col gap-3">
       {/* Header with Create Module button */}
-      <div className="flex items-center justify-between mb-9">
-        <h2 className="text-xl font-bold">Permission Access</h2>
+      <div className="flex items-center justify-between mb-4 md:mb-9 gap-3 flex-wrap">
+        <h2 className="text-lg md:text-xl font-bold">Permission Access</h2>
         <CreateModuleModal onModuleCreated={handleModuleCreated}>
           <DynamicButton
             text="Create Module"
-            customClassName="h-9 px-4 bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white rounded-md shadow-sm"
+            customClassName="h-9 px-3 md:px-4 bg-[var(--new-300)] hover:bg-[var(--new-400)] text-white rounded-md shadow-sm w-full md:w-auto"
           />
         </CreateModuleModal>
       </div>
@@ -165,13 +165,13 @@ export default function PermissionAccess() {
         {/* Left Column: Module and Roles Permission Access */}
         <div className="flex flex-col gap-3">
           {/* Headers */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="font-semibold text-base text-black">Module</div>
-            <div className="font-semibold text-base text-black">Roles Permission Access</div>
+          <div className="grid grid-cols-2 gap-2 text-sm md:text-base">
+            <div className="font-semibold text-black">Module</div>
+            <div className="font-semibold text-black">Roles Permission Access</div>
           </div>
 
           {/* Content */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {/* Module List */}
             <div className="flex flex-col gap-1.5">
               {loading ? (
@@ -232,7 +232,7 @@ export default function PermissionAccess() {
                       variant="outline"
                       icon={<Plus className="w-4 h-4" />}
                       text="Add Role"
-                      customClassName="w-fit bg-red-50 border border-red-200 text-red-600 rounded-lg px-2.5 py-1 hover:bg-red-100 transition-colors duration-200"
+                      customClassName="w-full sm:w-fit bg-red-50 border border-red-200 text-red-600 rounded-lg px-2.5 py-1 hover:bg-red-100 transition-colors duration-200"
                     />
                   </AddRoleModal>
                 </>
@@ -244,13 +244,13 @@ export default function PermissionAccess() {
         {/* Right Column: Role Details Cards - Show for selected role */}
         {activeModule && activeRole && (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between font-semibold text-sm text-gray-600 mb-1">
-              <div>{activeRole} Details</div>
+            <div className="flex items-center justify-between font-semibold text-xs sm:text-sm text-gray-600 mb-1 gap-2 flex-wrap">
+              <div className="text-sm md:text-base">{activeRole} Details</div>
               <DynamicButton
                 variant="outline"
                 icon={<Plus className="w-4 h-4" />}
                 text="Add Dealer"
-                customClassName="w-fit border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700 bg-white"
+                customClassName="w-full sm:w-fit border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700 bg-white"
               />
             </div>
 
@@ -297,9 +297,9 @@ function UserPermissionCard({ permission, moduleName, roleName, onRemovePermissi
   const permissionsText = permissionsList.length > 0 ? permissionsList.join("/") : "None"
 
   return (
-    <Card className="p-4 border border-gray-200 rounded-lg shadow-sm">
-      <CardContent className="p-0 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+    <Card className="p-3 md:p-4 border border-gray-200 rounded-lg shadow-sm">
+      <CardContent className="p-0 flex flex-col gap-3 md:gap-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <Checkbox
             id={`permission-${permission._id}`}
             className="data-[state=checked]:bg-[var(--new-300)] data-[state=checked]:border-[var(--new-300)]"
@@ -307,7 +307,7 @@ function UserPermissionCard({ permission, moduleName, roleName, onRemovePermissi
           >
             <Check className="h-4 w-4 text-white" />
           </Checkbox>
-          <div className="flex gap-2">
+          <div className="flex gap-1 md:gap-2 shrink-0">
             <EditPermissionModal
               moduleName={moduleName}
               roleName={roleName}
@@ -334,30 +334,30 @@ function UserPermissionCard({ permission, moduleName, roleName, onRemovePermissi
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs sm:text-sm w-full">
           <div>
             <div className="text-gray-500">User ID</div>
-            <div className="font-medium">{userId}</div>
+            <div className="font-medium break-all">{userId}</div>
           </div>
           <div>
             <div className="text-gray-500">Email</div>
-            <div className="font-medium">{user?.email || "N/A"}</div>
+            <div className="font-medium break-all">{user?.email || "N/A"}</div>
           </div>
           <div>
             <div className="text-gray-500">Phone</div>
-            <div className="font-medium">{user?.phone_Number || "N/A"}</div>
+            <div className="font-medium break-all">{user?.phone_Number || "N/A"}</div>
           </div>
           <div>
             <div className="text-gray-500">Role</div>
-            <div className="font-medium">{user?.role || "N/A"}</div>
+            <div className="font-medium break-all">{user?.role || "N/A"}</div>
           </div>
           <div>
             <div className="text-gray-500">Allowed Fields</div>
-            <div className="font-medium">{permission.allowedFields?.join(", ") || "None"}</div>
+            <div className="font-medium break-words">{permission.allowedFields?.join(", ") || "None"}</div>
           </div>
           <div>
             <div className="text-gray-500">Permissions</div>
-            <div className="font-medium">{permissionsText}</div>
+            <div className="font-medium break-all">{permissionsText}</div>
           </div>
         </div>
       </CardContent>
