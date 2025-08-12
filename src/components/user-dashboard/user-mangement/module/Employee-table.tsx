@@ -46,6 +46,21 @@ export default function EmployeeTable({
   const allowedRoles = ["Super-admin", "Inventory-admin"];
   const auth = useAppSelector((state) => state.auth.user);
 
+  // Helper function to check if user can perform admin actions
+  const canPerformAdminActions = () => {
+    return auth && allowedRoles.includes(auth.role);
+  };
+
+  // Helper function to check if user can view details
+  const canViewDetails = () => {
+    return auth; // Allow all authenticated users to view details
+  };
+
+  // Helper function to check if user can access the table
+  const canAccessTable = () => {
+    return auth; // Allow all authenticated users to see the table
+  };
+
   useEffect(() => {
     const fetchEmployees = async () => {
       setIsLoading(true)
@@ -173,7 +188,7 @@ export default function EmployeeTable({
   }
 
   // Role-based access control
-  if (!auth || !allowedRoles.includes(auth.role)) {
+  if (!auth || !canAccessTable()) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-red-600 font-bold">
@@ -310,17 +325,19 @@ export default function EmployeeTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      {/* {auth && allowedRoles.includes(auth.role) && (
+                      {canPerformAdminActions() && (
                         <DropdownMenuItem onClick={() => router.push(`/dashboard/employees/edit-employee/${employee._id}`)}>
                           Edit
                         </DropdownMenuItem>
                       )}
-                      {auth && allowedRoles.includes(auth.role) && (
+                      {canPerformAdminActions() && (
                         <DropdownMenuItem>Delete</DropdownMenuItem>
-                      )} */}
-                      <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/employeeview/${employee._id}`)}>
-                        View Details
-                      </DropdownMenuItem>
+                      )}
+                      {canViewDetails() && (
+                        <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/employeeview/${employee._id}`)}>
+                          View Details
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </td>

@@ -34,6 +34,16 @@ export default function Usermangement() {
   const allowedRoles = ["Super-admin", "Inventory-admin"];
   const auth = useAppSelector((state) => state.auth.user);
 
+  // Helper function to check if user can perform admin actions
+  const canPerformAdminActions = () => {
+    return auth && allowedRoles.includes(auth.role);
+  };
+
+  // Helper function to check if user can access the page
+  const canAccessPage = () => {
+    return auth; // Allow all authenticated users to access the page
+  };
+
   // Handle sorting
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -55,8 +65,8 @@ export default function Usermangement() {
   };
 
 
-  // Role-based access control
-  if (!auth || !allowedRoles.includes(auth.role)) {
+  // Role-based access control - only check if user is authenticated
+  if (!auth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-red-600 font-bold">
@@ -112,7 +122,7 @@ export default function Usermangement() {
           </div>
 
           <div className="flex items-center gap-3 justify-end">
-            {activeTab === "dealer" && auth && allowedRoles.includes(auth.role) && (
+            {activeTab === "dealer" && canPerformAdminActions() && (
               <DynamicButton
                 variant="default"
                 customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
@@ -128,7 +138,7 @@ export default function Usermangement() {
                 text="Upload"
               />
             )}
-            {auth && allowedRoles.includes(auth.role) && (
+            {canPerformAdminActions() && (
               <Button
                 className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
                 variant="default"

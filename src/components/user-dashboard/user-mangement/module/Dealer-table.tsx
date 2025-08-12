@@ -46,6 +46,21 @@ export default function Dealertable({
   const allowedRoles = ["Super-admin", "Inventory-admin"];
   const auth = useAppSelector((state) => state.auth.user);
   
+  // Helper function to check if user can perform admin actions
+  const canPerformAdminActions = () => {
+    return auth && allowedRoles.includes(auth.role);
+  };
+
+  // Helper function to check if user can view details
+  const canViewDetails = () => {
+    return auth; // Allow all authenticated users to view details
+  };
+
+  // Helper function to check if user can access the table
+  const canAccessTable = () => {
+    return auth; // Allow all authenticated users to see the table
+  };
+  
   // Sort dealers based on sortField and sortDirection
   const sortedDealers = [...dealers].sort((a, b) => {
     if (!sortField) return 0;
@@ -345,7 +360,7 @@ export default function Dealertable({
 
 
   // Role-based access control
-  if (!auth || !allowedRoles.includes(auth.role)) {
+  if (!auth || !canAccessTable()) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-red-600 font-bold">
@@ -498,7 +513,7 @@ export default function Dealertable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    {auth && allowedRoles.includes(auth.role) && (
+                    {canPerformAdminActions() && (
                       <DropdownMenuItem
                         onClick={() =>
                         {
@@ -512,7 +527,7 @@ export default function Dealertable({
                         Edit
                       </DropdownMenuItem>
                     )}
-                    {auth && allowedRoles.includes(auth.role) && (
+                    {canPerformAdminActions() && (
                       <DropdownMenuItem
                         onClick={() => {
                         
@@ -523,7 +538,7 @@ export default function Dealertable({
                         Assign SLA
                       </DropdownMenuItem>
                     )}
-                    {auth && allowedRoles.includes(auth.role) && dealer.is_active && (
+                    {canPerformAdminActions() && dealer.is_active && (
                       <DropdownMenuItem
                         onClick={() => {
                           if (disablingId) return;
@@ -540,7 +555,7 @@ export default function Dealertable({
                         )}
                       </DropdownMenuItem>
                     )}
-                    {auth && allowedRoles.includes(auth.role) && !dealer.is_active && (
+                    {canPerformAdminActions() && !dealer.is_active && (
                       <DropdownMenuItem
                         onClick={() => {
                           if (enablingId) return;
@@ -556,17 +571,19 @@ export default function Dealertable({
                           "Enable Dealer"
                         )}
                       </DropdownMenuItem>
-                    )}
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setViewDealerLoading(true);
-                          router.push(
-                            `/user/dashboard/user/dealerview/${dealer._id}`
-                          );
-                        }}
-                      >
-                        View Details
-                      </DropdownMenuItem>
+                                          )}
+                      {canViewDetails() && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setViewDealerLoading(true);
+                            router.push(
+                              `/user/dashboard/user/dealerview/${dealer._id}`
+                            );
+                          }}
+                        >
+                          View Details
+                        </DropdownMenuItem>
+                      )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </td>
