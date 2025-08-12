@@ -3,6 +3,7 @@ export interface ProductResponse {
   message: string;
   data: {
     products: Product[];
+    pagination: Pagination;
   }
 }
 
@@ -148,6 +149,14 @@ export interface VariantUpdate {
   change_logs: string;
   _id: string;
   updated_at: string;
+}
+export interface Pagination {
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export type AddProductPayload = Omit<Product, '_id' | 'created_at' | 'updated_at' | 'Qc_status' | 'available_dealers' | 'brand' | 'category' | 'sub_category' | 'model' | 'year_range' | 'variant' | 'created_by' | 'iteration_number' | 'last_stock_inquired' | 'rejection_state' | 'change_logs' | '__v'>;

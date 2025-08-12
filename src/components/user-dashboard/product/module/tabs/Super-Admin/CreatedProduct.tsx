@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React, { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
@@ -62,9 +62,12 @@ export default function CreatedProduct({
   const { showToast } = useGlobalToast();
   const route = useRouter();
   const [viewProductLoading, setViewProductLoading] = useState(false);
-
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+
   const itemsPerPage = 10;
 
   const getStatusColor = (status: string) => {
@@ -85,60 +88,82 @@ export default function CreatedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        const response = await getProductsByPage(currentPage, itemsPerPage);
-                 if (response.data?.products && Array.isArray(response.data.products)) {
-                  console.log("API Response:", response.data.products);
-          setPaginatedProducts(response.data.products);
-        } else {
-          console.error("Unexpected API response structure:", response.data);
-      
+        const res = await getProductsByPage(currentPage, itemsPerPage);
+        const data = res.data;
+
+        if (data?.products) {
+          setPaginatedProducts(data.products);
+          setTotalProducts(data.pagination.totalItems);
+          setTotalPages(data.pagination.totalPages);
         }
-      ;
-        
-        // if (Array.isArray(data)) {
-        //   const mapped = data.map((item) => ({
-        //     id: item._id,
-        //     image: item.images[0] || item.model.model_image,
-        //     name: item.product_name || item.manufacturer_part_name || "-",
-        //     category: item.category?.category_name || "-",
-        //     subCategory: item.sub_category?.subcategory_name || "-",
-        //     brand: item.brand?.brand_name || "-",
-        //     productType: item.product_type || "-",
-        //     qcStatus: item.Qc_status || "Pending",
-        //     liveStatus: item.live_status || "Pending",
-        //   }));
-        //   dispatch(fetchProductsWithLiveStatus(mapped));
-        //   setTotalProducts(response.data.length || 0);
-        // } else {
-        //   setTotalProducts(0);
-        // }
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-        setTotalProducts(0);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
       } finally {
         setLoadingProducts(false);
       }
     };
 
     fetchProducts();
-  }, [dispatch]);
+  }, [currentPage]);
 
+  //sorting products by name
+  const handleSortByName = () => {
+    if (sortField === "product_name") {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField("product_name");
+      setSortDirection("asc");
+    }
+  };
+  // 1. Update the sort handler to support price
+  const handleSortByPrice = () => {
+    if (sortField === "mrp_with_gst") {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField("mrp_with_gst");
+      setSortDirection("asc");
+    }
+  };
 
   // Filter products by search query
-const filteredProducts = React.useMemo(() => {
+  const filteredProducts = React.useMemo(() => {
     if (!paginatedproducts) return [];
-    if (!searchQuery || searchQuery.trim() === "") return paginatedproducts;
+    let products = paginatedproducts;
 
-    const q = searchQuery.trim().toLowerCase();
-    return paginatedproducts.filter(
-      (product) =>
-        product.product_name?.toLowerCase().includes(q) ||
-        product.category?.toLowerCase().includes(q) ||
-        product.brand?.toLowerCase().includes(q) ||
-        product.subCategory?.toLowerCase().includes(q) ||
-        product.productType?.toLowerCase().includes(q)
-    );
-  }, [paginatedproducts, searchQuery]);
+    // Filter
+    if (searchQuery && searchQuery.trim() !== "") {
+      const q = searchQuery.trim().toLowerCase();
+      products = products.filter(
+        (product) =>
+          product.product_name?.toLowerCase().includes(q) ||
+          product.category?.toLowerCase().includes(q) ||
+          product.brand?.toLowerCase().includes(q) ||
+          product.subCategory?.toLowerCase().includes(q) ||
+          product.productType?.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    if (sortField === "product_name") {
+      products = [...products].sort((a, b) => {
+        const nameA = a.product_name?.toLowerCase() || "";
+        const nameB = b.product_name?.toLowerCase() || "";
+        if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
+        if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    } else if (sortField === "mrp_with_gst") {
+      products = [...products].sort((a, b) => {
+        const priceA = Number(a.mrp_with_gst) || 0;
+        const priceB = Number(b.mrp_with_gst) || 0;
+        if (priceA < priceB) return sortDirection === "asc" ? -1 : 1;
+        if (priceA > priceB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return products;
+  }, [paginatedproducts, searchQuery, sortField, sortDirection]);
 
   // Clear selections when filtered products change (e.g., search query changes)
   useEffect(() => {
@@ -161,11 +186,6 @@ const filteredProducts = React.useMemo(() => {
       }
     };
   }, []);
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedData = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   // Selection handlers
   const handleSelectOne = (id: string) => {
@@ -176,7 +196,6 @@ const filteredProducts = React.useMemo(() => {
     // Always dispatch as array of product IDs
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
-  
 
   const allSelected =
     filteredProducts.length > 0 &&
@@ -223,8 +242,16 @@ const filteredProducts = React.useMemo(() => {
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
               Image
             </TableHead>
-            <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display]">
+            <TableHead
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer select-none"
+              onClick={handleSortByName}
+            >
               Name
+              {sortField === "product_name" && (
+                <span className="ml-1">
+                  {sortDirection === "asc" ? "▲" : "▼"}
+                </span>
+              )}
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
               Category
@@ -237,6 +264,17 @@ const filteredProducts = React.useMemo(() => {
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
               Type
+            </TableHead>
+            <TableHead
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
+              onClick={handleSortByPrice}
+            >
+              Price
+              {sortField === "mrp_with_gst" && (
+                <span className="ml-1">
+                  {sortDirection === "asc" ? "▲" : "▼"}
+                </span>
+              )}
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
               QC Status
@@ -288,101 +326,125 @@ const filteredProducts = React.useMemo(() => {
                   </TableCell>
                 </TableRow>
               ))
-            :paginatedData.map((product, index) => (
-  <TableRow
-    key={product._id}
-    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
-      index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-    }`}
-  >
-    <TableCell className="px-4 py-4 w-8 font-[Poppins]">
-      <Checkbox
-        checked={selectedProducts.includes(product._id)}
-        onCheckedChange={() => handleSelectOne(product._id)}
-        aria-label="Select row"
-      />
-    </TableCell>
-    <TableCell className="px-6 py-4 font-[Poppins]">
-      <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-   <Image
-  src={
-    Array.isArray(product.images) && product.images.length > 0
-      ? (product.images[0]?.url || product.images[0] || product.model?.model_image)
-      : (product.model?.model_image || "/placeholder.svg")
-  }
-  alt={product.product_name}
-  width={80}
-  height={64}
-  className="w-full h-full object-cover"
-/>
-      </div>
-    </TableCell>
-    <TableCell
-      className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
-      onClick={() => handleViewProduct(product._id)}
-    >
-      <div className="font-medium text-gray-900 b2 font-sans">
-         {product.product_name.length > 8 ? product.product_name.slice(0, 8) + "..." : product.product_name}
-      </div>
-      <div className="text-xs text-gray-500 mt-1 md:hidden">
-        {product.category?.category_name || 'N/A'} • {product.brand?.brand_name || 'N/A'}
-      </div>
-    </TableCell>
-    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-      <span className="text-gray-700 b2 font-sans">
-        {product.category?.category_name?.length > 8 ? product.category.category_name.slice(0, 8) + "..." : product.category.category_name || 'N/A'}
-      </span>
-    </TableCell>
-    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-      <span className="text-gray-700 b2 font-[Red Hat Display]">
-       {product.sub_category?.subcategory_name?.length > 8 ? product.sub_category.subcategory_name.slice(0, 8) + "..." : product.sub_category.subcategory_name || 'N/A'}
-      </span>
-    </TableCell>
-    <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
-      <span className="text-gray-700 b2 font-[Red Hat Display]">
-        {product.brand?.brand_name || 'N/A'}
-      </span>
-    </TableCell>
-    <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
-      <span className="text-gray-700 b2 font-[Red Hat Display]">
-        {product.product_type || 'N/A'}
-      </span>
-    </TableCell>
-    <TableCell className="px-6 py-4 font-[Red Hat Display]">
-      <span className={`b2 ${getStatusColor(product.Qc_status)}`}>
-        {product.Qc_status || 'N/A'}
-      </span>
-    </TableCell>
-    <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-100"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => handleEditProduct(product.id)}
-          >
-            Edit Product
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => handleViewProduct(product.id)}
-          >
-            View Details
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </TableCell>
-  </TableRow>
-))}
+            : paginatedproducts.map((product, index) => (
+                <TableRow
+                  key={product._id}
+                  className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                    index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                  }`}
+                >
+                  <TableCell className="px-4 py-4 w-8 font-[Poppins]">
+                    <Checkbox
+                      checked={selectedProducts.includes(product._id)}
+                      onCheckedChange={() => handleSelectOne(product._id)}
+                      aria-label="Select row"
+                    />
+                  </TableCell>
+                  <TableCell className="px-6 py-4 font-[Poppins]">
+                    <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                      <Image
+                        src={
+                          Array.isArray(product.images) &&
+                          product.images.length > 0
+                            ? product.images[0]?.url ||
+                              product.images[0] ||
+                              product.model?.model_image
+                            : product.model?.model_image || "/placeholder.svg"
+                        }
+                        alt={product.product_name}
+                        width={80}
+                        height={64}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell
+                    className="px-6 py-4 cursor-pointer font-[Red Hat Display]"
+                    onClick={() => handleViewProduct(product._id)}
+                  >
+                    <div className="font-medium text-gray-900 b2 font-sans">
+                      {product.product_name.length > 8
+                        ? product.product_name.slice(0, 8) + "..."
+                        : product.product_name}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 md:hidden">
+                      {product.category?.category_name || "N/A"} •{" "}
+                      {product.brand?.brand_name || "N/A"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                    <span className="text-gray-700 b2 font-sans">
+                      {product.category?.category_name?.length > 8
+                        ? product.category.category_name.slice(0, 8) + "..."
+                        : product.category.category_name || "N/A"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
+                    <span className="text-gray-700 b2 font-[Red Hat Display]">
+                      {product.sub_category?.subcategory_name?.length > 8
+                        ? product.sub_category.subcategory_name.slice(0, 8) +
+                          "..."
+                        : product.sub_category.subcategory_name || "N/A"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 hidden md:table-cell font-[Red Hat Display]">
+                    <span className="text-gray-700 b2 font-[Red Hat Display]">
+                      {product.brand?.brand_name || "N/A"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
+                    <span className="text-gray-700 b2 font-[Red Hat Display]">
+                      {product.product_type || "N/A"}
+                    </span>
+                  </TableCell>
+                  {/* //price */}
+                  <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                    <span className="text-gray-700 b2 font-[Red Hat Display]">
+                      {product.mrp_with_gst || "N/A"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                    <span className={`b2 ${getStatusColor(product.Qc_status)}`}>
+                      {product.Qc_status || "N/A"}
+                    </span>
+                  </TableCell>
+
+                  <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleEditProduct(product.id)}
+                        >
+                          Edit Product
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleViewProduct(product.id)}
+                        >
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleViewProduct(product._id)}
+                        >
+                          Assign Dealers
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
         </TableBody>
       </Table>
       {/* Pagination - moved outside of table */}
@@ -399,6 +461,7 @@ const filteredProducts = React.useMemo(() => {
           <div className="flex justify-center sm:justify-end">
             <Pagination>
               <PaginationContent>
+                {/* Previous Button */}
                 <PaginationItem>
                   <PaginationPrevious
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -409,32 +472,38 @@ const filteredProducts = React.useMemo(() => {
                     }
                   />
                 </PaginationItem>
-                {Array.from({ length: Math.min(totalPages, 3) }).map(
-                  (_, idx) => {
-                    let pageNum;
-                    if (totalPages <= 3) {
-                      pageNum = idx + 1;
-                    } else if (currentPage <= 2) {
-                      pageNum = idx + 1;
-                    } else if (currentPage >= totalPages - 1) {
-                      pageNum = totalPages - 2 + idx;
-                    } else {
-                      pageNum = currentPage - 1 + idx;
-                    }
-                    if (pageNum < 1 || pageNum > totalPages) return null;
-                    return (
-                      <PaginationItem key={pageNum} className="hidden sm:block">
-                        <PaginationLink
-                          isActive={currentPage === pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="cursor-pointer"
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
+
+                {/* Numbered Page Buttons (max 3) */}
+                {(() => {
+                  let pages = [];
+                  if (totalPages <= 3) {
+                    // Case 1: Few pages, just show all
+                    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                  } else if (currentPage <= 2) {
+                    // Case 2: Near the start
+                    pages = [1, 2, 3];
+                  } else if (currentPage >= totalPages - 1) {
+                    // Case 3: Near the end
+                    pages = [totalPages - 2, totalPages - 1, totalPages];
+                  } else {
+                    // Case 4: Middle pages
+                    pages = [currentPage - 1, currentPage, currentPage + 1];
                   }
-                )}
+
+                  return pages.map((pageNum) => (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        isActive={currentPage === pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ));
+                })()}
+
+                {/* Next Button */}
                 <PaginationItem>
                   <PaginationNext
                     onClick={() =>
