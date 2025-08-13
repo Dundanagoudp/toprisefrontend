@@ -477,7 +477,7 @@ export default function ApprovedProduct({
                         >
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem
+                        {/* <DropdownMenuItem
                           className="cursor-pointer"
                           onClick={() => handleViewProduct(product._id)}
                         >
@@ -488,7 +488,7 @@ export default function ApprovedProduct({
                           onClick={() => handleViewProduct(product._id)}
                         >
                           Year
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
