@@ -86,48 +86,63 @@ export default function Dashboard() {
         </div>
 
         {/* Management + Product Grid: 2 rows x 3 columns, donut spans rows */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[50%_20%_25%] gap-4">
           {/* Row 1, Col 1 */}
-          <ManagementCard title="Employee Management" stats={employeeStats} className="p-4" />
-
-          {/* Row 1, Col 2 */}
-          <ChartCard title="Customer Management" value="2917" change="7.2%" changeType="positive" size="sm" contentClassName="h-28">
-            <div className="w-full h-full flex items-center justify-center">
-              <svg viewBox="0 0 200 80" className="w-full h-full">
-                <path d="M 20,50 Q 60,30 100,35 T 180,25" fill="none" stroke="#10b981" strokeWidth="2" />
-                <circle cx="180" cy="25" r="3" fill="#10b981" />
-              </svg>
-            </div>
-          </ChartCard>
-
+         <div className="space-y-4 ">
+            <ManagementCard title="Employee Management" stats={employeeStats} className="p-4 " />
+            <ManagementCard title="Dealer Management" stats={dealerStats} className="p-4" />
+          </div>
+          {/* Middle Column - Customer Management and Return Rate */}
+          <div className="space-y-4">
+            <ChartCard
+              title="Customer Management"
+              value="2917"
+              change="7.2%"
+              changeType="positive"
+              contentClassName="h-14 "
+            >
+              <div className="w-full  h-full flex items-center justify-center">
+                <svg viewBox="0 0 200 80" className="w-full h-full">
+                  <path d="M 20,50 Q 60,30 100,35 T 180,25" fill="none" stroke="#10b981" strokeWidth="2" />
+                  <circle cx="180" cy="25" r="3" fill="#10b981" />
+                </svg>
+              </div>
+            </ChartCard>
+                    <ChartCard
+              title="Customer Management"
+              value="2917"
+              change="7.2%"
+              changeType="positive"
+              contentClassName="h-14 "
+            >
+              <div className="w-full  h-full flex items-center justify-center">
+                <svg viewBox="0 0 200 80" className="w-full h-full">
+                  <path d="M 20,50 Q 60,30 100,35 T 180,25" fill="none" stroke="#10b981" strokeWidth="2" />
+                  <circle cx="180" cy="25" r="3" fill="#10b981" />
+                </svg>
+              </div>
+            </ChartCard>
+     
+          </div>
           {/* Col 3 spans both rows */}
-          <ChartCard title="Product Management" className="lg:row-span-2" contentClassName="h-72">
+          <ChartCard title="Product Management" className="lg:row-span" contentClassName="h-50 ">
             <DonutChart data={productData} centerValue="3986" centerLabel="PRODUCTS" />
           </ChartCard>
 
           {/* Row 2, Col 1 */}
-          <ManagementCard title="Dealer Management" stats={dealerStats} className="p-4" />
 
-          {/* Row 2, Col 2 */}
-          <ChartCard title="Return Rate" value="2917" change="7.2%" changeType="positive" size="sm" contentClassName="h-28">
-            <div className="w-full h-full flex items-center justify-center">
-              <svg viewBox="0 0 200 80" className="w-full h-full">
-                <path d="M 20,50 Q 60,30 100,35 T 180,25" fill="none" stroke="#10b981" strokeWidth="2" />
-                <circle cx="180" cy="25" r="3" fill="#10b981" />
-              </svg>
-            </div>
-          </ChartCard>
         </div>
 
         {/* Bottom Row - Order Summary Widget */}
-        <div className="max-w-6xl">
+        <div className=" grid grid-cols-1 gap-4">
           <ChartCard
             title="Order Summary Widget"
             value="123,456,789"
             change="+20% Than last week"
             changeType="positive"
-            className="col-span-full"
-            contentClassName="h-72"
+            className="w-[72%] rounded-[15px]"
+            contentClassName="h-60"
+        
           >
             <CustomLineChart data={chartData} />
           </ChartCard>

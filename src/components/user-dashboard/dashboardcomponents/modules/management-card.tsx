@@ -1,7 +1,6 @@
 import type React from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Users, UserCheck, UserX, UserMinus } from "lucide-react"
+import ChartCard from "./chart-card"
+import { Users, UserCheck, UserX, UserMinus } from "lucide-react"
 
 interface ManagementCardProps {
   title: string
@@ -24,14 +23,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({ title, stats, className
   }
 
   return (
-    <Card className={`p-5 bg-white border border-neutral-200 rounded-lg overflow-hidden ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-          <MoreHorizontal className="h-4 w-4 text-gray-600" />
-        </Button>
-      </div>
-
+    <ChartCard title={title} className={`p-5 ${className}`} contentClassName="pt-1">
       <div className="grid grid-cols-4 gap-4">
         {stats.map((stat, index) => {
           const IconComponent = getIcon(stat.label)
@@ -54,7 +46,7 @@ const ManagementCard: React.FC<ManagementCardProps> = ({ title, stats, className
           )
         })}
       </div>
-    </Card>
+    </ChartCard>
   )
 }
 
