@@ -56,7 +56,7 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-8xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
@@ -86,11 +86,11 @@ export default function Dashboard() {
         </div>
 
         {/* Management + Product Grid: 2 rows x 3 columns, donut spans rows */}
-        <div className="grid grid-cols-1 lg:grid-cols-[50%_20%_25%] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[50%_20%_28%] gap-4">
           {/* Row 1, Col 1 */}
          <div className="space-y-4 ">
-            <ManagementCard title="Employee Management" stats={employeeStats} className="p-4 " />
-            <ManagementCard title="Dealer Management" stats={dealerStats} className="p-4" />
+            <ManagementCard title="Employee Management" stats={employeeStats} className="p-4 rounded-[15px]" />
+            <ManagementCard title="Dealer Management" stats={dealerStats} className="p-4 rounded-[15px]" />
           </div>
           {/* Middle Column - Customer Management and Return Rate */}
           <div className="space-y-4">
@@ -98,25 +98,28 @@ export default function Dashboard() {
               title="Customer Management"
               value="2917"
               change="7.2%"
+              className="rounded-[15px] h-40"
               changeType="positive"
-              contentClassName="h-14 "
+              // contentClassName="h-8"
             >
               <div className="w-full  h-full flex items-center justify-center">
-                <svg viewBox="0 0 200 80" className="w-full h-full">
+                <svg viewBox="0 0 200 80" className="w-full h-full mb-15">
                   <path d="M 20,50 Q 60,30 100,35 T 180,25" fill="none" stroke="#10b981" strokeWidth="2" />
                   <circle cx="180" cy="25" r="3" fill="#10b981" />
                 </svg>
               </div>
             </ChartCard>
-                    <ChartCard
+                               <ChartCard
               title="Customer Management"
               value="2917"
               change="7.2%"
+              className="rounded-[15px] h-40"
               changeType="positive"
-              contentClassName="h-14 "
+              // contentClassName="h-8"
+              
             >
               <div className="w-full  h-full flex items-center justify-center">
-                <svg viewBox="0 0 200 80" className="w-full h-full">
+                <svg viewBox="0 0 200 80" className="w-full h-full mb-15">
                   <path d="M 20,50 Q 60,30 100,35 T 180,25" fill="none" stroke="#10b981" strokeWidth="2" />
                   <circle cx="180" cy="25" r="3" fill="#10b981" />
                 </svg>
@@ -125,7 +128,7 @@ export default function Dashboard() {
      
           </div>
           {/* Col 3 spans both rows */}
-          <ChartCard title="Product Management" className="lg:row-span" contentClassName="h-50 ">
+          <ChartCard title="Product Management" className="lg:row-span-2" contentClassName="h-50  ">
             <DonutChart data={productData} centerValue="3986" centerLabel="PRODUCTS" />
           </ChartCard>
 
@@ -140,9 +143,10 @@ export default function Dashboard() {
             value="123,456,789"
             change="+20% Than last week"
             changeType="positive"
-            className="w-[72%] rounded-[15px]"
-            contentClassName="h-60"
-        
+            className="w-[72%] rounded-[15px] p-2"
+            contentClassName="h-56"
+            hideActions
+            compactHeader
           >
             <CustomLineChart data={chartData} />
           </ChartCard>
