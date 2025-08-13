@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { updateAppSettings } from "@/service/deliverychargeServices"
 import type { AppSettings, ServiceableArea } from "@/types/deliverycharge-Types"
 import { Plus, Trash2, Settings, Mail, Phone, MapPin, FileText } from "lucide-react"
+import { useToast } from "@/components/ui/toast"
 
 interface DeliveryChargeEditModalProps {
   isOpen: boolean
@@ -18,6 +19,7 @@ interface DeliveryChargeEditModalProps {
 }
 
 export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }: DeliveryChargeEditModalProps) {
+  const { showToast } = useToast()
   const [formData, setFormData] = useState({
     deliveryCharge: "",
     minimumOrderValue: "",
@@ -79,41 +81,50 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
     if (!settings) return
 
     setIsLoading(true)
-    const updatedSettings = {
-      ...settings,
-      deliveryCharge: Number.parseFloat(formData.deliveryCharge) || 0,
-      minimumOrderValue: Number.parseFloat(formData.minimumOrderValue) || 0,
-      smtp: {
-        ...settings.smtp,
-        fromName: formData.smtp.fromName,
-        fromEmail: formData.smtp.fromEmail,
-        host: formData.smtp.host,
-        port: Number.parseInt(formData.smtp.port) || 587,
-        secure: formData.smtp.secure,
-        auth: {
-          user: formData.smtp.auth.user,
-          pass: formData.smtp.auth.pass
-        }
-      },
-      versioning: {
-        ...settings.versioning,
-        web: formData.versioning.web,
-        android: formData.versioning.android,
-        ios: formData.versioning.ios
-      },
-      servicableAreas: formData.servicableAreas,
-      supportEmail: formData.supportEmail,
-      supportPhone: formData.supportPhone,
-      tnc: formData.tnc,
-      privacyPolicy: formData.privacyPolicy
-    }
+    try {
+      const updatedSettings = {
+        ...settings,
+        deliveryCharge: Number.parseFloat(formData.deliveryCharge) || 0,
+        minimumOrderValue: Number.parseFloat(formData.minimumOrderValue) || 0,
+        smtp: {
+          ...settings.smtp,
+          fromName: formData.smtp.fromName,
+          fromEmail: formData.smtp.fromEmail,
+          host: formData.smtp.host,
+          port: Number.parseInt(formData.smtp.port) || 587,
+          secure: formData.smtp.secure,
+          auth: {
+            user: formData.smtp.auth.user,
+            pass: formData.smtp.auth.pass
+          }
+        },
+        versioning: {
+          ...settings.versioning,
+          web: formData.versioning.web,
+          android: formData.versioning.android,
+          ios: formData.versioning.ios
+        },
+        servicableAreas: formData.servicableAreas,
+        supportEmail: formData.supportEmail,
+        supportPhone: formData.supportPhone,
+        tnc: formData.tnc,
+        privacyPolicy: formData.privacyPolicy
+      }
 
-    const response = await updateAppSettings(updatedSettings)
-    if (response?.data) {
-      onUpdate(response.data)
-      onClose()
+      const response = await updateAppSettings(updatedSettings)
+      if (response?.data) {
+        onUpdate(response.data)
+        showToast("Settings updated successfully!", "success")
+        onClose()
+      } else {
+        showToast("Failed to update settings. Please try again.", "error")
+      }
+    } catch (error) {
+      console.error("Error updating settings:", error)
+      showToast("An error occurred while updating settings. Please try again.", "error")
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   const addServiceableArea = () => {
