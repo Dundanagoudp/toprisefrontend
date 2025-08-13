@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/pagination"
 import { useState, useEffect } from "react" 
 import { useRouter } from "next/navigation"
-import { getAllEmployees } from "@/service/employeeServices"
+import { getAllEmployees, revokeRole } from "@/service/employeeServices"
 import type { Employee } from "@/types/employee-types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAppSelector } from "@/store/hooks"
+import { useToast } from "@/components/ui/toast"
 
 interface EmployeeTableProps {
   search?: string;
@@ -45,6 +46,7 @@ export default function EmployeeTable({
   const [error, setError] = useState<Error | null>(null)
   const allowedRoles = ["Super-admin", "Inventory-admin"];
   const auth = useAppSelector((state) => state.auth.user);
+  const { showToast } = useToast();
 
   // Helper function to check if user can perform admin actions
   const canPerformAdminActions = () => {
@@ -59,6 +61,30 @@ export default function EmployeeTable({
   // Helper function to check if user can access the table
   const canAccessTable = () => {
     return auth; // Allow all authenticated users to see the table
+  };
+
+  // Handle role revocation
+  const handleRevokeRole = async (employeeId: string, employeeName: string) => {
+    try {
+      setIsLoading(true);
+      await revokeRole(employeeId, {});
+      
+      // Update the local state to reflect the role change
+      setEmployees(prevEmployees => 
+        prevEmployees.map(emp => 
+          emp._id === employeeId 
+            ? { ...emp, role: "User" }
+            : emp
+        )
+      );
+      
+      showToast(`Role revoked successfully for ${employeeName}`, "success");
+    } catch (error: any) {
+      console.error("Failed to revoke role:", error);
+      showToast(`Failed to revoke role: ${error.message || "Unknown error"}`, "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -325,17 +351,25 @@ export default function EmployeeTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      {canPerformAdminActions() && (
+                      {/* {canPerformAdminActions() && (
                         <DropdownMenuItem onClick={() => router.push(`/dashboard/employees/edit-employee/${employee._id}`)}>
                           Edit
                         </DropdownMenuItem>
-                      )}
-                      {canPerformAdminActions() && (
+                      )} */}
+                      {/* {canPerformAdminActions() && (
                         <DropdownMenuItem>Delete</DropdownMenuItem>
-                      )}
+                      )} */}
                       {canViewDetails() && (
                         <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/employeeview/${employee._id}`)}>
                           View Details
+                        </DropdownMenuItem>
+                      )}
+                      {canPerformAdminActions() && employee.role !== "User" && (
+                        <DropdownMenuItem 
+                          onClick={() => handleRevokeRole(employee._id, employee.First_name)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Revoke Role
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>

@@ -44,3 +44,19 @@ export async function getEmployeeById(id: string): Promise<ApiResponse<Employee>
     throw error
   }
 }
+
+/**
+ * Revokes a role from an employee.
+ * @param id The unique identifier of the employee.
+ * @param data Object containing role revocation details.
+ * @returns A Promise that resolves to the API response.
+ */
+export async function revokeRole(id: string, data: any): Promise<any> {
+  try {
+    const response = await apiClient.put(`/users/api/users/revoke-role/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to revoke role for employee with id ${id}:`, error);
+    throw error;
+  }
+}
