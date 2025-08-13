@@ -1,3 +1,9 @@
+import Dashboard from "@/components/user-dashboard/dashboardcomponents/DashBoard";
+
 export default function Page() {
-  return <div>{/* Main dashboard content goes here */}</div>;
+  return (
+    <div>
+      <Dashboard />
+    </div>
+  )
 }
