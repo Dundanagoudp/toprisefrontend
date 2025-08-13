@@ -12,7 +12,11 @@ export async function getProducts(): Promise<ProductResponse> {
 }
 export async function getProductsByPage(page: number, limit: number,status?:string): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/category/products/v1/get-all-products/pagination?page=${page}&limit=${limit}&status=${status}`);
+       let url = `/category/products/v1/get-all-products/pagination?page=${page}&limit=${limit}`;
+    if (status) {
+      url += `&status=${status}`;
+    }
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.error(" Failed to fetch products:", error);
@@ -32,6 +36,16 @@ export async function uploadBulkProducts(
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk products:", error);
+    throw error;
+  }
+}
+export async function exportCSV(
+): Promise<any> {
+  try {
+    const response = await apiClient.get(`/category/products/v1/export`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to export CSV:", error);
     throw error;
   }
 }

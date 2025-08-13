@@ -39,7 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Loader2, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
@@ -248,17 +248,17 @@ export default function ApprovedProduct({
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">
               Image
             </TableHead>
-            <TableHead
-              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer select-none"
-              onClick={handleSortByName}
-            >
-              Name
-              {sortField === "product_name" && (
-                <span className="ml-1">
-                  {sortDirection === "asc" ? "▲" : "▼"}
-                </span>
-              )}
-            </TableHead>
+          <TableHead
+                     className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer select-none"
+                     onClick={handleSortByName}
+                   >
+                     Name
+                     {sortField === "manufacturer_part_name" && (
+                       <span className="ml-1">
+                         {sortDirection === "asc" ? <ChevronUp className="w-4 h-4 text-[#C72920]" /> : <ChevronDown className="w-4 h-4 text-[#C72920]" />}
+                       </span>
+                     )}
+                   </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-sans">
               Category
             </TableHead>
@@ -271,17 +271,17 @@ export default function ApprovedProduct({
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-sans">
               Type
             </TableHead>
-            <TableHead
-              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
-              onClick={handleSortByPrice}
-            >
-              Price
-              {sortField === "mrp_with_gst" && (
-                <span className="ml-1">
-                  {sortDirection === "asc" ? "▲" : "▼"}
-                </span>
-              )}
-            </TableHead>
+             <TableHead
+                className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
+                onClick={handleSortByPrice}
+              >
+                Price
+                {sortField === "price" && (
+                  <span className="ml-1">
+                    {sortDirection === "asc" ? <ChevronUp className="w-4 h-4 text-[#C72920]" /> : <ChevronDown className="w-4 h-4 text-[#C72920]" />}
+                  </span>
+                )}
+              </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-sans">
               QC Status
             </TableHead>
