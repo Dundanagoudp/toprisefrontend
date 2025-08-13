@@ -10,7 +10,6 @@ import ChartCard from "./modules/chart-card"
 import DonutChart from "./modules/donut-chart"
 import CustomLineChart from "./modules/line-chart"
 
-
 export default function Dashboard() {
   const [searchValue, setSearchValue] = useState("")
 
@@ -98,7 +97,7 @@ export default function Dashboard() {
               title="Customer Management"
               value="2917"
               change="7.2%"
-              className="rounded-[15px] h-40"
+              className="rounded-[15px] h-42"
               changeType="positive"
               // contentClassName="h-8"
             >
@@ -113,7 +112,7 @@ export default function Dashboard() {
               title="Customer Management"
               value="2917"
               change="7.2%"
-              className="rounded-[15px] h-40"
+              className="rounded-[15px] h-42"
               changeType="positive"
               // contentClassName="h-8"
               
