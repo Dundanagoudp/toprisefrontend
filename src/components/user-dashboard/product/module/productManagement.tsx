@@ -17,7 +17,9 @@ import { useRouter } from "next/navigation";
 import { set } from "zod";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { approveBulkProducts, aproveProduct, deactivateBulkProducts, deactivateProduct, exportCSV, rejectProduct } from "@/service/product-Service";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { approveBulkProducts, aproveProduct, deactivateBulkProducts, deactivateProduct, exportCSV, rejectProduct, getCategories, getSubCategories } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
@@ -44,8 +46,7 @@ interface TabConfig {
 }
 
 export default function ProductManagement() {
- const [activeTab, setActiveTab] = useState<TabType>("Created");
-  
+  const [activeTab, setActiveTab] = useState<TabType>("Created");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -66,6 +67,11 @@ const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 const selectedProducts = useAppSelector(
   (state) => state.productIdForBulkAction.products || []
 );
+const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
+  const [subCategories, setSubCategories] = useState<any[]>([]);
+  const [selectedSubCategoryName, setSelectedSubCategoryName] = useState<string | null>(null);
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -84,6 +90,18 @@ const getStatusColor = (status: string) => {
   const performSearch = useCallback((query: string) => {
     setSearchQuery(query);
     setIsSearching(false);
+  }, []);
+  useEffect(() => {
+    const loadSubCategories = async () => {
+      try {
+        const res = await getSubCategories();
+        const data = res?.data || [];
+        setSubCategories(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to fetch subcategories:", error);
+      }
+    };
+    loadSubCategories();
   }, []);
    const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -110,6 +128,18 @@ const getStatusColor = (status: string) => {
     setSearchQuery("");
     setIsSearching(false);
   };
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await getCategories();
+        const data = res?.data || [];
+        setCategories(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    loadCategories();
+  }, []);
   const handleUploadBulk = () => {
     setBulkMode("upload");
     setUploadBulkLoading(true);
@@ -239,11 +269,19 @@ const handleBulkReject = useCallback(() => {
   );
   const renderTabContent = useCallback(() => {
     const TabComponent = currentTabConfig.component;
-    if (TabComponent) {
-      return <TabComponent searchQuery={searchQuery} selectedTab={selectedTab} />;
+    if (!TabComponent) return null;
+    if (currentTabConfig.id === "Created") {
+      return (
+        <TabComponent
+          searchQuery={searchQuery}
+          selectedTab={selectedTab}
+          categoryFilter={selectedCategoryName || undefined}
+          subCategoryFilter={selectedSubCategoryName || undefined}
+        />
+      );
     }
-    return null; // or you can return a message: <div>No component for this tab.</div>
-  }, [currentTabConfig, searchQuery, selectedTab]);
+    return <TabComponent searchQuery={searchQuery} selectedTab={selectedTab} />;
+  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName]);
 
   return (
     <div className="w-full ">
@@ -265,11 +303,85 @@ const handleBulkReject = useCallback(() => {
               />
               {/* Filter Buttons */}
               <div className="flex gap-2 sm:gap-3">
-                <DynamicButton
-                  variant="outline"
-                  customClassName="bg-transparent border-gray-300 hover:bg-gray-50 min-w-[100px]"
-                  text="Filters"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <DynamicButton
+                      variant="outline"
+                      customClassName="bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px]"
+                      text={
+                        selectedCategoryName || selectedSubCategoryName
+                          ? `Filter: ${[selectedCategoryName, selectedSubCategoryName].filter(Boolean).join(" / ")}`
+                          : "Filters"
+                      }
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-80 p-4">
+                    <Accordion type="multiple" defaultValue={["category", "subcategory"]}>
+                      <AccordionItem value="category">
+                        <AccordionTrigger className="text-sm font-medium">Category</AccordionTrigger>
+                        <AccordionContent>
+                          {selectedCategoryName && (
+                            <div className="flex justify-end mb-2">
+                              <button
+                                className="text-xs text-[#C72920] underline"
+                                onClick={() => { setSelectedCategoryName(null); setSelectedSubCategoryName(null); }}
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                          <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
+                            {categories && categories.length > 0 ? (
+                              categories.map((cat: any) => (
+                                <li key={cat?._id || cat?.id}>
+                                  <button
+                                    className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedCategoryName === (cat?.category_name || cat?.name) ? "bg-gray-100" : ""}`}
+                                    onClick={() => { setSelectedCategoryName(cat?.category_name || cat?.name || null); setSelectedSubCategoryName(null); }}
+                                  >
+                                    {cat?.category_name || cat?.name}
+                                  </button>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-xs text-gray-500 px-2">No categories found</li>
+                            )}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="subcategory">
+                        <AccordionTrigger className="text-sm font-medium">Subcategory</AccordionTrigger>
+                        <AccordionContent>
+                          {selectedSubCategoryName && (
+                            <div className="flex justify-end mb-2">
+                              <button
+                                className="text-xs text-[#C72920] underline"
+                                onClick={() => setSelectedSubCategoryName(null)}
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                          <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
+                            {subCategories && subCategories.length > 0 ? (
+                              subCategories.map((sub: any) => (
+                                <li key={sub?._id || sub?.id}>
+                                  <button
+                                    className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedSubCategoryName === (sub?.subcategory_name || sub?.name) ? "bg-gray-100" : ""}`}
+                                    onClick={() => setSelectedSubCategoryName(sub?.subcategory_name || sub?.name || null)}
+                                  >
+                                    {sub?.subcategory_name || sub?.name}
+                                  </button>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-xs text-gray-500 px-2">No subcategories found</li>
+                            )}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </PopoverContent>
+                </Popover>
                 <DynamicButton
                   variant="outline"
                   customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
@@ -362,9 +474,11 @@ const handleBulkReject = useCallback(() => {
             </nav>
             {selectedProducts.length > 0 && (
     <div className="px-6 flex items-center">
-      <DropdownMenu>
+      <DropdownMenu >
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="min-w-[140px]">Bulk Actions</Button>
+          <Button variant="outline" className="min-w-[140px]"
+          disabled={!allowedRoles.includes(auth.role)}
+          >Bulk Actions</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem className="cursor-pointer" onClick={handleBulkApprove}>

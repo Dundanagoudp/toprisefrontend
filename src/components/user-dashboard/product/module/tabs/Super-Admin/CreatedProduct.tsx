@@ -46,17 +46,24 @@ import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/produc
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { set } from "zod";
+import Addmodel from "../../popUpForm/Addmodel";
+import AddCategory from "../../popUpForm/AddCategory";
 
 export default function CreatedProduct({
   searchQuery,
   selectedTab,
+  categoryFilter,
+  subCategoryFilter,
 }: {
   searchQuery: string;
   selectedTab?: string;
+  categoryFilter?: string;
+  subCategoryFilter?: string;
 }) {
   const dispatch = useAppDispatch();
   const [paginatedproducts, setPaginatedProducts] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const auth = useAppSelector((state) => state.auth.user);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const { showToast } = useGlobalToast();
@@ -67,8 +74,11 @@ export default function CreatedProduct({
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
-
+  const allowedRoles = ["Super-admin", "Inventory-admin"];
   const itemsPerPage = 10;
+  const [isAddModelOpen, setIsAddModelOpen] = useState(false);
+  const [activeProductId, setActiveProductId] = useState<string | null>(null);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -110,7 +120,6 @@ export default function CreatedProduct({
   const handleSortByName = () => {
     if (sortField === "product_name") {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-
     } else {
       setSortField("product_name");
       setSortDirection("asc");
@@ -126,7 +135,7 @@ export default function CreatedProduct({
     }
   };
 
-  // Filter products by search query
+  // Filter products by search query and category
   const filteredProducts = React.useMemo(() => {
     if (!paginatedproducts) return [];
     let products = paginatedproducts;
@@ -142,6 +151,37 @@ export default function CreatedProduct({
           product.subCategory?.toLowerCase().includes(q) ||
           product.productType?.toLowerCase().includes(q)
       );
+    }
+
+    // Category filter
+    if (categoryFilter && categoryFilter.trim() !== "") {
+      const cat = categoryFilter.trim().toLowerCase();
+      products = products.filter((product: any) => {
+        const candidateNames = [
+          product?.category?.category_name,
+          product?.category?.name,
+          product?.category,
+        ];
+        return candidateNames.some((n: any) =>
+          n ? String(n).toLowerCase() === cat : false
+        );
+      });
+    }
+
+    // Subcategory filter (robust across varying shapes)
+    if (subCategoryFilter && subCategoryFilter.trim() !== "") {
+      const sub = subCategoryFilter.trim().toLowerCase();
+      products = products.filter((product: any) => {
+        const candidateNames = [
+          product?.sub_category?.subcategory_name,
+          product?.sub_category?.name,
+          product?.subCategory,
+          product?.subcategory,
+        ];
+        return candidateNames.some((n: any) =>
+          n ? String(n).toLowerCase().includes(sub) : false
+        );
+      });
     }
 
     // Sort
@@ -164,7 +204,14 @@ export default function CreatedProduct({
     }
 
     return products;
-  }, [paginatedproducts, searchQuery, sortField, sortDirection]);
+  }, [
+    paginatedproducts,
+    searchQuery,
+    categoryFilter,
+    subCategoryFilter,
+    sortField,
+    sortDirection,
+  ]);
 
   // Clear selections when filtered products change (e.g., search query changes)
   useEffect(() => {
@@ -227,6 +274,15 @@ export default function CreatedProduct({
       setViewProductLoading(false);
     }
   };
+  const handleAddModel = (id: string) => {
+    setActiveProductId(id);
+    setIsAddModelOpen(true);
+  };
+
+  const handleAddCategory = (id: string) => {
+    setActiveProductId(id);
+    setIsAddCategoryOpen(true);
+  };
 
   return (
     <div className=" w-full overflow-x-auto">
@@ -250,7 +306,11 @@ export default function CreatedProduct({
               Name
               {sortField === "product_name" && (
                 <span className="ml-1">
-                  {sortDirection === "asc" ? <ChevronUp className="w-4 h-4 text-[#C72920]" /> : <ChevronDown className="w-4 h-4 text-[#C72920]" />}
+                  {sortDirection === "asc" ? (
+                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                  )}
                 </span>
               )}
             </TableHead>
@@ -273,7 +333,11 @@ export default function CreatedProduct({
               Price
               {sortField === "mrp_with_gst" && (
                 <span className="ml-1">
-                  {sortDirection === "asc" ?<ChevronUp className="w-4 h-4 text-[#C72920]" /> : <ChevronDown className="w-4 h-4 text-[#C72920]" />}
+                  {sortDirection === "asc" ? (
+                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                  )}
                 </span>
               )}
             </TableHead>
@@ -327,7 +391,7 @@ export default function CreatedProduct({
                   </TableCell>
                 </TableRow>
               ))
-            : paginatedproducts.map((product, index) => (
+            : filteredProducts.map((product, index) => (
                 <TableRow
                   key={product._id}
                   className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
@@ -423,18 +487,43 @@ export default function CreatedProduct({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        {allowedRoles.includes(auth.role) && (
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handleEditProduct(product._id)}
+                          >
+                            Edit Product
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="cursor-pointer"
-                          onClick={() => handleEditProduct(product.id)}
-                        >
-                          Edit Product
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handleViewProduct(product.id)}
+                          onClick={() => handleViewProduct(product._id)}
                         >
                           View Details
                         </DropdownMenuItem>
+                        {allowedRoles.includes(auth.role) && (
+                          <>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() => handleViewProduct(product._id)}
+                            >
+                              Assign Dealer
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() => handleAddModel(product._id)}
+                            >
+                              Add model
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                               onClick={() => handleAddCategory(product._id)}
+                            >
+                              Add Category
+                            </DropdownMenuItem>
+                       
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -525,6 +614,25 @@ export default function CreatedProduct({
             </p>
           </div>
         </div>
+      )}
+
+      {isAddModelOpen && activeProductId && (
+        <Addmodel
+          isOpen={isAddModelOpen}
+          onClose={() => {
+            setIsAddModelOpen(false);
+            setActiveProductId(null);
+          }}
+          productId={activeProductId}
+        />
+      )}
+
+      {isAddCategoryOpen && typeof activeProductId === "string" && (
+        <AddCategory
+          isOpen={isAddCategoryOpen}
+          onClose={() => setIsAddCategoryOpen(false)}
+          productId={activeProductId}
+        />
       )}
     </div>
   );

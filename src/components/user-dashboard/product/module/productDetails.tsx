@@ -26,11 +26,12 @@ export default function ViewProductDetails() {
   const [loading, setLoading] = React.useState<boolean>(true);
   const [isEditLoading, setIsEditLoading] = React.useState<boolean>(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const auth = useAppSelector((state) => state.auth.user);
   const id = useParams<{ id: string }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-
+const allowedRoles = ["Super-admin", "Inventory-admin"];
   const getStatusColor = (currentStatus: string) => {
     switch (currentStatus) {
       case "Created":
@@ -113,9 +114,10 @@ export default function ViewProductDetails() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Select onValueChange={handleStatusChange} value={status}>
+            <Select onValueChange={handleStatusChange} value={status} disabled={!allowedRoles.includes(auth.role)}>
               <SelectTrigger
                 className={`min-w-[120px] ${getStatusColor(status)}`}
+                disabled={!allowedRoles.includes(auth.role)}
               >
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -126,15 +128,15 @@ export default function ViewProductDetails() {
                 <SelectItem value="Rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
-            <DynamicButton
-              variant= "outline"
-              customClassName=" bg-red-50 border-red-200 hover:bg-red-100 hover:text-red-600 text-red-600"
-              onClick={()=> handleEdit(id)}
-              icon={<Pencil/>}
-              text="Edit Product"
-              loading={isEditLoading}
-              loadingText="Redirecting..."
-            />
+            {allowedRoles.includes(auth.role) && (
+              <DynamicButton
+                variant="outline"
+                customClassName="bg-red-50 border-red-200 hover:bg-red-100 hover:text-red-600 text-red-600"
+                onClick={() => handleEdit(id)}
+                text="Edit Product"
+                icon={<Pencil />}
+              />
+            )}
           </div>
         </div>
       </div>
