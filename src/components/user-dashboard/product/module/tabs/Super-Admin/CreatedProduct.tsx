@@ -435,12 +435,6 @@ export default function CreatedProduct({
                         >
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handleViewProduct(product._id)}
-                        >
-                          Assign Dealers
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

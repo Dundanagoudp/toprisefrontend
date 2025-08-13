@@ -254,7 +254,7 @@ const handleBulkReject = useCallback(() => {
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 gap-4 w-full">
             {/* Left: Search, Filters, Requests */}
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3 w-full lg:w-auto">
-              {/* Search Bar */}
+              {/* Search Bar */}          
 
               <SearchInput
                 value={searchInput}

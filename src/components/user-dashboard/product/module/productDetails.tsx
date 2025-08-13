@@ -76,7 +76,7 @@ export default function ViewProductDetails() {
           data !== null &&
           !Array.isArray(data)
         ) {
-          prod = data as Product;
+          prod = data as any;
         }
         setProduct(prod);
         dispatch(fetchProductByIdSuccess(prod));
