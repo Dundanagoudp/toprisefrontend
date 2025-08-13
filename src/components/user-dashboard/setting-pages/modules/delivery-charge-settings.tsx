@@ -7,17 +7,25 @@ import { Loader2, Edit, Mail, Phone, Globe, MapPin, FileText, Settings } from "l
 import { getAppSettings } from "@/service/deliverychargeServices"
 import { DeliveryChargeEditModal } from "@/components/user-dashboard/setting-pages/modules/popups/delivery-charge-edit-modal"
 import type { AppSettings } from "@/types/deliverycharge-Types"
+import { useToast } from "@/components/ui/toast"
 
 export function DeliveryChargeSettings() {
+  const { showToast } = useToast()
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const fetchSettings = async () => {
     setLoading(true)
-    const response = await getAppSettings()
-    setSettings(response.data)
-    setLoading(false)
+    try {
+      const response = await getAppSettings()
+      setSettings(response.data)
+    } catch (error) {
+      console.error("Error fetching settings:", error)
+      showToast("Failed to load settings. Please refresh the page.", "error")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSettingsUpdate = (updatedSettings: AppSettings) => {
