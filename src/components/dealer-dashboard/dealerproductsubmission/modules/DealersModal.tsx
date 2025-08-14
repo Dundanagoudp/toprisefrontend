@@ -53,20 +53,20 @@ const DealersModal: React.FC<DealersModalProps> = ({ open, onClose, product }) =
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="dealers-modal-title"
     >
-      <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden border border-gray-100">
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+      <div className="bg-white rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.8)] max-w-5xl w-full max-h-[90vh] overflow-hidden border border-gray-200">
+        <div className="bg-gradient-to-r from-red-50 to-red-100 border-b border-gray-200">
           <div className="flex items-center justify-between p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="p-2 bg-red-100 rounded-lg">
+                <Users className="w-6 h-6 text-red-600" />
               </div>
               <div>
-                <h2 id="dealers-modal-title" className="text-2xl font-bold text-gray-900">
+                <h2 id="dealers-modal-title" className="text-2xl font-bold text-[#c72920]">
                   {MODAL_CONSTANTS.TITLE}
                 </h2>
                 <div className="flex items-center space-x-4 mt-1">
@@ -86,7 +86,7 @@ const DealersModal: React.FC<DealersModalProps> = ({ open, onClose, product }) =
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
+              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
               aria-label={MODAL_CONSTANTS.CLOSE_LABEL}
             >
               <X className="w-6 h-6" />
@@ -98,17 +98,17 @@ const DealersModal: React.FC<DealersModalProps> = ({ open, onClose, product }) =
           <div className="overflow-x-auto">
             <div className="inline-block min-w-full align-middle">
               <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                <thead className="bg-gray-50">
+                <thead className="bg-red-50">
                   <tr>
                     {TABLE_HEADERS.map((header) => {
                       const IconComponent = header.icon
                       return (
                         <th
                           key={header.key}
-                          className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
+                          className="px-6 py-4 text-left text-xs font-semibold text-red-700 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
                         >
                           <div className="flex items-center space-x-2">
-                            {IconComponent && <IconComponent className="w-4 h-4" />}
+                            {IconComponent && <IconComponent className="w-4 h-4 text-red-600" />}
                             <span>{header.label}</span>
                           </div>
                         </th>
@@ -134,7 +134,7 @@ const DealersModal: React.FC<DealersModalProps> = ({ open, onClose, product }) =
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
-                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                        <span className="px-2 py-1 bg-red-50 text-red-700 rounded-full text-xs font-medium border border-red-200">
                           {dealer.dealer_priority_override || MODAL_CONSTANTS.STANDARD_PRIORITY}
                         </span>
                       </td>
@@ -158,20 +158,20 @@ const DealersModal: React.FC<DealersModalProps> = ({ open, onClose, product }) =
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-red-50">
           <div className="text-sm text-gray-600">
             Showing {dealerCount} dealer{dealerCount !== 1 ? "s" : ""} for {product.product_name}
           </div>
           <div className="flex space-x-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#c72920] focus:ring-offset-2 transition-all duration-200"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 transition-all duration-200"
             >
               Close
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-white bg-[#c72920] border border-transparent rounded-lg hover:bg-[#a61f19] focus:outline-none focus:ring-2 focus:ring-[#c72920] focus:ring-offset-2 transition-all duration-200"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#c72920] border border-transparent rounded-lg hover:bg-[#a61f19] focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 transition-all duration-200"
             >
               Done
             </button>
