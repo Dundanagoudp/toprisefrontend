@@ -74,6 +74,7 @@ export interface DealerOrdersApiResponse {
 export interface UpdateOrderStatusRequest {
   dealerId: string;
   orderId: string;
+  total_weight_kg: number;
 }
 
 // Update Order Status Response Interface

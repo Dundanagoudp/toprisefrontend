@@ -7,8 +7,18 @@ export interface ProductResponse {
   }
 }
 
+export interface AvailableDealers {
+  dealers_Ref?: string;
+  quantity_per_dealer?: number;
+  dealer_margin?: number;
+  aler_margin?: string;
+  dealer_priority_override?: string;
+  inStock?: boolean;
+  last_stock_update?: string;
+}
+
 export interface Product {
-  available_dealers: AvailableDealers;
+  available_dealers: AvailableDealers[];
   Qc_status: string;
   _id: string;
   sku_code: string;
@@ -55,10 +65,6 @@ export interface Product {
   rejection_state: any[];
   change_logs: any[];
   __v: number;
-}
-
-export interface AvailableDealers {
-  last_stock_update: string;
 }
 
 export interface Brand {

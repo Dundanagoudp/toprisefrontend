@@ -119,3 +119,29 @@ export async function enableDealer(dealerId: string): Promise<ApiResponse<Dealer
     throw error
   }
 }
+
+// Add allowed categories for dealer
+export async function addAllowedCategories(dealerId: string, categories: string[]): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.patch(`/users/api/users/updateDealer/addAllowedCategores/${dealerId}`, {
+      categories
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Failed to add allowed categories for dealer ${dealerId}:`, error)
+    throw error
+  }
+}
+
+// Remove allowed categories for dealer
+export async function removeAllowedCategories(dealerId: string, categories: string[]): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.patch(`/users/api/users/updateDealer/removeAllowedCategores/${dealerId}`, {
+      categories
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Failed to remove allowed categories for dealer ${dealerId}:`, error)
+    throw error
+  }
+}

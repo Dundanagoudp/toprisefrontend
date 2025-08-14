@@ -19,6 +19,8 @@ import { useToast as useToastMessage } from "@/components/ui/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import AssignSLAForm from "../../dealer-management/module/popups/assignSLA";
+import AssignCategoriesModal from "./addforms/AssignCategoriesModal";
+import RemoveCategoriesModal from "./addforms/RemoveCategoriesModal";
 import { useAppSelector } from "@/store/hooks";
 
 interface DealertableProps {
@@ -143,6 +145,9 @@ export default function Dealertable({
   const [addDealerLoading, setAddDealerLoading] = useState(false);
   const [disablingId, setDisablingId] = useState<string | null>(null);
   const [enablingId, setEnablingId] = useState<string | null>(null);
+  const [assignCategoriesModalOpen, setAssignCategoriesModalOpen] = useState(false);
+  const [removeCategoriesModalOpen, setRemoveCategoriesModalOpen] = useState(false);
+  const [selectedDealerForCategories, setSelectedDealerForCategories] = useState<Dealer | null>(null);
 
   useEffect(() => {
     fetchDealers();
@@ -154,6 +159,21 @@ export default function Dealertable({
     setSelectedDealerId(null);
     showToast("SLA has been assigned successfully.", "success");
     // Optionally, refresh dealers or perform other actions here
+  };
+
+  const handleAssignCategories = (dealer: Dealer) => {
+    setSelectedDealerForCategories(dealer);
+    setAssignCategoriesModalOpen(true);
+  };
+
+  const handleRemoveCategories = (dealer: Dealer) => {
+    setSelectedDealerForCategories(dealer);
+    setRemoveCategoriesModalOpen(true);
+  };
+
+  const handleCategoriesSuccess = () => {
+    // Refresh the dealers list to show updated categories
+    fetchDealers();
   };
 
 
@@ -538,6 +558,20 @@ export default function Dealertable({
                         Assign SLA
                       </DropdownMenuItem>
                     )}
+                    {canPerformAdminActions() && (
+                      <DropdownMenuItem
+                        onClick={() => handleAssignCategories(dealer)}
+                      >
+                        Assign Categories
+                      </DropdownMenuItem>
+                    )}
+                    {canPerformAdminActions() && dealer.categories_allowed.length > 0 && (
+                      <DropdownMenuItem
+                        onClick={() => handleRemoveCategories(dealer)}
+                      >
+                        Remove Categories
+                      </DropdownMenuItem>
+                    )}
                     {canPerformAdminActions() && dealer.is_active && (
                       <DropdownMenuItem
                         onClick={() => {
@@ -605,6 +639,25 @@ export default function Dealertable({
         onClose={() => setSlaFormOpen(false)}
         dealerId={selectedDealerId}
         onSubmit={handleSLAFormSubmit}
+      />
+      
+      {/* Category Management Modals */}
+      <AssignCategoriesModal
+        open={assignCategoriesModalOpen}
+        onClose={() => setAssignCategoriesModalOpen(false)}
+        dealerId={selectedDealerForCategories?._id || null}
+        dealerName={selectedDealerForCategories?.legal_name || "Dealer"}
+        currentCategories={selectedDealerForCategories?.categories_allowed || []}
+        onSuccess={handleCategoriesSuccess}
+      />
+      
+      <RemoveCategoriesModal
+        open={removeCategoriesModalOpen}
+        onClose={() => setRemoveCategoriesModalOpen(false)}
+        dealerId={selectedDealerForCategories?._id || null}
+        dealerName={selectedDealerForCategories?.legal_name || "Dealer"}
+        currentCategories={selectedDealerForCategories?.categories_allowed || []}
+        onSuccess={handleCategoriesSuccess}
       />
 {/* Loader for  dealers */}
 

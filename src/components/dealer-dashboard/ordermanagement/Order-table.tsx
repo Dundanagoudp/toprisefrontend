@@ -198,7 +198,7 @@ export default function OrdersTable() {
     setViewModalOpen(true);
   };
 
-  const handleMarkAsPacked = async (order: any) => {
+  const handleMarkAsPacked = async (order: any, totalWeightKg: number) => {
     try {
       // Show loading state
       showToast("Updating Status: Marking order as packed...", "success");
@@ -226,27 +226,33 @@ export default function OrdersTable() {
   
       if (!dealerId) {
         showToast("Error: Dealer ID not found. Please login again.", "error");
-        return;
+        throw new Error("Dealer ID not found");
       }
   
-      // Call the API
-      const response = await updateOrderStatusByDealer(dealerId, order.id);
+      // Call the API with total weight
+      const response = await updateOrderStatusByDealer(dealerId, order.id, totalWeightKg);
       
-      // Update the local state
+      // Update the local state immediately
       const updatedOrders = ordersState.map((o: any) => 
         o.id === order.id 
           ? { ...o, status: "Packed" }
           : o
       );
+      
+      // Update both local state and Redux store
+      setOrders(updatedOrders);
       dispatch(fetchOrdersSuccess(updatedOrders));
   
       // Show success message
       showToast(`Packed! Order ${order.orderId} is now ready for shipment.`, "success");
       console.log(`Packed! Order ${order.orderId} is now ready for shipment.`);
       console.log("Order status updated:", response);
+      
+      return response; // Return response for success handling
     } catch (error) {
       console.error("Error updating order status:", error);
       showToast("Failed to update order status. Please try again.", "error");
+      throw error; // Re-throw so the modal can handle the error
     }
   };
 
@@ -624,13 +630,63 @@ export default function OrdersTable() {
         onClose={() => setPickListModalOpen(false)}
         pickLists={pickListData}
         orderId={pickListOrderId}
-        onMarkAsPacked={() => {
-          // Find the current order and mark it as packed
-          const currentOrder = ordersState.find((o: any) => o.orderId === pickListOrderId);
-          if (currentOrder) {
-            handleMarkAsPacked(currentOrder);
+        orderStatus={ordersState.find((o: any) => o.orderId === pickListOrderId)?.status || ""}
+        onMarkAsPacked={async (totalWeightKg) => {
+          try {
+            console.log("Starting mark as packed process...");
+            console.log("Current order status:", ordersState.find((o: any) => o.orderId === pickListOrderId)?.status);
+            
+            // Find the current order and mark it as packed
+            const currentOrder = ordersState.find((o: any) => o.orderId === pickListOrderId);
+            if (currentOrder) {
+              console.log("Found current order:", currentOrder.orderId, "Status:", currentOrder.status);
+              
+              await handleMarkAsPacked(currentOrder, totalWeightKg);
+              
+              console.log("API call completed, refreshing orders...");
+              
+              // Refresh orders to ensure status is updated
+              try {
+                const refreshedOrders = await getOrdersByDealerId();
+                const mappedOrders = refreshedOrders.map((order: DealerOrder) => ({
+                  id: order.orderDetails._id,
+                  orderId: order.orderId,
+                  orderDate: new Date(order.orderDetails.orderDate).toLocaleDateString(),
+                  customer: order.customerDetails?.name || "",
+                  number: order.customerDetails?.phone || "",
+                  payment: order.orderDetails.paymentType,
+                  value: `₹${order.orderDetails.order_Amount}`,
+                  skus: order.orderDetails.skus || [],
+                  skusCount: order.orderDetails.skus?.length || 0,
+                  dealers: order.orderDetails.dealerMapping?.length || 0,
+                  dealerMapping: order.orderDetails.dealerMapping || [],
+                  status: order.status, 
+                  deliveryCharges: order.orderDetails.order_Amount,
+                  orderType: order.orderDetails.orderType,
+                  orderSource: order.orderDetails.orderSource,
+                  auditLogs: order.orderDetails.auditLogs || [],
+                  createdAt: order.orderDetails.createdAt,
+                  updatedAt: order.orderDetails.updatedAt,
+                  dealerProducts: order.DealerProducts || [], 
+                }));
+                
+                console.log("Refreshed orders:", mappedOrders.find(o => o.orderId === pickListOrderId)?.status);
+                
+                // Update both local state and Redux store with fresh data
+                setOrders(mappedOrders);
+                dispatch(fetchOrdersSuccess(mappedOrders));
+              } catch (refreshError) {
+                console.error("Failed to refresh orders:", refreshError);
+              }
+              
+              console.log("Closing modal after successful update");
+              // Only close modal after successful API call and refresh
+              setPickListModalOpen(false);
+            }
+          } catch (error) {
+            console.error("Failed to mark as packed:", error);
+            // Don't close modal on error - let user see the error
           }
-          setPickListModalOpen(false);
         }}
       />
     </div>
