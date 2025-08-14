@@ -564,7 +564,7 @@ export default function OrdersTable() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                               align="end"
-                              className="w-40 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
+                              className="w-36 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
                             >
                               <DropdownMenuItem 
                                 className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100 cursor-pointer"
@@ -573,12 +573,7 @@ export default function OrdersTable() {
                                 <Eye className="h-4 w-4" />
                                 View Products
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100 cursor-pointer"
-                                onClick={() => handleMarkAsPacked(order)}
-                              >
-                                Packed
-                              </DropdownMenuItem>
+
                               <DropdownMenuItem 
                                 className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100 cursor-pointer"
                                 onClick={() => handleViewPickList(order)}
@@ -629,6 +624,14 @@ export default function OrdersTable() {
         onClose={() => setPickListModalOpen(false)}
         pickLists={pickListData}
         orderId={pickListOrderId}
+        onMarkAsPacked={() => {
+          // Find the current order and mark it as packed
+          const currentOrder = ordersState.find((o: any) => o.orderId === pickListOrderId);
+          if (currentOrder) {
+            handleMarkAsPacked(currentOrder);
+          }
+          setPickListModalOpen(false);
+        }}
       />
     </div>
   );
