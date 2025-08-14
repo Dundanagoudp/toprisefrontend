@@ -12,6 +12,20 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginSuccess } from "@/store/slice/auth/authSlice";
 import { useToast } from "@/components/ui/toast";
 
+
+
+const sidebarVisibilityConfig = {
+  'Fulfillment-Admin': {
+    hide: [""],
+    show: [""],
+  },
+  'Fullfillment-staff': {
+    hide: [""],
+    show: [],
+  },
+  // Add more roles here as needed
+};
+
 export function LoginForm({
   className,
   ...props
@@ -22,6 +36,7 @@ export function LoginForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const auth = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
 
@@ -56,6 +71,8 @@ export function LoginForm({
         showToast("Successfully Login", "success");
         if (role === "Dealer") {
           router.replace("/dealer/dashboard");
+        } else if (role === "Fulfillment-Admin" || role === "Fullfillment-staff") {
+          router.replace("/user/dashboard/product");
         } else {
           router.replace("/user/dashboard");
         }
