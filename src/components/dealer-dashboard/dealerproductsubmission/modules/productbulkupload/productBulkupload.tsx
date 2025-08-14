@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { FileUp, ImageUp, X } from "lucide-react";
 import React, { ChangeEvent, useState } from "react";
-import { uploadBulkProducts , editBulkProducts} from "@/service/product-Service";
+import { editBulkProducts } from "@/service/product-Service";
+import { bulkUploadByDealer } from "@/service/dealer-product";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import {
     Dialog,
@@ -14,7 +15,6 @@ import {
   } from "@/components/ui/dialog";
 import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
-
 
 interface UploadBulkCardProps {
   isOpen: boolean;
@@ -74,6 +74,13 @@ export default function ProductBulkupload ({ isOpen, onClose, mode = 'upload' }:
       setIsUploading(true);
       setUploadMessage('');
 
+      // Show upload started toast
+      if (mode === 'edit') {
+        showToast("Starting bulk edit process... ⏳", "warning");
+      } else {
+        showToast("Starting bulk upload process... ⏳", "warning");
+      }
+
       const formData = new FormData();
       if (mode === 'upload') {
         if (imageZipFile) {
@@ -98,7 +105,7 @@ export default function ProductBulkupload ({ isOpen, onClose, mode = 'upload' }:
           console.log('Editing bulk upload with formData:');
         }
         else {
-          response = await uploadBulkProducts(formData);
+          response = await bulkUploadByDealer(formData);
           showToast("Uploaded successfully", "success");
           console.log('Uploading bulk upload with formData:');
         }
@@ -107,10 +114,16 @@ export default function ProductBulkupload ({ isOpen, onClose, mode = 'upload' }:
           setUploadMessage(response.message || (mode === 'edit' ? 'Files edited successfully!' : 'Files uploaded successfully!'));
           setImageZipFile(null);
           setCsvFile(null);
+          
+          // Show success toast
+          if (mode === 'edit') {
+            showToast("Bulk edit completed successfully! 🎉", "success");
+          } else {
+            showToast("Bulk upload completed successfully! 🚀", "success");
+          }
+          
           handleClose();
-            route.push(`/user/dashboard/product/Logs`);
-          // const logsResponse = await getProductLogs();
-          // setLogs(logsResponse.data);
+
           setIsLogOpen(true);
          
         } else {
