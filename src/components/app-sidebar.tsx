@@ -32,8 +32,6 @@ import TicketIcon,{ BoxIcon ,DashboardIcon,userIcon} from "./ui/TicketIcon"
 import { title } from "process"
 
 
-
-
 //fullFillmen admin and staff
 // Role-based sidebar visibility config for scalability
 const sidebarVisibilityConfig = {
@@ -41,9 +39,9 @@ const sidebarVisibilityConfig = {
     hide: ["Dashboard", "Pricing & Margin Management", "Content Management", "Settings"],
     show: ["User Management"],
   },
-  'Fullfillment-staff': {
-    hide: ["Dashboard", "Pricing & Margin Management", "Content Management", "Settings", "User Management"],
-    show: [],
+  'Fulfillment-Staff': {
+    hide: ["Dashboard", "Pricing & Margin Management", "Content Management", "Settings"],
+    show: ["User Management"],
   },
   // Add more roles here as needed
 };

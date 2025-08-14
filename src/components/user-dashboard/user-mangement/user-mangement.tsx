@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Employeetable from "./module/Employee-table"
 import Dealertable from "./module/Dealer-table"
 import { Search } from "lucide-react"
@@ -36,6 +36,13 @@ export default function Usermangement() {
   const router = useRouter();
   const allowedRoles = ["Super-admin", "Inventory-admin"];
   const auth = useAppSelector((state) => state.auth.user);
+
+  // Set default tab based on user role - hide dealer tab for fulfillment roles
+  useEffect(() => {
+    if (["Fulfillment-Admin", "Fulfillment-Staff"].includes(auth?.role)) {
+      setActiveTab("employee");
+    }
+  }, [auth?.role]);
 
   // Helper function to check if user can perform admin actions
   const canPerformAdminActions = () => {
@@ -97,16 +104,19 @@ export default function Usermangement() {
           >
             Employee
           </button>
-          <button
-            onClick={() => setActiveTab("dealer")}
-            className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
-              activeTab === "dealer"
-                ? "border-[#C72920] text-[#C72920]"
-                : "border-transparent text-gray-500 hover:text-[#C72920]"
-            }`}
-          >
-            Dealer
-          </button>
+          {/* Hide Dealer tab for Fulfillment roles */}
+          {!["Fulfillment-Admin", "Fulfillment-Staff"].includes(auth.role) && (
+            <button
+              onClick={() => setActiveTab("dealer")}
+              className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
+                activeTab === "dealer"
+                  ? "border-[#C72920] text-[#C72920]"
+                  : "border-transparent text-gray-500 hover:text-[#C72920]"
+              }`}
+            >
+              Dealer
+            </button>
+          )}
         </div>
 
         {/* Search and Actions Bar - Mobile responsive */}
