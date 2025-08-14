@@ -198,7 +198,7 @@ export default function OrdersTable() {
     setViewModalOpen(true);
   };
 
-  const handleMarkAsPacked = async (order: any) => {
+  const handleMarkAsPacked = async (order: any, totalWeightKg: number) => {
     try {
       // Show loading state
       showToast("Updating Status: Marking order as packed...", "success");
@@ -229,8 +229,8 @@ export default function OrdersTable() {
         return;
       }
   
-      // Call the API
-      const response = await updateOrderStatusByDealer(dealerId, order.id);
+      // Call the API with total weight
+      const response = await updateOrderStatusByDealer(dealerId, order.id, totalWeightKg);
       
       // Update the local state
       const updatedOrders = ordersState.map((o: any) => 
@@ -624,11 +624,11 @@ export default function OrdersTable() {
         onClose={() => setPickListModalOpen(false)}
         pickLists={pickListData}
         orderId={pickListOrderId}
-        onMarkAsPacked={() => {
+        onMarkAsPacked={(totalWeightKg) => {
           // Find the current order and mark it as packed
           const currentOrder = ordersState.find((o: any) => o.orderId === pickListOrderId);
           if (currentOrder) {
-            handleMarkAsPacked(currentOrder);
+            handleMarkAsPacked(currentOrder, totalWeightKg);
           }
           setPickListModalOpen(false);
         }}

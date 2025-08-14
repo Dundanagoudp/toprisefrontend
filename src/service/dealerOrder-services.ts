@@ -62,18 +62,21 @@ export const getOrdersByDealerId = async (dealerId?: string): Promise<DealerOrde
  * Update order status by dealer
  * @param dealerId - Dealer ID
  * @param orderId - Order ID to update
+ * @param totalWeightKg - Total weight in kilograms
  * @returns Promise<UpdateOrderStatusResponse>
  */
 export const updateOrderStatusByDealer = async (
   dealerId: string, 
-  orderId: string
+  orderId: string,
+  totalWeightKg: number
 ): Promise<UpdateOrderStatusResponse> => {
   try {
-    console.log(`[updateOrderStatusByDealer] Updating order ${orderId} for dealer ${dealerId}`);
+    console.log(`[updateOrderStatusByDealer] Updating order ${orderId} for dealer ${dealerId} with weight ${totalWeightKg}kg`);
     
     const requestData: UpdateOrderStatusRequest = {
       dealerId,
-      orderId
+      orderId,
+      total_weight_kg: totalWeightKg
     };
 
     const response = await apiClient.put<UpdateOrderStatusResponse>(

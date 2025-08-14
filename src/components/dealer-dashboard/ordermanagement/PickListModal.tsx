@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Download } from 'lucide-react';
 import {
   Table,
@@ -18,7 +21,7 @@ interface PickListModalProps {
   onClose: () => void;
   pickLists: DealerPickList[];
   orderId: string;
-  onMarkAsPacked: () => void;
+  onMarkAsPacked: (totalWeightKg: number) => void;
 }
 
 export default function PickListModal({
@@ -28,6 +31,16 @@ export default function PickListModal({
   orderId,
   onMarkAsPacked,
 }: PickListModalProps) {
+  const [totalWeight, setTotalWeight] = useState<number>(0);
+
+  const handleMarkAsPacked = () => {
+    if (totalWeight <= 0) {
+      alert("Please enter a valid total weight");
+      return;
+    }
+    onMarkAsPacked(totalWeight);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -46,6 +59,7 @@ export default function PickListModal({
             </Button>
           </div>
         </DialogHeader>
+
         <div className="mt-4">
           {pickLists.length === 0 ? (
             <div className="text-center py-8">
@@ -71,7 +85,7 @@ export default function PickListModal({
                     {pickList.skuList.map((item) => (
                       <TableRow key={item._id} className="border-b border-gray-100">
                         <TableCell className="px-4 py-3 font-medium text-gray-900">{item.sku}</TableCell>
-                        <TableCell className="px-4 py-3 text-gray-900">{item.quantity}</TableCell>
+                        <TableCell className="px-6 py-3 text-gray-900">{item.quantity}</TableCell>
                         <TableCell className="px-4 py-3 text-gray-600 font-mono text-sm">{item.barcode}</TableCell>
                       </TableRow>
                     ))}
@@ -82,15 +96,33 @@ export default function PickListModal({
            )}
          </div>
          
-                   {/* Packed Button - Bottom Right */}
-          <div className="flex justify-end mt-6 pt-4 border-t border-gray-200">
-            <Button
-              onClick={onMarkAsPacked}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
-            >
-              Packed
-            </Button>
-          </div>
+         {/* Bottom Section - Total Weight Input and Packed Button */}
+         <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+           {/* Total Weight Input - Left Side */}
+           <div className="flex items-center gap-2">
+             <Label htmlFor="totalWeight" className="text-sm font-medium text-gray-700">
+               Total Weight (kg):
+             </Label>
+             <Input
+               id="totalWeight"
+               type="number"
+               min="0"
+               step="0.1"
+               value={totalWeight}
+               onChange={(e) => setTotalWeight(parseFloat(e.target.value) || 0)}
+               className="w-24 h-9"
+               placeholder="0.0"
+             />
+           </div>
+           
+           {/* Packed Button - Right Side */}
+           <Button
+             onClick={handleMarkAsPacked}
+             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
+           >
+             Packed
+           </Button>
+         </div>
        </DialogContent>
      </Dialog>
   );
