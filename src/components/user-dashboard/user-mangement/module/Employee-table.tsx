@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/pagination"
 import { useState, useEffect } from "react" 
 import { useRouter } from "next/navigation"
-import { getAllEmployees } from "@/service/employeeServices"
+import { getAllEmployees, revokeRole } from "@/service/employeeServices"
 import type { Employee } from "@/types/employee-types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAppSelector } from "@/store/hooks"
+import { useToast } from "@/components/ui/toast"
 
 interface EmployeeTableProps {
   search?: string;
@@ -26,6 +27,7 @@ interface EmployeeTableProps {
   sortField?: string;
   sortDirection?: "asc" | "desc";
   onSort?: (field: string) => void;
+  onRolesUpdate?: (roles: string[]) => void;
 }
 
 export default function EmployeeTable({ 
@@ -34,7 +36,8 @@ export default function EmployeeTable({
   status = "",
   sortField = "", 
   sortDirection = "asc", 
-  onSort 
+  onSort,
+  onRolesUpdate
 }: EmployeeTableProps) {
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
@@ -45,6 +48,7 @@ export default function EmployeeTable({
   const [error, setError] = useState<Error | null>(null)
   const allowedRoles = ["Super-admin", "Inventory-admin"];
   const auth = useAppSelector((state) => state.auth.user);
+  const { showToast } = useToast();
 
   // Helper function to check if user can perform admin actions
   const canPerformAdminActions = () => {
@@ -53,12 +57,36 @@ export default function EmployeeTable({
 
   // Helper function to check if user can view details
   const canViewDetails = () => {
-    return auth; // Allow all authenticated users to view details
+    return auth; 
   };
 
   // Helper function to check if user can access the table
   const canAccessTable = () => {
     return auth; // Allow all authenticated users to see the table
+  };
+
+  // Handle role revocation
+  const handleRevokeRole = async (employeeId: string, employeeName: string) => {
+    try {
+      setIsLoading(true);
+      await revokeRole(employeeId, {});
+      
+      // Update the local state to reflect the role change
+      setEmployees(prevEmployees => 
+        prevEmployees.map(emp => 
+          emp._id === employeeId 
+            ? { ...emp, role: "User" }
+            : emp
+        )
+      );
+      
+      // showToast(`Role revoked successfully for ${employeeName}`, "success");
+    } catch (error: any) {
+      console.error("Failed to revoke role:", error);
+      showToast(`Failed to revoke role: ${error.message || "Unknown error"}`, "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -80,7 +108,14 @@ export default function EmployeeTable({
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, role, status]);
+    console.log("Filters changed:", { search, role, status });
+    
+    // Log available roles for debugging
+    if (employees.length > 0) {
+      const availableRoles = [...new Set(employees.map(emp => emp.role).filter(Boolean))];
+      console.log("Available roles in data:", availableRoles);
+    }
+  }, [search, role, status, employees]);
 
   // Sort employees based on sortField and sortDirection
   const sortedEmployees = [...employees].sort((a, b) => {
@@ -138,18 +173,41 @@ export default function EmployeeTable({
       employee.email?.toLowerCase().includes(searchLower) ||
       employee.mobile_number?.toLowerCase().includes(searchLower);
     
-    // Handle role filtering - match the actual role values in the data
-    const matchesRole = !role || (employee.role?.toLowerCase() === role.toLowerCase());
+    // Handle role filtering - only filter if role is provided and not empty
+    let matchesRole = true;
+    if (role && role.trim() !== "") {
+      const employeeRole = employee.role || "User";
+      matchesRole = employeeRole.toLowerCase() === role.toLowerCase();
+    }
     
-    // Handle status filtering - if status is null/undefined, treat as "Active"
-    const employeeStatus = employee.status || "Active";
-    const matchesStatus = !status || employeeStatus.toLowerCase() === status.toLowerCase();
+    // Handle status filtering - only filter if status is provided and not empty
+    let matchesStatus = true;
+    if (status && status.trim() !== "") {
+      const employeeStatus = employee.status || "Active";
+      matchesStatus = employeeStatus.toLowerCase() === status.toLowerCase();
+    }
     
     return matchesSearch && matchesRole && matchesStatus;
   });
 
   const totalItems = filteredEmployees.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
+  
+  // Debug logging for filtering
+  useEffect(() => {
+    if (role || status) {
+      console.log(`Filtering results: Total employees: ${employees.length}, Filtered: ${filteredEmployees.length}`);
+      console.log(`Role filter: "${role}", Status filter: "${status}"`);
+    }
+  }, [role, status, employees.length, filteredEmployees.length]);
+
+  // Update available roles when employee data changes
+  useEffect(() => {
+    if (onRolesUpdate && employees.length > 0) {
+      const roles = [...new Set(employees.map(emp => emp.role).filter(Boolean))];
+      onRolesUpdate(roles);
+    }
+  }, [employees, onRolesUpdate]);
   
   // Reset to page 1 when filters change and current page is out of bounds
   useEffect(() => {
@@ -200,6 +258,18 @@ export default function EmployeeTable({
 
   return (
     <div className="overflow-x-auto">
+      {/* Filter Summary */}
+      {(role || status) && (
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className="text-sm text-gray-600">
+            <strong>Active Filters:</strong>
+            {role && <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Role: {role}</span>}
+            {status && <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Status: {status}</span>}
+            <span className="ml-2 text-gray-500">({filteredEmployees.length} of {employees.length} employees)</span>
+          </div>
+        </div>
+      )}
+      
       <table className="w-full min-w-[800px]">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
@@ -307,7 +377,11 @@ export default function EmployeeTable({
                 <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.email}</td>
                 <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.mobile_number}</td>
                 {/* Removed Department cell to match updated columns */}
-                <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.role || "-"}</td>
+                <td className="p-3 md:p-4 text-gray-600 text-sm">
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {employee.role || "User"}
+                  </span>
+                </td>
                  <td className="p-3 md:p-4 text-gray-600 text-sm">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -325,17 +399,25 @@ export default function EmployeeTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      {canPerformAdminActions() && (
+                      {/* {canPerformAdminActions() && (
                         <DropdownMenuItem onClick={() => router.push(`/dashboard/employees/edit-employee/${employee._id}`)}>
                           Edit
                         </DropdownMenuItem>
-                      )}
-                      {canPerformAdminActions() && (
+                      )} */}
+                      {/* {canPerformAdminActions() && (
                         <DropdownMenuItem>Delete</DropdownMenuItem>
-                      )}
+                      )} */}
                       {canViewDetails() && (
                         <DropdownMenuItem onClick={() => router.push(`/user/dashboard/user/employeeview/${employee._id}`)}>
                           View Details
+                        </DropdownMenuItem>
+                      )}
+                      {canPerformAdminActions() && employee.role !== "User" && (
+                        <DropdownMenuItem 
+                          onClick={() => handleRevokeRole(employee._id, employee.First_name)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Revoke Role
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>

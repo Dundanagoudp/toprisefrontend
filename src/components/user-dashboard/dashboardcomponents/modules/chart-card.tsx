@@ -1,9 +1,8 @@
 import type React from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Download, MoreHorizontal, TrendingUp } from "lucide-react"
-import { FiDownloadCloud } from "react-icons/fi";
-
+import { TrendingUp } from "lucide-react"
+import { FiDownloadCloud } from "react-icons/fi"
 
 interface ChartCardProps {
   title: string
@@ -39,9 +38,7 @@ const ChartCard: React.FC<ChartCardProps> = ({
               <p className="text-2xl font-bold text-neutral-900 leading-tight">{value}</p>
               {change && (
                 <div
-                  className={`flex items-center gap-1 ${
-                    changeType === "positive" ? "text-green-500" : "text-red-500"
-                  }`}
+                  className={`flex items-center gap-1 ${changeType === "positive" ? "text-green-500" : "text-red-500"}`}
                 >
                   <TrendingUp className="h-3 w-3" />
                   <span className="text-sm font-medium">{change}</span>
@@ -53,7 +50,7 @@ const ChartCard: React.FC<ChartCardProps> = ({
         {!hideActions && (
           <div className="flex items-center gap-1">
             <Button variant="ghost" className="h-6 w-6 p-0">
-                {/* <svg
+              {/* <svg
       width="60"
       height="60"
       viewBox="0 0 27 24"
@@ -75,10 +72,8 @@ const ChartCard: React.FC<ChartCardProps> = ({
         fill="black"
       />
     </svg> */}
-    <FiDownloadCloud />
-
+              <FiDownloadCloud />
             </Button>
-
           </div>
         )}
       </div>

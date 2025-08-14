@@ -14,9 +14,11 @@ interface GlobalFiltersProps {
   currentStatus: string;
   onStatusChange: (status: string) => void;
   onResetFilters: () => void;
+  availableRoles?: string[]; // Add this for dynamic roles
 }
 
-const EMPLOYEE_ROLES = ["Sales", "Fulfillment-Staff", "General"] as const
+// We'll get roles dynamically from the data instead of hardcoding
+const EMPLOYEE_ROLES = [] as const
 const EMPLOYEE_STATUSES = ["Active", "Inactive"] as const
 
 const DEALER_ROLES = ["admin", "user", "dealer"] as const;
@@ -45,6 +47,7 @@ export default function GlobalFilters({
   currentStatus,
   onStatusChange,
   onResetFilters,
+  availableRoles = [],
 }: GlobalFiltersProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [open, setOpen] = useState(false);
@@ -64,7 +67,7 @@ export default function GlobalFilters({
     }
   }, [open, search, currentRole, currentStatus]);
 
-  const roles = type === "employee" ? EMPLOYEE_ROLES : DEALER_ROLES;
+  const roles = type === "employee" ? availableRoles : DEALER_ROLES;
   const statuses = type === "employee" ? EMPLOYEE_STATUSES : DEALER_STATUSES;
 
   const appliedFiltersCount = useMemo(
@@ -115,8 +118,7 @@ export default function GlobalFilters({
     return () => document.removeEventListener("mousedown", onClick);
   }, [open, isDesktop]);
 
-  const getRoleDisplayName = (role: string) =>
-    type === "employee" && role === "Fulfillment-Staff" ? "Fulfillment" : role
+  const getRoleDisplayName = (role: string) => role
 
   const getStatusDisplayName = (status: string) =>
     status.charAt(0).toUpperCase() + status.slice(1);
@@ -163,6 +165,7 @@ export default function GlobalFilters({
                   setDraftRole={setDraftRole}
                   draftStatus={draftStatus}
                   setDraftStatus={setDraftStatus}
+                  availableRoles={availableRoles}
                 />
                 <div className="flex gap-2 pt-2">
                   <button
@@ -204,6 +207,7 @@ export default function GlobalFilters({
                   setDraftRole={setDraftRole}
                   draftStatus={draftStatus}
                   setDraftStatus={setDraftStatus}
+                  availableRoles={availableRoles}
                 />
               </div>
               <div className="p-4 border-t flex gap-2">
@@ -307,6 +311,7 @@ function SelectLike<T extends string>({
     </div>
   );
 }
+
 function PanelContent(props: {
   type: "employee" | "dealer";
   draftSearch: string;
@@ -315,6 +320,7 @@ function PanelContent(props: {
   setDraftRole: (v: string) => void;
   draftStatus: string;
   setDraftStatus: (v: string) => void;
+  availableRoles?: string[];
 }) {
   const {
     type,
@@ -324,8 +330,9 @@ function PanelContent(props: {
     setDraftRole,
     draftStatus,
     setDraftStatus,
+    availableRoles = [],
   } = props;
-  const roles = type === "employee" ? EMPLOYEE_ROLES : DEALER_ROLES;
+  const roles = type === "employee" ? availableRoles : DEALER_ROLES;
   const statuses = type === "employee" ? EMPLOYEE_STATUSES : DEALER_STATUSES;
 
   return (
@@ -354,7 +361,7 @@ function PanelContent(props: {
                     checked={draftRole === r}
                     onChange={() => setDraftRole(r)}
                   />
-                  <span className="text-sm">{type === "employee" && r === "Fulfillment-Staff" ? "Fulfillment" : r}</span>
+                  <span className="text-sm">{r}</span>
                 </label>
               </li>
             ))}

@@ -465,24 +465,8 @@ export default function OrdersTable() {
                       {getSortIcon("number")}
                     </div>
                   </TableHead>
-                  <TableHead 
-                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("payment")}
-                  >
-                    <div className="flex items-center gap-1">
-                      Payment
-                      {getSortIcon("payment")}
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("value")}
-                  >
-                    <div className="flex items-center gap-1">
-                      Value
-                      {getSortIcon("value")}
-                    </div>
-                  </TableHead>
+
+
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
                     onClick={() => handleSort("skus")}
@@ -492,15 +476,7 @@ export default function OrdersTable() {
                       {getSortIcon("skus")}
                     </div>
                   </TableHead>
-                  <TableHead 
-                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("dealers")}
-                  >
-                    <div className="flex items-center gap-1">
-                      Dealer
-                      {getSortIcon("dealers")}
-                    </div>
-                  </TableHead>
+
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
                     onClick={() => handleSort("status")}
@@ -541,15 +517,6 @@ export default function OrdersTable() {
                         <TableCell className="px-6 py-4">
                           <Skeleton className="h-3 w-1/2" />
                         </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <Skeleton className="h-3 w-1/2" />
-                        </TableCell>
                         <TableCell className="px-6 py-4 text-center">
                           <Skeleton className="h-8 w-8 rounded" />
                         </TableCell>
@@ -560,10 +527,7 @@ export default function OrdersTable() {
                         <TableCell className="px-4 py-4 w-8">
                           <Checkbox />
                         </TableCell>
-                        <TableCell
-                          className="px-6 py-4 font-medium cursor-pointer hover:text-blue-600"
-                          onClick={() => handleViewPickList(order)}
-                        >
+                        <TableCell className="px-6 py-4 font-medium">
                           {order.orderId}
                         </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000] font-sans">
@@ -575,18 +539,12 @@ export default function OrdersTable() {
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           {order.number}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
-                          {order.payment}
-                        </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
-                          {order.value}
-                        </TableCell>
+
+
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           {Array.isArray(order.skus) ? order.skus.length : 1}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
-                          {order.dealers}
-                        </TableCell>
+
                         <TableCell className="px-6 py-4">
                           <span className={getStatusBadge(order.status)}>
                             {order.status}
@@ -606,7 +564,7 @@ export default function OrdersTable() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                               align="end"
-                              className="w-40 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
+                              className="w-36 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
                             >
                               <DropdownMenuItem 
                                 className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100 cursor-pointer"
@@ -615,11 +573,13 @@ export default function OrdersTable() {
                                 <Eye className="h-4 w-4" />
                                 View Products
                               </DropdownMenuItem>
+
                               <DropdownMenuItem 
                                 className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100 cursor-pointer"
-                                onClick={() => handleMarkAsPacked(order)}
+                                onClick={() => handleViewPickList(order)}
                               >
-                                Packed
+                                <Eye className="h-4 w-4" />
+                                Pick List
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -664,6 +624,14 @@ export default function OrdersTable() {
         onClose={() => setPickListModalOpen(false)}
         pickLists={pickListData}
         orderId={pickListOrderId}
+        onMarkAsPacked={() => {
+          // Find the current order and mark it as packed
+          const currentOrder = ordersState.find((o: any) => o.orderId === pickListOrderId);
+          if (currentOrder) {
+            handleMarkAsPacked(currentOrder);
+          }
+          setPickListModalOpen(false);
+        }}
       />
     </div>
   );

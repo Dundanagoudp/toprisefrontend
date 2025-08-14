@@ -18,6 +18,7 @@ import DataTable from "@/components/common/table/DataTable"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import UpdateStockModal from "./modules/UpdateStockModal";
 import ProductFilters from "./ProductFilters"
+import ProductBulkupload from "./modules/productbulkupload/productBulkupload"
 
 // API and Types
 import { getProductsByDealerId, checkDealerProductPermission, updateStockByDealer } from "@/service/dealer-product";
@@ -190,7 +191,6 @@ export default function DealerAssignTable() {
   const [selectedTab, setSelectedTab] = useState("All")
   const [currentPage, setCurrentPage] = useState(1)
   const [addProductLoading, setAddProductLoading] = useState(false)
-  const [uploadBulkLoading, setUploadBulkLoading] = useState(false)
   const [sendApprovalLoading, setSendApprovalLoading] = useState(false)
   const [viewProductLoading, setViewProductLoading] = useState<string | null>(null)
   const [permission, setPermission] = useState<PermissionCheckResponse | null>(null);
@@ -199,6 +199,7 @@ export default function DealerAssignTable() {
   const [updateStockProduct, setUpdateStockProduct] = useState<Product | null>(null);
   const [updateStockLoading, setUpdateStockLoading] = useState(false);
   const [updateStockQuantity, setUpdateStockQuantity] = useState<number>(0);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   
   // Filter state
   const [filterStatus, setFilterStatus] = useState("all");
@@ -583,8 +584,7 @@ export default function DealerAssignTable() {
 
   // Handlers for Bulk upload
   const handleUploadBulk = () => {
-    setUploadBulkLoading(true)
-    setTimeout(() => setUploadBulkLoading(false), 1000)
+    setShowBulkUploadModal(true)
   }
 
   // Handler for Send Approval
@@ -907,6 +907,11 @@ export default function DealerAssignTable() {
          product={updateStockProduct}
          quantity={updateStockQuantity}
          setQuantity={setUpdateStockQuantity}
+       />
+       <ProductBulkupload
+         isOpen={showBulkUploadModal}
+         onClose={() => setShowBulkUploadModal(false)}
+         mode="upload"
        />
     </div>
   )
