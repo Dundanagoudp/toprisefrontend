@@ -31,6 +31,23 @@ import { usePathname, useRouter } from "next/navigation"
 import TicketIcon,{ BoxIcon ,DashboardIcon,userIcon} from "./ui/TicketIcon"
 import { title } from "process"
 
+
+
+
+//fullFillmen admin and staff
+// Role-based sidebar visibility config for scalability
+const sidebarVisibilityConfig = {
+  'Fulfillment-Admin': {
+    hide: ["Dashboard", "Pricing & Margin Management", "Content Management", "Settings"],
+    show: ["User Management"],
+  },
+  'Fullfillment-staff': {
+    hide: ["Dashboard", "Pricing & Margin Management", "Content Management", "Settings", "User Management"],
+    show: [],
+  },
+  // Add more roles here as needed
+};
+
 // This is sample data.
 const data = {
   user: {
@@ -95,10 +112,10 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-
+  const auth = useAppSelector((state) => state.auth.user);
   const router = useRouter()
   const dispatch = useAppDispatch()
-  const auth = useAppSelector((state) => state.auth)
+
   const pathname = usePathname();
   const { state } = useSidebar();
   const expanded = state === "expanded";
@@ -119,13 +136,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Removed debug logs
 
-  // Map navMain to set isActive dynamically
-  const navItems = data.navMain.map(item => ({
-    ...item,
-    isActive:
-      pathname === item.url ||
-      (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
-  }));
+  // Scalable sidebar filtering based on sidebarVisibilityConfig
+  const role: string = auth.role;
+  let navItems;
+  if (sidebarVisibilityConfig[role as keyof typeof sidebarVisibilityConfig]) {
+    const { hide = [], show = [] } = sidebarVisibilityConfig[role as keyof typeof sidebarVisibilityConfig];
+    navItems = data.navMain
+      .filter(item => {
+        if (hide.includes(item.title)) return false;
+        if (show.length > 0 && !show.includes(item.title) && item.title === "User Management") return false;
+        return true;
+      })
+      .map(item => ({
+        ...item,
+        isActive:
+          pathname === item.url ||
+          (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
+      }));
+  } else {
+    navItems = data.navMain.map(item => ({
+      ...item,
+      isActive:
+        pathname === item.url ||
+        (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
+    }));
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>

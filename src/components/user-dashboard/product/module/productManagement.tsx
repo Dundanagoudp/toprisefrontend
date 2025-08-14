@@ -51,6 +51,7 @@ export default function ProductManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [selectedTab, setSelectedTab] = useState("Created");
+  const [showRequestsView, setShowRequestsView] = useState(false);
 const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState<"upload" | "edit" | "uploadDealer">(
     "upload"
@@ -218,50 +219,44 @@ const handleBulkReject = useCallback(() => {
     }
   };
 
-  const tabConfigs: TabConfig[] = useMemo(
-    () => [
+  const tabConfigs: TabConfig[] = useMemo(() => {
+    if (showRequestsView) {
+      return [
+        {
+          id: "Pending",
+          label: "Pending",
+          component: require("./requestedProduct/PendingProductByDealer").default,
+        },
+        {
+          id: "Rejected",
+          label: "Rejected",
+          component: require("./requestedProduct/RejectedProductByDealer").default,
+        },
+      ];
+    }
+    return [
       {
         id: "Created",
         label: "Created",
         component: CreatedProduct,
-        //  component: ShowCreated,
-        //   buttonConfig: {
-        //   text: "Add Created",
-        //   action: handleCreatedAction,
-        // },
       },
       {
         id: "Approved",
         label: "Approved",
         component: ApprovedProduct,
-        //   buttonConfig: {
-        //   text: "Add Approved",
-        //   action: handleApprovedAction,
-        // },
       },
       {
         id: "Pending",
         label: "Pending",
-        component: PendingProduct, // Assuming you have a PendingProduct component
-        //   component: ShowPending,
-        //   buttonConfig: {
-        //   text: "Add Pending",
-        //   action: handlePendingAction,
-        // },
+        component: PendingProduct,
       },
       {
         id: "Rejected",
         label: "Rejected",
         component: RejectedProduct,
-        //   component: ShowRejected,
-        //   buttonConfig: {
-        //   text: "Add Rejected",
-        //   action: handleRejectedAction,
-        // },
       },
-    ],
-    []
-  );
+    ];
+  }, [showRequestsView]);
   // Get current tab configuration
   const currentTabConfig = useMemo(
     () => tabConfigs.find((tab) => tab.id === activeTab) || tabConfigs[0],
@@ -270,6 +265,10 @@ const handleBulkReject = useCallback(() => {
   const renderTabContent = useCallback(() => {
     const TabComponent = currentTabConfig.component;
     if (!TabComponent) return null;
+    if (showRequestsView && currentTabConfig.id === "Pending") {
+      // Only pass searchQuery for PendingProductByDealer
+      return <TabComponent searchQuery={searchQuery} />;
+    }
     if (currentTabConfig.id === "Created") {
       return (
         <TabComponent
@@ -281,7 +280,7 @@ const handleBulkReject = useCallback(() => {
       );
     }
     return <TabComponent searchQuery={searchQuery} selectedTab={selectedTab} />;
-  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName]);
+  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName, showRequestsView]);
 
   return (
     <div className="w-full ">
@@ -293,7 +292,6 @@ const handleBulkReject = useCallback(() => {
             {/* Left: Search, Filters, Requests */}
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3 w-full lg:w-auto">
               {/* Search Bar */}          
-
               <SearchInput
                 value={searchInput}
                 onChange={handleSearchChange}
@@ -382,12 +380,29 @@ const handleBulkReject = useCallback(() => {
                     </Accordion>
                   </PopoverContent>
                 </Popover>
+                {!showRequestsView && (
+                  <DynamicButton
+                    variant="outline"
+                    customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
+                    text="Requests"
+                    onClick={() => {
+                      setShowRequestsView(true);
+                      setActiveTab("Pending");
+                    }}
+                  />
+                )}
+                {showRequestsView && (
+                  <DynamicButton
+                    variant="outline"
+                    customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
+                    text="Go Back"
+                    onClick={() => {
+                      setShowRequestsView(false);
+                      setActiveTab("Created");
+                    }}
+                  />
+                )}
                 <DynamicButton
-                  variant="outline"
-                  customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
-                  text="Requests"
-                />
-                     <DynamicButton
                   variant="outline"
                   customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
                   text="Export"
@@ -472,28 +487,28 @@ const handleBulkReject = useCallback(() => {
                 </button>
               ))}
             </nav>
-            {selectedProducts.length > 0 && (
-    <div className="px-6 flex items-center">
-      <DropdownMenu >
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="min-w-[140px]"
-          disabled={!allowedRoles.includes(auth.role)}
-          >Bulk Actions</Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem className="cursor-pointer" onClick={handleBulkApprove}>
-            Approve Selected
-          </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer" onClick={handleBulkDeactivate}>
-            Deactivate Selected
-          </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer" onClick={handleBulkReject}>
-            Reject Selected
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  )}
+            {!showRequestsView && selectedProducts.length > 0 && (
+              <div className="px-6 flex items-center">
+                <DropdownMenu >
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="min-w-[140px]"
+                      disabled={!allowedRoles.includes(auth.role)}
+                    >Bulk Actions</Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem className="cursor-pointer" onClick={handleBulkApprove}>
+                      Approve Selected
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer" onClick={handleBulkDeactivate}>
+                      Deactivate Selected
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer" onClick={handleBulkReject}>
+                      Reject Selected
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
           {/* Tab Content */}
           <div className="min-h-[400px] font-sans">{renderTabContent()}</div>

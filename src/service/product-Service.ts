@@ -23,6 +23,21 @@ export async function getProductsByPage(page: number, limit: number,status?:stri
     throw error;
   }
 }
+//get products by dealer added
+export async function getDealerProductsByPage(page: number, limit: number,status?:string): Promise<ProductResponse> {
+  try {
+       let url = `/category/products/v1/getProducts/byDealer?pageNumber=${page}&limitNumber=${limit}`;
+    if (status) {
+      url += `&status=${status}`;
+    
+    }
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error(" Failed to fetch products:", error);
+    throw error;
+  }
+}
 
 export async function uploadBulkProducts(
   formData: FormData
