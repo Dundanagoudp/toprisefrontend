@@ -195,3 +195,19 @@ export interface UpdateStockByDealerResponse {
   data?: any;
 }
 
+// --- Bulk Upload By Dealer API Types ---
+export interface BulkUploadByDealerRequest {
+  dataFile: File;
+  imageZip: File;
+  dealerId: string;
+}
+
+export interface BulkUploadByDealerResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+  errors?: string[];
+  uploadedCount?: number;
+  failedCount?: number;
+}
+

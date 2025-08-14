@@ -20,9 +20,11 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`; 
     }
-        // Handle FormData requests
+    
+    // Handle FormData requests - don't override Content-Type for FormData
     if (config.data instanceof FormData) {
-      config.headers["Content-Type"] = "multipart/form-data"
+      // Remove any existing Content-Type header to let browser set it automatically
+      delete config.headers["Content-Type"];
     }
 
     // Handle GET requests with body data

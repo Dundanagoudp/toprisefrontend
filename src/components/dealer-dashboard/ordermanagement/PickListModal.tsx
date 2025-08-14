@@ -1,6 +1,8 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Download } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,6 +18,7 @@ interface PickListModalProps {
   onClose: () => void;
   pickLists: DealerPickList[];
   orderId: string;
+  onMarkAsPacked: () => void;
 }
 
 export default function PickListModal({
@@ -23,14 +26,25 @@ export default function PickListModal({
   onClose,
   pickLists,
   orderId,
+  onMarkAsPacked,
 }: PickListModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between">
           <DialogTitle className="text-xl font-bold text-red-600">
             Pick List - Order {orderId}
           </DialogTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </div>
         </DialogHeader>
         <div className="mt-4">
           {pickLists.length === 0 ? (
@@ -64,10 +78,20 @@ export default function PickListModal({
                   </TableBody>
                 </Table>
               </div>
-            ))
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+                         ))
+           )}
+         </div>
+         
+                   {/* Packed Button - Bottom Right */}
+          <div className="flex justify-end mt-6 pt-4 border-t border-gray-200">
+            <Button
+              onClick={onMarkAsPacked}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
+            >
+              Packed
+            </Button>
+          </div>
+       </DialogContent>
+     </Dialog>
   );
 }
