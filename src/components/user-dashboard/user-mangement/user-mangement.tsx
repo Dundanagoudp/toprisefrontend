@@ -26,6 +26,9 @@ export default function Usermangement() {
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
   
+  // Available roles state
+  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  
   // Sorting state
   const [sortField, setSortField] = useState("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -118,6 +121,7 @@ export default function Usermangement() {
               currentStatus={status || "all"}
               onStatusChange={handleStatusChange}
               onResetFilters={handleResetFilters}
+              availableRoles={activeTab === "employee" ? availableRoles : []}
             />
           </div>
 
@@ -177,6 +181,7 @@ export default function Usermangement() {
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={handleSort}
+              onRolesUpdate={setAvailableRoles}
             />
           : <Dealertable 
               search={search} 
