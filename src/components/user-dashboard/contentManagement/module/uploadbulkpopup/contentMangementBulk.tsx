@@ -153,11 +153,11 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
           setImageZipFile(null);
           setCsvFile(null);
           handleClose();
-            if (mode === 'uploadDealer') {
-            route.push(`/user/dashboard/product`);
-            } else {
-            route.push(`/user/dashboard/product/Logs`);
-            }
+            // if (mode === 'uploadDealer') {
+            // route.push(`/user/dashboard/product`);
+            // } else {
+            // route.push(`/user/dashboard/product/Logs`);
+            // }
           // const logsResponse = await getProductLogs();
           // setLogs(logsResponse.data);
           setIsLogOpen(true);
