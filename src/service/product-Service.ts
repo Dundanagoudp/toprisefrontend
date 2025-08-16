@@ -435,3 +435,66 @@ export async function uploadLogs(
   }
 }
 
+// Content Management Bulk Upload APIs
+export async function uploadBulkCategories(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/category/api/category/bulk-upload/categories`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk categories:", error);
+    throw error;
+  }
+}
+
+export async function uploadBulkSubCategories(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/category/api/subCategory/bulk-upload/subcategories`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk subcategories:", error);
+    throw error;
+  }
+}
+
+export async function uploadBulkBrands(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/category/api/brands/bulk-upload/brands`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk brands:", error);
+    throw error;
+  }
+}
+
+export async function uploadBulkModels(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/category/api/model/bulk-upload/models`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk models:", error);
+    throw error;
+  }
+}
+
+export async function uploadBulkVariants(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/category/variants/bulk-upload/varients`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk variants:", error);
+    throw error;
+  }
+}
+
+
+
