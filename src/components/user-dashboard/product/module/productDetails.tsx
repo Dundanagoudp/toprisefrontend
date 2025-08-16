@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Pencil } from "lucide-react";
+import { Pencil, Eye } from "lucide-react";
 import { Productcard } from "./productCard";
 import { getProductById, getProducts } from "@/service/product-Service";
 import { useParams, useRouter } from "next/navigation";
@@ -19,6 +19,7 @@ import DynamicButton from "../../../common/button/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchProductByIdSuccess, fetchProductByIdRequest, fetchProductByIdFailure } from "@/store/slice/product/productByIdSlice";
 import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
+import SuperAdminDealersModal from "./SuperAdminDealersModal";
 
 export default function ViewProductDetails() {
   const [status, setStatus] = React.useState<string>("Created");
@@ -26,6 +27,7 @@ export default function ViewProductDetails() {
   const [loading, setLoading] = React.useState<boolean>(true);
   const [isEditLoading, setIsEditLoading] = React.useState<boolean>(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [showDealersModal, setShowDealersModal] = React.useState(false);
   const auth = useAppSelector((state) => state.auth.user);
   const id = useParams<{ id: string }>();
   const router = useRouter();
@@ -355,19 +357,12 @@ const allowedRoles = ["Super-admin", "Inventory-admin"];
               product
                 ? [
                     {
-                      label: "Available Dealers",
-                      value: product.available_dealers
-                        ? JSON.stringify(product.available_dealers)
-                        : "-",
-                    },
-                    {
                       label: "Quantity per Dealer",
                       value:
                         product.no_of_stock !== undefined
                           ? String(product.no_of_stock)
                           : "-",
                     },
-                    // Dealer Margin % not present in Product type
                     {
                       label: "Dealer Priority Override",
                       value:
@@ -375,11 +370,11 @@ const allowedRoles = ["Super-admin", "Inventory-admin"];
                           ? String(product.fulfillment_priority)
                           : "-",
                     },
-                    // Stock Expiry Rule not present in Product type
                     {
                       label: "Last Stock Update",
-                      value:
-                        product.available_dealers?.last_stock_update || "-",
+                      value: product.available_dealers && Array.isArray(product.available_dealers) && product.available_dealers.length > 0 
+                        ? product.available_dealers[0]?.last_stock_update || "-"
+                        : "-",
                     },
                     {
                       label: "Last Inquired At",
@@ -388,7 +383,22 @@ const allowedRoles = ["Super-admin", "Inventory-admin"];
                   ]
                 : []
             }
-          />
+          >
+            {product && product.available_dealers && Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-gray-700">Available Dealers</h4>
+                  <DynamicButton
+                    variant="outline"
+                    customClassName="text-red-600 border-red-200 hover:bg-red-50 text-sm px-1 py-1"
+                    onClick={() => setShowDealersModal(true)}
+                    icon={<Eye className="w-4 h-4" />}
+                    text="View All"
+                  />
+                </div>
+              </div>
+            )}
+          </Productcard>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* SEO & Search Optimization */}
@@ -442,6 +452,13 @@ const allowedRoles = ["Super-admin", "Inventory-admin"];
                  
                     }}
                   />
+      
+      {/* Super Admin Dealers Modal */}
+      <SuperAdminDealersModal
+        open={showDealersModal}
+        onClose={() => setShowDealersModal(false)}
+        product={product}
+      />
     </div>
   );
 }

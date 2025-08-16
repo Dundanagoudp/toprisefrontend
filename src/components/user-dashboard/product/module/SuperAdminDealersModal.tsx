@@ -30,7 +30,7 @@ const TABLE_HEADERS = [
   { key: "last_update", label: "Last Update" },
 ]
 
-const DealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, onClose, product }) => {
+const SuperAdminDealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, onClose, product }) => {
   if (!open || !product || !product.available_dealers) {
     return null
   }
@@ -182,4 +182,4 @@ const DealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, onClose, pr
   )
 }
 
-export default DealersModal
+export default SuperAdminDealersModal
