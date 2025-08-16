@@ -362,7 +362,7 @@ export default function DealerProdutView() {
                   <h4 className="text-sm font-medium text-gray-700">Available Dealers</h4>
                   <DynamicButton
                     variant="outline"
-                    customClassName="text-blue-600 border-blue-200 hover:bg-blue-50 text-sm px-3 py-1"
+                    customClassName="text-red-600 border-red-200 hover:bg-red-50 text-sm px-1 py-1"
                     onClick={() => setShowDealersModal(true)}
                     icon={<Eye className="w-4 h-4" />}
                     text="View All"
