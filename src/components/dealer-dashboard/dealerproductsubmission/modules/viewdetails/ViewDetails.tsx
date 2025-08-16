@@ -65,7 +65,7 @@ export default function DealerProdutView() {
           data !== null &&
           !Array.isArray(data)
         ) {
-          prod = data as Product;
+          prod = data as Product ;
         }
         setProduct(prod);
         dispatch(fetchProductByIdSuccess(prod));

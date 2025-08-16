@@ -480,7 +480,7 @@ export default function DealerAssignTable() {
       return;
     }
     
-    // Find dealer info for this dealer
+    // Find dealerId
     let dealerId = undefined;
     try {
       const { getCookie, getAuthToken } = require("@/utils/auth");
@@ -498,9 +498,7 @@ export default function DealerAssignTable() {
           }
         }
       }
-    } catch (error) {
-      console.error("Error getting dealerId:", error);
-    }
+    } catch {}
     
     if (!dealerId) {
       showToast("Dealer ID not found.", "error");
@@ -714,205 +712,243 @@ export default function DealerAssignTable() {
             </div>
           )}
           {!loadingPermission && hasAnyPermission && (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-w-full">
               <DataTable<Product>
-              data={paginatedDataWithId}
-              loading={loadingProducts}
-              currentPage={currentPage}
-              itemsPerPage={cardsPerPage}
-              onPageChange={setCurrentPage}
-              selectedItems={selectedProducts}
-              onSelectItem={handleSelectOne}
-              onSelectAll={handleSelectAll}
-              allSelected={allSelected}
-              columns={[
-                {
-                  key: "image",
-                  header: "Image",
-                  render: (product: Product) => (
-                    <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                data={paginatedDataWithId}
+                loading={loadingProducts}
+                currentPage={currentPage}
+                itemsPerPage={cardsPerPage}
+                onPageChange={setCurrentPage}
+                selectedItems={selectedProducts}
+                onSelectItem={handleSelectOne}
+                onSelectAll={handleSelectAll}
+                allSelected={allSelected}
+                columns={[
+                  {
+                    key: "image",
+                    header: "Image",
+                    className: "w-20",
+                    render: (product: Product) => (
+                      <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                        <Image
+                          src={product.images?.[0] || "/placeholder.svg?height=64&width=80"}
+                          alt={product.product_name}
+                          width={80}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "name",
+                    header: (
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                        onClick={() => handleSort("name")}
+                      >
+                        Name
+                        {getSortIcon("name")}
+                      </div>
+                    ),
+                    className: "min-w-[180px] max-w-[220px]",
+                    render: (product: Product) => (
+                      <div 
+                        className={`${canViewProduct ? "cursor-pointer" : "cursor-default"}`}
+                        onClick={canViewProduct ? () => handleViewProduct(product._id) : undefined}
+                      >
+                        <div className="font-medium text-gray-900 text-sm font-sans truncate pr-2" title={product.product_name}>
+                          {product.product_name}
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "categories",
+                    header: (
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                        onClick={() => handleSort("category")}
+                      >
+                        Categories
+                        {getSortIcon("category")}
+                      </div>
+                    ),
+                    className: "min-w-[120px] max-w-[140px]",
+                    render: (product: Product) => (
+                      <div className="truncate pr-2" title={product.category?.category_name || "N/A"}>
+                        <span className="text-sm">{product.category?.category_name || "N/A"}</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "subCategories",
+                    header: (
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                        onClick={() => handleSort("subCategory")}
+                      >
+                        Sub Categories
+                        {getSortIcon("subCategory")}
+                      </div>
+                    ),
+                    className: "min-w-[140px] max-w-[160px]",
+                    render: (product: Product) => (
+                      <div className="truncate pr-2" title={product.sub_category?.subcategory_name || "N/A"}>
+                        <span className="text-sm">{product.sub_category?.subcategory_name || "N/A"}</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "brand",
+                    header: (
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                        onClick={() => handleSort("brand")}
+                      >
+                        Brand
+                        {getSortIcon("brand")}
+                      </div>
+                    ),
+                    className: "min-w-[100px] max-w-[120px]",
+                    render: (product: Product) => (
+                      <div className="truncate pr-2" title={product.brand?.brand_name || "N/A"}>
+                        <span className="text-sm">{product.brand?.brand_name || "N/A"}</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "productType",
+                    header: (
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                        onClick={() => handleSort("productType")}
+                      >
+                        Product type
+                        {getSortIcon("productType")}
+                      </div>
+                    ),
+                    className: "min-w-[100px] max-w-[120px]",
+                    render: (product: Product) => (
+                      <div className="truncate pr-2" title={product.product_type || "N/A"}>
+                        <span className="text-sm">{product.product_type || "N/A"}</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "status",
+                    header: (
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                        onClick={() => handleSort("status")}
+                      >
+                        Status
+                        {getSortIcon("status")}
+                      </div>
+                    ),
+                    className: "min-w-[100px] max-w-[120px]",
+                    render: (product: Product) => getStatusBadge(product.live_status),
+                  },
+                  {
+                    key: "quantity_per_dealer",
+                    header: (
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
+                        onClick={() => handleSort("quantity")}
+                      >
+                        Quantity
+                        {getSortIcon("quantity")}
+                      </div>
+                    ),
+                    className: "min-w-[80px] max-w-[100px]",
+                    render: (product: Product) => {
+                      // Find dealerId
+                      let dealerId = undefined;
+                      try {
+                        const { getCookie, getAuthToken } = require("@/utils/auth");
+                        dealerId = getCookie("dealerId");
+                        if (!dealerId) {
+                          const token = getAuthToken();
+                          if (token) {
+                            const payloadBase64 = token.split(".")[1];
+                            if (payloadBase64) {
+                              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+                              const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+                              const payloadJson = atob(paddedBase64);
+                              const payload = JSON.parse(payloadJson);
+                              dealerId = payload.dealerId || payload.id;
+                            }
+                          }
+                        }
+                      } catch {}
+                      const dealerStock = product.available_dealers?.find((d) => d.dealers_Ref === dealerId);
+                      return (
+                        <div className="text-center font-medium">
+                          {dealerStock?.quantity_per_dealer ?? "-"}
+                        </div>
+                      );
+                    },
+                  },
+                ]}
+                actions={tableActions}
+                mobileCard={(product: Product) => (
+                  <div className="flex items-start space-x-4 p-4">
+                    <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                       <Image
                         src={product.images?.[0] || "/placeholder.svg?height=64&width=80"}
                         alt={product.product_name}
-                        width={80}
-                        height={64}
+                        width={64}
+                        height={48}
                         className="w-full h-full object-cover"
                       />
                     </div>
-                  ),
-                },
-                {
-                  key: "name",
-                  header: (
-                    <div 
-                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
-                      onClick={() => handleSort("name")}
-                    >
-                      Name
-                      {getSortIcon("name")}
-                    </div>
-                  ),
-                  render: (product: Product) => (
-                    <div 
-                      className={canViewProduct ? "cursor-pointer" : "cursor-default"} 
-                      onClick={canViewProduct ? () => handleViewProduct(product._id) : undefined}
-                    >
-                      <div className="font-medium text-gray-900 b2 font-sans">{product.product_name}</div>
-                    </div>
-                  ),
-                },
-                {
-                  key: "categories",
-                  header: (
-                    <div 
-                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
-                      onClick={() => handleSort("category")}
-                    >
-                      Categories
-                      {getSortIcon("category")}
-                    </div>
-                  ),
-                  render: (product: Product) => product.category?.category_name || "N/A",
-                },
-                {
-                  key: "subCategories",
-                  header: (
-                    <div 
-                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
-                      onClick={() => handleSort("subCategory")}
-                    >
-                      Sub Categories
-                      {getSortIcon("subCategory")}
-                    </div>
-                  ),
-                  render: (product: Product) => product.sub_category?.subcategory_name || "N/A",
-                },
-                {
-                  key: "brand",
-                  header: (
-                    <div 
-                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
-                      onClick={() => handleSort("brand")}
-                    >
-                      Brand
-                      {getSortIcon("brand")}
-                    </div>
-                  ),
-                  render: (product: Product) => product.brand?.brand_name || "N/A",
-                },
-                {
-                  key: "productType",
-                  header: (
-                    <div 
-                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
-                      onClick={() => handleSort("productType")}
-                    >
-                      Product type
-                      {getSortIcon("productType")}
-                    </div>
-                  ),
-                  render: (product: Product) => product.product_type || "N/A",
-                },
-                {
-                  key: "status",
-                  header: (
-                    <div 
-                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
-                      onClick={() => handleSort("status")}
-                    >
-                      Status
-                      {getSortIcon("status")}
-                    </div>
-                  ),
-                  render: (product: Product) => getStatusBadge(product.live_status),
-                },
-                {
-                  key: "quantity_per_dealer",
-                  header: (
-                    <div 
-                      className="flex items-center gap-1 cursor-pointer hover:text-[#C72920] transition-colors"
-                      onClick={() => handleSort("quantity")}
-                    >
-                      Quantity
-                      {getSortIcon("quantity")}
-                    </div>
-                  ),
-                  render: (product: Product) => {
-                    // Find dealerId
-                    let dealerId = undefined;
-                    try {
-                      const { getCookie, getAuthToken } = require("@/utils/auth");
-                      dealerId = getCookie("dealerId");
-                      if (!dealerId) {
-                        const token = getAuthToken();
-                        if (token) {
-                          const payloadBase64 = token.split(".")[1];
-                          if (payloadBase64) {
-                            const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
-                            const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-                            const payloadJson = atob(paddedBase64);
-                            const payload = JSON.parse(payloadJson);
-                            dealerId = payload.dealerId || payload.id;
-                          }
-                        }
-                      }
-                    } catch {}
-                    const dealerStock = product.available_dealers?.find((d) => d.dealers_Ref === dealerId);
-                    return dealerStock?.quantity_per_dealer ?? "-";
-                  },
-                },
-              ]}
-              actions={tableActions}
-              mobileCard={(product: Product) => (
-                <div className="flex items-start space-x-4">
-                  <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                    <Image
-                      src={product.images?.[0] || "/placeholder.svg?height=64&width=80"}
-                      alt={product.product_name}
-                      width={64}
-                      height={48}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 text-sm truncate">{product.product_name}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {product.category?.category_name} • {product.sub_category?.subcategory_name}
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-500">{product.brand?.brand_name}</span>
-                      <span className="text-xs text-gray-500">{product.live_status}</span>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="font-medium text-gray-900 text-sm truncate pr-2" title={product.product_name}>
+                        {product.product_name}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate pr-2" title={`${product.category?.category_name} • ${product.sub_category?.subcategory_name}`}>
+                        {product.category?.category_name} • {product.sub_category?.subcategory_name}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500 truncate max-w-[120px] pr-1" title={product.brand?.brand_name}>
+                          {product.brand?.brand_name}
+                        </span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">{product.live_status}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 truncate pr-2" title={`Type: ${product.product_type || "N/A"}`}>
+                        Type: {product.product_type || "N/A"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )} 
-            />
-            <DynamicPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              totalItems={filteredProducts.length}
-              itemsPerPage={cardsPerPage}
-            />
-          </div>
+                )} 
+              />
+              <DynamicPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={filteredProducts.length}
+                itemsPerPage={cardsPerPage}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
-             {/* Update Stock Modal */}
-       <UpdateStockModal
-         open={showUpdateStockModal}
-         onClose={() => setShowUpdateStockModal(false)}
-         onSubmit={handleUpdateStockSubmit}
-         loading={updateStockLoading}
-         product={updateStockProduct}
-         quantity={updateStockQuantity}
-         setQuantity={setUpdateStockQuantity}
-       />
-       <ProductBulkupload
-         isOpen={showBulkUploadModal}
-         onClose={() => setShowBulkUploadModal(false)}
-         mode="upload"
-       />
+      {/* Update Stock Modal */}
+      <UpdateStockModal
+        open={showUpdateStockModal}
+        onClose={() => setShowUpdateStockModal(false)}
+        onSubmit={handleUpdateStockSubmit}
+        loading={updateStockLoading}
+        product={updateStockProduct}
+        quantity={updateStockQuantity}
+        setQuantity={setUpdateStockQuantity}
+      />
+      <ProductBulkupload
+        isOpen={showBulkUploadModal}
+        onClose={() => setShowBulkUploadModal(false)}
+        mode="upload"
+      />
     </div>
   )
 }
+
