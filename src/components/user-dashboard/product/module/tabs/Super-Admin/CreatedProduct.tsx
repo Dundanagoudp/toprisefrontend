@@ -173,13 +173,14 @@ export default function CreatedProduct({
       const sub = subCategoryFilter.trim().toLowerCase();
       products = products.filter((product: any) => {
         const candidateNames = [
-          product?.sub_category?.subcategory_name,
-          product?.sub_category?.name,
-          product?.subCategory,
-          product?.subcategory,
+          product.sub_category.subcategory_name,
+          product.sub_category.name,
+          product.subCategory,
+          product.subCategory.name,
+          product.sub_category,
         ];
         return candidateNames.some((n: any) =>
-          n ? String(n).toLowerCase().includes(sub) : false
+          n ? String(n).toLowerCase() === sub : false
         );
       });
     }

@@ -74,8 +74,6 @@ interface Order {
   status: "Pending" | "Approved";
 }
 
-
-
 export default function OrdersTable() {
   const [orders, setOrders] = useState<any[]>([]);
   const { showToast } = GlobalToast();
@@ -108,9 +106,9 @@ export default function OrdersTable() {
     currentPage * itemsPerPage
   );
 
-console.log( "paginatedData", paginatedData);
+  console.log("paginatedData", paginatedData);
 
-    const handleViewOrder = (id: string) => {
+  const handleViewOrder = (id: string) => {
     setOrderDetails(id);
     route.push(`/user/dashboard/order/orderdetails/${id}`);
     // Clear loading state after navigation (simulated delay)
@@ -347,13 +345,13 @@ console.log( "paginatedData", paginatedData);
                       </TableRow>
                     ))
                   : paginatedData.map((order) => (
-                      <TableRow key={order.id}
-                      >
+                      <TableRow key={order.id}>
                         <TableCell className="px-4 py-4 w-8">
                           <Checkbox />
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-medium "
-                        onClick={() => handleViewOrder(order.id)}
+                        <TableCell
+                          className="px-6 py-4 font-medium "
+                          onClick={() => handleViewOrder(order.id)}
                         >
                           {order.orderId}
                         </TableCell>
@@ -373,9 +371,7 @@ console.log( "paginatedData", paginatedData);
                           {order.value}
                         </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
-                          {Array.isArray(order.skus)
-                            ? order.skus.length
-                            : 1}
+                          {Array.isArray(order.skus) ? order.skus.length : 1}
                         </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           {order.dealers}
@@ -388,26 +384,26 @@ console.log( "paginatedData", paginatedData);
                         <TableCell className="px-6 py-4">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                        
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
-                                className="h-9 px-4 rounded-lg border border-neutral-300 b3 text-base font-sans text-gray-900 flex items-center gap-1 shadow-sm hover:border-red-100 focus:ring-2 focus:ring-red-100"
+                                className="h-8 w-8 p-0 hover:bg-gray-100"
                               >
-                                {order.status === "Pending" ? "Edit" : "View"}
-                                <ChevronDown className="h-4 w-4 ml-1" />
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                               align="end"
                               className="w-40 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
                             >
+                                <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100">
+                                <Eye className="h-4 w-4 mr-2" /> View
+                              </DropdownMenuItem>
                               <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100">
                                 <Edit className="h-4 w-4 mr-2" /> Packed
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100">
-                                <Eye className="h-4 w-4 mr-2" /> View
-                              </DropdownMenuItem>
+                            
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

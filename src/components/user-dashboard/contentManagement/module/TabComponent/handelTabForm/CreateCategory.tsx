@@ -112,7 +112,7 @@ export default function CreateCategory({
       try {
         const response = await getTypes();
         const items = response.data;
-        setType(items);
+        setType(items.products);
       } catch (err: any) {
         console.error("Failed to fetch vehicle types:", err);
         showToast("Failed to fetch vehicle types. Please try again.", "error");
