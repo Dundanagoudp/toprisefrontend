@@ -55,11 +55,27 @@ export default function ProductDetailsForOrder({
   const [assignmentsJson, setAssignmentsJson] = useState("[]")
   const [loadingAction, setLoadingAction] = useState(false)
   const { showToast } = GlobalToast()
+  const isPlaceholderString = (value: string) => {
+    const v = (value || "").trim().toLowerCase()
+    return v === "n/a" || v === "na" || v === "null" || v === "undefined" || v === "-"
+  }
+
   const safeDealerId = (dealer: any): string => {
     if (dealer == null) return ""
-    if (typeof dealer === "string") return dealer
-    if (typeof dealer === "number") return String(dealer)
-    return dealer._id || dealer.id || String(dealer)
+    if (typeof dealer === "string") return isPlaceholderString(dealer) ? "" : dealer
+    if (typeof dealer === "number") return Number.isFinite(dealer) ? String(dealer) : ""
+    const id = dealer._id || dealer.id
+    if (typeof id === "string" && isPlaceholderString(id)) return ""
+    return id ? String(id) : ""
+  }
+
+  const getDealerCount = (dealer: any): number => {
+    if (dealer == null) return 0
+    if (Array.isArray(dealer)) return dealer.map(safeDealerId).filter(Boolean).length
+    if (typeof dealer === "string") return safeDealerId(dealer) ? 1 : 0
+    if (typeof dealer === "number") return Number.isFinite(dealer) ? 1 : 0
+    if (typeof dealer === "object") return safeDealerId(dealer) ? 1 : 0
+    return 0
   }
 
   return (
@@ -138,9 +154,7 @@ export default function ProductDetailsForOrder({
             </td>
             <td className="py-4 px-4 align-middle w-[15%]">
               <div className="flex items-center">
-                <span className="text-sm font-medium text-gray-900">
-                  {Array.isArray(productItem.dealerId) ? productItem.dealerId.length : 1}
-                </span>
+                <span className="text-sm font-medium text-gray-900">{getDealerCount(productItem.dealerId)}</span>
                 <button
                   onClick={() => onDealerEyeClick(safeDealerId(productItem.dealerId))}
                   className="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -252,9 +266,7 @@ export default function ProductDetailsForOrder({
                   </div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs sm:text-sm text-gray-600">No. of Dealers:</span>
-                    <span className="text-xs sm:text-sm text-gray-900 font-semibold">
-                      {Array.isArray(productItem.dealerId) ? productItem.dealerId.length : 1}
-                    </span>
+                    <span className="text-xs sm:text-sm text-gray-900 font-semibold">{getDealerCount(productItem.dealerId)}</span>
                     <Eye
                       className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer ml-1 inline-block align-middle"
                       onClick={() => onDealerEyeClick(safeDealerId(productItem.dealerId))}

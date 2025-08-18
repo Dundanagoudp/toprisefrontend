@@ -629,6 +629,7 @@ export default function OrderDetailsView() {
       <ProductPopupModal
         isOpen={productModalOpen}
         onClose={() => setProductModalOpen(false)}
+        productId={selectedProduct?.productId}
       />
       <CreatePickList
         isOpen={createPickListOpen}
