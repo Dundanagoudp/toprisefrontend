@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+// Replaced shadcn Button usages with shared DynamicButton
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -238,14 +238,14 @@ export default function ProductDetailsForOrder({
             <td className="py-4 px-4 align-middle w-[15%]">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
+                  <DynamicButton
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0 hover:bg-gray-100"
                   >
                     <MoreHorizontal className="h-4 w-4" />
                     <span className="sr-only">Open menu</span>
-                  </Button>
+                  </DynamicButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1">
                   <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignDealers"); setActionOpen(true); }}>
@@ -370,14 +370,14 @@ export default function ProductDetailsForOrder({
               <div className="flex justify-end">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
+                    <DynamicButton
                       variant="outline"
                       size="sm"
                       className="h-8 bg-white border border-gray-300 rounded-md shadow-sm w-20 justify-between text-xs"
                     >
                       Edit
                       <ChevronDown className="h-4 w-4 ml-1" />
-                    </Button>
+                    </DynamicButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
                     <DropdownMenuItem className="text-sm">
@@ -455,7 +455,7 @@ export default function ProductDetailsForOrder({
                   </div>
                 ))}
               </div>
-              <Button
+              <DynamicButton
                 onClick={async () => {
                   try {
                     setLoadingAction(true)
@@ -475,7 +475,7 @@ export default function ProductDetailsForOrder({
                 disabled={loadingAction}
               >
                 {loadingAction ? "Saving..." : "Assign"}
-              </Button>
+              </DynamicButton>
             </div>
           )}
 
@@ -490,7 +490,7 @@ export default function ProductDetailsForOrder({
                   <SelectContent>
                     {availablePicklists.map((pl) => (
                       <SelectItem key={pl._id} value={pl._id}>
-                        Picklist • {pl.skuList?.length ?? 0} SKUs
+                        {pl._id} • {pl.skuList?.length ?? 0} SKUs
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -509,7 +509,7 @@ export default function ProductDetailsForOrder({
                   </SelectContent>
                 </Select>
               </div>
-              <Button
+              <DynamicButton
                 onClick={async () => {
                   try {
                     setLoadingAction(true)
@@ -525,7 +525,7 @@ export default function ProductDetailsForOrder({
                 disabled={loadingAction}
               >
                 {loadingAction ? "Assigning..." : "Assign"}
-              </Button>
+              </DynamicButton>
             </div>
           )}
 
@@ -535,7 +535,7 @@ export default function ProductDetailsForOrder({
                 <Label>Total Weight (kg)</Label>
                 <Input type="number" value={totalWeightKg} onChange={(e) => setTotalWeightKg(parseFloat(e.target.value) || 0)} />
               </div>
-              <Button
+              <DynamicButton
                 onClick={async () => {
                   try {
                     setLoadingAction(true)
@@ -551,7 +551,7 @@ export default function ProductDetailsForOrder({
                 disabled={loadingAction}
               >
                 {loadingAction ? "Updating..." : "Mark Packed"}
-              </Button>
+              </DynamicButton>
             </div>
           )}
         </DialogContent>

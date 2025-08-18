@@ -9,7 +9,7 @@ import {
   Eye,
   MoreHorizontal,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// Replaced shadcn Button with shared DynamicButton where used
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -383,14 +383,14 @@ export default function OrdersTable() {
                         <TableCell className="px-6 py-4">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button
+                              <DynamicButton
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0 hover:bg-gray-100"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                                 <span className="sr-only">Open menu</span>
-                              </Button>
+                              </DynamicButton>
                             </DropdownMenuTrigger>
                             {/* <DropdownMenuContent
                               align="end"
@@ -534,7 +534,7 @@ export default function OrdersTable() {
                 <Label>Assignments (JSON)</Label>
                 <Textarea rows={5} value={assignmentsJson} onChange={(e) => setAssignmentsJson(e.target.value)} />
               </div>
-              <Button
+              <DynamicButton
                 onClick={async () => {
                   try {
                     setLoadingAction(true);
@@ -554,7 +554,7 @@ export default function OrdersTable() {
                 disabled={loadingAction}
               >
                 {loadingAction ? "Saving..." : "Assign"}
-              </Button>
+              </DynamicButton>
             </div>
           )}
 
@@ -576,7 +576,7 @@ export default function OrdersTable() {
                 <Label>SKU List (JSON)</Label>
                 <Textarea rows={5} value={skuListJson} onChange={(e) => setSkuListJson(e.target.value)} />
               </div>
-              <Button
+              <DynamicButton
                 onClick={async () => {
                   try {
                     setLoadingAction(true);
@@ -598,7 +598,7 @@ export default function OrdersTable() {
                 disabled={loadingAction}
               >
                 {loadingAction ? "Creating..." : "Create"}
-              </Button>
+              </DynamicButton>
             </div>
           )}
 
@@ -612,7 +612,7 @@ export default function OrdersTable() {
                 <Label>Staff ID</Label>
                 <Input value={staffId} onChange={(e) => setStaffId(e.target.value)} />
               </div>
-              <Button
+              <DynamicButton
                 onClick={async () => {
                   try {
                     setLoadingAction(true);
@@ -628,7 +628,7 @@ export default function OrdersTable() {
                 disabled={loadingAction}
               >
                 {loadingAction ? "Assigning..." : "Assign"}
-              </Button>
+              </DynamicButton>
             </div>
           )}
 
@@ -646,7 +646,7 @@ export default function OrdersTable() {
                 <Label>Total Weight (kg)</Label>
                 <Input type="number" value={totalWeightKg} onChange={(e) => setTotalWeightKg(parseFloat(e.target.value) || 0)} />
               </div>
-              <Button
+              <DynamicButton
                 onClick={async () => {
                   try {
                     setLoadingAction(true);
@@ -662,7 +662,7 @@ export default function OrdersTable() {
                 disabled={loadingAction}
               >
                 {loadingAction ? "Updating..." : "Mark Packed"}
-              </Button>
+              </DynamicButton>
             </div>
           )}
 

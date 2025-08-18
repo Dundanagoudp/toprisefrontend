@@ -1,7 +1,7 @@
 "use client"
 
 import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { DynamicButton } from "@/components/common/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -36,7 +36,7 @@ export default function CancelOrderModal({ isOpen, onClose }: CancelOrderModalPr
               className="min-h-[100px] border-gray-300 focus:border-red-500 focus:ring-red-500"
             />
           </div>
-          <Button className="w-full bg-red-600 text-white hover:bg-red-700 py-2 text-base">Submit</Button>
+          <DynamicButton className="w-full bg-red-600 text-white hover:bg-red-700 py-2 text-base">Submit</DynamicButton>
         </div>
       </DialogContent>
     </Dialog>

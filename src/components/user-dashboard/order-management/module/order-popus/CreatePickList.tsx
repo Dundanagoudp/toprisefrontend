@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
+import { DynamicButton } from "@/components/common/button"
 import { createPicklist } from "@/service/order-service"
 import { PicklistSkuItem } from "@/types/order-Types"
 import { useToast as GlobalToast } from "@/components/ui/toast"
@@ -88,9 +88,9 @@ export default function CreatePickList({ isOpen, onClose, orderId, defaultDealer
                 <Textarea rows={6} value={skuListJson} onChange={(e) => setSkuListJson(e.target.value)} />
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleCreate} disabled={submitting} className="bg-[#C72920] text-white">
+                <DynamicButton onClick={handleCreate} disabled={submitting} className="bg-[#C72920] text-white">
                   {submitting ? 'Creating...' : 'Create Picklist'}
-                </Button>
+                </DynamicButton>
               </div>
             </CardContent>
           </Card>

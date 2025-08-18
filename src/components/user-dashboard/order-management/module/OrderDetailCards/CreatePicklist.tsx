@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { DynamicButton } from "@/components/common/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { useToast as GlobalToast } from "@/components/ui/toast"
@@ -175,23 +175,23 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({ open, onClose, orderId,
                         onChange={(e) => updateRow(idx, "barcode", e.target.value)}
                       />
                     ) : (
-                      <Button variant="outline" size="sm" onClick={() => toggleBarcode(idx)}>Add barcode</Button>
+                      <DynamicButton variant="outline" size="sm" onClick={() => toggleBarcode(idx)}>Add barcode</DynamicButton>
                     )}
                   </div>
                   <div className="col-span-1 flex justify-end">
                     {skuRows.length > 1 && (
-                      <Button variant="outline" size="sm" onClick={() => removeRow(idx)}>Remove</Button>
+                      <DynamicButton variant="outline" size="sm" onClick={() => removeRow(idx)}>Remove</DynamicButton>
                     )}
                   </div>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addRow}>Add SKU</Button>
+              <DynamicButton variant="outline" size="sm" onClick={addRow}>Add SKU</DynamicButton>
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button className="bg-[#C72920] text-white ml-2" onClick={handleCreate} disabled={submitting}>{submitting ? 'Creating...' : 'Create'}</Button>
+          <DynamicButton variant="outline" onClick={onClose}>Cancel</DynamicButton>
+          <DynamicButton className="bg-[#C72920] text-white ml-2" onClick={handleCreate} disabled={submitting}>{submitting ? 'Creating...' : 'Create'}</DynamicButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
