@@ -392,7 +392,7 @@ export default function OrdersTable() {
                                 <span className="sr-only">Open menu</span>
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent
+                            {/* <DropdownMenuContent
                               align="end"
                               className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
                             >
@@ -417,7 +417,7 @@ export default function OrdersTable() {
                                 <Edit className="h-4 w-4 mr-2" /> Mark Packed
                               </DropdownMenuItem>
                             
-                            </DropdownMenuContent>
+                            </DropdownMenuContent> */}
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>

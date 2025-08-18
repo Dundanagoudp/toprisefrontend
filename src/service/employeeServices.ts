@@ -46,6 +46,27 @@ export async function getEmployeeById(id: string): Promise<ApiResponse<Employee>
 }
 
 /**
+ * Fetch dealer assignments for a given employee.
+ * Mirrors GET /users/api/users/employees/:employeeId/dealer-assignments
+ */
+export async function getDealerAssignmentsForEmployee(
+  employeeId: string
+): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.get(
+      `/users/api/users/employees/${employeeId}/dealer-assignments`
+    )
+    return response.data
+  } catch (error) {
+    console.error(
+      `Failed to fetch dealer assignments for employee ${employeeId}:`,
+      error
+    )
+    throw error
+  }
+}
+
+/**
  * Revokes a role from an employee.
  * @param id The unique identifier of the employee.
  * @param data Object containing role revocation details.

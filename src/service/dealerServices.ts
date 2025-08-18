@@ -165,3 +165,21 @@ export async function assignEmployeesToDealer(
     throw error
   }
 }
+
+// Get employees assigned to a specific dealer
+export async function getAssignedEmployeesForDealer(
+  dealerId: string
+): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.get(
+      `/users/api/users/dealers/${dealerId}/assigned-employees`
+    )
+    return response.data
+  } catch (error) {
+    console.error(
+      `Failed to fetch assigned employees for dealer ${dealerId}:`,
+      error
+    )
+    throw error
+  }
+}

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -13,8 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast as GlobalToast } from "@/components/ui/toast"
 import { assignDealersToOrder, assignPicklistToStaff, updateOrderStatusByDealerReq } from "@/service/order-service"
+import { getAssignedEmployeesForDealer, getAllDealers } from "@/service/dealerServices"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getDealerPickList } from "@/service/dealerOrder-services"
 import { DealerPickList } from "@/types/dealerOrder-types"
+import type { Dealer } from "@/types/dealer-types"
 
 interface ProductItem {
   _id?: string
@@ -51,9 +54,13 @@ export default function ProductDetailsForOrder({
   const [activeAction, setActiveAction] = useState<"assignDealers" | "assignPicklist" | "markPacked" | null>(null)
   const [dealerId, setDealerId] = useState("")
   const [staffId, setStaffId] = useState("")
+  const [picklistId, setPicklistId] = useState("")
+  const [availablePicklists, setAvailablePicklists] = useState<DealerPickList[]>([])
+  const [loadingAssignPicklists, setLoadingAssignPicklists] = useState(false)
   const [totalWeightKg, setTotalWeightKg] = useState<number>(0)
-  const [assignmentsJson, setAssignmentsJson] = useState("[]")
+  const [assignments, setAssignments] = useState<Array<{ sku: string; dealerId: string }>>([])
   const [loadingAction, setLoadingAction] = useState(false)
+  const [assignedEmployees, setAssignedEmployees] = useState<Array<{ id: string; name: string }>>([])
   const { showToast } = GlobalToast()
   const isPlaceholderString = (value: string) => {
     const v = (value || "").trim().toLowerCase()
@@ -77,6 +84,61 @@ export default function ProductDetailsForOrder({
     if (typeof dealer === "object") return safeDealerId(dealer) ? 1 : 0
     return 0
   }
+
+  const loadAssignedEmployees = async (dealer: string) => {
+    try {
+      if (!dealer) { setAssignedEmployees([]); return }
+      const res = await getAssignedEmployeesForDealer(dealer)
+      const list = (((res?.data as any)?.assignedEmployees) || []) as Array<any>
+      const mapped = list
+        .filter((e) => (e.role || "").toLowerCase() === "fulfillment-staff")
+        .map((e) => ({ id: e.employeeId, name: e.name || e.employeeId_code || e.employeeId }))
+      setAssignedEmployees(mapped)
+    } catch {
+      setAssignedEmployees([])
+    }
+  }
+
+  const loadPicklistsForAssign = async (dealer: string) => {
+    try {
+      setLoadingAssignPicklists(true)
+      if (!dealer) { setAvailablePicklists([]); return }
+      const data = await getDealerPickList(dealer)
+      const filtered = (data || []).filter((pl) => String(pl.linkedOrderId) === String(orderId))
+      setAvailablePicklists(filtered)
+    } catch {
+      setAvailablePicklists([])
+    } finally {
+      setLoadingAssignPicklists(false)
+    }
+  }
+
+  // Dealers for Assign Dealers modal
+  const [dealers, setDealers] = useState<Dealer[]>([])
+  const [loadingDealers, setLoadingDealers] = useState(false)
+  const loadDealers = async () => {
+    try {
+      setLoadingDealers(true)
+      const res = await getAllDealers()
+      setDealers(((res as any)?.data || []) as Dealer[])
+    } catch {
+      setDealers([])
+    } finally {
+      setLoadingDealers(false)
+    }
+  }
+
+  const initializeAssignments = () => {
+    const initial = (products || []).map((p) => ({ sku: p.sku || "", dealerId: safeDealerId(p.dealerId) }))
+    setAssignments(initial)
+  }
+
+  useEffect(() => {
+    if (actionOpen && activeAction === "assignDealers") {
+      initializeAssignments()
+      loadDealers()
+    }
+  }, [actionOpen, activeAction])
 
   return (
     <>
@@ -189,7 +251,7 @@ export default function ProductDetailsForOrder({
                   <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignDealers"); setActionOpen(true); }}>
                     <Edit className="h-4 w-4 mr-2" /> Assign Dealers
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignPicklist"); setDealerId(""); setStaffId(""); setActionOpen(true); }}>
+                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={async () => { setActiveAction("assignPicklist"); const d = safeDealerId(productItem.dealerId); setDealerId(d); setPicklistId(""); setStaffId(""); await Promise.all([loadAssignedEmployees(d), loadPicklistsForAssign(d)]); setActionOpen(true); }}>
                     <Edit className="h-4 w-4 mr-2" /> Assign Picklist
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("markPacked"); setDealerId(safeDealerId(productItem.dealerId)); setActionOpen(true); }}>
@@ -358,14 +420,44 @@ export default function ProductDetailsForOrder({
           </DialogHeader>
 
           {activeAction === "assignDealers" && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
                 <Label>Order ID</Label>
                 <Input readOnly value={orderId || ""} />
               </div>
-              <div>
-                <Label>Assignments (JSON)</Label>
-                <Textarea rows={5} value={assignmentsJson} onChange={(e) => setAssignmentsJson(e.target.value)} />
+              <div className="space-y-3">
+                {(products || []).map((p, idx) => (
+                  <div key={`${p.sku}-${idx}`} className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-5">
+                      <Label className="text-xs">SKU</Label>
+                      <Input readOnly value={p.sku || ""} />
+                    </div>
+                    <div className="col-span-7">
+                      <Label className="text-xs">Dealer</Label>
+                      <Select
+                        value={assignments[idx]?.dealerId || ""}
+                        onValueChange={(val) => {
+                          setAssignments((prev) => {
+                            const next = [...prev]
+                            next[idx] = { sku: p.sku || "", dealerId: val }
+                            return next
+                          })
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={loadingDealers ? "Loading dealers..." : "Select dealer"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dealers.map((d) => (
+                            <SelectItem key={d._id as any} value={(d as any)._id as string}>
+                              {d.trade_name || d.legal_name} • {(d.user_id as any)?.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
               </div>
               <Button
                 onClick={async () => {
@@ -373,9 +465,9 @@ export default function ProductDetailsForOrder({
                     setLoadingAction(true)
                     const payload = {
                       orderId,
-                      assignments: JSON.parse(assignmentsJson || "[]"),
-                    } as any
-                    await assignDealersToOrder(payload)
+                      assignments: assignments.filter((a) => a.sku && a.dealerId),
+                    }
+                    await assignDealersToOrder(payload as any)
                     showToast("Dealers assigned", "success")
                     setActionOpen(false)
                   } catch (e) {
@@ -394,18 +486,38 @@ export default function ProductDetailsForOrder({
           {activeAction === "assignPicklist" && (
             <div className="space-y-3">
               <div>
-                <Label>Picklist ID</Label>
-                <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} placeholder="picklistId" />
+                <Label>Picklist</Label>
+                <Select value={picklistId} onValueChange={setPicklistId}>
+                  <SelectTrigger className="min-w-[260px]">
+                    <SelectValue placeholder={loadingAssignPicklists ? "Loading..." : (availablePicklists.length ? "Select picklist" : "No picklists for this order") } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePicklists.map((pl) => (
+                      <SelectItem key={pl._id} value={pl._id}>
+                        {pl._id} • {pl.skuList?.length ?? 0} SKUs
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label>Staff ID</Label>
-                <Input value={staffId} onChange={(e) => setStaffId(e.target.value)} />
+                <Label>Fulfilment Staff</Label>
+                <Select value={staffId} onValueChange={setStaffId}>
+                  <SelectTrigger className="min-w-[220px]">
+                    <SelectValue placeholder={assignedEmployees.length ? "Select staff" : "No assigned staff"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assignedEmployees.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button
                 onClick={async () => {
                   try {
                     setLoadingAction(true)
-                    await assignPicklistToStaff({ picklistId: dealerId, staffId })
+                    await assignPicklistToStaff({ picklistId: picklistId, staffId })
                     showToast("Picklist assigned", "success")
                     setActionOpen(false)
                   } catch (e) {

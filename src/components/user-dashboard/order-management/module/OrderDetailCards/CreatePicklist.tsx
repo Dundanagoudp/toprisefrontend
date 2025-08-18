@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { useToast as GlobalToast } from "@/components/ui/toast"
 import { createPicklist } from "@/service/order-service"
+import { getAssignedEmployeesForDealer } from "@/service/dealerServices"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface CreatePicklistProps {
   open: boolean
@@ -23,6 +25,8 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({ open, onClose, orderId,
   const [skuRows, setSkuRows] = useState<SkuRow[]>(defaultSkuList.length > 0 ? defaultSkuList : [{ sku: "", quantity: 1 }])
   const [barcodeVisible, setBarcodeVisible] = useState<Record<number, boolean>>({})
   const [submitting, setSubmitting] = useState(false)
+  const [assignedEmployees, setAssignedEmployees] = useState<Array<{ id: string; name: string; email?: string; role?: string }>>([])
+  const [loadingEmployees, setLoadingEmployees] = useState<boolean>(false)
 
   // Keep local state in sync when dialog opens with new defaults
   useEffect(() => {
@@ -32,6 +36,33 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({ open, onClose, orderId,
       setBarcodeVisible({})
     }
   }, [open, defaultDealerId, defaultSkuList])
+
+  // Load assigned employees for dealer when dealerId becomes available
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      if (!dealerId) {
+        setAssignedEmployees([])
+        return
+      }
+      try {
+        setLoadingEmployees(true)
+        const res = await getAssignedEmployeesForDealer(dealerId)
+        const list = (((res?.data as any)?.assignedEmployees) || []) as Array<any>
+        const onlyFulfilment = list.filter((e) => (e.role || "").toLowerCase() === "fulfillment-staff")
+        const mapped = onlyFulfilment.map((e) => ({ id: e.employeeId, name: e.name || e.employeeId_code || e.employeeId, email: e.email, role: e.role }))
+        setAssignedEmployees(mapped)
+        // If current staffId is not in list, clear it
+        if (!mapped.some((m) => m.id === staffId)) {
+          setStaffId("")
+        }
+      } catch (err) {
+        setAssignedEmployees([])
+      } finally {
+        setLoadingEmployees(false)
+      }
+    }
+    fetchEmployees()
+  }, [dealerId])
 
   const updateRow = (index: number, field: keyof SkuRow, value: string) => {
     setSkuRows((prev) => {
@@ -69,7 +100,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({ open, onClose, orderId,
         return
       }
       if (!staffId) {
-        showToast("Enter Fulfilment Staff ID", "error")
+        showToast("Select a Fulfilment Staff", "error")
         return
       }
       const skuList = skuRows
@@ -105,8 +136,22 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({ open, onClose, orderId,
             <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} />
           </div>
           <div>
-            <Label>Fulfilment Staff ID</Label>
-            <Input value={staffId} onChange={(e) => setStaffId(e.target.value)} />
+            <Label>Fulfilment Staff</Label>
+            <div className="flex items-center gap-2">
+              <Select value={staffId} onValueChange={setStaffId}>
+                <SelectTrigger className="min-w-[240px]">
+                  <SelectValue placeholder={loadingEmployees ? "Loading..." : (assignedEmployees.length ? "Select staff" : "No assigned staff")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {assignedEmployees.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.email ? `• ${s.email}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingEmployees && <span className="text-xs text-gray-500">Loading...</span>}
+            </div>
           </div>
           <div>
             <Label>SKUs</Label>
