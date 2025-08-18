@@ -65,12 +65,12 @@ export default function DealerIdentification({
                   </div>
       
                   <div className="flex justify-end mt-2">
-                    <DynamicButton
+                    {/* <DynamicButton
                       variant="default"
                       text="Reassign Dealer"
                       customClassName="bg-[#C72920] hover:bg-red-700 px-4 py-1 text-xs rounded"
                       // onClick={() => handleReassignDealer(dealer.dealerId)} // Add handler as needed
-                    />
+                    /> */}
                   </div>
                 </div>
               </CardContent>

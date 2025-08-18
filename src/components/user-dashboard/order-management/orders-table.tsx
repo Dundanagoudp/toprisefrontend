@@ -10,6 +10,9 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -53,7 +56,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
-import { getOrders } from "@/service/order-service";
+import { getOrders, assignDealersToOrder, createPicklist, assignPicklistToStaff, updateOrderStatusByDealerReq, fetchPicklists } from "@/service/order-service";
 import { orderResponse } from "@/types/order-Types";
 import {
   fetchOrdersFailure,
@@ -92,6 +95,20 @@ export default function OrdersTable() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  // Action modal state
+  const [actionOpen, setActionOpen] = useState(false);
+  const [activeAction, setActiveAction] = useState<
+    "assignDealers" | "createPicklist" | "assignPicklist" | "markPacked" | "viewPicklists" | null
+  >(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [dealerId, setDealerId] = useState("");
+  const [staffId, setStaffId] = useState("");
+  const [totalWeightKg, setTotalWeightKg] = useState<number>(0);
+  const [assignmentsJson, setAssignmentsJson] = useState("[]");
+  const [skuListJson, setSkuListJson] = useState("[]");
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [picklistsData, setPicklistsData] = useState<any[]>([]);
   const filteredOrders = searchQuery
     ? ordersState.filter(
         (order: any) =>
@@ -213,13 +230,6 @@ export default function OrdersTable() {
           {/* Search and Filters */}
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 gap-4 w-full">
             <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3 w-full lg:w-auto">
-              {/* <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search Spare parts"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white border-gray-200 h-10"
-            /> */}
 
               <SearchInput
                 placeholder="Search Spare parts"
@@ -234,17 +244,6 @@ export default function OrdersTable() {
                   text="Filters"
                   icon={<Filter className="h-4 w-4 mr-2" />}
                 />
-                {/* 
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-32 h-10 bg-white border-gray-200">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Requests">Requests</SelectItem>
-                <SelectItem value="Orders">Orders</SelectItem>
-                <SelectItem value="Returns">Returns</SelectItem>
-              </SelectContent>
-            </Select> */}
               </div>
             </div>
           </div>
@@ -395,13 +394,27 @@ export default function OrdersTable() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                               align="end"
-                              className="w-40 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
+                              className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
                             >
-                                <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100">
-                                <Eye className="h-4 w-4 mr-2" /> View
+                                <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => {
+                                  setSelectedOrder(order);
+                                  setActiveAction("assignDealers");
+                                  setActionOpen(true);
+                                }}>
+                                <Edit className="h-4 w-4 mr-2" /> Assign Dealers
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100">
-                                <Edit className="h-4 w-4 mr-2" /> Packed
+                              <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => {
+                                  setActiveAction("assignPicklist");
+                                  setActionOpen(true);
+                                }}>
+                                <Edit className="h-4 w-4 mr-2" /> Assign Picklist
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => {
+                                  setSelectedOrder(order);
+                                  setActiveAction("markPacked");
+                                  setActionOpen(true);
+                                }}>
+                                <Edit className="h-4 w-4 mr-2" /> Mark Packed
                               </DropdownMenuItem>
                             
                             </DropdownMenuContent>
@@ -498,6 +511,180 @@ export default function OrdersTable() {
           </div>
         )}
       </Card>
+      {/* Action Modal */}
+      <Dialog open={actionOpen} onOpenChange={setActionOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {activeAction === "assignDealers" && "Assign Dealers to SKUs"}
+              {activeAction === "createPicklist" && "Create Picklist"}
+              {activeAction === "assignPicklist" && "Assign Picklist to Staff"}
+              {activeAction === "markPacked" && "Mark Order as Packed"}
+              {activeAction === "viewPicklists" && "Picklists"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {activeAction === "assignDealers" && (
+            <div className="space-y-3">
+              <div>
+                <Label>Order ID</Label>
+                <Input readOnly value={selectedOrder?.id || ""} />
+              </div>
+              <div>
+                <Label>Assignments (JSON)</Label>
+                <Textarea rows={5} value={assignmentsJson} onChange={(e) => setAssignmentsJson(e.target.value)} />
+              </div>
+              <Button
+                onClick={async () => {
+                  try {
+                    setLoadingAction(true);
+                    const payload = {
+                      orderId: selectedOrder?.id,
+                      assignments: JSON.parse(assignmentsJson || "[]"),
+                    };
+                    await assignDealersToOrder(payload);
+                    showToast("Dealers assigned", "success");
+                    setActionOpen(false);
+                  } catch (e) {
+                    showToast("Failed to assign dealers", "error");
+                  } finally {
+                    setLoadingAction(false);
+                  }
+                }}
+                disabled={loadingAction}
+              >
+                {loadingAction ? "Saving..." : "Assign"}
+              </Button>
+            </div>
+          )}
+
+          {activeAction === "createPicklist" && (
+            <div className="space-y-3">
+              <div>
+                <Label>Order ID</Label>
+                <Input readOnly value={selectedOrder?.id || ""} />
+              </div>
+              <div>
+                <Label>Dealer ID</Label>
+                <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} />
+              </div>
+              <div>
+                <Label>Fulfilment Staff ID</Label>
+                <Input value={staffId} onChange={(e) => setStaffId(e.target.value)} />
+              </div>
+              <div>
+                <Label>SKU List (JSON)</Label>
+                <Textarea rows={5} value={skuListJson} onChange={(e) => setSkuListJson(e.target.value)} />
+              </div>
+              <Button
+                onClick={async () => {
+                  try {
+                    setLoadingAction(true);
+                    const payload = {
+                      orderId: selectedOrder?.id,
+                      dealerId,
+                      fulfilmentStaff: staffId,
+                      skuList: JSON.parse(skuListJson || "[]"),
+                    };
+                    await createPicklist(payload);
+                    showToast("Picklist created", "success");
+                    setActionOpen(false);
+                  } catch (e) {
+                    showToast("Failed to create picklist", "error");
+                  } finally {
+                    setLoadingAction(false);
+                  }
+                }}
+                disabled={loadingAction}
+              >
+                {loadingAction ? "Creating..." : "Create"}
+              </Button>
+            </div>
+          )}
+
+          {activeAction === "assignPicklist" && (
+            <div className="space-y-3">
+              <div>
+                <Label>Picklist ID</Label>
+                <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} placeholder="picklistId" />
+              </div>
+              <div>
+                <Label>Staff ID</Label>
+                <Input value={staffId} onChange={(e) => setStaffId(e.target.value)} />
+              </div>
+              <Button
+                onClick={async () => {
+                  try {
+                    setLoadingAction(true);
+                    await assignPicklistToStaff({ picklistId: dealerId, staffId });
+                    showToast("Picklist assigned", "success");
+                    setActionOpen(false);
+                  } catch (e) {
+                    showToast("Failed to assign picklist", "error");
+                  } finally {
+                    setLoadingAction(false);
+                  }
+                }}
+                disabled={loadingAction}
+              >
+                {loadingAction ? "Assigning..." : "Assign"}
+              </Button>
+            </div>
+          )}
+
+          {activeAction === "markPacked" && (
+            <div className="space-y-3">
+              <div>
+                <Label>Order ID</Label>
+                <Input readOnly value={selectedOrder?.id || ""} />
+              </div>
+              <div>
+                <Label>Dealer ID</Label>
+                <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} />
+              </div>
+              <div>
+                <Label>Total Weight (kg)</Label>
+                <Input type="number" value={totalWeightKg} onChange={(e) => setTotalWeightKg(parseFloat(e.target.value) || 0)} />
+              </div>
+              <Button
+                onClick={async () => {
+                  try {
+                    setLoadingAction(true);
+                    await updateOrderStatusByDealerReq({ orderId: selectedOrder?.id, dealerId, total_weight_kg: totalWeightKg });
+                    showToast("Order marked as packed", "success");
+                    setActionOpen(false);
+                  } catch (e) {
+                    showToast("Failed to mark packed", "error");
+                  } finally {
+                    setLoadingAction(false);
+                  }
+                }}
+                disabled={loadingAction}
+              >
+                {loadingAction ? "Updating..." : "Mark Packed"}
+              </Button>
+            </div>
+          )}
+
+          {activeAction === "viewPicklists" && (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {picklistsData.length === 0 ? (
+                <p className="text-sm text-gray-600">No picklists found.</p>
+              ) : (
+                picklistsData.map((p: any) => (
+                  <div key={p._id} className="border rounded p-3 text-sm">
+                    <div className="font-medium mb-1">{p._id}</div>
+                    <div>Order: {p.linkedOrderId}</div>
+                    <div>Dealer: {p.dealerId}</div>
+                    <div>Scan: {p.scanStatus}</div>
+                    <div>Invoice: {p.invoiceGenerated ? "Yes" : "No"}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -33,7 +33,6 @@ import ProductPopupModal from "@/components/user-dashboard/order-management/modu
 import ProductDetailsForOrder from "@/components/user-dashboard/order-management/module/OrderDetailCards/ProductDetailsForOrder";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { useParams } from "next/navigation";
-import { ca } from "zod/v4/locales";
 import { getOrderById } from "@/service/order-service";
 import {
   fetchOrderByIdSuccess,
@@ -53,44 +52,6 @@ interface ProductItem {
   image: string;
 }
 type Params = { id: string };
-// const mockProducts: ProductItem[] = [
-//   {
-//     id: "1",
-//     name: "Front Brake Pad - Swift 2016 Petrol",
-//     dealerId: "DLR302",
-//     mrp: 749.0,
-//     gst: "18%",
-//     totalPrice: 1498.0,
-//     image: "/placeholder.svg?height=40&width=40",
-//   },
-//   {
-//     id: "2",
-//     name: "Front Brake Pad - Swift 2016 Petrol",
-//     dealerId: "DLR302",
-//     mrp: 749.0,
-//     gst: "18%",
-//     totalPrice: 1498.0,
-//     image: "/placeholder.svg?height=40&width=40",
-//   },
-//   {
-//     id: "3",
-//     name: "Front Brake Pad - Swift 2016 Petrol",
-//     dealerId: "DLR302",
-//     mrp: 749.0,
-//     gst: "18%",
-//     totalPrice: 1498.0,
-//     image: "/placeholder.svg?height=40&width=40",
-//   },
-//   {
-//     id: "4",
-//     name: "Front Brake Pad - Swift 2016 Petrol",
-//     dealerId: "DLR302",
-//     mrp: 749.0,
-//     gst: "18%",
-//     totalPrice: 1498.0,
-//     image: "/placeholder.svg?height=40&width=40",
-//   },
-// ]
 
 const trackingSteps = [
   {
@@ -584,7 +545,9 @@ export default function OrderDetailsView() {
             products={product(orderById)}
             onProductEyeClick={handleProductEyeClick}
             onDealerEyeClick={handleDealerEyeClick}
+            orderId={orderId}
           />
+
 
           {/* Update Orders Status Card */}
           <Card className="border border-gray-200 shadow-sm">
@@ -667,7 +630,15 @@ export default function OrderDetailsView() {
         isOpen={productModalOpen}
         onClose={() => setProductModalOpen(false)}
       />
-      <CreatePickList isOpen={createPickListOpen} onClose={() => setCreatePickListOpen(false)} />
+      <CreatePickList
+        isOpen={createPickListOpen}
+        onClose={() => setCreatePickListOpen(false)}
+        orderId={String(orderById?._id || orderId)}
+        defaultDealerId={String(orderById?.dealerMapping?.[0]?.dealerId || "")}
+        defaultSkuList={(orderById?.skus || []).map((s: any) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))}
+        dealerOptions={(orderById?.dealerMapping || []).map((d: any) => String(d.dealerId))}
+        skusSource={(orderById?.skus || []).map((s: any) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))}
+      />
     </div>
   );
 }
