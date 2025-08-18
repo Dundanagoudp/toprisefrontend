@@ -67,7 +67,7 @@ export default function CreatePickList({ isOpen, onClose, orderId, defaultDealer
   return (
     <div>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogOverlay />
+        <DialogOverlay className="bg-transparent" />
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Create Pick List</DialogTitle>

@@ -13,7 +13,7 @@ interface CancelOrderModalProps {
 export default function CancelOrderModal({ isOpen, onClose }: CancelOrderModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogOverlay className="bg-black bg-opacity-50" />
+      <DialogOverlay className="bg-transparent" />
       <DialogContent className="w-full max-w-md p-6 rounded-lg bg-white shadow-lg mx-auto">
         <DialogHeader className="relative flex flex-col items-center text-center pt-4 pb-6">
           <img

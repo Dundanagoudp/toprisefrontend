@@ -39,7 +39,7 @@ export default function ProductPopupModal({ isOpen, onClose, productId = "" }: P
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogOverlay className="bg-black bg-opacity-50" />
+      <DialogOverlay className="bg-transparent" />
       <DialogContent className="w-full max-w-5xl mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
         <DialogHeader className="border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">

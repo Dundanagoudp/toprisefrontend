@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogOverlay } from "@/components/ui/dialog"
 import { DynamicButton } from "@/components/common/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -122,6 +122,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({ open, onClose, orderId,
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
+      <DialogOverlay className="bg-transparent" />
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create Picklist</DialogTitle>
