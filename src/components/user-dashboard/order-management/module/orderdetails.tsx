@@ -34,6 +34,7 @@ import ProductDetailsForOrder from "@/components/user-dashboard/order-management
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { useParams } from "next/navigation";
 import { getOrderById } from "@/service/order-service";
+import { getDealerById } from "@/service/dealerServices";
 import {
   fetchOrderByIdSuccess,
   fetchOrderByIdRequest,
@@ -317,24 +318,18 @@ export default function OrderDetailsView() {
   }
 
   // Handler to open modal with dealer data
-  const handleDealerEyeClick = (dealerId: string) => {
-    // In a real app, you would fetch dealer data by dealerId from your backend.
-    // For now, we'll use a mock dealer data object.
-    const dealer = {
-      dealerId: dealerId,
-      legalName: "Shree Auto Spares Pvt Ltd",
-      tradeName: "ShreeAuto",
-      address: "Plot 14, MIDC Bhosari, Pune",
-      contactPerson: "Rakesh Jadhav",
-      mobileNumber: "+91 98200 12345",
-      email: "dealer@shreeauto.in",
-      gstin: "27ABCDE1234F1Z2",
-      pan: "ABCDE1234F",
-      state: "Maharashtra",
-      pincode: "411026",
-    };
-    setSelectedDealer(dealer);
-    setDealerModalOpen(true);
+  const handleDealerEyeClick = async (dealerId: string) => {
+    try {
+      const res = await getDealerById(dealerId);
+      const dealer = (res as any)?.data || (res as any);
+      // Pass through raw dealer object; DealerIdentification resolves names dynamically
+      setSelectedDealer({ ...dealer, dealerId: dealerId });
+      setDealerModalOpen(true);
+    } catch (e) {
+      // Fallback: open modal with minimal info
+      setSelectedDealer({ dealerId: dealerId });
+      setDealerModalOpen(true);
+    }
   };
 
   // Function to extract product data from orderById

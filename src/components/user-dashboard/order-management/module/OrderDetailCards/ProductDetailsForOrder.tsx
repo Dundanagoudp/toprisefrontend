@@ -421,10 +421,6 @@ export default function ProductDetailsForOrder({
 
           {activeAction === "assignDealers" && (
             <div className="space-y-4">
-              <div>
-                <Label>Order ID</Label>
-                <Input readOnly value={orderId || ""} />
-              </div>
               <div className="space-y-3">
                 {(products || []).map((p, idx) => (
                   <div key={`${p.sku}-${idx}`} className="grid grid-cols-12 gap-2 items-center">
@@ -494,7 +490,7 @@ export default function ProductDetailsForOrder({
                   <SelectContent>
                     {availablePicklists.map((pl) => (
                       <SelectItem key={pl._id} value={pl._id}>
-                        {pl._id} • {pl.skuList?.length ?? 0} SKUs
+                        Picklist • {pl.skuList?.length ?? 0} SKUs
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -535,14 +531,6 @@ export default function ProductDetailsForOrder({
 
           {activeAction === "markPacked" && (
             <div className="space-y-3">
-              <div>
-                <Label>Order ID</Label>
-                <Input readOnly value={orderId || ""} />
-              </div>
-              <div>
-                <Label>Dealer ID</Label>
-                <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} />
-              </div>
               <div>
                 <Label>Total Weight (kg)</Label>
                 <Input type="number" value={totalWeightKg} onChange={(e) => setTotalWeightKg(parseFloat(e.target.value) || 0)} />
@@ -591,7 +579,6 @@ export default function ProductDetailsForOrder({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Picklist ID</TableHead>
-                    <TableHead>Linked Order</TableHead>
                     <TableHead>Scan Status</TableHead>
                     <TableHead>Invoice</TableHead>
                     <TableHead>SKUs</TableHead>
@@ -601,7 +588,6 @@ export default function ProductDetailsForOrder({
                   {picklists.map((pl) => (
                     <TableRow key={pl._id}>
                       <TableCell className="font-mono text-xs">{pl._id}</TableCell>
-                      <TableCell className="font-mono text-xs">{pl.linkedOrderId}</TableCell>
                       <TableCell>{pl.scanStatus}</TableCell>
                       <TableCell>{pl.invoiceGenerated ? "Yes" : "No"}</TableCell>
                       <TableCell>

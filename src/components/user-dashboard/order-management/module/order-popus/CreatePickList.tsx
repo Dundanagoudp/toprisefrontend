@@ -78,33 +78,9 @@ export default function CreatePickList({ isOpen, onClose, orderId, defaultDealer
               <CardDescription>
                 Provide details to create a new pick list. You can edit the prefilled SKU list.
               </CardDescription>
+              {/* Hiding Order ID and Dealer ID fields from UI while still using state values for backend */}
               <div>
-                <Label>Order ID</Label>
-                <Input readOnly value={orderId} />
-              </div>
-              <div>
-                <Label>Dealer ID</Label>
-                {dealerOptions && dealerOptions.length > 0 ? (
-                  <Select value={dealerId} onValueChange={(v) => {
-                    setDealerId(v);
-                    const base = (skusSource && skusSource.length > 0) ? skusSource : defaultSkuList;
-                    setSkuListJson(JSON.stringify(base.map(({ sku, quantity, barcode }) => ({ sku, quantity, barcode: barcode || "" })), null, 2));
-                  }}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select dealer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dealerOptions.map((opt) => (
-                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} />
-                )}
-              </div>
-              <div>
-                <Label>Fulfilment Staff ID</Label>
+                <Label>Fulfilment Staff</Label>
                 <Input value={staffId} onChange={(e) => setStaffId(e.target.value)} />
               </div>
               <div>

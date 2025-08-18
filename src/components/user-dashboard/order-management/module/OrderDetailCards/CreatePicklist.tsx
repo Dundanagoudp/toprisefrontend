@@ -127,14 +127,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({ open, onClose, orderId,
           <DialogTitle>Create Picklist</DialogTitle>
         </DialogHeader>
         <div className="py-2 space-y-3">
-          <div>
-            <Label>Order ID</Label>
-            <Input readOnly value={orderId} />
-          </div>
-          <div>
-            <Label>Dealer ID</Label>
-            <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} />
-          </div>
+          {/* Intentionally hiding Order ID and Dealer ID from UI while still using them internally */}
           <div>
             <Label>Fulfilment Staff</Label>
             <div className="flex items-center gap-2">
