@@ -645,7 +645,13 @@ export default function Dealertable({
         onClose={() => setAssignStaffModalOpen(false)}
         dealerId={selectedDealerForStaff?._id || null}
         dealerName={selectedDealerForStaff?.legal_name || "Dealer"}
-        currentStaff={selectedDealerForStaff?.staff_assigned || []}
+        currentStaff={(selectedDealerForStaff?.assigned_Toprise_employee || [])
+          .map((a) => {
+            const u: any = a?.assigned_user as any
+            if (!u) return ""
+            return typeof u === "string" ? u : u._id
+          })
+          .filter(Boolean) as string[]}
         onSuccess={handleStaffSuccess}
       />
 

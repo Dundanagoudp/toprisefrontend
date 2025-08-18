@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +12,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Users } from 'lucide-react';
 import { useToast as useToastMessage } from "@/components/ui/toast";
+import { Textarea } from "@/components/ui/textarea";
+import { getAllEmployees } from "@/service/employeeServices";
+import { assignEmployeesToDealer } from "@/service/dealerServices";
+import type { Employee } from "@/types/employee-types";
 
 interface Staff {
   _id: string;
@@ -39,12 +43,40 @@ export default function AssignStaffPopup({
 }: AssignStaffPopupProps) {
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [staffList, setStaffList] = useState<Staff[]>([
-    { _id: "1", name: "John Doe", email: "john@example.com", role: "Manager" },
-    { _id: "2", name: "Jane Smith", email: "jane@example.com", role: "Sales Rep" },
-    { _id: "3", name: "Mike Johnson", email: "mike@example.com", role: "Support" }
-  ]);
+  const [notes, setNotes] = useState("");
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   const { showToast } = useToastMessage();
+
+  useEffect(() => {
+    async function fetchEmployees() {
+      try {
+        const res = await getAllEmployees();
+        console.log('[AssignStaff] getAllEmployees response:', res);
+        const employees = (res.data || []) as Employee[];
+        const fulfillmentStaff = employees
+          .filter((e) => (e.role || "").toLowerCase() === "fulfillment-staff")
+          .map<Staff>((e) => {
+            const name = e.First_name || ((e.user_id as any)?.username ?? "");
+            return {
+              _id: e._id,
+              name,
+              email: e.email,
+              role: e.role,
+            }
+          });
+        console.log('[AssignStaff] filtered fulfillment staff:', fulfillmentStaff);
+        setStaffList(fulfillmentStaff);
+      } catch (err) {
+        console.error('[AssignStaff] failed to load employees:', err);
+        setStaffList([]);
+        showToast("Failed to load employees", "error");
+      }
+    }
+    if (open) {
+      setSelectedStaff([]);
+      fetchEmployees();
+    }
+  }, [open, showToast]);
 
   const handleStaffToggle = (staffId: string) => {
     setSelectedStaff(prev => 
@@ -62,13 +94,23 @@ export default function AssignStaffPopup({
 
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // await assignStaffToDealer(dealerId, selectedStaff);
+      if (!dealerId) {
+        showToast("Missing dealer id", "error");
+        return;
+      }
+      console.log('[AssignStaff] assigning employees', { dealerId, selectedStaff, notes });
+      const response = await assignEmployeesToDealer(dealerId, {
+        employeeIds: selectedStaff,
+        assignmentNotes: notes || undefined,
+      });
+      console.log('[AssignStaff] assign response:', response);
       
-      showToast(`Successfully assigned ${selectedStaff.length} staff member(s) to ${dealerName}`, "success");
+      const message = (response && (response as any).message) || `Successfully assigned ${selectedStaff.length} staff member(s) to ${dealerName}`;
+      showToast(message, "success");
       onSuccess();
       onClose();
       setSelectedStaff([]);
+      setNotes("");
     } catch (error) {
       showToast("Failed to assign staff. Please try again.", "error");
     } finally {
@@ -88,7 +130,15 @@ export default function AssignStaffPopup({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-4 space-y-3">
+          <div>
+            <Textarea
+              placeholder="Add assignment notes (optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-20"
+            />
+          </div>
           {availableStaff.length === 0 ? (
             <p className="text-gray-500 text-center py-8">
               No available staff to assign

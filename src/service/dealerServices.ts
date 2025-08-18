@@ -145,3 +145,23 @@ export async function removeAllowedCategories(dealerId: string, categories: stri
     throw error
   }
 }
+
+// Assign employees to a dealer
+export async function assignEmployeesToDealer(
+  dealerId: string,
+  payload: { employeeIds: string[]; assignmentNotes?: string }
+): Promise<ApiResponse<any>> {
+  try {
+    console.log("[assignEmployeesToDealer] dealerId:", dealerId)
+    console.log("[assignEmployeesToDealer] payload:", payload)
+    const response = await apiClient.post(
+      `/users/api/users/dealers/${dealerId}/assign-employees`,
+      payload
+    )
+    console.log("[assignEmployeesToDealer] response:", response?.data)
+    return response.data
+  } catch (error) {
+    console.error(`Failed to assign employees to dealer ${dealerId}:`, error)
+    throw error
+  }
+}
