@@ -160,7 +160,7 @@ export default function OrdersTable() {
           skusCount: order.skus?.length || 0,
           dealers: order.dealerMapping?.length || 0,
           dealerMapping: order.dealerMapping || [],
-          status: order.status === "Confirmed" ? "Approved" : "Pending",
+          status: order.status,
           deliveryCharges: order.deliveryCharges,
           GST: order.GST,
           orderType: order.orderType,
@@ -210,12 +210,63 @@ export default function OrdersTable() {
     setCurrentPage(1);
   };
 
-  const getStatusBadge = (status: "Pending" | "Approved") => {
+  const refreshOrders = useCallback(async () => {
+    try {
+      dispatch(fetchOrdersRequest());
+      const response = await getOrders();
+      const mappedOrders = response.data.map((order: any) => ({
+        id: order._id,
+        orderId: order.orderId,
+        orderDate: new Date(order.orderDate).toLocaleDateString(),
+        customer: order.customerDetails?.name || "",
+        number: order.customerDetails?.phone || "",
+        payment: order.paymentType,
+        value: `₹${order.order_Amount}`,
+        skus:
+          order.skus?.map((sku: any) => ({
+            sku: sku.sku,
+            quantity: sku.quantity,
+            productId: sku.productId,
+            productName: sku.productName,
+            _id: sku._id,
+          })) || [],
+        skusCount: order.skus?.length || 0,
+        dealers: order.dealerMapping?.length || 0,
+        dealerMapping: order.dealerMapping || [],
+        status: order.status,
+        deliveryCharges: order.deliveryCharges,
+        GST: order.GST,
+        orderType: order.orderType,
+        orderSource: order.orderSource,
+        auditLogs: order.auditLogs || [],
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      }));
+      dispatch(fetchOrdersSuccess(mappedOrders));
+    } catch (error) {
+      dispatch(fetchOrdersFailure(error as any));
+    }
+  }, [dispatch]);
+
+  const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 rounded text-xs font-medium";
-    if (status === "Pending") {
+    const s = (status || "").toLowerCase();
+    if (s === "pending" || s === "created") {
       return `${baseClasses} text-yellow-700 bg-yellow-100`;
     }
-    return `${baseClasses} text-green-700 bg-green-100`;
+    if (s === "approved" || s === "confirmed") {
+      return `${baseClasses} text-green-700 bg-green-100`;
+    }
+    if (s === "packed") {
+      return `${baseClasses} text-blue-700 bg-blue-100`;
+    }
+    if (s === "delivered" || s === "completed") {
+      return `${baseClasses} text-emerald-700 bg-emerald-100`;
+    }
+    if (s === "cancelled" || s === "canceled") {
+      return `${baseClasses} text-red-700 bg-red-100`;
+    }
+    return `${baseClasses} text-gray-700 bg-gray-100`;
   };
 
   // Loading Skeleton Component
@@ -262,7 +313,7 @@ export default function OrdersTable() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="hidden sm:block overflow-x-auto">
-            <Table className="min-w-full">
+            <Table className="min-w-full table-fixed">
               <TableHeader>
                 <TableRow className="border-b  border-[#E5E5E5] bg-gray-50/50">
                   <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
@@ -298,7 +349,7 @@ export default function OrdersTable() {
                     Dealer
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Staus
+                    Status
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
                     Actions
@@ -351,33 +402,34 @@ export default function OrdersTable() {
                           <Checkbox />
                         </TableCell>
                         <TableCell
-                          className="px-6 py-4 font-medium "
+                          className="px-6 py-4 font-medium max-w-[160px] truncate cursor-pointer"
+                          title={order.orderId}
                           onClick={() => handleViewOrder(order.id)}
                         >
                           {order.orderId}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000] font-sans">
+                        <TableCell className="px-6 py-4 font-semibold text-[#000000] font-sans whitespace-nowrap">
                           {order.orderDate}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
+                        <TableCell className="px-6 py-4 font-semibold text-[#000000] max-w-[180px] truncate" title={order.customer}>
                           {order.customer}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
+                        <TableCell className="px-6 py-4 font-semibold text-[#000000] max-w-[160px] truncate" title={order.number}>
                           {order.number}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
+                        <TableCell className="px-6 py-4 font-semibold text-[#000000] max-w-[140px] truncate" title={order.payment}>
                           {order.payment}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
+                        <TableCell className="px-6 py-4 font-semibold text-[#000000] max-w-[120px] truncate" title={order.value}>
                           {order.value}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
+                        <TableCell className="px-6 py-4 font-semibold text-[#000000] whitespace-nowrap">
                           {Array.isArray(order.skus) ? order.skus.length : 1}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
+                        <TableCell className="px-6 py-4 font-semibold text-[#000000] whitespace-nowrap">
                           {order.dealers}
                         </TableCell>
-                        <TableCell className="px-6 py-4">
+                        <TableCell className="px-6 py-4 whitespace-nowrap">
                           <span className={getStatusBadge(order.status)}>
                             {order.status}
                           </span>
@@ -532,6 +584,7 @@ export default function OrdersTable() {
                     await updateOrderStatusByDealerReq({ orderId: selectedOrder?.id, dealerId, total_weight_kg: totalWeightKg });
                     showToast("Order marked as packed", "success");
                     setActionOpen(false);
+                    await refreshOrders();
                   } catch (e) {
                     showToast("Failed to mark packed", "error");
                   } finally {
