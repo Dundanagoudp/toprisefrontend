@@ -34,6 +34,17 @@ const getNotificationIcon = (type: string) => {
   }
 }
 
+// Replace undesirable literal placeholders coming from backend templates
+// like "undefined" or "null" with a friendly fallback.
+const sanitizeText = (text?: string | null) => {
+  if (!text) return "—"
+  return text
+    .replace(/\bundefined\b/gi, "system")
+    .replace(/\bnull\b/gi, "system")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+}
+
 export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: NotificationsPanelProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = open !== undefined ? open : internalOpen
@@ -43,6 +54,11 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterType>("all")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // Show only three items at a time and let the rest scroll
+  const VISIBLE_ITEMS = 3
+  const ITEM_APPROX_HEIGHT_PX = 96 // approx row height in pixels
+  const LIST_MAX_HEIGHT = VISIBLE_ITEMS * ITEM_APPROX_HEIGHT_PX
 
   const fetchNotifications = async (filterType: FilterType = "all") => {
     try {
@@ -173,6 +189,8 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   }
 
   const unreadCount = notificationList.filter((n) => !n.markAsRead).length
+  const totalCount = notificationList.length
+  const readCount = totalCount - unreadCount
 
   return (
     <div>
@@ -199,21 +217,40 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
             <div className="bg-gray-50 px-4 py-2 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex gap-1">
-                  {(["all", "unread", "read"] as FilterType[]).map((filterType) => (
-                    <Button
-                      key={filterType}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setFilter(filterType)}
-                      className={`h-7 px-3 text-xs capitalize ${
-                        filter === filterType
-                          ? "bg-green-500 text-white hover:bg-green-600"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                      }`}
-                    >
-                      {filterType}
-                    </Button>
-                  ))}
+                  {(["all", "unread", "read"] as FilterType[]).map((filterType) => {
+                    const isActive = filter === filterType
+                    const counts: Record<FilterType, number> = {
+                      all: totalCount,
+                      unread: unreadCount,
+                      read: readCount,
+                    }
+                    let colorClasses = "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    if (isActive) {
+                      if (filterType === "unread") {
+                        colorClasses = "bg-red-500 text-white hover:bg-red-600"
+                      } else if (filterType === "all") {
+                        colorClasses = "bg-[#d7e5fd] text-blue-800 hover:bg-[#c6dbfc]"
+                      } else {
+                        colorClasses = "bg-green-500 text-white hover:bg-green-600"
+                      }
+                    } else if (filterType === "unread" && unreadCount > 0) {
+                      colorClasses = "text-red-600 hover:text-red-700 hover:bg-red-50"
+                    }
+                    return (
+                      <Button
+                        key={filterType}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFilter(filterType)}
+                        className={`h-7 px-3 text-xs capitalize ${colorClasses}`}
+                      >
+                        <span className="mr-2">{filterType}</span>
+                        <span className="inline-flex items-center justify-center min-w-[18px] h-5 px-1.5 rounded-full text-[10px] font-medium bg-white/60 text-gray-700">
+                          {counts[filterType]}
+                        </span>
+                      </Button>
+                    )
+                  })}
                 </div>
                 <Button
                   variant="ghost"
@@ -244,7 +281,10 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
             )}
 
             {!loading && !error && (
-              <div className="max-h-[60vh] md:max-h-[70vh] lg:max-h-[500px] overflow-y-auto overflow-x-hidden">
+              <div
+                className="overflow-y-auto overflow-x-hidden"
+                style={{ maxHeight: `${LIST_MAX_HEIGHT}px` }}
+              >
                 {notificationList.length === 0 ? (
                   <div className="px-4 py-12 text-center">
                     <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -277,14 +317,20 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                  <h4 className="text-sm font-medium text-gray-900 break-words">
-                                    {notification.notification_title}
+                                  <h4
+                                    className="text-sm font-medium text-gray-900 break-words"
+                                    style={{ display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                  >
+                                    {sanitizeText(notification.notification_title)}
                                   </h4>
                                   <p className="text-xs text-gray-500 mt-0.5 capitalize">
                                     {notification.notification_type}
                                   </p>
-                                  <p className="text-sm text-gray-700 mt-1 break-words">
-                                    {notification.notification_body}
+                                  <p
+                                    className="text-sm text-gray-700 mt-1 break-words"
+                                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                  >
+                                    {sanitizeText(notification.notification_body)}
                                   </p>
                                 </div>
 
