@@ -12,7 +12,6 @@ import {
 // Replaced shadcn Button with shared DynamicButton where used
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -56,7 +55,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
-import { getOrders, assignDealersToOrder, createPicklist, assignPicklistToStaff, updateOrderStatusByDealerReq, fetchPicklists } from "@/service/order-service";
+import { getOrders, updateOrderStatusByDealerReq, fetchPicklists } from "@/service/order-service";
+import AssignDealersModal from "@/components/user-dashboard/order-management/module/order-popus/AssignDealersModal";
+import CreatePickList from "@/components/user-dashboard/order-management/module/order-popus/CreatePickList";
+import AssignPicklistModal from "@/components/user-dashboard/order-management/module/order-popus/AssignPicklistModal";
 import { orderResponse } from "@/types/order-Types";
 import {
   fetchOrdersFailure,
@@ -497,125 +499,17 @@ export default function OrdersTable() {
         )}
       </Card>
       {/* Action Modal */}
-      <Dialog open={actionOpen} onOpenChange={setActionOpen}>
+      <Dialog
+        open={actionOpen && (activeAction === "markPacked" || activeAction === "viewPicklists")}
+        onOpenChange={setActionOpen}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>
-              {activeAction === "assignDealers" && "Assign Dealers to SKUs"}
-              {activeAction === "createPicklist" && "Create Picklist"}
-              {activeAction === "assignPicklist" && "Assign Picklist to Staff"}
               {activeAction === "markPacked" && "Mark Order as Packed"}
               {activeAction === "viewPicklists" && "Picklists"}
             </DialogTitle>
           </DialogHeader>
-
-          {activeAction === "assignDealers" && (
-            <div className="space-y-3">
-              <div>
-                <Label>Order ID</Label>
-                <Input readOnly value={selectedOrder?.id || ""} />
-              </div>
-              <div>
-                <Label>Assignments (JSON)</Label>
-                <Textarea rows={5} value={assignmentsJson} onChange={(e) => setAssignmentsJson(e.target.value)} />
-              </div>
-              <DynamicButton
-                onClick={async () => {
-                  try {
-                    setLoadingAction(true);
-                    const payload = {
-                      orderId: selectedOrder?.id,
-                      assignments: JSON.parse(assignmentsJson || "[]"),
-                    };
-                    await assignDealersToOrder(payload);
-                    showToast("Dealers assigned", "success");
-                    setActionOpen(false);
-                  } catch (e) {
-                    showToast("Failed to assign dealers", "error");
-                  } finally {
-                    setLoadingAction(false);
-                  }
-                }}
-                disabled={loadingAction}
-              >
-                {loadingAction ? "Saving..." : "Assign"}
-              </DynamicButton>
-            </div>
-          )}
-
-          {activeAction === "createPicklist" && (
-            <div className="space-y-3">
-              <div>
-                <Label>Order ID</Label>
-                <Input readOnly value={selectedOrder?.id || ""} />
-              </div>
-              <div>
-                <Label>Dealer ID</Label>
-                <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} />
-              </div>
-              <div>
-                <Label>Fulfilment Staff ID</Label>
-                <Input value={staffId} onChange={(e) => setStaffId(e.target.value)} />
-              </div>
-              <div>
-                <Label>SKU List (JSON)</Label>
-                <Textarea rows={5} value={skuListJson} onChange={(e) => setSkuListJson(e.target.value)} />
-              </div>
-              <DynamicButton
-                onClick={async () => {
-                  try {
-                    setLoadingAction(true);
-                    const payload = {
-                      orderId: selectedOrder?.id,
-                      dealerId,
-                      fulfilmentStaff: staffId,
-                      skuList: JSON.parse(skuListJson || "[]"),
-                    };
-                    await createPicklist(payload);
-                    showToast("Picklist created", "success");
-                    setActionOpen(false);
-                  } catch (e) {
-                    showToast("Failed to create picklist", "error");
-                  } finally {
-                    setLoadingAction(false);
-                  }
-                }}
-                disabled={loadingAction}
-              >
-                {loadingAction ? "Creating..." : "Create"}
-              </DynamicButton>
-            </div>
-          )}
-
-          {activeAction === "assignPicklist" && (
-            <div className="space-y-3">
-              <div>
-                <Label>Picklist ID</Label>
-                <Input value={dealerId} onChange={(e) => setDealerId(e.target.value)} placeholder="picklistId" />
-              </div>
-              <div>
-                <Label>Staff ID</Label>
-                <Input value={staffId} onChange={(e) => setStaffId(e.target.value)} />
-              </div>
-              <DynamicButton
-                onClick={async () => {
-                  try {
-                    setLoadingAction(true);
-                    await assignPicklistToStaff({ picklistId: dealerId, staffId });
-                    showToast("Picklist assigned", "success");
-                    setActionOpen(false);
-                  } catch (e) {
-                    showToast("Failed to assign picklist", "error");
-                  } finally {
-                    setLoadingAction(false);
-                  }
-                }}
-                disabled={loadingAction}
-              >
-                {loadingAction ? "Assigning..." : "Assign"}
-              </DynamicButton>
-            </div>
-          )}
 
           {activeAction === "markPacked" && (
             <div className="space-y-3">
@@ -670,6 +564,28 @@ export default function OrdersTable() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Separated modals */}
+      <AssignDealersModal
+        open={actionOpen && activeAction === "assignDealers"}
+        onOpenChange={(open) => {
+          if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
+        }}
+        orderId={selectedOrder?.id}
+      />
+      <CreatePickList
+        isOpen={actionOpen && activeAction === "createPicklist"}
+        onClose={() => { setActionOpen(false); setActiveAction(null) }}
+        orderId={selectedOrder?.id || ""}
+        defaultDealerId={dealerId}
+        defaultSkuList={[]}
+      />
+      <AssignPicklistModal
+        open={actionOpen && activeAction === "assignPicklist"}
+        onOpenChange={(open) => {
+          if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
+        }}
+      />
     </div>
   );
 }
