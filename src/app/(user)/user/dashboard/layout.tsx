@@ -33,9 +33,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const response = await getAllNotifications(userId);
       if (response?.success) {
         const allItems = (response.data || []).filter((n: any) => !n.isUserDeleted);
-        const unread = allItems.filter((n: any) => !n.markAsRead).length;
-        const badge = unread > 0 ? unread : allItems.length;
-        setNotifCount(badge);
+        const total = allItems.length;
+        setNotifCount(total);
       } else {
         setNotifCount(0);
       }
@@ -50,10 +49,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     refreshUnreadCount();
     const intervalId = setInterval(() => {
       if (!isCancelled) refreshUnreadCount();
-    }, 10000);
+    }, 5000);
+
+    const handleFocus = () => refreshUnreadCount();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refreshUnreadCount();
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       isCancelled = true;
       clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [refreshUnreadCount]);
   return (
