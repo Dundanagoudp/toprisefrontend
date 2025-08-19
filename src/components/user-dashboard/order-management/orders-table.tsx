@@ -392,32 +392,17 @@ export default function OrdersTable() {
                                 <span className="sr-only">Open menu</span>
                               </DynamicButton>
                             </DropdownMenuTrigger>
-                            {/* <DropdownMenuContent
+                            <DropdownMenuContent
                               align="end"
                               className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
                             >
-                                <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => {
-                                  setSelectedOrder(order);
-                                  setActiveAction("assignDealers");
-                                  setActionOpen(true);
-                                }}>
-                                <Edit className="h-4 w-4 mr-2" /> Assign Dealers
+                              <DropdownMenuItem 
+                                className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" 
+                                onClick={() => handleViewOrder(order.id)}
+                              >
+                                <Eye className="h-4 w-4 mr-2" /> View
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => {
-                                  setActiveAction("assignPicklist");
-                                  setActionOpen(true);
-                                }}>
-                                <Edit className="h-4 w-4 mr-2" /> Assign Picklist
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => {
-                                  setSelectedOrder(order);
-                                  setActiveAction("markPacked");
-                                  setActionOpen(true);
-                                }}>
-                                <Edit className="h-4 w-4 mr-2" /> Mark Packed
-                              </DropdownMenuItem>
-                            
-                            </DropdownMenuContent> */}
+                            </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
