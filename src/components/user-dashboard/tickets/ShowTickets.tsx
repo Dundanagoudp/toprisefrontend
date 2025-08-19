@@ -38,28 +38,30 @@ export default function ShowTickets() {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch tickets
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        setLoading(true);
-        const response = await getTickets();
-        
-        if (response.success && response.data) {
-          setTickets(response.data);
-        } else {
-          console.warn("Invalid response structure:", response);
-          setTickets([]);
-        }
-      } catch (error) {
-        console.log("error in fetch tickets", error);
+  // Fetch tickets function
+  const fetchTickets = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getTickets();
+      
+      if (response.success && response.data) {
+        setTickets(response.data);
+      } else {
+        console.warn("Invalid response structure:", response);
         setTickets([]);
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchTickets();
+    } catch (error) {
+      console.log("error in fetch tickets", error);
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Fetch tickets on component mount
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
 
     // Tab configurations
   const tabConfigs: TabConfig[] = useMemo(() => [
@@ -92,9 +94,10 @@ export default function ShowTickets() {
         searchQuery={searchQuery}
         loading={loading}
         onViewTicket={handleViewTicketDetails}
+        onTicketsRefresh={fetchTickets}
       />
     );
-  }, [currentTabConfig, tickets, searchQuery, loading]);
+  }, [currentTabConfig, tickets, searchQuery, loading, fetchTickets]);
 
   // Debounced search functionality
   const performSearch = useCallback((query: string) => {
