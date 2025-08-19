@@ -1,13 +1,17 @@
 "use client"
+import React, { useState } from "react"
 import { X } from "lucide-react"
 // Remove unused Button; use DynamicButton when needed
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from "@/components/ui/dialog" 
 import DynamicButton from "@/components/common/button/button"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
+import CreatePicklist from "@/components/user-dashboard/order-management/module/OrderDetailCards/CreatePicklist"
 
 interface DealerIdentificationProps {
   isOpen: boolean
   onClose: () => void
+  orderId?: string
+  skus?: Array<{ sku: string; quantity: number; barcode?: string; dealerId?: string }>
   dealerData?: Array<{
     dealerId: string
     legalName: string
@@ -38,10 +42,14 @@ interface DealerIdentificationProps {
 export default function DealerIdentification({
   isOpen,
   onClose,
+  orderId,
+  skus,
   dealerData 
 }: DealerIdentificationProps) {
   // Normalize dealerData to array
   const dealers = Array.isArray(dealerData) ? dealerData : dealerData ? [dealerData] : [];
+  const [createPickOpen, setCreatePickOpen] = useState(false)
+  const [activeDealerId, setActiveDealerId] = useState("")
   const getDealerDisplayName = (dealer: any) => {
     const trade = dealer.tradeName || dealer["trade_name"];
     const legal = dealer.legalName || dealer["legal_name"];
@@ -49,6 +57,18 @@ export default function DealerIdentification({
   };
   const getDealerLegalName = (dealer: any) => dealer.legalName || dealer["legal_name"] || "—";
   const getDealerId = (dealer: any) => dealer.dealerId || dealer._id || dealer.id || "—";
+  const safeDealerId = (dealer: any): string => {
+    if (dealer == null) return ""
+    if (typeof dealer === "string") return dealer
+    if (typeof dealer === "number") return String(dealer)
+    return String(dealer.dealerId || dealer._id || dealer.id || "")
+  }
+  const defaultSkuListForDealer = (dealerId: string) => {
+    const list = (skus || []).filter((s) => String(s.dealerId || "") === String(dealerId))
+    return list.length > 0
+      ? list.map((s) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))
+      : (skus || []).map((s) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))
+  }
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogOverlay className="bg-black bg-opacity-50" />
@@ -76,12 +96,16 @@ export default function DealerIdentification({
                   </div>
       
                   <div className="flex justify-end mt-2">
-                    {/* <DynamicButton
+                    <DynamicButton
                       variant="default"
-                      text="Reassign Dealer"
-                      customClassName="bg-[#C72920] hover:bg-red-700 px-4 py-1 text-xs rounded"
-                      // onClick={() => handleReassignDealer(dealer.dealerId)} // Add handler as needed
-                    /> */}
+                      text="Create Picklist"
+                      customClassName="bg-[#C72920] hover:bg-red-700 px-4 py-1 text-xs rounded text-white"
+                      onClick={() => {
+                        const id = safeDealerId(dealer)
+                        setActiveDealerId(id)
+                        setCreatePickOpen(true)
+                      }}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -89,6 +113,13 @@ export default function DealerIdentification({
           ))}
         </div>
       </DialogContent>
+      <CreatePicklist
+        open={createPickOpen}
+        onClose={() => setCreatePickOpen(false)}
+        orderId={orderId || ""}
+        defaultDealerId={activeDealerId}
+        defaultSkuList={defaultSkuListForDealer(activeDealerId)}
+      />
     </Dialog>
   )
 }

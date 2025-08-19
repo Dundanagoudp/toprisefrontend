@@ -41,7 +41,7 @@ import {
   fetchOrderByIdFailure,
 } from "@/store/slice/order/orderByIdSlice";
 import DynamicButton from "@/components/common/button/button";
-import CreatePickList from "./order-popus/CreatePickList";
+// import CreatePickList from "./order-popus/CreatePickList"; // removed old JSON-based modal
 
 interface ProductItem {
   id: string;
@@ -93,7 +93,7 @@ export default function OrderDetailsView() {
   const [dealerModalOpen, setDealerModalOpen] = useState(false);
   const [selectedDealer, setSelectedDealer] = useState<any>(null); // State to hold dealer data for the modal
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [createPickListOpen, setCreatePickListOpen] = useState(false);
+  // const [createPickListOpen, setCreatePickListOpen] = useState(false); // removed duplicate modal state
   const dispatch = useAppDispatch();
 
   const params = useParams<Params>();
@@ -614,6 +614,13 @@ export default function OrderDetailsView() {
         isOpen={dealerModalOpen}
         onClose={() => setDealerModalOpen(false)}
         dealerData={selectedDealer}
+        orderId={String(orderById?._id || orderId)}
+        skus={(orderById?.skus || []).map((s: any) => ({
+          sku: s.sku,
+          quantity: s.quantity,
+          barcode: s.barcode || "",
+          dealerId: s.dealerId || orderById?.dealerMapping?.[0]?.dealerId || ""
+        }))}
       />
       {/* CancelOrder Modal */}
       <CancelOrderModal
@@ -626,15 +633,7 @@ export default function OrderDetailsView() {
         onClose={() => setProductModalOpen(false)}
         productId={selectedProduct?.productId}
       />
-      <CreatePickList
-        isOpen={createPickListOpen}
-        onClose={() => setCreatePickListOpen(false)}
-        orderId={String(orderById?._id || orderId)}
-        defaultDealerId={String(orderById?.dealerMapping?.[0]?.dealerId || "")}
-        defaultSkuList={(orderById?.skus || []).map((s: any) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))}
-        dealerOptions={(orderById?.dealerMapping || []).map((d: any) => String(d.dealerId))}
-        skusSource={(orderById?.skus || []).map((s: any) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))}
-      />
+      {/* Removed old CreatePickList modal; create action is now inside DealerIdentification */}
     </div>
   );
 }
