@@ -70,7 +70,7 @@ export default function DealerIdentification({
       : (skus || []).map((s) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))
   }
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen && !createPickOpen} onOpenChange={onClose}>
       <DialogOverlay className="bg-black bg-opacity-50" />
       <DialogContent className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl mx-auto bg-white p-4 sm:p-6 rounded-lg">
         <div className="max-h-[60vh] overflow-y-auto space-y-4">
