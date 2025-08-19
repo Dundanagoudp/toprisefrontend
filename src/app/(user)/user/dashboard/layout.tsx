@@ -9,11 +9,15 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { WithProtectionRoute } from "@/components/protectionRoute";
+import { useState } from "react";
+import { Bell } from "lucide-react";
+import { NotificationsPanel } from "@/components/notifications/modules/notifications-panel";
 
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
- 
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
   return (
     <WithProtectionRoute redirectTo="/login">
       <SidebarProvider>
@@ -28,7 +32,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               />
               <DynamicBreadcrumb />
             </div>
+            <div className="ml-auto px-4">
+              <button
+                onClick={() => setIsNotifOpen(true)}
+                className="relative rounded-full p-2 hover:bg-gray-100 transition-colors"
+                aria-label="Open notifications"
+              >
+                <Bell className="w-6 h-6 text-gray-700" />
+                {notifCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
+                    {notifCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </header>
+          <NotificationsPanel
+            open={isNotifOpen}
+            onOpenChange={setIsNotifOpen}
+            onCountUpdate={setNotifCount}
+          />
           {children}
         </SidebarInset>
       </SidebarProvider>

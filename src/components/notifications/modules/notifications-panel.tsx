@@ -1,0 +1,324 @@
+"use client"
+
+import { Bell, X, Trash2, CheckCheck, AlertCircle, Info, AlertTriangle } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
+import {
+  getAllNotifications,
+  markAsRead as markAsReadAPI,
+  markAllAsRead as markAllAsReadAPI,
+  deleteNotification as deleteNotificationAPI,
+  deleteAllNotifications as deleteAllNotificationsAPI,
+} from "@/service/notificationServices"
+import type { Notification } from "@/types/notification-types"
+import { getUserIdFromToken } from "@/utils/auth"
+
+type NotificationsPanelProps = {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onCountUpdate?: (count: number) => void
+}
+
+type FilterType = "all" | "read" | "unread"
+
+const getNotificationIcon = (type: string) => {
+  switch (type.toLowerCase()) {
+    case "error":
+      return <AlertCircle className="w-4 h-4 text-red-500" />
+    case "warning":
+      return <AlertTriangle className="w-4 h-4 text-yellow-500" />
+    case "info":
+    default:
+      return <Info className="w-4 h-4 text-blue-500" />
+  }
+}
+
+export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: NotificationsPanelProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isOpen = open !== undefined ? open : internalOpen
+  const setIsOpen = onOpenChange ?? setInternalOpen
+  const [notificationList, setNotificationList] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<FilterType>("all")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  const fetchNotifications = async (filterType: FilterType = "all") => {
+    try {
+      setLoading(true)
+      setError(null)
+      const userId = getUserIdFromToken()
+      if (!userId) {
+        setError("Authentication required")
+        setNotificationList([])
+        onCountUpdate?.(0)
+        return
+      }
+
+      let response
+      if (filterType === "all") {
+        response = await getAllNotifications(userId)
+      } else if (filterType === "read") {
+        response = await getAllNotifications(userId, true)
+      } else {
+        response = await getAllNotifications(userId, false)
+      }
+
+      if (response.success) {
+        setNotificationList(response.data)
+        setSelectedIds(new Set())
+        const allNotifications = filterType !== "all" ? await getAllNotifications(userId) : response
+        if (allNotifications.success) {
+          onCountUpdate?.(allNotifications.data.filter((n) => !n.markAsRead).length)
+        }
+      }
+    } catch (err) {
+      setError("Failed to load notifications")
+      console.error("Error fetching notifications:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications(filter)
+    }
+  }, [isOpen, filter])
+
+  const markAsRead = async (id: string) => {
+    try {
+      const response = await markAsReadAPI(id)
+      if (response.success) {
+        await fetchNotifications(filter)
+      }
+    } catch (err) {
+      console.error("Error marking notification as read:", err)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    try {
+      const userId = getUserIdFromToken()
+      if (!userId) {
+        setError("Authentication required")
+        return
+      }
+      const response = await markAllAsReadAPI(userId)
+      if (response.success) {
+        await fetchNotifications(filter)
+      }
+    } catch (err) {
+      console.error("Error marking all as read:", err)
+    }
+  }
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+
+    if (diffInMinutes < 1) return "Just now"
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
+    return `${Math.floor(diffInMinutes / 1440)}d ago`
+  }
+
+  const unreadCount = notificationList.filter((n) => !n.markAsRead).length
+
+  return (
+    <div>
+      {isOpen && (
+        <div className="fixed top-16 right-4 z-50 w-96">
+          <Card className="bg-white shadow-2xl overflow-hidden border border-t-0 rounded-lg">
+            <div style={{ backgroundColor: "var(--new-300)" }} className="text-white px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5" />
+                  <h2 className="text-lg font-semibold">Notifications</h2>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsOpen(false)}
+                  className="text-white hover:bg-white/10 h-8 w-8 p-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 px-4 py-2 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex gap-1">
+                  {(["all", "unread", "read"] as FilterType[]).map((filterType) => (
+                    <Button
+                      key={filterType}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFilter(filterType)}
+                      className={`h-7 px-3 text-xs capitalize ${
+                        filter === filterType
+                          ? "bg-green-500 text-white hover:bg-green-600"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      }`}
+                    >
+                      {filterType}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
+                  disabled={unreadCount === 0}
+                >
+                  <CheckCheck className="w-3 h-3 mr-1" />
+                  Mark All Read
+                </Button>
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {loading && (
+              <div className="px-4 py-8 text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-red-500 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-500">Loading notifications...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="px-4 py-3 bg-red-50 border-l-4 border-red-500 mx-4 my-2 rounded-r">
+                <p className="text-sm text-red-600 font-medium">{error}</p>
+              </div>
+            )}
+
+            {!loading && !error && (
+              <div className="max-h-96 overflow-y-auto">
+                {notificationList.length === 0 ? (
+                  <div className="px-4 py-12 text-center">
+                    <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500">No notifications yet</p>
+                    <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {notificationList.map((notification) => (
+                      <div
+                        key={notification._id}
+                        className={`group relative px-4 py-3 hover:bg-gray-50 transition-colors ${
+                          !notification.markAsRead ? "bg-blue-50/30" : ""
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            className="mt-1 rounded border-gray-300 text-red-500 focus:ring-red-500 focus:ring-offset-0 focus:ring-1"
+                            checked={selectedIds.has(notification._id)}
+                            onChange={() => {
+                              setSelectedIds((prev) => {
+                                const next = new Set(prev)
+                                if (next.has(notification._id)) {
+                                  next.delete(notification._id)
+                                } else {
+                                  next.add(notification._id)
+                                }
+                                return next
+                              })
+                            }}
+                          />
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <h4 className="text-sm font-medium text-gray-900 line-clamp-1">
+                                  {notification.notification_title}
+                                </h4>
+                                <p className="text-xs text-gray-500 mt-0.5 capitalize">
+                                  {notification.notification_type}
+                                </p>
+                                <p className="text-sm text-gray-700 mt-1 line-clamp-2">
+                                  {notification.notification_body}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <span className="text-xs text-gray-400">{formatTimestamp(notification.createdAt)}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                const confirmed =
+                                  typeof window !== "undefined" ? window.confirm("Delete this notification?") : true
+                                if (!confirmed) return
+                                try {
+                                  const res = await deleteNotificationAPI(notification._id)
+                                  if (res.success) {
+                                    await fetchNotifications(filter)
+                                  }
+                                } catch (err) {
+                                  console.error("Error deleting notification:", err)
+                                }
+                              }}
+                              className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
+                              title="Delete notification"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="border-t bg-white px-4 py-2">
+              <div className="flex justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    const userId = getUserIdFromToken()
+                    if (!userId) return
+                    const confirmed =
+                      typeof window !== "undefined"
+                        ? window.confirm("Clear all notifications? This action cannot be undone.")
+                        : true
+                    if (!confirmed) return
+                    try {
+                      const response = await deleteAllNotificationsAPI(userId)
+                      if (response.success) {
+                        await fetchNotifications(filter)
+                      }
+                    } catch (err) {
+                      console.error("Error clearing all notifications:", err)
+                    }
+                  }}
+                  className="h-8 px-3 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                  disabled={notificationList.length === 0}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Clear All
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setIsOpen(false)} className="h-8 px-4 text-xs">
+                  Close
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  )
+}
