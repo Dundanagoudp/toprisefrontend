@@ -4,6 +4,7 @@ import { Bell, X, Trash2, CheckCheck, AlertCircle, Info, AlertTriangle } from "l
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import {
   getAllNotifications,
   markAsRead as markAsReadAPI,
@@ -55,6 +56,17 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   const [filter, setFilter] = useState<FilterType>("all")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [allTotalCount, setAllTotalCount] = useState<number>(0)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmTitle, setConfirmTitle] = useState("")
+  const [confirmDescription, setConfirmDescription] = useState("")
+  const [confirmAction, setConfirmAction] = useState<null | (() => void)>(null)
+
+  const askConfirm = (title: string, description: string, action: () => void) => {
+    setConfirmTitle(title)
+    setConfirmDescription(description)
+    setConfirmAction(() => action)
+    setConfirmOpen(true)
+  }
 
   // Show only three items at a time and let the rest scroll
   const VISIBLE_ITEMS = 3
@@ -169,17 +181,18 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
     }
   }
 
-  const deleteSelectedNotifications = async () => {
-    const confirmed = typeof window !== "undefined" ? window.confirm("Delete selected notifications?") : true
-    if (!confirmed) return
-    try {
-      const idsToDelete = Array.from(selectedIds)
-      if (idsToDelete.length === 0) return
-      await Promise.all(idsToDelete.map((id) => deleteNotificationAPI(id)))
-      await fetchNotifications(filter)
-    } catch (err) {
-      console.error("Error deleting selected notifications:", err)
-    }
+  const deleteSelectedNotifications = () => {
+    const idsToDelete = Array.from(selectedIds)
+    if (idsToDelete.length === 0) return
+    askConfirm(
+      "Delete selected notifications",
+      `Are you sure you want to delete ${idsToDelete.length} selected notification(s)? This action cannot be undone.`,
+      () => {
+        Promise.all(idsToDelete.map((id) => deleteNotificationAPI(id)))
+          .then(() => fetchNotifications(filter))
+          .catch((err) => console.error("Error deleting selected notifications:", err))
+      }
+    )
   }
 
   const formatTimestamp = (timestamp: string) => {
@@ -358,18 +371,20 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={async () => {
-                                  const confirmed =
-                                    typeof window !== "undefined" ? window.confirm("Delete this notification?") : true
-                                  if (!confirmed) return
-                                  try {
-                                    const res = await deleteNotificationAPI(notification._id)
-                                    if (res.success) {
-                                      await fetchNotifications(filter)
+                                onClick={() => {
+                                  askConfirm(
+                                    "Delete notification",
+                                    "Are you sure you want to delete this notification? This action cannot be undone.",
+                                    () => {
+                                      deleteNotificationAPI(notification._id)
+                                        .then((res) => {
+                                          if (res.success) {
+                                            return fetchNotifications(filter)
+                                          }
+                                        })
+                                        .catch((err) => console.error("Error deleting notification:", err))
                                     }
-                                  } catch (err) {
-                                    console.error("Error deleting notification:", err)
-                                  }
+                                  )
                                 }}
                                 className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
                                 title="Delete notification"
@@ -391,22 +406,22 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={async () => {
-                    const userId = getUserIdFromToken()
-                    if (!userId) return
-                    const confirmed =
-                      typeof window !== "undefined"
-                        ? window.confirm("Clear all notifications? This action cannot be undone.")
-                        : true
-                    if (!confirmed) return
-                    try {
-                      const response = await deleteAllNotificationsAPI(userId)
-                      if (response.success) {
-                        await fetchNotifications(filter)
+                  onClick={() => {
+                    askConfirm(
+                      "Clear all notifications",
+                      "Are you sure you want to clear all notifications? This action cannot be undone.",
+                      () => {
+                        const userId = getUserIdFromToken()
+                        if (!userId) return
+                        deleteAllNotificationsAPI(userId)
+                          .then((response) => {
+                            if (response.success) {
+                              return fetchNotifications(filter)
+                            }
+                          })
+                          .catch((err) => console.error("Error clearing all notifications:", err))
                       }
-                    } catch (err) {
-                      console.error("Error clearing all notifications:", err)
-                    }
+                    )
                   }}
                   className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1 justify-center sm:justify-start"
                   disabled={notificationList.length === 0}
@@ -442,6 +457,17 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
               </div>
             </div>
           </Card>
+          <ConfirmationDialog
+            isOpen={confirmOpen}
+            onClose={() => setConfirmOpen(false)}
+            onConfirm={() => {
+              if (confirmAction) confirmAction()
+            }}
+            title={confirmTitle}
+            description={confirmDescription}
+            confirmText="Delete"
+            cancelText="Cancel"
+          />
         </div>
       )}
     </div>
