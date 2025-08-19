@@ -1,21 +1,15 @@
 "use client"
 import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ChevronDown, Edit, Package, HandHeart, Truck, UserCheck, Eye, MoreHorizontal } from "lucide-react"
 import { DynamicButton } from "@/components/common/button"
-import CreatePicklist from "./CreatePicklist"
+// import CreatePicklist from "./CreatePicklist" // removed to avoid duplicate create modal
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast as GlobalToast } from "@/components/ui/toast"
-import { assignDealersToOrder, assignPicklistToStaff, updateOrderStatusByDealerReq } from "@/service/order-service"
-import { getAssignedEmployeesForDealer, getAllDealers } from "@/service/dealerServices"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getDealerPickList } from "@/service/dealerOrder-services"
 import { DealerPickList } from "@/types/dealerOrder-types"
-import type { Dealer } from "@/types/dealer-types"
 import AssignDealersPerSkuModal from "../order-popus/AssignDealersPerSkuModal"
 import AssignPicklistForDealerModal from "../order-popus/AssignPicklistForDealerModal"
 import MarkPackedModal from "../order-popus/MarkPackedModal"
@@ -46,22 +40,14 @@ export default function ProductDetailsForOrder({
   onDealerEyeClick,
   orderId = "",
 }: ProductDetailsForOrderProps) {
-  const [picklistOpen, setPicklistOpen] = useState(false)
-  const [activeDealerId, setActiveDealerId] = useState<string>("")
+  // const [picklistOpen, setPicklistOpen] = useState(false) // removed; creation moved to dealer modal
+  // const [activeDealerId, setActiveDealerId] = useState<string>("")
   const [viewPicklistsOpen, setViewPicklistsOpen] = useState(false)
   const [picklists, setPicklists] = useState<DealerPickList[]>([])
   const [loadingPicklists, setLoadingPicklists] = useState(false)
   const [actionOpen, setActionOpen] = useState(false)
   const [activeAction, setActiveAction] = useState<"assignDealers" | "assignPicklist" | "markPacked" | null>(null)
   const [dealerId, setDealerId] = useState("")
-  const [staffId, setStaffId] = useState("")
-  const [picklistId, setPicklistId] = useState("")
-  const [availablePicklists, setAvailablePicklists] = useState<DealerPickList[]>([])
-  const [loadingAssignPicklists, setLoadingAssignPicklists] = useState(false)
-  const [totalWeightKg, setTotalWeightKg] = useState<number>(0)
-  const [assignments, setAssignments] = useState<Array<{ sku: string; dealerId: string }>>([])
-  const [loadingAction, setLoadingAction] = useState(false)
-  const [assignedEmployees, setAssignedEmployees] = useState<Array<{ id: string; name: string }>>([])
   const { showToast } = GlobalToast()
   const isPlaceholderString = (value: string) => {
     const v = (value || "").trim().toLowerCase()
@@ -86,60 +72,7 @@ export default function ProductDetailsForOrder({
     return 0
   }
 
-  const loadAssignedEmployees = async (dealer: string) => {
-    try {
-      if (!dealer) { setAssignedEmployees([]); return }
-      const res = await getAssignedEmployeesForDealer(dealer)
-      const list = (((res?.data as any)?.assignedEmployees) || []) as Array<any>
-      const mapped = list
-        .filter((e) => (e.role || "").toLowerCase() === "fulfillment-staff")
-        .map((e) => ({ id: e.employeeId, name: e.name || e.employeeId_code || e.employeeId }))
-      setAssignedEmployees(mapped)
-    } catch {
-      setAssignedEmployees([])
-    }
-  }
-
-  const loadPicklistsForAssign = async (dealer: string) => {
-    try {
-      setLoadingAssignPicklists(true)
-      if (!dealer) { setAvailablePicklists([]); return }
-      const data = await getDealerPickList(dealer)
-      const filtered = (data || []).filter((pl) => String(pl.linkedOrderId) === String(orderId))
-      setAvailablePicklists(filtered)
-    } catch {
-      setAvailablePicklists([])
-    } finally {
-      setLoadingAssignPicklists(false)
-    }
-  }
-
-  // Dealers for Assign Dealers modal
-  const [dealers, setDealers] = useState<Dealer[]>([])
-  const [loadingDealers, setLoadingDealers] = useState(false)
-  const loadDealers = async () => {
-    try {
-      setLoadingDealers(true)
-      const res = await getAllDealers()
-      setDealers(((res as any)?.data || []) as Dealer[])
-    } catch {
-      setDealers([])
-    } finally {
-      setLoadingDealers(false)
-    }
-  }
-
-  const initializeAssignments = () => {
-    const initial = (products || []).map((p) => ({ sku: p.sku || "", dealerId: safeDealerId(p.dealerId) }))
-    setAssignments(initial)
-  }
-
-  useEffect(() => {
-    if (actionOpen && activeAction === "assignDealers") {
-      initializeAssignments()
-      loadDealers()
-    }
-  }, [actionOpen, activeAction])
+  // cleaned unused dealer-loading and assignment helpers
 
   return (
     <>
@@ -252,7 +185,7 @@ export default function ProductDetailsForOrder({
                   <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignDealers"); setActionOpen(true); }}>
                     <Edit className="h-4 w-4 mr-2" /> Assign Dealers
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={async () => { setActiveAction("assignPicklist"); const d = safeDealerId(productItem.dealerId); setDealerId(d); setPicklistId(""); setStaffId(""); await Promise.all([loadAssignedEmployees(d), loadPicklistsForAssign(d)]); setActionOpen(true); }}>
+                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignPicklist"); const d = safeDealerId(productItem.dealerId); setDealerId(d); setActionOpen(true); }}>
                     <Edit className="h-4 w-4 mr-2" /> Assign Picklist
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("markPacked"); setDealerId(safeDealerId(productItem.dealerId)); setActionOpen(true); }}>
@@ -266,6 +199,7 @@ export default function ProductDetailsForOrder({
       </tbody>
     </table>
     
+    {/* Global View Picklists action (restored); Create remains per-dealer in DealerIdentification */}
     <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
       <DynamicButton
         text="View Picklists"
@@ -289,33 +223,13 @@ export default function ProductDetailsForOrder({
           }
         }}
       />
-      <DynamicButton
-        text="Create Picklist"
-        customClassName="bg-[#C72920] hover:bg-red-700 px-6 py-2 text-sm font-medium rounded-md shadow-sm text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-        onClick={() => {
-          // Prefer dealer id from the first product row if available
-          const firstDealer = products && products.length > 0 ? products[0].dealerId : ""
-          setActiveDealerId(safeDealerId(firstDealer as any))
-          setPicklistOpen(true)
-        }}
-      />
     </div>
   </div>
 </div>
 
         {/* Card View for Mobile and Tablet */}
         <div className="xl:hidden p-4 space-y-3">
-          <div className="flex justify-end mb-2">
-            <DynamicButton
-              text="Create Picklist"
-              customClassName="bg-[#C72920] hover:bg-red-700 px-4 py-1 text-xs rounded shadow-sm"
-              onClick={() => {
-                const firstDealer = products && products.length > 0 ? products[0].dealerId : ""
-                setActiveDealerId(safeDealerId(firstDealer as any))
-                setPicklistOpen(true)
-              }}
-            />
-          </div>
+          {/* Removed mobile Create Picklist shortcut; use dealer modal for per-dealer create */}
           {products?.map((productItem: ProductItem) => (
             <div key={productItem._id} className="border border-gray-200 rounded-lg p-3">
               <div className="flex items-start gap-3 mb-3">
@@ -334,25 +248,7 @@ export default function ProductDetailsForOrder({
                       className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer ml-1 inline-block align-middle"
                       onClick={() => onDealerEyeClick(safeDealerId(productItem.dealerId))}
                     />
-                    <button
-                      className="ml-2 text-[11px] px-2 py-0.5 border rounded"
-                      onClick={async () => {
-                        try {
-                          const dealerId = safeDealerId(productItem.dealerId)
-                          if (!dealerId) return
-                          setLoadingPicklists(true)
-                          const data = await getDealerPickList(dealerId)
-                          setPicklists(data)
-                          setViewPicklistsOpen(true)
-                        } catch (e) {
-                          showToast("Failed to load picklists", "error")
-                        } finally {
-                          setLoadingPicklists(false)
-                        }
-                      }}
-                    >
-                      Picklists
-                    </button>
+                    {/* Removed mobile per-card Picklists button; use global View Picklists */}
                   </div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs sm:text-sm text-gray-600">MRP:</span>
@@ -434,13 +330,7 @@ export default function ProductDetailsForOrder({
         orderId={orderId}
         dealerId={dealerId}
       />
-      <CreatePicklist
-        open={picklistOpen}
-        onClose={() => setPicklistOpen(false)}
-        orderId={orderId}
-        defaultDealerId={activeDealerId}
-        defaultSkuList={(products || []).map((p) => ({ sku: p.sku || "", quantity: p.quantity || 1 }))}
-      />
+      {/* Removed local CreatePicklist modal; use dealer modal's create flow */}
 
       <Dialog open={viewPicklistsOpen} onOpenChange={setViewPicklistsOpen}>
         <DialogContent className="max-w-3xl">
