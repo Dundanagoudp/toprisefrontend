@@ -110,12 +110,30 @@ export default function DealerProductEdit() {
             getTypes(),
             getYearRange(),
           ]);
-        setCategoryOptions(categories.data.map((category: any) => category));
-        setSubCategoryOptions(
-          subCategories.data.map((category: any) => category)
-        );
-        setTypeOptions(types.data.map((type: any) => type));
-        setYearRangeOptions(yearRanges.data.map((year: any) => year));
+        const categoriesArr: any[] = Array.isArray((categories as any).data)
+          ? (categories as any).data
+          : Array.isArray((categories as any)?.data?.products)
+          ? (categories as any).data.products
+          : [];
+        const subCategoriesArr: any[] = Array.isArray((subCategories as any).data)
+          ? (subCategories as any).data
+          : Array.isArray((subCategories as any)?.data?.products)
+          ? (subCategories as any).data.products
+          : [];
+        const typesArr: any[] = Array.isArray((types as any).data)
+          ? (types as any).data
+          : Array.isArray((types as any)?.data?.products)
+          ? (types as any).data.products
+          : [];
+        const yearsArr: any[] = Array.isArray((yearRanges as any).data)
+          ? (yearRanges as any).data
+          : Array.isArray((yearRanges as any)?.data?.products)
+          ? (yearRanges as any).data.products
+          : [];
+        setCategoryOptions(categoriesArr);
+        setSubCategoryOptions(subCategoriesArr);
+        setTypeOptions(typesArr);
+        setYearRangeOptions(yearsArr);
         console.log("Fetched all initial data in parallel");
       } catch (error) {
         console.error("Failed to fetch initial data in parallel:", error);
@@ -136,9 +154,14 @@ export default function DealerProductEdit() {
       setIsLoadingBrands(true);
       try {
         const response = await getBrandByType(selectedProductTypeId);
-        console.log("Brand Options:", response.data);
+        console.log("Brand Options:", (response as any).data);
         if (isMounted) {
-          setBrandOptions(response.data.map((brand: any) => brand));
+          const arr: any[] = Array.isArray((response as any).data)
+            ? (response as any).data
+            : Array.isArray((response as any)?.data?.products)
+            ? (response as any).data.products
+            : [];
+          setBrandOptions(arr);
         }
       } catch (error) {
         if (isMounted) setBrandOptions([]);
@@ -163,8 +186,13 @@ export default function DealerProductEdit() {
     const fetchModelsByBrand = async () => {
       try {
         const response = await getModelByBrand(selectedbrandId);
-        setModelOptions(response.data.map((model: any) => model));
-        console.log("Model Options:", response.data);
+        const arr: any[] = Array.isArray((response as any).data)
+          ? (response as any).data
+          : Array.isArray((response as any)?.data?.products)
+          ? (response as any).data.products
+          : [];
+        setModelOptions(arr);
+        console.log("Model Options:", (response as any).data);
       } catch (error) {
         setModelOptions([]);
         console.error("Failed to fetch models by brand:", error);
@@ -182,8 +210,13 @@ export default function DealerProductEdit() {
     const fetchVarientByModel = async () => {
       try {
         const response = await getvarientByModel(modelId);
-        setVarientOptions(response.data.map((varient: any) => varient));
-        console.log("Varient Options:", response.data);
+        const arr: any[] = Array.isArray((response as any).data)
+          ? (response as any).data
+          : Array.isArray((response as any)?.data?.products)
+          ? (response as any).data.products
+          : [];
+        setVarientOptions(arr);
+        console.log("Varient Options:", (response as any).data);
       } catch (error) {
         console.error("Failed to fetch varient options:", error);
       }
@@ -203,16 +236,13 @@ export default function DealerProductEdit() {
       
       try {
         const response = await getProductById(id.id);
-        // response is ProductResponse, which has data: Product[]
-        const data = response.data;
-        if (Array.isArray(data) && data.length > 0) {
-          setProduct(data[0]);
-        } else if (
-          typeof data === "object" &&
-          data !== null &&
-          !Array.isArray(data)
-        ) {
-          setProduct(data as Product);
+        const rawData: any = (response as any).data;
+        if (Array.isArray(rawData?.products) && rawData.products.length > 0) {
+          setProduct(rawData.products[0] as Product);
+        } else if (Array.isArray(rawData) && rawData.length > 0) {
+          setProduct(rawData[0] as Product);
+        } else if (rawData && typeof rawData === "object" && rawData._id) {
+          setProduct(rawData as Product);
         } else {
           setProduct(null);
           setApiError("Product not found.");
@@ -282,7 +312,11 @@ export default function DealerProductEdit() {
         dealerMargin: "",
         dealerPriorityOverride: "",
         stockExpiryRule: "",
-        lastStockUpdate: product.available_dealers?.last_stock_update || "",
+        lastStockUpdate:
+          Array.isArray(product.available_dealers) &&
+          product.available_dealers.length > 0
+            ? product.available_dealers[0]?.last_stock_update || ""
+            : "",
         LastinquiredAt: product.last_stock_inquired || "",
         seo_title: product.seo_title || "",
         searchTags: product.search_tags?.join(",") || "",
@@ -421,20 +455,43 @@ export default function DealerProductEdit() {
       const preparedData = {
         ...data,
         hsn_code: data.hsn_code ? Number(data.hsn_code) : undefined,
-        is_universal: typeof data.is_universal === "boolean" ? data.is_universal : data.is_universal === "yes",
-        is_consumable: typeof data.is_consumable === "boolean" ? data.is_consumable : data.is_consumable === "yes",
+        is_universal:
+          typeof data.is_universal === "boolean"
+            ? data.is_universal
+            : data.is_universal === "yes",
+        is_consumable:
+          typeof data.is_consumable === "boolean"
+            ? data.is_consumable
+            : data.is_consumable === "yes",
+      } as any;
+
+      // Ensure required relational fields are not sent as empty strings.
+      const normalizedData = {
+        ...preparedData,
+        brand: preparedData.brand || product?.brand?._id || undefined,
+        category: preparedData.category || product?.category?._id || undefined,
+        sub_category:
+          preparedData.sub_category || product?.sub_category?._id || undefined,
+        model: preparedData.model || product?.model?._id || undefined,
+        variant:
+          preparedData.variant || product?.variant?.[0]?._id || undefined,
+        year_range:
+          preparedData.year_range || product?.year_range?.[0]?._id || undefined,
       };
 
       // Always use FormData for images update
       const formData = new FormData();
       // Append all prepared fields except images
-      Object.entries(preparedData).forEach(([key, value]) => {
-        if (key !== "images" && value != null) {
-          if (Array.isArray(value)) {
-            value.forEach((v) => formData.append(`${key}[]`, v));
-          } else {
-            formData.append(key, value.toString());
-          }
+      Object.entries(normalizedData).forEach(([key, value]) => {
+        if (key === "images") return;
+        if (value === undefined || value === null) return;
+        if (typeof value === "string" && value.trim() === "") return;
+        if (Array.isArray(value)) {
+          value
+            .filter((v) => v !== undefined && v !== null && `${v}`.trim() !== "")
+            .forEach((v) => formData.append(`${key}[]`, v as any));
+        } else {
+          formData.append(key, value.toString());
         }
       });
       // Append new image files
