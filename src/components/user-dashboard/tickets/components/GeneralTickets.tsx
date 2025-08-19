@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { ChevronDown, ChevronUp, MoreHorizontal, Edit } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -15,19 +21,22 @@ import {
 } from "@/components/ui/table";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import { Ticket, TicketStatus } from "@/types/Ticket-types";
+import UpdateStatus from "./popUp/updateStatus";
 
 interface GeneralTicketsProps {
   tickets: Ticket[];
   searchQuery: string;
   loading: boolean;
   onViewTicket: (ticketId: string) => void;
+  onTicketsRefresh?: () => void;
 }
 
 export default function GeneralTickets({ 
   tickets, 
   searchQuery, 
   loading, 
-  onViewTicket 
+  onViewTicket,
+  onTicketsRefresh 
 }: GeneralTicketsProps) {
   // Sorting state
   const [sortField, setSortField] = useState("");
@@ -36,6 +45,10 @@ export default function GeneralTickets({
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Update status dialog state
+  const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   // Filter tickets to only show General type
   const generalTickets = useMemo(() => {
@@ -166,6 +179,17 @@ export default function GeneralTickets({
   const truncateText = (text: string, maxLength: number = 50) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+  };
+
+  const handleUpdateStatus = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
+    setUpdateStatusOpen(true);
+  };
+
+  const handleStatusUpdated = () => {
+    if (onTicketsRefresh) {
+      onTicketsRefresh();
+    }
   };
 
   return (
@@ -308,14 +332,27 @@ export default function GeneralTickets({
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onViewTicket(ticket._id)}
-                          className="hover:bg-[#C72920] hover:text-white"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-gray-100"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => handleUpdateStatus(ticket._id)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Update Status
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -352,6 +389,14 @@ export default function GeneralTickets({
           </p>
         </div>
       )}
+
+      {/* Update Status Dialog */}
+      <UpdateStatus
+        open={updateStatusOpen}
+        onClose={() => setUpdateStatusOpen(false)}
+        ticketId={selectedTicketId}
+        onStatusUpdated={handleStatusUpdated}
+      />
     </div>
   );
 }
