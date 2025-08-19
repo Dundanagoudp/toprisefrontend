@@ -9,7 +9,7 @@ import {
   UserCheck,
   Eye,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// Removed unused shadcn Button import; using shared DynamicButton where needed
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,8 +33,8 @@ import ProductPopupModal from "@/components/user-dashboard/order-management/modu
 import ProductDetailsForOrder from "@/components/user-dashboard/order-management/module/OrderDetailCards/ProductDetailsForOrder";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { useParams } from "next/navigation";
-import { ca } from "zod/v4/locales";
 import { getOrderById } from "@/service/order-service";
+import { getDealerById } from "@/service/dealerServices";
 import {
   fetchOrderByIdSuccess,
   fetchOrderByIdRequest,
@@ -53,44 +53,6 @@ interface ProductItem {
   image: string;
 }
 type Params = { id: string };
-// const mockProducts: ProductItem[] = [
-//   {
-//     id: "1",
-//     name: "Front Brake Pad - Swift 2016 Petrol",
-//     dealerId: "DLR302",
-//     mrp: 749.0,
-//     gst: "18%",
-//     totalPrice: 1498.0,
-//     image: "/placeholder.svg?height=40&width=40",
-//   },
-//   {
-//     id: "2",
-//     name: "Front Brake Pad - Swift 2016 Petrol",
-//     dealerId: "DLR302",
-//     mrp: 749.0,
-//     gst: "18%",
-//     totalPrice: 1498.0,
-//     image: "/placeholder.svg?height=40&width=40",
-//   },
-//   {
-//     id: "3",
-//     name: "Front Brake Pad - Swift 2016 Petrol",
-//     dealerId: "DLR302",
-//     mrp: 749.0,
-//     gst: "18%",
-//     totalPrice: 1498.0,
-//     image: "/placeholder.svg?height=40&width=40",
-//   },
-//   {
-//     id: "4",
-//     name: "Front Brake Pad - Swift 2016 Petrol",
-//     dealerId: "DLR302",
-//     mrp: 749.0,
-//     gst: "18%",
-//     totalPrice: 1498.0,
-//     image: "/placeholder.svg?height=40&width=40",
-//   },
-// ]
 
 const trackingSteps = [
   {
@@ -356,24 +318,18 @@ export default function OrderDetailsView() {
   }
 
   // Handler to open modal with dealer data
-  const handleDealerEyeClick = (dealerId: string) => {
-    // In a real app, you would fetch dealer data by dealerId from your backend.
-    // For now, we'll use a mock dealer data object.
-    const dealer = {
-      dealerId: dealerId,
-      legalName: "Shree Auto Spares Pvt Ltd",
-      tradeName: "ShreeAuto",
-      address: "Plot 14, MIDC Bhosari, Pune",
-      contactPerson: "Rakesh Jadhav",
-      mobileNumber: "+91 98200 12345",
-      email: "dealer@shreeauto.in",
-      gstin: "27ABCDE1234F1Z2",
-      pan: "ABCDE1234F",
-      state: "Maharashtra",
-      pincode: "411026",
-    };
-    setSelectedDealer(dealer);
-    setDealerModalOpen(true);
+  const handleDealerEyeClick = async (dealerId: string) => {
+    try {
+      const res = await getDealerById(dealerId);
+      const dealer = (res as any)?.data || (res as any);
+      // Pass through raw dealer object; DealerIdentification resolves names dynamically
+      setSelectedDealer({ ...dealer, dealerId: dealerId });
+      setDealerModalOpen(true);
+    } catch (e) {
+      // Fallback: open modal with minimal info
+      setSelectedDealer({ dealerId: dealerId });
+      setDealerModalOpen(true);
+    }
   };
 
   // Function to extract product data from orderById
@@ -584,7 +540,9 @@ export default function OrderDetailsView() {
             products={product(orderById)}
             onProductEyeClick={handleProductEyeClick}
             onDealerEyeClick={handleDealerEyeClick}
+            orderId={orderId}
           />
+
 
           {/* Update Orders Status Card */}
           <Card className="border border-gray-200 shadow-sm">
@@ -666,8 +624,17 @@ export default function OrderDetailsView() {
       <ProductPopupModal
         isOpen={productModalOpen}
         onClose={() => setProductModalOpen(false)}
+        productId={selectedProduct?.productId}
       />
-      <CreatePickList isOpen={createPickListOpen} onClose={() => setCreatePickListOpen(false)} />
+      <CreatePickList
+        isOpen={createPickListOpen}
+        onClose={() => setCreatePickListOpen(false)}
+        orderId={String(orderById?._id || orderId)}
+        defaultDealerId={String(orderById?.dealerMapping?.[0]?.dealerId || "")}
+        defaultSkuList={(orderById?.skus || []).map((s: any) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))}
+        dealerOptions={(orderById?.dealerMapping || []).map((d: any) => String(d.dealerId))}
+        skusSource={(orderById?.skus || []).map((s: any) => ({ sku: s.sku, quantity: s.quantity, barcode: s.barcode || "" }))}
+      />
     </div>
   );
 }

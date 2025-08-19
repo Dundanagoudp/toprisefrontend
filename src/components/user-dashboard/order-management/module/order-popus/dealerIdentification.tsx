@@ -1,6 +1,6 @@
 "use client"
 import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+// Remove unused Button; use DynamicButton when needed
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from "@/components/ui/dialog" 
 import DynamicButton from "@/components/common/button/button"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
@@ -42,6 +42,13 @@ export default function DealerIdentification({
 }: DealerIdentificationProps) {
   // Normalize dealerData to array
   const dealers = Array.isArray(dealerData) ? dealerData : dealerData ? [dealerData] : [];
+  const getDealerDisplayName = (dealer: any) => {
+    const trade = dealer.tradeName || dealer["trade_name"];
+    const legal = dealer.legalName || dealer["legal_name"];
+    return trade || legal || dealer.contactPerson || dealer.email || "—";
+  };
+  const getDealerLegalName = (dealer: any) => dealer.legalName || dealer["legal_name"] || "—";
+  const getDealerId = (dealer: any) => dealer.dealerId || dealer._id || dealer.id || "—";
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogOverlay className="bg-black bg-opacity-50" />
@@ -56,21 +63,25 @@ export default function DealerIdentification({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
                     <div>
                       <span className="font-sans font-medium text-sm text-[#777777]">Dealer ID</span>
-                      <p className="font-sans font-bold text-sm text-[#1D1D1B]">{dealer.dealerId}</p>
+                      <p className="font-sans font-bold text-sm text-[#1D1D1B]">{getDealerId(dealer)}</p>
+                    </div>
+                    <div>
+                      <span className="font-sans font-medium text-sm text-[#777777]">Dealer Name</span>
+                      <p className="font-sans font-bold text-sm text-[#1D1D1B]">{getDealerDisplayName(dealer)}</p>
                     </div>
                     <div>
                       <span className="font-sans font-medium text-sm text-[#777777]">Legal Name</span>
-                      <p className="font-sans font-bold text-sm text-[#1D1D1B]">{dealer.legalName}</p>
+                      <p className="font-sans font-bold text-sm text-[#1D1D1B]">{getDealerLegalName(dealer)}</p>
                     </div>
                   </div>
       
                   <div className="flex justify-end mt-2">
-                    <DynamicButton
+                    {/* <DynamicButton
                       variant="default"
                       text="Reassign Dealer"
                       customClassName="bg-[#C72920] hover:bg-red-700 px-4 py-1 text-xs rounded"
                       // onClick={() => handleReassignDealer(dealer.dealerId)} // Add handler as needed
-                    />
+                    /> */}
                   </div>
                 </div>
               </CardContent>
