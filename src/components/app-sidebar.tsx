@@ -87,6 +87,11 @@ const data = {
       icon: TicketIcon,
     },
     {
+      title: "Payment & Details",
+      url: "/user/dashboard/paymentDetails",
+      icon: TicketIcon,
+    },
+    {
       title:"Order Management",
       url: "/user/dashboard/order",
       icon: Bot,
@@ -100,6 +105,11 @@ const data = {
       title: "Content Management",
       url: "/user/dashboard/contentManagement",
       icon: BoxIcon,
+    },
+    {
+      title: "Ticket ",
+      url: "/user/dashboard/tickets",
+      icon: TicketIcon,
     },
     {
       title: "Settings",
