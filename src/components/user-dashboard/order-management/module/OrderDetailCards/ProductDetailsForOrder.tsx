@@ -1,10 +1,8 @@
 "use client"
 import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-// Replaced shadcn Button usages with shared DynamicButton
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ChevronDown, Edit, Package, HandHeart, Truck, UserCheck, Eye, MoreHorizontal } from "lucide-react"
 import { DynamicButton } from "@/components/common/button"
@@ -18,6 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getDealerPickList } from "@/service/dealerOrder-services"
 import { DealerPickList } from "@/types/dealerOrder-types"
 import type { Dealer } from "@/types/dealer-types"
+import AssignDealersPerSkuModal from "../order-popus/AssignDealersPerSkuModal"
+import AssignPicklistForDealerModal from "../order-popus/AssignPicklistForDealerModal"
+import MarkPackedModal from "../order-popus/MarkPackedModal"
 
 interface ProductItem {
   _id?: string
@@ -408,154 +409,31 @@ export default function ProductDetailsForOrder({
         </div>
       </CardContent>
     </Card>
-      {/* Action Modal (same flow as orders-table) */}
-      <Dialog open={actionOpen} onOpenChange={setActionOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>
-              {activeAction === "assignDealers" && "Assign Dealers to SKUs"}
-              {activeAction === "assignPicklist" && "Assign Picklist to Staff"}
-              {activeAction === "markPacked" && "Mark Order as Packed"}
-            </DialogTitle>
-          </DialogHeader>
-
-          {activeAction === "assignDealers" && (
-            <div className="space-y-4">
-              <div className="space-y-3">
-                {(products || []).map((p, idx) => (
-                  <div key={`${p.sku}-${idx}`} className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-5">
-                      <Label className="text-xs">SKU</Label>
-                      <Input readOnly value={p.sku || ""} />
-                    </div>
-                    <div className="col-span-7">
-                      <Label className="text-xs">Dealer</Label>
-                      <Select
-                        value={assignments[idx]?.dealerId || ""}
-                        onValueChange={(val) => {
-                          setAssignments((prev) => {
-                            const next = [...prev]
-                            next[idx] = { sku: p.sku || "", dealerId: val }
-                            return next
-                          })
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={loadingDealers ? "Loading dealers..." : "Select dealer"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dealers.map((d) => (
-                            <SelectItem key={d._id as any} value={(d as any)._id as string}>
-                              {d.trade_name || d.legal_name} • {(d.user_id as any)?.email}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <DynamicButton
-                onClick={async () => {
-                  try {
-                    setLoadingAction(true)
-                    const payload = {
-                      orderId,
-                      assignments: assignments.filter((a) => a.sku && a.dealerId),
-                    }
-                    await assignDealersToOrder(payload as any)
-                    showToast("Dealers assigned", "success")
-                    setActionOpen(false)
-                  } catch (e) {
-                    showToast("Failed to assign dealers", "error")
-                  } finally {
-                    setLoadingAction(false)
-                  }
-                }}
-                disabled={loadingAction}
-              >
-                {loadingAction ? "Saving..." : "Assign"}
-              </DynamicButton>
-            </div>
-          )}
-
-          {activeAction === "assignPicklist" && (
-            <div className="space-y-3">
-              <div>
-                <Label>Picklist</Label>
-                <Select value={picklistId} onValueChange={setPicklistId}>
-                  <SelectTrigger className="min-w-[260px]">
-                    <SelectValue placeholder={loadingAssignPicklists ? "Loading..." : (availablePicklists.length ? "Select picklist" : "No picklists for this order") } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availablePicklists.map((pl) => (
-                      <SelectItem key={pl._id} value={pl._id}>
-                        {pl._id} • {pl.skuList?.length ?? 0} SKUs
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Fulfilment Staff</Label>
-                <Select value={staffId} onValueChange={setStaffId}>
-                  <SelectTrigger className="min-w-[220px]">
-                    <SelectValue placeholder={assignedEmployees.length ? "Select staff" : "No assigned staff"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assignedEmployees.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <DynamicButton
-                onClick={async () => {
-                  try {
-                    setLoadingAction(true)
-                    await assignPicklistToStaff({ picklistId: picklistId, staffId })
-                    showToast("Picklist assigned", "success")
-                    setActionOpen(false)
-                  } catch (e) {
-                    showToast("Failed to assign picklist", "error")
-                  } finally {
-                    setLoadingAction(false)
-                  }
-                }}
-                disabled={loadingAction}
-              >
-                {loadingAction ? "Assigning..." : "Assign"}
-              </DynamicButton>
-            </div>
-          )}
-
-          {activeAction === "markPacked" && (
-            <div className="space-y-3">
-              <div>
-                <Label>Total Weight (kg)</Label>
-                <Input type="number" value={totalWeightKg} onChange={(e) => setTotalWeightKg(parseFloat(e.target.value) || 0)} />
-              </div>
-              <DynamicButton
-                onClick={async () => {
-                  try {
-                    setLoadingAction(true)
-                    await updateOrderStatusByDealerReq({ orderId, dealerId, total_weight_kg: totalWeightKg } as any)
-                    showToast("Order marked as packed", "success")
-                    setActionOpen(false)
-                  } catch (e) {
-                    showToast("Failed to mark packed", "error")
-                  } finally {
-                    setLoadingAction(false)
-                  }
-                }}
-                disabled={loadingAction}
-              >
-                {loadingAction ? "Updating..." : "Mark Packed"}
-              </DynamicButton>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Separated modals for actions */}
+      <AssignDealersPerSkuModal
+        open={actionOpen && activeAction === "assignDealers"}
+        onOpenChange={(open) => {
+          if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
+        }}
+        orderId={orderId}
+        products={(products || []).map((p) => ({ sku: p.sku, dealerId: p.dealerId }))}
+      />
+      <AssignPicklistForDealerModal
+        open={actionOpen && activeAction === "assignPicklist"}
+        onOpenChange={(open) => {
+          if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
+        }}
+        orderId={orderId}
+        dealerId={dealerId}
+      />
+      <MarkPackedModal
+        open={actionOpen && activeAction === "markPacked"}
+        onOpenChange={(open) => {
+          if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
+        }}
+        orderId={orderId}
+        dealerId={dealerId}
+      />
       <CreatePicklist
         open={picklistOpen}
         onClose={() => setPicklistOpen(false)}
