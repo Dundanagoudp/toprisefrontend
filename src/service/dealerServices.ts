@@ -166,6 +166,23 @@ export async function assignEmployeesToDealer(
   }
 }
 
+// Remove employees from a dealer
+export async function removeEmployeesFromDealer(
+  dealerId: string,
+  payload: { employeeIds: string[]; assignmentNotes?: string }
+): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(
+      `/users/api/users/dealers/${dealerId}/remove-employees`,
+      { data: payload }
+    )
+    return response.data
+  } catch (error) {
+    console.error(`Failed to remove employees from dealer ${dealerId}:`, error)
+    throw error
+  }
+}
+
 // Get employees assigned to a specific dealer
 export async function getAssignedEmployeesForDealer(
   dealerId: string

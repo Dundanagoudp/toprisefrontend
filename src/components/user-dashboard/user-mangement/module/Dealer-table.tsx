@@ -15,6 +15,7 @@ import AssignCategoriesModal from "./addforms/AssignCategoriesModal"
 import RemoveCategoriesModal from "./addforms/RemoveCategoriesModal"
 import { useAppSelector } from "@/store/hooks"
 import AssignStaffPopup from "./assignpop/AssignStaff"
+import RemoveStaffPopup from "./assignpop/RemoveStaff"
 
 interface DealertableProps {
   search?: string
@@ -140,6 +141,8 @@ export default function Dealertable({
   const [selectedDealerForCategories, setSelectedDealerForCategories] = useState<Dealer | null>(null)
   const [assignStaffModalOpen, setAssignStaffModalOpen] = useState(false)
   const [selectedDealerForStaff, setSelectedDealerForStaff] = useState<Dealer | null>(null)
+  const [removeStaffModalOpen, setRemoveStaffModalOpen] = useState(false)
+  const [selectedDealerForRemoveStaff, setSelectedDealerForRemoveStaff] = useState<Dealer | null>(null)
 
   useEffect(() => {
     fetchDealers()
@@ -262,6 +265,11 @@ export default function Dealertable({
   const handleAssignStaff = (dealer: Dealer) => {
     setSelectedDealerForStaff(dealer)
     setAssignStaffModalOpen(true)
+  }
+
+  const handleRemoveStaff = (dealer: Dealer) => {
+    setSelectedDealerForRemoveStaff(dealer)
+    setRemoveStaffModalOpen(true)
   }
 
   if (loading) {
@@ -553,6 +561,9 @@ export default function Dealertable({
                     {canPerformAdminActions() && (
                       <DropdownMenuItem onClick={() => handleAssignStaff(dealer)}>Assign Staff</DropdownMenuItem>
                     )}
+                    {canPerformAdminActions() && (dealer.assigned_Toprise_employee || []).length > 0 && (
+                      <DropdownMenuItem onClick={() => handleRemoveStaff(dealer)}>Remove Staff</DropdownMenuItem>
+                    )}
                     {canPerformAdminActions() && dealer.is_active && (
                       <DropdownMenuItem
                         onClick={() => {
@@ -646,6 +657,21 @@ export default function Dealertable({
         dealerId={selectedDealerForStaff?._id || null}
         dealerName={selectedDealerForStaff?.legal_name || "Dealer"}
         currentStaff={(selectedDealerForStaff?.assigned_Toprise_employee || [])
+          .map((a) => {
+            const u: any = a?.assigned_user as any
+            if (!u) return ""
+            return typeof u === "string" ? u : u._id
+          })
+          .filter(Boolean) as string[]}
+        onSuccess={handleStaffSuccess}
+      />
+
+      <RemoveStaffPopup
+        open={removeStaffModalOpen}
+        onClose={() => setRemoveStaffModalOpen(false)}
+        dealerId={selectedDealerForRemoveStaff?._id || null}
+        dealerName={selectedDealerForRemoveStaff?.legal_name || "Dealer"}
+        currentStaff={(selectedDealerForRemoveStaff?.assigned_Toprise_employee || [])
           .map((a) => {
             const u: any = a?.assigned_user as any
             if (!u) return ""
