@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DynamicBreadcrumb } from "@/components/user-dashboard/DynamicBreadcrumb";
@@ -9,15 +9,53 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { WithProtectionRoute } from "@/components/protectionRoute";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { NotificationsPanel } from "@/components/notifications/modules/notifications-panel";
+import { getAllNotifications } from "@/service/notificationServices";
+import { getUserIdFromToken } from "@/utils/auth";
 
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
+
+  // Background poll for unread count so the bell shows counts even when the panel is closed
+  const refreshUnreadCount = useCallback(async () => {
+    try {
+      const userId = getUserIdFromToken();
+      if (!userId) {
+        setNotifCount(0);
+        return;
+      }
+      // Get all notifications so we can compute both unread and total.
+      const response = await getAllNotifications(userId);
+      if (response?.success) {
+        const allItems = (response.data || []).filter((n: any) => !n.isUserDeleted);
+        const unread = allItems.filter((n: any) => !n.markAsRead).length;
+        const badge = unread > 0 ? unread : allItems.length;
+        setNotifCount(badge);
+      } else {
+        setNotifCount(0);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    // initial fetch and then poll quicker
+    refreshUnreadCount();
+    const intervalId = setInterval(() => {
+      if (!isCancelled) refreshUnreadCount();
+    }, 10000);
+    return () => {
+      isCancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [refreshUnreadCount]);
   return (
     <WithProtectionRoute redirectTo="/login">
       <SidebarProvider>
@@ -34,22 +72,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <div className="ml-auto px-4">
               <button
-                onClick={() => setIsNotifOpen(true)}
+                onClick={() => setIsNotifOpen((prev) => !prev)}
                 className="relative rounded-full p-2 hover:bg-gray-100 transition-colors"
                 aria-label="Open notifications"
               >
                 <Bell className="w-6 h-6 text-gray-700" />
-                {notifCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
-                    {notifCount}
-                  </span>
-                )}
+                <span
+                  className={`absolute -top-1 -right-1 rounded-full min-w-4 h-4 px-1 flex items-center justify-center text-[10px] leading-none ${
+                    notifCount > 0 ? "bg-red-500 text-white" : "bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  {notifCount}
+                </span>
               </button>
             </div>
           </header>
           <NotificationsPanel
             open={isNotifOpen}
-            onOpenChange={setIsNotifOpen}
+            onOpenChange={(open) => {
+              setIsNotifOpen(open);
+              if (!open) {
+                // refresh count when panel closes after actions
+                refreshUnreadCount();
+              }
+            }}
             onCountUpdate={setNotifCount}
           />
           {children}

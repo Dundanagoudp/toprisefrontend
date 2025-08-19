@@ -54,6 +54,7 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterType>("all")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [allTotalCount, setAllTotalCount] = useState<number>(0)
 
   // Show only three items at a time and let the rest scroll
   const VISIBLE_ITEMS = 3
@@ -86,7 +87,11 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
         setSelectedIds(new Set())
         const allNotifications = filterType !== "all" ? await getAllNotifications(userId) : response
         if (allNotifications.success) {
-          onCountUpdate?.(allNotifications.data.filter((n) => !n.markAsRead).length)
+          const allItems = (allNotifications.data || []).filter((n) => !n.isUserDeleted)
+          const unread = allItems.filter((n) => !n.markAsRead).length
+          setAllTotalCount(allItems.length)
+          const badge = unread > 0 ? unread : allItems.length
+          onCountUpdate?.(badge)
         }
       }
     } catch (err) {
@@ -191,6 +196,7 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   const unreadCount = notificationList.filter((n) => !n.markAsRead).length
   const totalCount = notificationList.length
   const readCount = totalCount - unreadCount
+  const headerBadgeCount = unreadCount > 0 ? unreadCount : allTotalCount
 
   return (
     <div>
@@ -201,7 +207,12 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Bell className="w-5 h-5" />
-                  <h2 className="text-lg font-semibold">Notifications</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">Notifications</h2>
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-5 px-1.5 rounded-full text-[10px] font-medium bg-white/20 text-white">
+                      {headerBadgeCount}
+                    </span>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
