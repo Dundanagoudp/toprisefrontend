@@ -114,6 +114,53 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
     }
   }
 
+  const handleCheckboxChange = async (notification: Notification) => {
+    const willSelect = !selectedIds.has(notification._id)
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(notification._id)) {
+        next.delete(notification._id)
+      } else {
+        next.add(notification._id)
+      }
+      return next
+    })
+    try {
+      if (willSelect && !notification.markAsRead) {
+        const res = await markAsReadAPI(notification._id)
+        if (res.success) {
+          await fetchNotifications(filter)
+        }
+      }
+    } catch (err) {
+      console.error("Error handling checkbox change:", err)
+    }
+  }
+
+  const markSelectedAsRead = async () => {
+    try {
+      const idsToMark = Array.from(selectedIds)
+      if (idsToMark.length === 0) return
+      await Promise.all(idsToMark.map((id) => markAsReadAPI(id)))
+      await fetchNotifications(filter)
+    } catch (err) {
+      console.error("Error marking selected as read:", err)
+    }
+  }
+
+  const deleteSelectedNotifications = async () => {
+    const confirmed = typeof window !== "undefined" ? window.confirm("Delete selected notifications?") : true
+    if (!confirmed) return
+    try {
+      const idsToDelete = Array.from(selectedIds)
+      if (idsToDelete.length === 0) return
+      await Promise.all(idsToDelete.map((id) => deleteNotificationAPI(id)))
+      await fetchNotifications(filter)
+    } catch (err) {
+      console.error("Error deleting selected notifications:", err)
+    }
+  }
+
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
@@ -130,7 +177,7 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   return (
     <div>
       {isOpen && (
-        <div className="fixed top-16 right-4 z-50 w-96">
+        <div className="fixed top-16 right-4 z-50 w-80 md:w-96 lg:w-[420px] max-w-[calc(100vw-2rem)]">
           <Card className="bg-white shadow-2xl overflow-hidden border border-t-0 rounded-lg">
             <div style={{ backgroundColor: "var(--new-300)" }} className="text-white px-4 py-3">
               <div className="flex items-center justify-between">
@@ -197,7 +244,7 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
             )}
 
             {!loading && !error && (
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[60vh] md:max-h-[70vh] lg:max-h-[500px] overflow-y-auto overflow-x-hidden">
                 {notificationList.length === 0 ? (
                   <div className="px-4 py-12 text-center">
                     <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -206,85 +253,84 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {notificationList.map((notification) => (
-                      <div
-                        key={notification._id}
-                        className={`group relative px-4 py-3 hover:bg-gray-50 transition-colors ${
-                          !notification.markAsRead ? "bg-blue-50/30" : ""
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            className="mt-1 rounded border-gray-300 text-red-500 focus:ring-red-500 focus:ring-offset-0 focus:ring-1"
-                            checked={selectedIds.has(notification._id)}
-                            onChange={() => {
-                              setSelectedIds((prev) => {
-                                const next = new Set(prev)
-                                if (next.has(notification._id)) {
-                                  next.delete(notification._id)
-                                } else {
-                                  next.add(notification._id)
-                                }
-                                return next
-                              })
-                            }}
-                          />
+                    {notificationList.map((notification) => {
+                      const isSelected = selectedIds.has(notification._id)
+                      return (
+                        <div
+                          key={notification._id}
+                          className={`group relative px-4 py-3 hover:bg-gray-50 transition-colors rounded-sm ${
+                            isSelected
+                              ? "bg-green-50 ring-1 ring-green-300"
+                              : !notification.markAsRead
+                              ? "bg-blue-50/30"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              className="mt-1 rounded border-gray-300 focus:ring-green-600 focus:ring-offset-0 focus:ring-1 accent-green-600"
+                              checked={isSelected}
+                              onChange={() => handleCheckboxChange(notification)}
+                            />
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <h4 className="text-sm font-medium text-gray-900 line-clamp-1">
-                                  {notification.notification_title}
-                                </h4>
-                                <p className="text-xs text-gray-500 mt-0.5 capitalize">
-                                  {notification.notification_type}
-                                </p>
-                                <p className="text-sm text-gray-700 mt-1 line-clamp-2">
-                                  {notification.notification_body}
-                                </p>
-                              </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-medium text-gray-900 break-words">
+                                    {notification.notification_title}
+                                  </h4>
+                                  <p className="text-xs text-gray-500 mt-0.5 capitalize">
+                                    {notification.notification_type}
+                                  </p>
+                                  <p className="text-sm text-gray-700 mt-1 break-words">
+                                    {notification.notification_body}
+                                  </p>
+                                </div>
 
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <span className="text-xs text-gray-400">{formatTimestamp(notification.createdAt)}</span>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                                    {formatTimestamp(notification.createdAt)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Action Buttons */}
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={async () => {
-                                const confirmed =
-                                  typeof window !== "undefined" ? window.confirm("Delete this notification?") : true
-                                if (!confirmed) return
-                                try {
-                                  const res = await deleteNotificationAPI(notification._id)
-                                  if (res.success) {
-                                    await fetchNotifications(filter)
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  const confirmed =
+                                    typeof window !== "undefined" ? window.confirm("Delete this notification?") : true
+                                  if (!confirmed) return
+                                  try {
+                                    const res = await deleteNotificationAPI(notification._id)
+                                    if (res.success) {
+                                      await fetchNotifications(filter)
+                                    }
+                                  } catch (err) {
+                                    console.error("Error deleting notification:", err)
                                   }
-                                } catch (err) {
-                                  console.error("Error deleting notification:", err)
-                                }
-                              }}
-                              className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
-                              title="Delete notification"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                                }}
+                                className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
+                                title="Delete notification"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
             )}
 
             <div className="border-t bg-white px-4 py-2">
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -305,12 +351,34 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                       console.error("Error clearing all notifications:", err)
                     }
                   }}
-                  className="h-8 px-3 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1 justify-center sm:justify-start"
                   disabled={notificationList.length === 0}
                 >
-                  <Trash2 className="w-3 h-3 mr-1" />
+                  <Trash2 className="w-4 h-4 text-red-600" />
                   Clear All
                 </Button>
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center gap-2 justify-center sm:justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={markSelectedAsRead}
+                      className="h-8 px-3 text-xs text-gray-700 hover:text-gray-900 hover:bg-gray-100 flex items-center gap-1"
+                    >
+                      <CheckCheck className="w-4 h-4 text-gray-700" />
+                      Mark as Read
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={deleteSelectedNotifications}
+                      className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                      Delete
+                    </Button>
+                  </div>
+                )}
                 <Button variant="outline" size="sm" onClick={() => setIsOpen(false)} className="h-8 px-4 text-xs">
                   Close
                 </Button>
