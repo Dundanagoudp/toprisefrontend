@@ -125,7 +125,7 @@ export default function CreatedProduct({
       setSortDirection("asc");
     }
   };
-  // 1. Update the sort handler to support price
+  // Sort handlers for different fields
   const handleSortByPrice = () => {
     if (sortField === "mrp_with_gst") {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -133,6 +133,44 @@ export default function CreatedProduct({
       setSortField("mrp_with_gst");
       setSortDirection("asc");
     }
+  };
+
+  const handleSortByBrand = () => {
+    if (sortField === "brand") {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField("brand");
+      setSortDirection("asc");
+    }
+  };
+
+  const handleSortByType = () => {
+    if (sortField === "product_type") {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField("product_type");
+      setSortDirection("asc");
+    }
+  };
+
+  // Generic sort handler
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Get sort icon for a field
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ChevronUp className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === "asc" ? 
+      <ChevronUp className="w-4 h-4 text-[#C72920]" /> : 
+      <ChevronDown className="w-4 h-4 text-[#C72920]" />;
   };
 
   // Filter products by search query and category
@@ -185,22 +223,46 @@ export default function CreatedProduct({
       });
     }
 
-    // Sort
-    if (sortField === "product_name") {
-      products = [...products].sort((a, b) => {
-        const nameA = a.product_name?.toLowerCase() || "";
-        const nameB = b.product_name?.toLowerCase() || "";
-        if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
-        if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
-        return 0;
-      });
-    } else if (sortField === "mrp_with_gst") {
-      products = [...products].sort((a, b) => {
-        const priceA = Number(a.mrp_with_gst) || 0;
-        const priceB = Number(b.mrp_with_gst) || 0;
-        if (priceA < priceB) return sortDirection === "asc" ? -1 : 1;
-        if (priceA > priceB) return sortDirection === "asc" ? 1 : -1;
-        return 0;
+    // Sort products based on sortField
+    if (sortField) {
+      products = [...products].sort((a: any, b: any) => {
+        let aValue: any;
+        let bValue: any;
+        
+        switch (sortField) {
+          case "product_name":
+            aValue = a.product_name?.toLowerCase() || "";
+            bValue = b.product_name?.toLowerCase() || "";
+            break;
+          case "mrp_with_gst":
+            aValue = Number(a.mrp_with_gst) || 0;
+            bValue = Number(b.mrp_with_gst) || 0;
+            break;
+          case "brand":
+            aValue = a.brand?.brand_name?.toLowerCase() || "";
+            bValue = b.brand?.brand_name?.toLowerCase() || "";
+            break;
+          case "product_type":
+            aValue = a.product_type?.toLowerCase() || "";
+            bValue = b.product_type?.toLowerCase() || "";
+            break;
+          case "category":
+            aValue = a.category?.category_name?.toLowerCase() || "";
+            bValue = b.category?.category_name?.toLowerCase() || "";
+            break;
+          case "sub_category":
+            aValue = a.sub_category?.subcategory_name?.toLowerCase() || "";
+            bValue = b.sub_category?.subcategory_name?.toLowerCase() || "";
+            break;
+          default:
+            return 0;
+        }
+        
+        if (sortDirection === "asc") {
+          return aValue.localeCompare ? aValue.localeCompare(bValue) : aValue - bValue;
+        } else {
+          return bValue.localeCompare ? bValue.localeCompare(aValue) : bValue - aValue;
+        }
       });
     }
 
@@ -301,46 +363,58 @@ export default function CreatedProduct({
               Image
             </TableHead>
             <TableHead
-              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer select-none"
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
               onClick={handleSortByName}
             >
-              Name
-              {sortField === "product_name" && (
-                <span className="ml-1">
-                  {sortDirection === "asc" ? (
-                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
-                  )}
-                </span>
-              )}
+              <div className="flex items-center gap-1">
+                Name
+                {getSortIcon("product_name")}
+              </div>
             </TableHead>
-            <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
-              Category
+            <TableHead 
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("category")}
+            >
+              <div className="flex items-center gap-1">
+                Category
+                {getSortIcon("category")}
+              </div>
             </TableHead>
-            <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-[Red Hat Display]">
-              Sub Category
+            <TableHead 
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSort("sub_category")}
+            >
+              <div className="flex items-center gap-1">
+                Sub Category
+                {getSortIcon("sub_category")}
+              </div>
             </TableHead>
-            <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display]">
-              Brand
+            <TableHead 
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden md:table-cell font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSortByBrand}
+            >
+              <div className="flex items-center gap-1">
+                Brand
+                {getSortIcon("brand")}
+              </div>
             </TableHead>
-            <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display]">
-              Type
+            <TableHead 
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+              onClick={() => handleSortByType}
+            >
+              <div className="flex items-center gap-1">
+                Type
+                {getSortIcon("product_type")}
+              </div>
             </TableHead>
             <TableHead
-              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
+              className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
               onClick={handleSortByPrice}
             >
-              Price
-              {sortField === "mrp_with_gst" && (
-                <span className="ml-1">
-                  {sortDirection === "asc" ? (
-                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
-                  )}
-                </span>
-              )}
+              <div className="flex items-center gap-1">
+                Price
+                {getSortIcon("mrp_with_gst")}
+              </div>
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
               QC Status
