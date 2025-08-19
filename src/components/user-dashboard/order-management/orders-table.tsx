@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search,
   Filter,
   ChevronDown,
+  ChevronUp,
   Edit,
   Eye,
   MoreHorizontal,
@@ -57,7 +58,7 @@ import {
 import { useRouter } from "next/navigation";
 import { getOrders, updateOrderStatusByDealerReq, fetchPicklists } from "@/service/order-service";
 import AssignDealersModal from "@/components/user-dashboard/order-management/module/order-popus/AssignDealersModal";
-import CreatePickList from "@/components/user-dashboard/order-management/module/order-popus/CreatePickList";
+import CreatePicklist from "@/components/user-dashboard/order-management/module/OrderDetailCards/CreatePicklist";
 import AssignPicklistModal from "@/components/user-dashboard/order-management/module/order-popus/AssignPicklistModal";
 import { orderResponse } from "@/types/order-Types";
 import {
@@ -111,14 +112,74 @@ export default function OrdersTable() {
   const [skuListJson, setSkuListJson] = useState("[]");
   const [loadingAction, setLoadingAction] = useState(false);
   const [picklistsData, setPicklistsData] = useState<any[]>([]);
-  const filteredOrders = searchQuery
-    ? ordersState.filter(
+
+  // Sorting state
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  // Search + Sort combined
+  const filteredOrders = useMemo(() => {
+    let list = ordersState;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
         (order: any) =>
-          order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.number?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : ordersState;
+          order.orderId?.toLowerCase().includes(q) ||
+          order.customer?.toLowerCase().includes(q) ||
+          order.number?.toLowerCase().includes(q)
+      );
+    }
+    if (sortField) {
+      list = [...list].sort((a: any, b: any) => {
+        let aValue: any;
+        let bValue: any;
+        switch (sortField) {
+          case "orderId":
+            aValue = a.orderId?.toLowerCase() || "";
+            bValue = b.orderId?.toLowerCase() || "";
+            break;
+          case "date":
+            aValue = new Date(a.orderDate).getTime();
+            bValue = new Date(b.orderDate).getTime();
+            break;
+          case "customer":
+            aValue = a.customer?.toLowerCase() || "";
+            bValue = b.customer?.toLowerCase() || "";
+            break;
+          case "number":
+            aValue = a.number?.toLowerCase() || "";
+            bValue = b.number?.toLowerCase() || "";
+            break;
+          case "payment":
+            aValue = a.payment?.toLowerCase() || "";
+            bValue = b.payment?.toLowerCase() || "";
+            break;
+          case "value":
+            aValue = parseFloat(String(a.value).replace(/[^0-9.-]+/g, "")) || 0;
+            bValue = parseFloat(String(b.value).replace(/[^0-9.-]+/g, "")) || 0;
+            break;
+          case "skus":
+            aValue = Array.isArray(a.skus) ? a.skus.length : 1;
+            bValue = Array.isArray(b.skus) ? b.skus.length : 1;
+            break;
+          case "dealers":
+            aValue = a.dealers || 0;
+            bValue = b.dealers || 0;
+            break;
+          case "status":
+            aValue = a.status?.toLowerCase() || "";
+            bValue = b.status?.toLowerCase() || "";
+            break;
+          default:
+            return 0;
+        }
+        if (typeof aValue === "string" && typeof bValue === "string") {
+          return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+        }
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      });
+    }
+    return list;
+  }, [ordersState, searchQuery, sortField, sortDirection]);
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedData = filteredOrders.slice(
     (currentPage - 1) * itemsPerPage,
@@ -324,32 +385,122 @@ export default function OrdersTable() {
                     />
                   </TableHead>
 
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Order ID
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "orderId" ? "orderId" : "orderId"));
+                      setSortDirection((prev) => (sortField === "orderId" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by Order ID"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Order ID
+                      {sortField === "orderId" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Date
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "date" ? "date" : "date"));
+                      setSortDirection((prev) => (sortField === "date" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by Date"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Date
+                      {sortField === "date" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Customer
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "customer" ? "customer" : "customer"));
+                      setSortDirection((prev) => (sortField === "customer" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by Customer"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Customer
+                      {sortField === "customer" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Number
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "number" ? "number" : "number"));
+                      setSortDirection((prev) => (sortField === "number" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by Number"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Number
+                      {sortField === "number" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Payment
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "payment" ? "payment" : "payment"));
+                      setSortDirection((prev) => (sortField === "payment" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by Payment"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Payment
+                      {sortField === "payment" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Value
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "value" ? "value" : "value"));
+                      setSortDirection((prev) => (sortField === "value" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by Value"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Value
+                      {sortField === "value" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    No.of Skus
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "skus" ? "skus" : "skus"));
+                      setSortDirection((prev) => (sortField === "skus" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by SKUs count"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      No.of Skus
+                      {sortField === "skus" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Dealer
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "dealers" ? "dealers" : "dealers"));
+                      setSortDirection((prev) => (sortField === "dealers" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by Dealers"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Dealer
+                      {sortField === "dealers" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Status
+                  <TableHead
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer select-none"
+                    onClick={() => {
+                      setSortField((prev) => (prev === "status" ? "status" : "status"));
+                      setSortDirection((prev) => (sortField === "status" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+                    }}
+                    title="Sort by Status"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Status
+                      {sortField === "status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
+                    </span>
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
                     Actions
@@ -626,8 +777,8 @@ export default function OrdersTable() {
         }}
         orderId={selectedOrder?.id}
       />
-      <CreatePickList
-        isOpen={actionOpen && activeAction === "createPicklist"}
+      <CreatePicklist
+        open={actionOpen && activeAction === "createPicklist"}
         onClose={() => { setActionOpen(false); setActiveAction(null) }}
         orderId={selectedOrder?.id || ""}
         defaultDealerId={dealerId}
