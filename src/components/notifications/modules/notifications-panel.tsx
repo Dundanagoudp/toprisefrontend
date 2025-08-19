@@ -216,7 +216,7 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       {isOpen && (
         <div className="fixed top-16 right-4 z-50 w-80 md:w-96 lg:w-[420px] max-w-[calc(100vw-2rem)]">
           <Card className="bg-white shadow-2xl overflow-hidden border border-t-0 rounded-lg">
-            <div style={{ backgroundColor: "var(--new-300)" }} className="text-white px-4 py-3">
+                         <div style={{ backgroundColor: "var(--primary)" }} className="text-white px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Bell className="w-5 h-5" />
