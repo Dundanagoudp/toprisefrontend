@@ -181,14 +181,30 @@ export default function CreatedProduct({
     // Filter
     if (searchQuery && searchQuery.trim() !== "") {
       const q = searchQuery.trim().toLowerCase();
-      products = products.filter(
-        (product) =>
-          product.product_name?.toLowerCase().includes(q) ||
-          product.category?.toLowerCase().includes(q) ||
-          product.brand?.toLowerCase().includes(q) ||
-          product.subCategory?.toLowerCase().includes(q) ||
-          product.productType?.toLowerCase().includes(q)
-      );
+      products = products.filter((product: any) => {
+        const candidateValues = [
+          product?.product_name,
+          product?.category?.category_name,
+          product?.category?.name,
+          product?.category,
+          product?.brand?.brand_name,
+          product?.brand?.name,
+          product?.brand,
+          product?.sub_category?.subcategory_name,
+          product?.sub_category?.name,
+          product?.subCategory?.subcategory_name,
+          product?.subCategory?.name,
+          product?.subCategory,
+          product?.product_type,
+          product?.productType,
+        ];
+        return candidateValues.some(
+          (val: any) =>
+            val !== undefined &&
+            val !== null &&
+            String(val).toLowerCase().includes(q)
+        );
+      });
     }
 
     // Category filter
@@ -211,15 +227,13 @@ export default function CreatedProduct({
       const sub = subCategoryFilter.trim().toLowerCase();
       products = products.filter((product: any) => {
         const candidateNames = [
-          product.sub_category.subcategory_name,
-          product.sub_category.name,
-          product.subCategory,
-          product.subCategory.name,
-          product.sub_category,
+          product?.sub_category?.subcategory_name,
+          product?.sub_category?.name,
+          product?.subCategory,
+          product?.subCategory?.name,
+          product?.sub_category,
         ];
-        return candidateNames.some((n: any) =>
-          n ? String(n).toLowerCase() === sub : false
-        );
+        return candidateNames.some((n: any) => (n ? String(n).toLowerCase() === sub : false));
       });
     }
 
