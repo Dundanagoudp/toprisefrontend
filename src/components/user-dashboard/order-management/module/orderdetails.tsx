@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useMemo } from "react";
 import {
   ChevronDown,
   Edit,
@@ -43,6 +43,8 @@ import {
 import DynamicButton from "@/components/common/button/button";
 // import CreatePickList from "./order-popus/CreatePickList"; // removed old JSON-based modal
 
+import formatDate from "@/utils/formateDate";
+
 interface ProductItem {
   id: string;
   name: string;
@@ -54,39 +56,60 @@ interface ProductItem {
 }
 type Params = { id: string };
 
-const trackingSteps = [
-  {
-    title: "Order Conformed",
-    status: "completed",
-    description: "Your Order has been placed.",
-    time: "Sun, 16 Jun '24 - 7:51 pm",
-    details: [
-      "Seller has processed your order.",
-      "Your item has picked up by delivery partner",
-    ],
-  },
-  {
-    title: "Shipped",
-    status: "completed",
-    description: "Ekart Logistics - FMP1235468459",
-    time: "Sun, 16 Jun '24 - 7:51 pm",
-    details: ["Your item has been received in the hub nearest to you"],
-  },
-  {
-    title: "Out for delivery",
-    status: "completed",
-    description: "Your Item is out for delivery",
-    time: "Sun, 16 Jun '24 - 7:51 pm",
-    details: [],
-  },
-  {
-    title: "Delivered",
-    status: "pending",
-    description: "Your Item will be delivered soon",
-    time: "",
-    details: [],
-  },
-];
+function buildTrackingSteps(orderData: any) {
+  const firstSku = orderData?.skus?.[0] || {};
+  const skuTracking = firstSku?.tracking_info || {};
+  const skuTimestamps = skuTracking?.timestamps || {};
+  const orderTimestamps = orderData?.timestamps || {};
+  const borzo = orderData?.order_track_info || skuTracking || {};
+
+  const confirmedAt = skuTimestamps?.confirmedAt || orderTimestamps?.createdAt || orderData?.createdAt;
+  const assignedAt = skuTimestamps?.assignedAt || orderTimestamps?.assignedAt;
+  const packedAt = skuTimestamps?.packedAt || orderTimestamps?.packedAt || (orderData?.dealerMapping?.some((m: any) => (m?.status || "").toLowerCase() === "packed") ? orderTimestamps?.packedAt || confirmedAt : undefined);
+  const shippedAt = skuTimestamps?.shippedAt;
+  const deliveredAt = skuTimestamps?.deliveredAt;
+
+  const borzoStatus = borzo?.borzo_order_status || "";
+  const borzoUrl = borzo?.borzo_tracking_url;
+
+  return [
+    {
+      title: "Confirmed",
+      status: confirmedAt ? "completed" : "pending",
+      description: "Your order has been confirmed.",
+      time: confirmedAt ? formatDate(confirmedAt, { includeTime: true, timeFormat: "12h" }) : "",
+      details: [],
+    },
+    {
+      title: "Assigned",
+      status: assignedAt ? "completed" : "pending",
+      description: "Order assigned for processing.",
+      time: assignedAt ? formatDate(assignedAt, { includeTime: true, timeFormat: "12h" }) : "",
+      details: [],
+    },
+    {
+      title: "Packed",
+      status: packedAt ? "completed" : "pending",
+      description: "Items packed and ready to ship.",
+      time: packedAt ? formatDate(packedAt, { includeTime: true, timeFormat: "12h" }) : "",
+      details: [],
+    },
+    {
+      title: "Shipped",
+      status: shippedAt ? "completed" : "pending",
+      description: borzoStatus ? `Courier: ${borzoStatus}${borzoUrl ? " (Track available)" : ""}` : "Shipment in progress",
+      time: shippedAt ? formatDate(shippedAt, { includeTime: true, timeFormat: "12h" }) : "",
+      details: [],
+    },
+    {
+      title: "Delivered",
+      status: deliveredAt ? "completed" : "pending",
+      description: deliveredAt ? "Package delivered successfully" : "Your item will be delivered soon",
+      time: deliveredAt ? formatDate(deliveredAt, { includeTime: true, timeFormat: "12h" }) : "",
+      details: [],
+    },
+  ];
+}
 
 export default function OrderDetailsView() {
   const [loading, setLoading] = useState(true);
@@ -135,6 +158,9 @@ export default function OrderDetailsView() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Compute tracking steps from live order data
+  const trackingSteps = useMemo(() => buildTrackingSteps(orderById), [orderById]);
 
   // Loading Skeleton Component
   const LoadingSkeleton = () => (
@@ -462,18 +488,19 @@ export default function OrderDetailsView() {
             <CardContent>
               {/* Vertical Progress Bar */}
               <div className="relative">
-                {trackingSteps.map((step, index) => (
+                {trackingSteps.map((step, index) => {
+                  const isLast = index === trackingSteps.length - 1;
+                  const nextCompleted = !isLast && trackingSteps[index + 1]?.status === "completed";
+                  const connectorColor = nextCompleted ? "bg-green-500" : "bg-gray-200";
+                  const circleColor = step.status === "completed" ? "bg-green-500" : "bg-gray-300";
+                  return (
                   <div key={index} className="relative flex items-start gap-4">
                     {/* Vertical Line - Full Connection */}
                     <div
-                      className={`absolute left-2 top-4 w-0.5 ${
-                        index === trackingSteps.length - 1
-                          ? "h-full bg-gray-200"
-                          : "h-full bg-green-500"
-                      }`}
+                      className={`absolute left-2 top-4 w-0.5 ${isLast ? "h-full bg-gray-200" : `h-full ${connectorColor}`}`}
                       style={{
                         height:
-                          index === trackingSteps.length - 1
+                          isLast
                             ? "100%"
                             : "calc(100% + 24px)",
                       }}
@@ -481,19 +508,13 @@ export default function OrderDetailsView() {
 
                     {/* Progress Circle */}
                     <div
-                      className={`w-4 h-4 rounded-full flex-shrink-0 mt-1 relative z-10 ${
-                        step.status === "completed"
-                          ? "bg-green-500"
-                          : "bg-gray-300"
-                      }`}
+                      className={`w-4 h-4 rounded-full flex-shrink-0 mt-1 relative z-10 ${circleColor}`}
                     ></div>
 
                     {/* Step Content */}
                     <div className="flex-1 min-w-0 pb-6">
                       <div className="flex items-center gap-1 mb-1">
-                        <h3 className="font-semibold text-gray-900">
-                          {step.title}
-                        </h3>
+                        <h3 className="font-semibold text-gray-900">{step.title}</h3>
                         {/* {index === 0 && (
                           <button
                             type="button"
@@ -508,13 +529,9 @@ export default function OrderDetailsView() {
                           </button>
                         )} */}
                       </div>
-                      <p className="text-sm text-gray-700 mb-1">
-                        {step.description}
-                      </p>
+                      <p className="text-sm text-gray-700 mb-1">{step.description}</p>
                       {step.time && (
-                        <p className="text-xs text-gray-500 mb-2">
-                          {step.time}
-                        </p>
+                        <p className="text-xs text-gray-500 mb-2">{step.time}</p>
                       )}
 
                       {/* Additional Details */}
@@ -528,7 +545,7 @@ export default function OrderDetailsView() {
                       ))}
                     </div>
                   </div>
-                ))}
+                );})}
               </div>
             </CardContent>
           </Card>

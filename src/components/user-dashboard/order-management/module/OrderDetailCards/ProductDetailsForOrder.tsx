@@ -5,14 +5,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ChevronDown, Edit, Package, HandHeart, Truck, UserCheck, Eye, MoreHorizontal } from "lucide-react"
 import { DynamicButton } from "@/components/common/button"
 import CreatePicklist from "./CreatePicklist"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast as GlobalToast } from "@/components/ui/toast"
-import { getDealerPickList } from "@/service/dealerOrder-services"
-import { DealerPickList } from "@/types/dealerOrder-types"
 import AssignDealersPerSkuModal from "../order-popus/AssignDealersPerSkuModal"
 import AssignPicklistForDealerModal from "../order-popus/AssignPicklistForDealerModal"
 import MarkPackedModal from "../order-popus/MarkPackedModal"
+import ViewPicklistsModal from "../order-popus/ViewPicklistsModal"
 
 interface ProductItem {
   _id?: string
@@ -43,8 +40,6 @@ export default function ProductDetailsForOrder({
   // const [picklistOpen, setPicklistOpen] = useState(false) // removed; creation moved to dealer modal
   // const [activeDealerId, setActiveDealerId] = useState<string>("")
   const [viewPicklistsOpen, setViewPicklistsOpen] = useState(false)
-  const [picklists, setPicklists] = useState<DealerPickList[]>([])
-  const [loadingPicklists, setLoadingPicklists] = useState(false)
   const [actionOpen, setActionOpen] = useState(false)
   const [activeAction, setActiveAction] = useState<"assignDealers" | "assignPicklist" | "markPacked" | "createPicklist" | null>(null)
   const [dealerId, setDealerId] = useState("")
@@ -209,23 +204,15 @@ export default function ProductDetailsForOrder({
       <DynamicButton
         text="View Picklists"
         customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border"
-        onClick={async () => {
-          try {
-            const firstDealer = products && products.length > 0 ? products[0].dealerId : ""
-            const dealerId = safeDealerId(firstDealer as any)
-            if (!dealerId) {
-              showToast("No dealer found for this order", "error")
-              return
-            }
-            setLoadingPicklists(true)
-            const data = await getDealerPickList(dealerId)
-            setPicklists(data)
-            setViewPicklistsOpen(true)
-          } catch (e) {
-            showToast("Failed to load picklists", "error")
-          } finally {
-            setLoadingPicklists(false)
+        onClick={() => {
+          const firstDealer = products && products.length > 0 ? products[0].dealerId : ""
+          const dId = safeDealerId(firstDealer as any)
+          if (!dId) {
+            showToast("No dealer found for this order", "error")
+            return
           }
+          setDealerId(dId)
+          setViewPicklistsOpen(true)
         }}
       />
     </div>
@@ -340,45 +327,12 @@ export default function ProductDetailsForOrder({
       />
       {/* Removed local CreatePicklist modal; use dealer modal's create flow */}
 
-      <Dialog open={viewPicklistsOpen} onOpenChange={setViewPicklistsOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Dealer Picklists</DialogTitle>
-          </DialogHeader>
-          {loadingPicklists ? (
-            <div className="p-6 text-sm">Loading...</div>
-          ) : picklists.length === 0 ? (
-            <div className="p-6 text-sm">No picklists found for this dealer.</div>
-          ) : (
-            <div className="mt-2">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Picklist ID</TableHead>
-                    <TableHead>Scan Status</TableHead>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>SKUs</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {picklists.map((pl) => (
-                    <TableRow key={pl._id}>
-                      <TableCell className="font-mono text-xs">{pl._id}</TableCell>
-                      <TableCell>{pl.scanStatus}</TableCell>
-                      <TableCell>{pl.invoiceGenerated ? "Yes" : "No"}</TableCell>
-                      <TableCell>
-                        {(pl.skuList || []).map((s) => (
-                          <div key={s._id} className="text-xs font-mono">{s.sku} x{s.quantity}</div>
-                        ))}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ViewPicklistsModal
+        open={viewPicklistsOpen}
+        onOpenChange={setViewPicklistsOpen}
+        dealerId={dealerId}
+        orderId={orderId}
+      />
 
       <CreatePicklist
         open={createPicklistOpen}

@@ -59,7 +59,6 @@ import { useRouter } from "next/navigation";
 import { getOrders, updateOrderStatusByDealerReq, fetchPicklists } from "@/service/order-service";
 import AssignDealersModal from "@/components/user-dashboard/order-management/module/order-popus/AssignDealersModal";
 import CreatePicklist from "@/components/user-dashboard/order-management/module/OrderDetailCards/CreatePicklist";
-import AssignPicklistModal from "@/components/user-dashboard/order-management/module/order-popus/AssignPicklistModal";
 import { orderResponse } from "@/types/order-Types";
 import {
   fetchOrdersFailure,
@@ -102,7 +101,7 @@ export default function OrdersTable() {
   // Action modal state
   const [actionOpen, setActionOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<
-    "assignDealers" | "createPicklist" | "assignPicklist" | "markPacked" | "viewPicklists" | null
+    "assignDealers" | "createPicklist" | "markPacked" | "viewPicklists" | null
   >(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [dealerId, setDealerId] = useState("");
@@ -784,12 +783,7 @@ export default function OrdersTable() {
         defaultDealerId={dealerId}
         defaultSkuList={[]}
       />
-      <AssignPicklistModal
-        open={actionOpen && activeAction === "assignPicklist"}
-        onOpenChange={(open) => {
-          if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
-        }}
-      />
+      {/* Removed unused AssignPicklistModal */}
     </div>
   );
 }
