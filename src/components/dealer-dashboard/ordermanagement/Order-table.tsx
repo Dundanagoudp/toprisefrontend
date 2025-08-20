@@ -277,36 +277,46 @@ export default function OrdersTable() {
     }
   };
 
-  // Simulate loading
+  // Fetch orders from backend
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     async function fetchOrders() {
       dispatch(fetchOrdersRequest());
       try {
         const response = await getOrdersByDealerId();
-        const mappedOrders = response.map((order: DealerOrder) => ({
-          id: order.orderDetails._id,
-          orderId: order.orderId,
-          orderDate: new Date(order.orderDetails.orderDate).toLocaleDateString(),
-          customer: order.customerDetails?.name || "",
-          number: order.customerDetails?.phone || "",
-          payment: order.orderDetails.paymentType,
-          value: `₹${order.orderDetails.order_Amount}`,
-          skus: order.orderDetails.skus || [],
-          skusCount: order.orderDetails.skus?.length || 0,
-          dealers: order.orderDetails.dealerMapping?.length || 0,
-          dealerMapping: order.orderDetails.dealerMapping || [],
-          status: order.status, 
-          deliveryCharges: order.orderDetails.order_Amount,
-          orderType: order.orderDetails.orderType,
-          orderSource: order.orderDetails.orderSource,
-          auditLogs: order.orderDetails.auditLogs || [],
-          createdAt: order.orderDetails.createdAt,
-          updatedAt: order.orderDetails.updatedAt,
-          dealerProducts: order.DealerProducts || [], 
-        }));
+        console.log("Raw backend response:", response);
+        
+                 const mappedOrders = response.map((order: DealerOrder) => {
+           // Log the exact status from backend
+           console.log(`Order ${order.orderId} - Raw status from backend:`, order.status);
+           console.log(`Order ${order.orderId} - Status type:`, typeof order.status);
+           console.log(`Order ${order.orderId} - Status value:`, JSON.stringify(order.status));
+           
+           return {
+             id: order.orderDetails._id,
+             orderId: order.orderId,
+             orderDate: new Date(order.orderDetails.orderDate).toLocaleDateString(),
+             customer: order.customerDetails?.name || "",
+             number: order.customerDetails?.phone || "",
+             payment: order.orderDetails.paymentType,
+             value: `₹${order.orderDetails.order_Amount}`,
+             skus: order.orderDetails.skus || [],
+             skusCount: order.orderDetails.skus?.length || 0,
+             dealers: order.orderDetails.dealerMapping?.length || 0,
+             dealerMapping: order.orderDetails.dealerMapping || [],
+             status: order.status, // Show exact backend status without fallback
+             deliveryCharges: order.orderDetails.order_Amount,
+             orderType: order.orderDetails.orderType,
+             orderSource: order.orderDetails.orderSource,
+             auditLogs: order.orderDetails.auditLogs || [],
+             createdAt: order.orderDetails.createdAt,
+             updatedAt: order.orderDetails.updatedAt,
+             dealerProducts: order.DealerProducts || [], 
+           };
+         });
+        
+        console.log("Mapped orders with statuses:", mappedOrders.map(o => ({ orderId: o.orderId, status: o.status })));
+        
         dispatch(fetchOrdersSuccess(mappedOrders));
-        console.log("Dealer Orders Response:", response);
         setOrders(mappedOrders);
       } catch (error) {
         console.error("Failed to fetch dealer orders:", error);
@@ -314,9 +324,6 @@ export default function OrdersTable() {
       }
     }
     fetchOrders();
-    // return () => {
-    //   if (timer) clearTimeout(timer);
-    // };
   }, [dispatch]);
 
   // Debounced search functionality
@@ -365,21 +372,36 @@ export default function OrdersTable() {
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 rounded text-xs font-medium";
-    switch (status) {
-      case "Pending":
+    
+    // Handle null/undefined status
+    if (!status) {
+      return `${baseClasses} text-gray-700 bg-gray-100`;
+    }
+    
+    // Convert to lowercase for case-insensitive comparison
+    const statusLower = status.toLowerCase();
+    
+    switch (statusLower) {
+      case "pending":
         return `${baseClasses} text-yellow-700 bg-yellow-100`;
-      case "Approved":
-      case "Confirmed":
+      case "approved":
+      case "confirmed":
         return `${baseClasses} text-green-700 bg-green-100`;
-      case "Packed":
-        return `${baseClasses} text-green-700 bg-green-100`;
-      case "Shipped":
+      case "packed":
+        return `${baseClasses} text-blue-700 bg-blue-100`;
+      case "shipped":
         return `${baseClasses} text-purple-700 bg-purple-100`;
-      case "Delivered":
+      case "delivered":
         return `${baseClasses} text-green-900 bg-green-200`;
-      case "Cancelled":
+      case "cancelled":
+      case "canceled":
         return `${baseClasses} text-red-700 bg-red-100`;
+      case "processing":
+        return `${baseClasses} text-orange-700 bg-orange-100`;
+      case "ready":
+        return `${baseClasses} text-indigo-700 bg-indigo-100`;
       default:
+        console.log(`Unknown status: ${status}, using default styling`);
         return `${baseClasses} text-gray-700 bg-gray-100`;
     }
   };
@@ -425,6 +447,20 @@ export default function OrdersTable() {
             <CardDescription className="text-sm text-[#737373] font-medium font-sans">
               Manage your Orders details
             </CardDescription>
+            {/* Debug Info - Remove this after fixing */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+                <p>Debug: Total Orders: {ordersState.length}</p>
+                <p>Debug: Raw Statuses from Backend:</p>
+                {ordersState.map((order, index) => (
+                  <div key={index} className="ml-2 text-xs">
+                    <span>Order {order.orderId}: </span>
+                    <span className="font-mono">"{order.status}"</span>
+                    <span className="text-gray-500"> (type: {typeof order.status})</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -553,7 +589,7 @@ export default function OrdersTable() {
 
                         <TableCell className="px-6 py-4">
                           <span className={getStatusBadge(order.status)}>
-                            {order.status}
+                            {order.status !== null && order.status !== undefined ? order.status : "No Status"}
                           </span>
                         </TableCell>
                         <TableCell className="px-6 py-4">
@@ -648,29 +684,36 @@ export default function OrdersTable() {
               // Refresh orders to ensure status is updated
               try {
                 const refreshedOrders = await getOrdersByDealerId();
-                const mappedOrders = refreshedOrders.map((order: DealerOrder) => ({
-                  id: order.orderDetails._id,
-                  orderId: order.orderId,
-                  orderDate: new Date(order.orderDetails.orderDate).toLocaleDateString(),
-                  customer: order.customerDetails?.name || "",
-                  number: order.customerDetails?.phone || "",
-                  payment: order.orderDetails.paymentType,
-                  value: `₹${order.orderDetails.order_Amount}`,
-                  skus: order.orderDetails.skus || [],
-                  skusCount: order.orderDetails.skus?.length || 0,
-                  dealers: order.orderDetails.dealerMapping?.length || 0,
-                  dealerMapping: order.orderDetails.dealerMapping || [],
-                  status: order.status, 
-                  deliveryCharges: order.orderDetails.order_Amount,
-                  orderType: order.orderDetails.orderType,
-                  orderSource: order.orderDetails.orderSource,
-                  auditLogs: order.orderDetails.auditLogs || [],
-                  createdAt: order.orderDetails.createdAt,
-                  updatedAt: order.orderDetails.updatedAt,
-                  dealerProducts: order.DealerProducts || [], 
-                }));
+                console.log("Refreshed orders from backend:", refreshedOrders);
                 
-                console.log("Refreshed orders:", mappedOrders.find(o => o.orderId === pickListOrderId)?.status);
+                                 const mappedOrders = refreshedOrders.map((order: DealerOrder) => {
+                   console.log(`Refreshed order ${order.orderId} - Raw status:`, order.status);
+                   console.log(`Refreshed order ${order.orderId} - Status type:`, typeof order.status);
+                   return {
+                     id: order.orderDetails._id,
+                     orderId: order.orderId,
+                     orderDate: new Date(order.orderDetails.orderDate).toLocaleDateString(),
+                     customer: order.customerDetails?.name || "",
+                     number: order.customerDetails?.phone || "",
+                     payment: order.orderDetails.paymentType,
+                     value: `₹${order.orderDetails.order_Amount}`,
+                     skus: order.orderDetails.skus || [],
+                     skusCount: order.orderDetails.skus?.length || 0,
+                     dealers: order.orderDetails.dealerMapping?.length || 0,
+                     dealerMapping: order.orderDetails.dealerMapping || [],
+                     status: order.status, // Keep exact backend status
+                     deliveryCharges: order.orderDetails.order_Amount,
+                     orderType: order.orderDetails.orderType,
+                     orderSource: order.orderDetails.orderSource,
+                     auditLogs: order.orderDetails.auditLogs || [],
+                     createdAt: order.orderDetails.createdAt,
+                     updatedAt: order.orderDetails.updatedAt,
+                     dealerProducts: order.DealerProducts || [], 
+                   };
+                 });
+                
+                const updatedOrder = mappedOrders.find(o => o.orderId === pickListOrderId);
+                console.log("Updated order after refresh:", updatedOrder?.orderId, "Status:", updatedOrder?.status);
                 
                 // Update both local state and Redux store with fresh data
                 setOrders(mappedOrders);
