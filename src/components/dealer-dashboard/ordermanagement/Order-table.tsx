@@ -447,20 +447,6 @@ export default function OrdersTable() {
             <CardDescription className="text-sm text-[#737373] font-medium font-sans">
               Manage your Orders details
             </CardDescription>
-            {/* Debug Info - Remove this after fixing */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-                <p>Debug: Total Orders: {ordersState.length}</p>
-                <p>Debug: Raw Statuses from Backend:</p>
-                {ordersState.map((order, index) => (
-                  <div key={index} className="ml-2 text-xs">
-                    <span>Order {order.orderId}: </span>
-                    <span className="font-mono">"{order.status}"</span>
-                    <span className="text-gray-500"> (type: {typeof order.status})</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
