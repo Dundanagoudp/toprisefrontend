@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ChevronDown, Edit, Package, HandHeart, Truck, UserCheck, Eye, MoreHorizontal } from "lucide-react"
 import { DynamicButton } from "@/components/common/button"
-// import CreatePicklist from "./CreatePicklist" // removed to avoid duplicate create modal
+import CreatePicklist from "./CreatePicklist"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast as GlobalToast } from "@/components/ui/toast"
@@ -46,8 +46,10 @@ export default function ProductDetailsForOrder({
   const [picklists, setPicklists] = useState<DealerPickList[]>([])
   const [loadingPicklists, setLoadingPicklists] = useState(false)
   const [actionOpen, setActionOpen] = useState(false)
-  const [activeAction, setActiveAction] = useState<"assignDealers" | "assignPicklist" | "markPacked" | null>(null)
+  const [activeAction, setActiveAction] = useState<"assignDealers" | "assignPicklist" | "markPacked" | "createPicklist" | null>(null)
   const [dealerId, setDealerId] = useState("")
+  const [createPicklistOpen, setCreatePicklistOpen] = useState(false)
+  const [activeProductForPicklist, setActiveProductForPicklist] = useState<ProductItem | null>(null)
   const { showToast } = GlobalToast()
   const isPlaceholderString = (value: string) => {
     const v = (value || "").trim().toLowerCase()
@@ -191,6 +193,9 @@ export default function ProductDetailsForOrder({
                   <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("markPacked"); setDealerId(safeDealerId(productItem.dealerId)); setActionOpen(true); }}>
                     <Edit className="h-4 w-4 mr-2" /> Mark Packed
                   </DropdownMenuItem>
+                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
+                    <Edit className="h-4 w-4 mr-2" /> Create Picklist
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </td>
@@ -297,6 +302,9 @@ export default function ProductDetailsForOrder({
                       <UserCheck className="h-4 w-4 mr-2" />
                       Reassign Dealer
                     </DropdownMenuItem>
+                    <DropdownMenuItem className="text-sm" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
+                      <Edit className="h-4 w-4 mr-2" /> Create Picklist
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -371,6 +379,14 @@ export default function ProductDetailsForOrder({
           )}
         </DialogContent>
       </Dialog>
+
+      <CreatePicklist
+        open={createPicklistOpen}
+        onClose={() => setCreatePicklistOpen(false)}
+        orderId={orderId}
+        defaultDealerId={activeProductForPicklist?.dealerId ? safeDealerId(activeProductForPicklist.dealerId) : ""}
+        defaultSkuList={activeProductForPicklist ? [{ sku: activeProductForPicklist.sku || "", quantity: activeProductForPicklist.quantity || 1 }] : []}
+      />
     </>
   )
 }
