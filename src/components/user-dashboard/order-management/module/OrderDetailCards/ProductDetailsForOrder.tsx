@@ -46,6 +46,7 @@ export default function ProductDetailsForOrder({
   const [dealerId, setDealerId] = useState("")
   const [createPicklistOpen, setCreatePicklistOpen] = useState(false)
   const [activeProductForPicklist, setActiveProductForPicklist] = useState<ProductItem | null>(null)
+  // Remove per-product mark packed state - now works per order
   const { showToast } = GlobalToast()
   const auth = useAppSelector((state) => state.auth.user)
   const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role)
@@ -191,9 +192,6 @@ export default function ProductDetailsForOrder({
                     <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignPicklist"); const d = safeDealerId(productItem.dealerId); setDealerId(d); setActionOpen(true); }}>
                       <Edit className="h-4 w-4 mr-2" /> Assign Picklist
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("markPacked"); setDealerId(safeDealerId(productItem.dealerId)); setActionOpen(true); }}>
-                      <Edit className="h-4 w-4 mr-2" /> Mark Packed
-                    </DropdownMenuItem>
                     <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
                       <Edit className="h-4 w-4 mr-2" /> Create Picklist
                     </DropdownMenuItem>
@@ -209,6 +207,23 @@ export default function ProductDetailsForOrder({
     {/* Global View Picklists action (restored); Create remains per-dealer in DealerIdentification */}
     {isAuthorized && (
       <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
+        <DynamicButton
+          text="Mark Order as Packed"
+          customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border bg-red-600 text-white hover:bg-red-700"
+          onClick={() => {
+            // Get the first dealer from the order to mark the entire order as packed
+            const firstDealer = products && products.length > 0 ? products[0].dealerId : ""
+            const dId = safeDealerId(firstDealer as any)
+            if (!dId) {
+              showToast("No dealer found for this order", "error")
+              return
+            }
+            console.log("Mark Order as Packed clicked for entire order. Dealer:", dId);
+            setDealerId(dId)
+            setActiveAction("markPacked")
+            setActionOpen(true)
+          }}
+        />
         <DynamicButton
           text="View Picklists"
           customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border"
@@ -284,10 +299,6 @@ export default function ProductDetailsForOrder({
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-sm">
-                        <Package className="h-4 w-4 mr-2" />
-                        Mark Packed
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-sm">
                         <HandHeart className="h-4 w-4 mr-2" />
                         Mark Handover
                       </DropdownMenuItem>
@@ -331,10 +342,16 @@ export default function ProductDetailsForOrder({
       <MarkPackedModal
         open={isAuthorized && actionOpen && activeAction === "markPacked"}
         onOpenChange={(open) => {
-          if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
+          if (!open) { 
+            setActionOpen(false); 
+            setActiveAction(null); 
+            // setActiveProductForMarkPacked(null); // Clean up product state - no longer needed
+          } else { 
+            setActionOpen(true) 
+          }
         }}
         orderId={orderId}
-        dealerId={dealerId}
+        dealerId={dealerId} // This will be the order's dealerId
       />
       {/* Removed local CreatePicklist modal; use dealer modal's create flow */}
 
