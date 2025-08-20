@@ -53,8 +53,8 @@ const MarkPackedModal: React.FC<MarkPackedModalProps> = ({ open, onOpenChange, o
               </svg>
             </div>
             <div>
-              <DialogTitle className="text-xl font-semibold text-gray-900">Mark Order as Packed</DialogTitle>
-              <p className="text-sm text-gray-500 mt-1">Enter the total weight to complete packing</p>
+              <DialogTitle className="text-xl font-semibold text-gray-900">Mark Entire Order as Packed</DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">Enter the total weight to complete packing for the entire order</p>
             </div>
           </div>
         </DialogHeader>
@@ -110,7 +110,7 @@ const MarkPackedModal: React.FC<MarkPackedModalProps> = ({ open, onOpenChange, o
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-medium">kg</div>
             </div>
-            <p className="text-xs text-gray-500">Enter the total weight of the packed order</p>
+            <p className="text-xs text-gray-500">Enter the total weight of the entire packed order</p>
           </div>
 
           {/* Action Button */}

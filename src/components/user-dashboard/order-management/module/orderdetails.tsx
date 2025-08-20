@@ -66,8 +66,9 @@ function buildTrackingSteps(orderData: any) {
   const confirmedAt = skuTimestamps?.confirmedAt || orderTimestamps?.createdAt || orderData?.createdAt;
   const assignedAt = skuTimestamps?.assignedAt || orderTimestamps?.assignedAt;
   const packedAt = skuTimestamps?.packedAt || orderTimestamps?.packedAt || (orderData?.dealerMapping?.some((m: any) => (m?.status || "").toLowerCase() === "packed") ? orderTimestamps?.packedAt || confirmedAt : undefined);
-  const shippedAt = skuTimestamps?.shippedAt;
-  const deliveredAt = skuTimestamps?.deliveredAt;
+  // If delivery occurred but shipped timestamp is missing at SKU level, we still want the "Shipped" step marked as completed.
+  const deliveredAt = skuTimestamps?.deliveredAt || orderTimestamps?.deliveredAt;
+  const shippedAt = skuTimestamps?.shippedAt || orderTimestamps?.shippedAt || deliveredAt;
 
   const borzoStatus = borzo?.borzo_order_status || "";
   const borzoUrl = borzo?.borzo_tracking_url;
