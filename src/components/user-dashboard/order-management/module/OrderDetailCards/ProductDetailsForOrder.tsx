@@ -10,6 +10,7 @@ import AssignDealersPerSkuModal from "../order-popus/AssignDealersPerSkuModal"
 import AssignPicklistForDealerModal from "../order-popus/AssignPicklistForDealerModal"
 import MarkPackedModal from "../order-popus/MarkPackedModal"
 import ViewPicklistsModal from "../order-popus/ViewPicklistsModal"
+import { useAppSelector } from "@/store/hooks"
 
 interface ProductItem {
   _id?: string
@@ -46,6 +47,8 @@ export default function ProductDetailsForOrder({
   const [createPicklistOpen, setCreatePicklistOpen] = useState(false)
   const [activeProductForPicklist, setActiveProductForPicklist] = useState<ProductItem | null>(null)
   const { showToast } = GlobalToast()
+  const auth = useAppSelector((state) => state.auth.user)
+  const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role)
   const isPlaceholderString = (value: string) => {
     const v = (value || "").trim().toLowerCase()
     return v === "n/a" || v === "na" || v === "null" || v === "undefined" || v === "-"
@@ -116,9 +119,11 @@ export default function ProductDetailsForOrder({
           <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[15%]">
             Total Price
           </th>
-          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[15%]">
-            Actions
-          </th>
+          {isAuthorized && (
+            <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[15%]">
+              Actions
+            </th>
+          )}
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-200">
@@ -166,56 +171,60 @@ export default function ProductDetailsForOrder({
             <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[15%]">
               ₹{productItem.totalPrice.toLocaleString()}
             </td>
-            <td className="py-4 px-4 align-middle w-[15%]">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <DynamicButton
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 hover:bg-gray-100"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Open menu</span>
-                  </DynamicButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1">
-                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignDealers"); setActionOpen(true); }}>
-                    <Edit className="h-4 w-4 mr-2" /> Assign Dealers
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignPicklist"); const d = safeDealerId(productItem.dealerId); setDealerId(d); setActionOpen(true); }}>
-                    <Edit className="h-4 w-4 mr-2" /> Assign Picklist
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("markPacked"); setDealerId(safeDealerId(productItem.dealerId)); setActionOpen(true); }}>
-                    <Edit className="h-4 w-4 mr-2" /> Mark Packed
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
-                    <Edit className="h-4 w-4 mr-2" /> Create Picklist
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </td>
+            {isAuthorized && (
+              <td className="py-4 px-4 align-middle w-[15%]">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <DynamicButton
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Open menu</span>
+                    </DynamicButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1">
+                    <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignDealers"); setActionOpen(true); }}>
+                      <Edit className="h-4 w-4 mr-2" /> Assign Dealers
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("assignPicklist"); const d = safeDealerId(productItem.dealerId); setDealerId(d); setActionOpen(true); }}>
+                      <Edit className="h-4 w-4 mr-2" /> Assign Picklist
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("markPacked"); setDealerId(safeDealerId(productItem.dealerId)); setActionOpen(true); }}>
+                      <Edit className="h-4 w-4 mr-2" /> Mark Packed
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
+                      <Edit className="h-4 w-4 mr-2" /> Create Picklist
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
     </table>
     
     {/* Global View Picklists action (restored); Create remains per-dealer in DealerIdentification */}
-    <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
-      <DynamicButton
-        text="View Picklists"
-        customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border"
-        onClick={() => {
-          const firstDealer = products && products.length > 0 ? products[0].dealerId : ""
-          const dId = safeDealerId(firstDealer as any)
-          if (!dId) {
-            showToast("No dealer found for this order", "error")
-            return
-          }
-          setDealerId(dId)
-          setViewPicklistsOpen(true)
-        }}
-      />
-    </div>
+    {isAuthorized && (
+      <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
+        <DynamicButton
+          text="View Picklists"
+          customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border"
+          onClick={() => {
+            const firstDealer = products && products.length > 0 ? products[0].dealerId : ""
+            const dId = safeDealerId(firstDealer as any)
+            if (!dId) {
+              showToast("No dealer found for this order", "error")
+              return
+            }
+            setDealerId(dId)
+            setViewPicklistsOpen(true)
+          }}
+        />
+      </div>
+    )}
   </div>
 </div>
 
@@ -256,45 +265,47 @@ export default function ProductDetailsForOrder({
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <DynamicButton
-                      variant="outline"
-                      size="sm"
-                      className="h-8 bg-white border border-gray-300 rounded-md shadow-sm w-20 justify-between text-xs"
-                    >
-                      Edit
-                      <ChevronDown className="h-4 w-4 ml-1" />
-                    </DynamicButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem className="text-sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-sm">
-                      <Package className="h-4 w-4 mr-2" />
-                      Mark Packed
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-sm">
-                      <HandHeart className="h-4 w-4 mr-2" />
-                      Mark Handover
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-sm">
-                      <Truck className="h-4 w-4 mr-2" />
-                      Update Tracking
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-sm">
-                      <UserCheck className="h-4 w-4 mr-2" />
-                      Reassign Dealer
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-sm" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
-                      <Edit className="h-4 w-4 mr-2" /> Create Picklist
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              {isAuthorized && (
+                <div className="flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <DynamicButton
+                        variant="outline"
+                        size="sm"
+                        className="h-8 bg-white border border-gray-300 rounded-md shadow-sm w-20 justify-between text-xs"
+                      >
+                        Edit
+                        <ChevronDown className="h-4 w-4 ml-1" />
+                      </DynamicButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem className="text-sm">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-sm">
+                        <Package className="h-4 w-4 mr-2" />
+                        Mark Packed
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-sm">
+                        <HandHeart className="h-4 w-4 mr-2" />
+                        Mark Handover
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-sm">
+                        <Truck className="h-4 w-4 mr-2" />
+                        Update Tracking
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-sm">
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Reassign Dealer
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-sm" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
+                        <Edit className="h-4 w-4 mr-2" /> Create Picklist
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -302,7 +313,7 @@ export default function ProductDetailsForOrder({
     </Card>
       {/* Separated modals for actions */}
       <AssignDealersPerSkuModal
-        open={actionOpen && activeAction === "assignDealers"}
+        open={isAuthorized && actionOpen && activeAction === "assignDealers"}
         onOpenChange={(open) => {
           if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
         }}
@@ -310,7 +321,7 @@ export default function ProductDetailsForOrder({
         products={(products || []).map((p) => ({ sku: p.sku, dealerId: p.dealerId }))}
       />
       <AssignPicklistForDealerModal
-        open={actionOpen && activeAction === "assignPicklist"}
+        open={isAuthorized && actionOpen && activeAction === "assignPicklist"}
         onOpenChange={(open) => {
           if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
         }}
@@ -318,7 +329,7 @@ export default function ProductDetailsForOrder({
         dealerId={dealerId}
       />
       <MarkPackedModal
-        open={actionOpen && activeAction === "markPacked"}
+        open={isAuthorized && actionOpen && activeAction === "markPacked"}
         onOpenChange={(open) => {
           if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
         }}
@@ -328,14 +339,14 @@ export default function ProductDetailsForOrder({
       {/* Removed local CreatePicklist modal; use dealer modal's create flow */}
 
       <ViewPicklistsModal
-        open={viewPicklistsOpen}
+        open={isAuthorized && viewPicklistsOpen}
         onOpenChange={setViewPicklistsOpen}
         dealerId={dealerId}
         orderId={orderId}
       />
 
       <CreatePicklist
-        open={createPicklistOpen}
+        open={isAuthorized && createPicklistOpen}
         onClose={() => setCreatePicklistOpen(false)}
         orderId={orderId}
         defaultDealerId={activeProductForPicklist?.dealerId ? safeDealerId(activeProductForPicklist.dealerId) : ""}
