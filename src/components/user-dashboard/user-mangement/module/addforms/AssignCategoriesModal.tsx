@@ -58,7 +58,6 @@ export default function AssignCategoriesModal({
         setCategories(availableCategories)
       }
     } catch (error) {
-      console.error("Failed to fetch categories:", error)
       showToast(MODAL_MESSAGES.fetchError, "error")
     } finally {
       setCategoriesLoading(false)
@@ -87,7 +86,6 @@ export default function AssignCategoriesModal({
         handleClose()
       }
     } catch (error) {
-      console.error("Failed to assign categories:", error)
       showToast(MODAL_MESSAGES.error, "error")
     } finally {
       setLoading(false)

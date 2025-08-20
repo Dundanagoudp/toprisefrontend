@@ -66,7 +66,6 @@ export default function FileUploadModal ({ isOpen, onClose }: UploadBulkCardProp
       try {
         const response = await uploadDealerBulk(formData);
         showToast("Uploaded successfully", "success");
-        console.log('Uploading dealer bulk upload with formData:');
 
         if (response) {
           setUploadMessage(response.message || 'Dealer files uploaded successfully!');
@@ -77,7 +76,6 @@ export default function FileUploadModal ({ isOpen, onClose }: UploadBulkCardProp
           setUploadMessage('Dealer upload failed. Please try again.');
         }
       } catch (error: any) {
-        console.error('Error uploading files:', error);
         showToast( 'An error occurred during upload. Please check the console.', "error");
         const message = error.response?.data?.message || error.message || 'An error occurred during upload. Please check the console.';
         setUploadMessage(message);

@@ -51,7 +51,6 @@ export default function AssignStaffPopup({
     async function fetchEmployees() {
       try {
         const res = await getAllEmployees();
-        console.log('[AssignStaff] getAllEmployees response:', res);
         const employees = (res.data || []) as Employee[];
         const fulfillmentStaff = employees
           .filter((e) => (e.role || "").toLowerCase() === "fulfillment-staff")
@@ -64,10 +63,8 @@ export default function AssignStaffPopup({
               role: e.role,
             }
           });
-        console.log('[AssignStaff] filtered fulfillment staff:', fulfillmentStaff);
         setStaffList(fulfillmentStaff);
       } catch (err) {
-        console.error('[AssignStaff] failed to load employees:', err);
         setStaffList([]);
         showToast("Failed to load employees", "error");
       }
@@ -98,12 +95,10 @@ export default function AssignStaffPopup({
         showToast("Missing dealer id", "error");
         return;
       }
-      console.log('[AssignStaff] assigning employees', { dealerId, selectedStaff, notes });
       const response = await assignEmployeesToDealer(dealerId, {
         employeeIds: selectedStaff,
         assignmentNotes: notes || undefined,
       });
-      console.log('[AssignStaff] assign response:', response);
       
       const message = (response && (response as any).message) || `Successfully assigned ${selectedStaff.length} staff member(s) to ${dealerName}`;
       showToast(message, "success");
