@@ -46,6 +46,7 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 import SearchInput from "@/components/common/search/SearchInput";
+import OrdersFilters from "@/components/user-dashboard/order-management/OrdersFilters";
 import DynamicButton from "@/components/common/button/button";
 import {
   Table,
@@ -117,6 +118,11 @@ export default function OrdersTable() {
   // Sorting state
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  // Orders filters state
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPayment, setFilterPayment] = useState("all");
+  const [filterOrderSource, setFilterOrderSource] = useState("all");
   // Search + Sort combined
   const filteredOrders = useMemo(() => {
     let list = ordersState;
@@ -128,6 +134,19 @@ export default function OrdersTable() {
           order.customer?.toLowerCase().includes(q) ||
           order.number?.toLowerCase().includes(q)
       );
+    }
+    // Apply side-panel filters
+    if (filterStatus !== "all") {
+      const fs = filterStatus.toLowerCase();
+      list = list.filter((o: any) => String(o.status || "").toLowerCase() === fs);
+    }
+    if (filterPayment !== "all") {
+      const fp = filterPayment.toLowerCase();
+      list = list.filter((o: any) => String(o.payment || "").toLowerCase() === fp);
+    }
+    if (filterOrderSource !== "all") {
+      const fsr = filterOrderSource.toLowerCase();
+      list = list.filter((o: any) => String(o.orderSource || "").toLowerCase() === fsr);
     }
     if (sortField) {
       list = [...list].sort((a: any, b: any) => {
@@ -180,7 +199,7 @@ export default function OrdersTable() {
       });
     }
     return list;
-  }, [ordersState, searchQuery, sortField, sortDirection]);
+  }, [ordersState, searchQuery, filterStatus, filterPayment, filterOrderSource, sortField, sortDirection]);
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedData = filteredOrders.slice(
     (currentPage - 1) * itemsPerPage,
@@ -351,13 +370,18 @@ export default function OrdersTable() {
                 onClear={handleClearSearch}
                 isLoading={isSearching}
               />
-              <div className="flex gap-2 sm:gap-3">
-                <DynamicButton
-                  variant="outline"
-                  text="Filters"
-                  icon={<Filter className="h-4 w-4 mr-2" />}
-                />
-              </div>
+              <OrdersFilters
+                currentStatus={filterStatus}
+                onStatusChange={(v) => { setFilterStatus(v); setCurrentPage(1); }}
+                currentPayment={filterPayment}
+                onPaymentChange={(v) => { setFilterPayment(v); setCurrentPage(1); }}
+                currentOrderType={"all"}
+                onOrderTypeChange={() => { /* no-op: order type removed */ }}
+                currentOrderSource={filterOrderSource}
+                onOrderSourceChange={(v) => { setFilterOrderSource(v); setCurrentPage(1); }}
+                onResetFilters={() => { setFilterStatus("all"); setFilterPayment("all"); setFilterOrderSource("all"); setCurrentPage(1); }}
+                orders={ordersState}
+              />
             </div>
           </div>
 
