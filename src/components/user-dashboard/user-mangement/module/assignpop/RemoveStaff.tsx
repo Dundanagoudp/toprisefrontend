@@ -75,7 +75,6 @@ export default function RemoveStaffPopup({
         });
         setStaffList(mapped);
       } catch (err) {
-        console.error("[RemoveStaff] failed to load assigned employees:", err);
         setStaffList([]);
         showToast("Failed to load assigned staff", "error");
       }

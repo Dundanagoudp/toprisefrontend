@@ -46,6 +46,7 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 import SearchInput from "@/components/common/search/SearchInput";
+import OrdersFilters from "@/components/user-dashboard/order-management/OrdersFilters";
 import DynamicButton from "@/components/common/button/button";
 import {
   Table,
@@ -92,6 +93,8 @@ export default function OrdersTable() {
   const ordersState = useAppSelector((state) => state.order.orders);
   const loading = useAppSelector((state: any) => state.order.loading);
   const error = useAppSelector((state: any) => state.order.error);
+  const auth = useAppSelector((state) => state.auth.user);
+  const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role);
   const [orderDetails, setOrderDetails] = useState<any>(null);
   // Filtered orders must be declared before pagination logic
 
@@ -115,6 +118,11 @@ export default function OrdersTable() {
   // Sorting state
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  // Orders filters state
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPayment, setFilterPayment] = useState("all");
+  const [filterOrderSource, setFilterOrderSource] = useState("all");
   // Search + Sort combined
   const filteredOrders = useMemo(() => {
     let list = ordersState;
@@ -126,6 +134,19 @@ export default function OrdersTable() {
           order.customer?.toLowerCase().includes(q) ||
           order.number?.toLowerCase().includes(q)
       );
+    }
+    // Apply side-panel filters
+    if (filterStatus !== "all") {
+      const fs = filterStatus.toLowerCase();
+      list = list.filter((o: any) => String(o.status || "").toLowerCase() === fs);
+    }
+    if (filterPayment !== "all") {
+      const fp = filterPayment.toLowerCase();
+      list = list.filter((o: any) => String(o.payment || "").toLowerCase() === fp);
+    }
+    if (filterOrderSource !== "all") {
+      const fsr = filterOrderSource.toLowerCase();
+      list = list.filter((o: any) => String(o.orderSource || "").toLowerCase() === fsr);
     }
     if (sortField) {
       list = [...list].sort((a: any, b: any) => {
@@ -178,7 +199,7 @@ export default function OrdersTable() {
       });
     }
     return list;
-  }, [ordersState, searchQuery, sortField, sortDirection]);
+  }, [ordersState, searchQuery, filterStatus, filterPayment, filterOrderSource, sortField, sortDirection]);
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedData = filteredOrders.slice(
     (currentPage - 1) * itemsPerPage,
@@ -329,8 +350,6 @@ export default function OrdersTable() {
     return `${baseClasses} text-gray-700 bg-gray-100`;
   };
 
-  // Loading Skeleton Component
-
   return (
     <div className="w-full">
       <Card className="shadow-sm rounded-none">
@@ -351,13 +370,18 @@ export default function OrdersTable() {
                 onClear={handleClearSearch}
                 isLoading={isSearching}
               />
-              <div className="flex gap-2 sm:gap-3">
-                <DynamicButton
-                  variant="outline"
-                  text="Filters"
-                  icon={<Filter className="h-4 w-4 mr-2" />}
-                />
-              </div>
+              <OrdersFilters
+                currentStatus={filterStatus}
+                onStatusChange={(v) => { setFilterStatus(v); setCurrentPage(1); }}
+                currentPayment={filterPayment}
+                onPaymentChange={(v) => { setFilterPayment(v); setCurrentPage(1); }}
+                currentOrderType={"all"}
+                onOrderTypeChange={() => { /* no-op: order type removed */ }}
+                currentOrderSource={filterOrderSource}
+                onOrderSourceChange={(v) => { setFilterOrderSource(v); setCurrentPage(1); }}
+                onResetFilters={() => { setFilterStatus("all"); setFilterPayment("all"); setFilterOrderSource("all"); setCurrentPage(1); }}
+                orders={ordersState}
+              />
             </div>
           </div>
 
@@ -501,9 +525,11 @@ export default function OrdersTable() {
                       {sortField === "status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3" />)}
                     </span>
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Actions
-                  </TableHead>
+                  {isAuthorized && (
+                    <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+                      Actions
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -584,31 +610,33 @@ export default function OrdersTable() {
                             {order.status}
                           </span>
                         </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <DynamicButton
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 hover:bg-gray-100"
+                        {isAuthorized && (
+                          <TableCell className="px-6 py-4">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <DynamicButton
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </DynamicButton>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
                               >
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Open menu</span>
-                              </DynamicButton>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1 font-red-hat b3 text-base"
-                            >
-                              <DropdownMenuItem 
-                                className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" 
-                                onClick={() => handleViewOrder(order.id)}
-                              >
-                                <Eye className="h-4 w-4 mr-2" /> View
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                                <DropdownMenuItem 
+                                  className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100" 
+                                  onClick={() => handleViewOrder(order.id)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" /> View
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
               </TableBody>
@@ -702,7 +730,7 @@ export default function OrdersTable() {
       </Card>
       {/* Action Modal */}
       <Dialog
-        open={actionOpen && (activeAction === "markPacked" || activeAction === "viewPicklists")}
+        open={isAuthorized && actionOpen && (activeAction === "markPacked" || activeAction === "viewPicklists")}
         onOpenChange={setActionOpen}
       >
         <DialogContent className="max-w-xl">
@@ -770,14 +798,14 @@ export default function OrdersTable() {
 
       {/* Separated modals */}
       <AssignDealersModal
-        open={actionOpen && activeAction === "assignDealers"}
+        open={isAuthorized && actionOpen && activeAction === "assignDealers"}
         onOpenChange={(open) => {
           if (!open) { setActionOpen(false); setActiveAction(null) } else { setActionOpen(true) }
         }}
         orderId={selectedOrder?.id}
       />
       <CreatePicklist
-        open={actionOpen && activeAction === "createPicklist"}
+        open={isAuthorized && actionOpen && activeAction === "createPicklist"}
         onClose={() => { setActionOpen(false); setActiveAction(null) }}
         orderId={selectedOrder?.id || ""}
         defaultDealerId={dealerId}

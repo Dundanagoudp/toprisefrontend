@@ -78,7 +78,6 @@ export default function AddDealer() {
         setUsers(usersResponse.data)
       }
     } catch (error) {
-      console.error("Failed to fetch users:", error)
       showToast("Failed to load users. Please refresh the page.", "error");
     } finally {
       setIsLoadingData(false)
@@ -92,7 +91,6 @@ export default function AddDealer() {
         setAllCategories(categoriesResponse.data)
       }
     } catch (error) {
-      console.error("Failed to fetch categories:", error)
       showToast("Failed to load categories. Please refresh the page.", "error");
     }
   }
@@ -117,7 +115,6 @@ export default function AddDealer() {
         }, 2000);
       }
     } catch (error) {
-      console.error("Failed to create dealer:", error)
       showToast("Failed to create dealer. Please try again.", "error");
     } finally {
       setSubmitLoading(false)

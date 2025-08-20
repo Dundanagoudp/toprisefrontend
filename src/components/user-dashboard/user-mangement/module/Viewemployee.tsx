@@ -31,7 +31,6 @@ export default function ViewEmployee() {
         const response = await getEmployeeById(employeeId)
         setEmployee(response.data || null)
       } catch (err) {
-        console.error("Failed to fetch employee:", err)
         setError(err as Error)
       } finally {
         setIsLoading(false)

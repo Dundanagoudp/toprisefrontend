@@ -184,7 +184,6 @@ export default function Dealertable({
         setDealers(response.data)
       }
     } catch (error) {
-      console.error("Failed to fetch dealers:", error)
       showToast("Failed to fetch dealers", "error")
     } finally {
       setLoading(false)
@@ -198,7 +197,6 @@ export default function Dealertable({
         setCategories(response.data)
       }
     } catch (error) {
-      console.error("Failed to fetch categories:", error)
       showToast("Failed to fetch categories", "error")
     }
   }

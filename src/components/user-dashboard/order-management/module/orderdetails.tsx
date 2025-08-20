@@ -134,6 +134,8 @@ export default function OrderDetailsView() {
   const loadingById = useAppSelector((state: any) => state.orderById.loading);
   const errorById = useAppSelector((state: any) => state.orderById.error);
   console.log(orderById);
+  const auth = useAppSelector((state: any) => state.auth.user);
+  const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role);
   // Simulate loading
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -343,6 +345,8 @@ export default function OrderDetailsView() {
     return <LoadingSkeleton />;
   }
 
+  // No page-level restriction: everyone can view; actions remain gated below
+
   // Handler to open modal with dealer data
   const handleDealerEyeClick = async (dealerId: string) => {
     try {
@@ -414,13 +418,14 @@ export default function OrderDetailsView() {
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100 px-2 sm:px-3 py-1 text-xs sm:text-sm">
             Active
           </Badge>
-
-          <DynamicButton
-            variant="outline"
-            customClassName="border-gray-300 text-gray-700 hover:bg-gray-50 px-3 sm:px-4 h-8 sm:h-10 text-xs sm:text-sm"
-            text="Cancel Order"
-            onClick={() => setCancelModalOpen(true)}
-          />
+          {isAuthorized && (
+            <DynamicButton
+              variant="outline"
+              customClassName="border-gray-300 text-gray-700 hover:bg-gray-50 px-3 sm:px-4 h-8 sm:h-10 text-xs sm:text-sm"
+              text="Cancel Order"
+              onClick={() => setCancelModalOpen(true)}
+            />
+          )}
         </div>
       </div>
 
@@ -569,59 +574,65 @@ export default function OrderDetailsView() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 lg:space-y-4">
-              {/* Product Info */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
-                    Rear shocker
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Yamaha</p>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base sm:text-lg font-semibold text-gray-900">
-                      ₹6399.00
-                    </span>
-                    <span className="text-xs sm:text-sm text-gray-500 line-through">
-                      ₹6599.00
-                    </span>
+              {isAuthorized ? (
+                <>
+                  {/* Product Info */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
+                        Rear shocker
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-600">Yamaha</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items.center gap-2">
+                        <span className="text-base sm:text-lg font-semibold text-gray-900">
+                          ₹6399.00
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-500 line-through">
+                          ₹6599.00
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">25 Jan 2025 12:00 PM</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500">25 Jan 2025 12:00 PM</p>
-                </div>
-              </div>
 
-              {/* Update Status Dropdown */}
-              <div className="space-y-2 ">
-                <label className="text-xs sm:text-sm font-medium text-gray-900 ">
-                  Update Order Status
-                </label>
-                <Select>
-                  <SelectTrigger className="w-full bg-white border-gray-300 h-9 sm:h-10">
-                    <SelectValue placeholder="Select Reason" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="shipped">Shipped</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="returned">Returned</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Textarea
-                  id="remark"
-                  placeholder="Remark"
-                  className="w-full bg-white border-gray-300 min-h-[80px]"
-                />
-              </div>
-              <div className="flex justify-end pt-2">
-                <DynamicButton
-                  variant="default"
-                  text="Update"
-                  customClassName="bg-[#C72920] text-[#FFFFFF] "
-                />
-              </div>
+                  {/* Update Status Dropdown */}
+                  <div className="space-y-2 ">
+                    <label className="text-xs sm:text-sm font-medium text-gray-900 ">
+                      Update Order Status
+                    </label>
+                    <Select>
+                      <SelectTrigger className="w-full bg-white border-gray-300 h-9 sm:h-10">
+                        <SelectValue placeholder="Select Reason" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="shipped">Shipped</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="returned">Returned</SelectItem>
+                        <SelectItem value="refunded">Refunded</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Textarea
+                      id="remark"
+                      placeholder="Remark"
+                      className="w-full bg-white border-gray-300 min-h-[80px]"
+                    />
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <DynamicButton
+                      variant="default"
+                      text="Update"
+                      customClassName="bg-[#C72920] text-[#FFFFFF] "
+                    />
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-600">You do not have permission to update order status.</p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -640,10 +651,12 @@ export default function OrderDetailsView() {
         }))}
       />
       {/* CancelOrder Modal */}
-      <CancelOrderModal
-        isOpen={cancelModalOpen}
-        onClose={() => setCancelModalOpen(false)}
-      />
+      {isAuthorized && (
+        <CancelOrderModal
+          isOpen={cancelModalOpen}
+          onClose={() => setCancelModalOpen(false)}
+        />
+      )}
       {/* Product Details Modal */}
       <ProductPopupModal
         isOpen={productModalOpen}
