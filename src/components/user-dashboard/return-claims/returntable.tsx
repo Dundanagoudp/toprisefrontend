@@ -30,6 +30,7 @@ import { getReturnRequests } from "@/service/return-service"
 import { ReturnRequest, ReturnRequestsResponse } from "@/types/return-Types"
 import ValidateReturnRequest from "./modules/modalpopus/Validate"
 import ReturnRequestById from "./modules/modalpopus/ReturnRequestById"
+import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog"
 
 
 export default function ReturnClaims() {
@@ -60,6 +61,17 @@ export default function ReturnClaims() {
   }>({
     open: false,
     returnId: null
+  })
+
+  // Schedule pickup dialog state
+  const [schedulePickupDialog, setSchedulePickupDialog] = useState<{
+    open: boolean;
+    returnId: string | null;
+    returnRequest: ReturnRequest | null;
+  }>({
+    open: false,
+    returnId: null,
+    returnRequest: null
   })
 
   // Fetch return requests from API
@@ -102,6 +114,16 @@ export default function ReturnClaims() {
     })
   }
 
+  // Handle schedule pickup dialog open
+  const handleOpenSchedulePickup = (returnId: string) => {
+    const returnRequest = returnRequests.find(req => req._id === returnId)
+    setSchedulePickupDialog({
+      open: true,
+      returnId,
+      returnRequest: returnRequest || null
+    })
+  }
+
 
   // Handle validation dialog close
   const handleCloseValidation = () => {
@@ -117,6 +139,23 @@ export default function ReturnClaims() {
       open: false,
       returnId: null
     })
+  }
+
+  // Handle schedule pickup dialog close
+  const handleCloseSchedulePickup = () => {
+    setSchedulePickupDialog({
+      open: false,
+      returnId: null,
+      returnRequest: null
+    })
+  }
+
+  // Handle schedule pickup completion
+  const handleSchedulePickupComplete = (success: boolean) => {
+    if (success) {
+      // Refresh the return requests to get updated data
+      fetchReturnRequests()
+    }
   }
 
   // Handle validation completion
@@ -406,11 +445,11 @@ export default function ReturnClaims() {
                             <DropdownMenuItem className="cursor-pointer">
                               <Edit className="h-4 w-4 mr-2" /> Update Status
                             </DropdownMenuItem>
-                            {request.returnStatus === "Approved" && !request.pickupRequest.completedDate && (
-                              <DropdownMenuItem className="cursor-pointer">
+                          
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => handleOpenSchedulePickup(request._id)}>
                                 <Edit className="h-4 w-4 mr-2" /> Schedule Pickup
                               </DropdownMenuItem>
-                            )}
+                        
                             <DropdownMenuItem className="cursor-pointer" onClick={() => handleOpenValidation(request._id)}>
                               <CheckCircle className="h-4 w-4 mr-2" /> Validate
                             </DropdownMenuItem>
@@ -496,6 +535,13 @@ export default function ReturnClaims() {
         open={detailsDialog.open}
         onClose={handleCloseDetails}
         returnId={detailsDialog.returnId}
+      />
+      <SchedulePickupDialog
+        open={schedulePickupDialog.open}
+        onClose={handleCloseSchedulePickup}
+        onScheduleComplete={handleSchedulePickupComplete}
+        returnId={schedulePickupDialog.returnId}
+        initialPickupAddress={schedulePickupDialog.returnRequest?.pickupRequest?.pickupAddress}
       />
     </Card>
     </div>

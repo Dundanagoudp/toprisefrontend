@@ -35,3 +35,23 @@ export const validateReturnRequest = async (returnId: string): Promise<ReturnReq
     }
  
  }
+export const schedulePickup = async (
+  returnId: string, 
+  payload: {
+    scheduledDate: string;
+    pickupAddress: {
+      address: string;
+      city: string;
+      state: string;
+      pincode: string;
+    };
+  }
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(`/orders/api/returns/${returnId}/schedule-pickup`, payload);
+    return response.data;
+  } catch (error) {
+    console.error("Error scheduling pickup:", error);
+    throw error;
+  }
+}
