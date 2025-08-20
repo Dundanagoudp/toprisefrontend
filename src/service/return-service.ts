@@ -55,3 +55,17 @@ export const schedulePickup = async (
     throw error;
   }
 }
+
+export const completePickup = async (
+  returnId: string,
+  payload: {
+    trackingNumber: string;
+  }
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(`/orders/api/returns/${returnId}/complete-pickup`, payload);
+    return response.data;
+  } catch (error: any) {
+    throw error;
+  }
+}
