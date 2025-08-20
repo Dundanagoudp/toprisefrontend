@@ -30,10 +30,6 @@ apiClient.interceptors.request.use(
     // Handle GET requests with body data
     if (config.method === "get" && config.data) {
       config.headers["Content-Type"] = "application/json"
-      console.log("GET Request with body:", {
-        url: config.url,
-        data: config.data,
-      })
     }
     return config;
   },
@@ -44,28 +40,9 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`)
     return response
   },
   (error) => {
-    console.error("API Error:", {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      message: error.message,
-      timeout: error.code === 'ECONNABORTED'
-    })
-    
-    if (error.response) {
-      console.error("Error response data:", error.response.data)
-      console.error("Error response status:", error.response.status)
-    }
-    
-    if (error.code === 'ECONNABORTED') {
-      console.error("Request timeout - the server took too long to respond")
-
-    }
-    
     return Promise.reject(error)
   },
 )

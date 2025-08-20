@@ -82,7 +82,6 @@ export default function EmployeeTable({
       
       // showToast(`Role revoked successfully for ${employeeName}`, "success");
     } catch (error: any) {
-      console.error("Failed to revoke role:", error);
       showToast(`Failed to revoke role: ${error.message || "Unknown error"}`, "error");
     } finally {
       setIsLoading(false);
@@ -108,13 +107,6 @@ export default function EmployeeTable({
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-    console.log("Filters changed:", { search, role, status });
-    
-    // Log available roles for debugging
-    if (employees.length > 0) {
-      const availableRoles = [...new Set(employees.map(emp => emp.role).filter(Boolean))];
-      console.log("Available roles in data:", availableRoles);
-    }
   }, [search, role, status, employees]);
 
   // Sort employees based on sortField and sortDirection
@@ -193,13 +185,7 @@ export default function EmployeeTable({
   const totalItems = filteredEmployees.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   
-  // Debug logging for filtering
-  useEffect(() => {
-    if (role || status) {
-      console.log(`Filtering results: Total employees: ${employees.length}, Filtered: ${filteredEmployees.length}`);
-      console.log(`Role filter: "${role}", Status filter: "${status}"`);
-    }
-  }, [role, status, employees.length, filteredEmployees.length]);
+  
 
   // Update available roles when employee data changes
   useEffect(() => {

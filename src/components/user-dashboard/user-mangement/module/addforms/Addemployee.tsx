@@ -58,10 +58,7 @@ export default function Addemployee() {
         employeeRole: formData.role,
       }
       
-      console.log("Submitting payload:", payload)
       const response = await addEmployee(payload)
-      
-      console.log("API Response:", response)
       
       toast({
         title: "Employee Added Successfully! 🎉",
@@ -71,7 +68,6 @@ export default function Addemployee() {
       form.reset()
       setFormData(null)
     } catch (error: any) {
-      console.error("Failed to add employee:", error)
       
       // Better error handling
       let errorMessage = "Failed to add employee. Please try again."

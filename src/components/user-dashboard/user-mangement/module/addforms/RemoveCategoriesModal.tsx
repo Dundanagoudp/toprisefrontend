@@ -56,7 +56,6 @@ export default function RemoveCategoriesModal({
         setCategories(assignedCategories)
       }
     } catch (error) {
-      console.error("Failed to fetch categories:", error)
       showToast(MESSAGES.FETCH_ERROR, "error")
     } finally {
       setCategoriesLoading(false)
@@ -85,7 +84,6 @@ export default function RemoveCategoriesModal({
         setSelectedCategories([])
       }
     } catch (error) {
-      console.error("Failed to remove categories:", error)
       showToast(MESSAGES.ERROR, "error")
     } finally {
       setLoading(false)
