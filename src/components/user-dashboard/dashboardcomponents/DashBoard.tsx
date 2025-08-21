@@ -8,6 +8,7 @@ import ChartCard from "./modules/chart-card"
 import DonutChart from "./modules/donut-chart"
 import CustomLineChart from "./modules/line-chart"
 import UserCountsRadial from "./modules/user-counts-radial"
+import UserCountsBar from "./modules/user-counts-bar"
 import { fetchOrderStats, fetchProductStats, fetchEmployeeStats, fetchDealerStats, fetchOrderSummary, fetchUserCounts } from "@/service/dashboardServices"
 import { ProductStatsResponse, EmployeeStatsResponse, DealerStatsResponse, UserCountsResponse } from "@/types/dashboard-Types"
 import { OrderStatsResponse, OrderSummaryResponse, OrderSummaryPeriod } from "@/types/dashboard-Types"
@@ -196,7 +197,7 @@ export default function Dashboard() {
               contentClassName="h-64 sm:h-60"
               hideActions
             >
-              <UserCountsRadial
+              <UserCountsBar
                 data={[
                   { name: "Users", value: userCounts?.Users ?? 0 },
                   { name: "Dealers", value: userCounts?.Dealers ?? 0 },
