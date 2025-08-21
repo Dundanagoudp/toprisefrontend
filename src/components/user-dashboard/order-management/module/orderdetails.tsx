@@ -102,12 +102,23 @@ function buildTrackingSteps(orderData: any) {
     (m?.status || "").toLowerCase() === "packed"
   );
 
-  // Determine step statuses based on order status and timestamps
-  const isConfirmed = confirmedAt || orderStatus === "confirmed" || orderStatus === "approved" || orderStatus === "pending";
-  const isAssigned = assignedAt || orderData?.dealerMapping?.length > 0 || orderStatus === "assigned";
-  const isPacked = packedAt || hasPackedStatus || orderStatus === "packed";
-  const isShipped = shippedAt || orderStatus === "shipped";
-  const isDelivered = deliveredAt || orderStatus === "delivered" || orderStatus === "completed";
+  // SIMPLIFIED LOGIC: Only show steps as completed based on actual order status
+  // This ensures tracking matches the backend status exactly
+  
+  // Confirmed: Always true if order exists
+  const isConfirmed = true;
+  
+  // Assigned: Only if order status is assigned or higher
+  const isAssigned = ["assigned", "packed", "shipped", "delivered", "completed"].includes(orderStatus);
+  
+  // Packed: Only if order status is packed or higher
+  const isPacked = ["packed", "shipped", "delivered", "completed"].includes(orderStatus);
+  
+  // Shipped: Only if order status is shipped or higher
+  const isShipped = ["shipped", "delivered", "completed"].includes(orderStatus);
+  
+  // Delivered: Only if order status is delivered or completed
+  const isDelivered = ["delivered", "completed"].includes(orderStatus);
 
   const borzoStatus = borzo?.borzo_order_status || "";
   const borzoUrl = borzo?.borzo_tracking_url;
@@ -214,6 +225,13 @@ export default function OrderDetailsView() {
     });
     const steps = buildTrackingSteps(orderById);
     console.log("Computed tracking steps:", steps);
+    console.log("Current order status:", orderById?.status, "Steps that should be completed based on status:", {
+      confirmed: true, // Always true if order exists
+      assigned: ["assigned", "packed", "shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
+      packed: ["packed", "shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
+      shipped: ["shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
+      delivered: ["delivered", "completed"].includes(orderById?.status?.toLowerCase())
+    });
     return steps;
   }, [orderById]);
 
