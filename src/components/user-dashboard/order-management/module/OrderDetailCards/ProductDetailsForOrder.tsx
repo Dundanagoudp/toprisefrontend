@@ -207,7 +207,7 @@ export default function ProductDetailsForOrder({
     {/* Global View Picklists action (restored); Create remains per-dealer in DealerIdentification */}
     {isAuthorized && (
       <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
-        <DynamicButton
+        {/* <DynamicButton
           text="Mark Order as Packed"
           customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border bg-red-600 text-white hover:bg-red-700"
           onClick={() => {
@@ -223,7 +223,7 @@ export default function ProductDetailsForOrder({
             setActiveAction("markPacked")
             setActionOpen(true)
           }}
-        />
+        /> */}
         <DynamicButton
           text="View Picklists"
           customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border"
