@@ -14,6 +14,7 @@ interface ChartCardProps {
   contentClassName?: string
   hideActions?: boolean
   compactHeader?: boolean
+  rightNode?: React.ReactNode
 }
 
 const ChartCard: React.FC<ChartCardProps> = ({
@@ -26,9 +27,10 @@ const ChartCard: React.FC<ChartCardProps> = ({
   contentClassName = "",
   hideActions = false,
   compactHeader = false,
+  rightNode,
 }) => {
   return (
-    <Card className={`p-3 bg-white border border-neutral-200 rounded-lg overflow-hidden  ${className}`}>
+    <Card className={`p-3 bg-white border border-neutral-200 rounded-lg ${className}`}>
       {/* Header */}
       <div className={`flex items-center justify-between ${compactHeader ? "mb-1" : "mb-2"}`}>
         <div>
@@ -48,7 +50,8 @@ const ChartCard: React.FC<ChartCardProps> = ({
           )}
         </div>
         {!hideActions && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            {rightNode}
             <Button variant="ghost" className="h-6 w-6 p-0">
               {/* <svg
       width="60"
