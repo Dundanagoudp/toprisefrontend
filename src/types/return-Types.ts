@@ -112,7 +112,8 @@ export type ReturnStatus =
   | "Completed" 
   | "Cancelled"
   | "Pickup_Completed"
-  | "Pickup_Scheduled";
+  | "Pickup_Scheduled"
+  | "Under_Inspection";
 
 export type ReturnAction = 
   | "Pending" 
