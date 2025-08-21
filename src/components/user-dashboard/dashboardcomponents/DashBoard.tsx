@@ -13,6 +13,8 @@ import { fetchOrderStats, fetchProductStats, fetchEmployeeStats, fetchDealerStat
 import { ProductStatsResponse, EmployeeStatsResponse, DealerStatsResponse, UserCountsResponse } from "@/types/dashboard-Types"
 import { OrderStatsResponse, OrderSummaryResponse, OrderSummaryPeriod } from "@/types/dashboard-Types"
 import { Button } from "@/components/ui/button"
+import DashboardShimmer from "./modules/DashboardShimmer"
+import { Calendar } from "lucide-react"
 
 export default function Dashboard() {
   const [searchValue, setSearchValue] = useState("")
@@ -149,6 +151,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-8xl mx-auto space-y-6">
+        {loading ? (
+          <DashboardShimmer />
+        ) : (
+          <>
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
           <SearchInput
@@ -156,22 +162,32 @@ export default function Dashboard() {
             onChange={setSearchValue}
             onClear={() => setSearchValue("")}
             placeholder="Search Spare parts"
-            className="w-full sm:flex-grow"
+            className="w-full sm:max-w-md"
           />
 
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-            <input
-              type="date"
-              className="border rounded px-2 py-1 bg-white w-full sm:w-auto mb-2 sm:mb-0"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <input
-              type="date"
-              className="border rounded px-2 py-1 bg-white w-full sm:w-auto"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+            <div className="relative w-full sm:w-auto">
+              <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
+                <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
+                <input
+                  type="date"
+                  className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-neutral-700 placeholder:text-neutral-500 h-10 p-0 flex-1 outline-none text-sm"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="relative w-full sm:w-auto">
+              <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
+                <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
+                <input
+                  type="date"
+                  className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-neutral-700 placeholder:text-neutral-500 h-10 p-0 flex-1 outline-none text-sm"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -268,6 +284,8 @@ export default function Dashboard() {
             <CustomLineChart data={chartData} />
           </ChartCard>
         </div>
+          </>
+        )}
       </div>
     </div>
   )
