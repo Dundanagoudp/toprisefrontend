@@ -10,6 +10,7 @@ import { getAllAppUsers,  } from "@/service/user-service"
 import formatDate from "@/utils/formateDate"
 import { AppUser } from "@/types/user-types"
 import UserDetailsDialog from "./UserDetailsDialog"
+import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 
 interface AppUsersTableProps {
 	search?: string
@@ -213,19 +214,13 @@ export default function AppUsersTable({
 							<Skeleton className="h-9 w-9" />
 						</div>
 					) : (
-						<nav className="flex items-center gap-1">
-							<button className="px-3 py-1 text-sm border rounded" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
-								Prev
-							</button>
-							{[...Array(totalPages)].map((_, i) => (
-								<button key={i} className={`px-3 py-1 text-sm border rounded ${currentPage === i + 1 ? "bg-gray-100" : ""}`} onClick={() => handlePageChange(i + 1)}>
-									{i + 1}
-								</button>
-							))}
-							<button className="px-3 py-1 text-sm border rounded" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
-								Next
-							</button>
-						</nav>
+						<DynamicPagination
+							currentPage={currentPage}
+							totalPages={totalPages}
+							onPageChange={handlePageChange}
+							totalItems={totalItems}
+							itemsPerPage={itemsPerPage}
+						/>
 					)}
 				</div>
 			</div>

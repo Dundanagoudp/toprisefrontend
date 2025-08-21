@@ -19,6 +19,7 @@ import type { Employee } from "@/types/employee-types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAppSelector } from "@/store/hooks"
 import { useToast } from "@/components/ui/toast"
+import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 
 interface EmployeeTableProps {
   search?: string;
@@ -421,11 +422,9 @@ export default function EmployeeTable({
           <Skeleton className="h-4 w-48" />
         ) : (
           <span className="text-sm text-gray-500 md:text-left text-center w-full md:w-auto">
-            Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} of{" "}
-            {totalItems} employees
+            Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} employees
           </span>
         )}
-        
         <div className="flex justify-center md:justify-end w-full md:w-auto">
           {isLoading ? (
             <div className="flex gap-2">
@@ -435,31 +434,13 @@ export default function EmployeeTable({
               <Skeleton className="h-9 w-9" />
             </div>
           ) : (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    aria-disabled={currentPage === 1}
-                  />
-                </PaginationItem>
-                {[...Array(totalPages)].map((_, i) => (
-                  <PaginationItem key={i}>
-                    <PaginationLink href="#" isActive={currentPage === i + 1} onClick={() => handlePageChange(i + 1)}>
-                      {i + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    aria-disabled={currentPage === totalPages}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+            <DynamicPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+            />
           )}
         </div>
       </div>
