@@ -32,6 +32,7 @@ import ValidateReturnRequest from "./modules/modalpopus/Validate"
 import ReturnRequestById from "./modules/modalpopus/ReturnRequestById"
 import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog"
 import CompletePickupDialog from "./modules/modalpopus/CompletePickupDialog"
+import InspectDialog from "./modules/modalpopus/inspectDialog"
 
 
 export default function ReturnClaims() {
@@ -77,6 +78,17 @@ export default function ReturnClaims() {
 
   // Complete pickup dialog state
   const [completePickupDialog, setCompletePickupDialog] = useState<{
+    open: boolean;
+    returnId: string | null;
+    returnRequest: ReturnRequest | null;
+  }>({
+    open: false,
+    returnId: null,
+    returnRequest: null
+  })
+
+  // Inspect dialog state
+  const [inspectDialog, setInspectDialog] = useState<{
     open: boolean;
     returnId: string | null;
     returnRequest: ReturnRequest | null;
@@ -146,6 +158,16 @@ export default function ReturnClaims() {
     })
   }
 
+  // Handle inspect dialog open
+  const handleOpenInspect = (returnId: string) => {
+    const returnRequest = returnRequests.find(req => req._id === returnId)
+    setInspectDialog({
+      open: true,
+      returnId,
+      returnRequest: returnRequest || null
+    })
+  }
+
 
   // Handle validation dialog close
   const handleCloseValidation = () => {
@@ -181,6 +203,15 @@ export default function ReturnClaims() {
     })
   }
 
+  // Handle inspect dialog close
+  const handleCloseInspect = () => {
+    setInspectDialog({
+      open: false,
+      returnId: null,
+      returnRequest: null
+    })
+  }
+
   // Handle schedule pickup completion
   const handleSchedulePickupComplete = (success: boolean) => {
     if (success) {
@@ -199,6 +230,14 @@ export default function ReturnClaims() {
 
   // Handle validation completion
   const handleValidationComplete = (success: boolean) => {
+    if (success) {
+      // Refresh the return requests to get updated status
+      fetchReturnRequests()
+    }
+  }
+
+  // Handle inspect completion
+  const handleInspectComplete = (success: boolean) => {
     if (success) {
       // Refresh the return requests to get updated status
       fetchReturnRequests()
@@ -242,6 +281,8 @@ export default function ReturnClaims() {
         return `${baseClasses} text-indigo-600 bg-indigo-50 border-indigo-200`
       case "Pickup_Completed":
         return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`
+      case "Under_Inspection":
+        return `${baseClasses} text-orange-600 bg-orange-50 border-orange-200`
       case "Completed":
         return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`
       case "Cancelled":
@@ -312,6 +353,7 @@ export default function ReturnClaims() {
                 <SelectItem value="In_Progress">In Progress</SelectItem>
                 <SelectItem value="Pickup_Scheduled">Pickup Scheduled</SelectItem>
                 <SelectItem value="Pickup_Completed">Pickup Completed</SelectItem>
+                <SelectItem value="Under_Inspection">Under Inspection</SelectItem>
                 <SelectItem value="Completed">Completed</SelectItem>
                 <SelectItem value="Cancelled">Cancelled</SelectItem>
               </SelectContent>
@@ -495,12 +537,21 @@ export default function ReturnClaims() {
                              <DropdownMenuItem className="cursor-pointer">
                                <Edit className="h-4 w-4 mr-2" /> Update Status
                              </DropdownMenuItem>
-                             <DropdownMenuItem className="cursor-pointer" onClick={() => handleOpenSchedulePickup(request._id)}>
-                               <Edit className="h-4 w-4 mr-2" /> Schedule Pickup
-                             </DropdownMenuItem>
-                             <DropdownMenuItem className="cursor-pointer" onClick={() => handleOpenValidation(request._id)}>
-                               <CheckCircle className="h-4 w-4 mr-2" /> Validate
-                             </DropdownMenuItem>
+                             
+                             {/* Schedule Pickup - Hide for Pickup_Completed status */}
+                             {request.returnStatus !== "Pickup_Completed" && (
+                               <DropdownMenuItem className="cursor-pointer" onClick={() => handleOpenSchedulePickup(request._id)}>
+                                 <Edit className="h-4 w-4 mr-2" /> Schedule Pickup
+                               </DropdownMenuItem>
+                             )}
+                             
+                             {/* Validate - Hide for Pickup_Completed status */}
+                             {request.returnStatus !== "Pickup_Completed" && (
+                               <DropdownMenuItem className="cursor-pointer" onClick={() => handleOpenValidation(request._id)}>
+                                 <CheckCircle className="h-4 w-4 mr-2" /> Validate
+                               </DropdownMenuItem>
+                             )}
+                             
                              {/* Complete Pickup - Show only for Pickup_Scheduled status */}
                              {request.returnStatus === "Pickup_Scheduled" && (
                                <>
@@ -510,6 +561,17 @@ export default function ReturnClaims() {
                                  </DropdownMenuItem>
                                </>
                              )}
+                             
+                             {/* Inspect - Show only for Pickup_Completed status */}
+                             {(request.returnStatus === "Pickup_Completed" || request.returnStatus === "Under_Inspection") && (
+                               <>
+                                 <div className="h-px bg-gray-200 mx-2" />
+                                 <DropdownMenuItem className="cursor-pointer text-[#C72920] hover:text-[#c72820c0] font-medium" onClick={() => handleOpenInspect(request._id)}>
+                                   <Eye className="h-4 w-4 mr-2" /> Inspect
+                                 </DropdownMenuItem>
+                               </>
+                             )}
+                             
                            </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -606,6 +668,13 @@ export default function ReturnClaims() {
          returnId={completePickupDialog.returnId}
          returnRequest={completePickupDialog.returnRequest}
        />
+      <InspectDialog
+        open={inspectDialog.open}
+        onClose={handleCloseInspect}
+        onInspectComplete={handleInspectComplete}
+        returnId={inspectDialog.returnId}
+        returnStatus={inspectDialog.returnRequest?.returnStatus}
+      />
     </Card>
     </div>
   )
