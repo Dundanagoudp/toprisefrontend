@@ -204,26 +204,9 @@ export default function ProductDetailsForOrder({
       </tbody>
     </table>
     
-    {/* Global View Picklists action (restored); Create remains per-dealer in DealerIdentification */}
+    {/* Global View Picklists action */}
     {isAuthorized && (
       <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
-        {/* <DynamicButton
-          text="Mark Order as Packed"
-          customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border bg-red-600 text-white hover:bg-red-700"
-          onClick={() => {
-            // Get the first dealer from the order to mark the entire order as packed
-            const firstDealer = products && products.length > 0 ? products[0].dealerId : ""
-            const dId = safeDealerId(firstDealer as any)
-            if (!dId) {
-              showToast("No dealer found for this order", "error")
-              return
-            }
-            console.log("Mark Order as Packed clicked for entire order. Dealer:", dId);
-            setDealerId(dId)
-            setActiveAction("markPacked")
-            setActionOpen(true)
-          }}
-        /> */}
         <DynamicButton
           text="View Picklists"
           customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border"
@@ -245,43 +228,56 @@ export default function ProductDetailsForOrder({
 
         {/* Card View for Mobile and Tablet */}
         <div className="xl:hidden p-4 space-y-3">
-          {/* Removed mobile Create Picklist shortcut; use dealer modal for per-dealer create */}
           {products?.map((productItem: ProductItem) => (
             <div key={productItem._id} className="border border-gray-200 rounded-lg p-3">
               <div className="flex items-start gap-3 mb-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-medium text-gray-900 text-sm truncate">{productItem.productName}</h3>
-                    <Eye
-                      className="w-4 h-4 text-gray-500 flex-shrink-0 cursor-pointer"
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-medium text-gray-900 text-sm truncate flex-1">{productItem.productName}</h3>
+                    <button 
                       onClick={() => onProductEyeClick(productItem)}
-                    />
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="View product details"
+                    >
+                      <Eye className="w-4 h-4 flex-shrink-0" />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs sm:text-sm text-gray-600">No. of Dealers:</span>
-                    <span className="text-xs sm:text-sm text-gray-900 font-semibold">{getDealerCount(productItem.dealerId)}</span>
-                    <Eye
-                      className="w-3 h-3 text-gray-500 flex-shrink-0 cursor-pointer ml-1 inline-block align-middle"
-                      onClick={() => onDealerEyeClick(safeDealerId(productItem.dealerId))}
-                    />
-                    {/* Removed mobile per-card Picklists button; use global View Picklists */}
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs sm:text-sm text-gray-600">MRP:</span>
-                    <span className="text-xs sm:text-sm text-gray-900 font-semibold">₹{productItem.mrp}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs sm:text-sm text-gray-600">GST:</span>
-                    <span className="text-xs sm:text-sm text-gray-900 font-semibold">{productItem.gst}%</span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs sm:text-sm text-gray-600">Total Price:</span>
-                    <span className="text-xs sm:text-sm text-gray-900 font-semibold">₹{productItem.totalPrice}</span>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-600">Dealers:</span>
+                        <span className="text-xs text-gray-900 font-semibold">{getDealerCount(productItem.dealerId)}</span>
+                        <button
+                          onClick={() => onDealerEyeClick(safeDealerId(productItem.dealerId))}
+                          className="text-gray-400 hover:text-gray-600 transition-colors"
+                          aria-label="View dealers"
+                        >
+                          <Eye className="w-4 h-4 flex-shrink-0" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-xs text-gray-600 block">MRP</span>
+                        <span className="text-xs text-gray-900 font-semibold">₹{productItem.mrp.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-600 block">GST</span>
+                        <span className="text-xs text-gray-900 font-semibold">{productItem.gst}%</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-600 block">Total Price</span>
+                        <span className="text-xs text-gray-900 font-semibold">₹{productItem.totalPrice.toLocaleString()}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+              
               {isAuthorized && (
-                <div className="flex justify-end">
+                <div className="flex justify-end mt-3">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <DynamicButton
@@ -289,34 +285,62 @@ export default function ProductDetailsForOrder({
                         size="sm"
                         className="h-8 bg-white border border-gray-300 rounded-md shadow-sm w-20 justify-between text-xs"
                       >
-                        Edit
+                        Actions
                         <ChevronDown className="h-4 w-4 ml-1" />
                       </DynamicButton>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem className="text-sm">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                    <DropdownMenuContent align="end" className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1">
+                      <DropdownMenuItem 
+                        className="flex items-center gap-2 rounded hover:bg-neutral-100" 
+                        onClick={() => { 
+                          setActiveAction("assignDealers"); 
+                          setActionOpen(true); 
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-2" /> Assign Dealers
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-sm">
-                        <HandHeart className="h-4 w-4 mr-2" />
-                        Mark Handover
+                      <DropdownMenuItem 
+                        className="flex items-center gap-2 rounded hover:bg-neutral-100" 
+                        onClick={() => { 
+                          setActiveAction("assignPicklist"); 
+                          const d = safeDealerId(productItem.dealerId); 
+                          setDealerId(d); 
+                          setActionOpen(true); 
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-2" /> Assign Picklist
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-sm">
-                        <Truck className="h-4 w-4 mr-2" />
-                        Update Tracking
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-sm">
-                        <UserCheck className="h-4 w-4 mr-2" />
-                        Reassign Dealer
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-sm" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
+                      <DropdownMenuItem 
+                        className="flex items-center gap-2 rounded hover:bg-neutral-100" 
+                        onClick={() => { 
+                          setActiveProductForPicklist(productItem); 
+                          setCreatePicklistOpen(true); 
+                        }}
+                      >
                         <Edit className="h-4 w-4 mr-2" /> Create Picklist
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               )}
+
+              {/* View Picklists button for mobile view */}
+              <div className="flex justify-end mt-3">
+                <DynamicButton
+                  text="View Picklists"
+                  variant="outline"
+                  customClassName="px-4 py-2 text-xs font-medium rounded-md shadow-sm border w-full"
+                  onClick={() => {
+                    const dId = safeDealerId(productItem.dealerId)
+                    if (!dId) {
+                      showToast("No dealer found for this product", "error")
+                      return
+                    }
+                    setDealerId(dId)
+                    setViewPicklistsOpen(true)
+                  }}
+                />
+              </div>
             </div>
           ))}
         </div>
