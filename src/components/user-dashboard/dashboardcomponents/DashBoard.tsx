@@ -13,6 +13,8 @@ import { fetchOrderStats, fetchProductStats, fetchEmployeeStats, fetchDealerStat
 import { ProductStatsResponse, EmployeeStatsResponse, DealerStatsResponse, UserCountsResponse } from "@/types/dashboard-Types"
 import { OrderStatsResponse, OrderSummaryResponse, OrderSummaryPeriod } from "@/types/dashboard-Types"
 import { Button } from "@/components/ui/button"
+import DashboardShimmer from "./modules/DashboardShimmer"
+import { Calendar } from "lucide-react"
 
 export default function Dashboard() {
   const [searchValue, setSearchValue] = useState("")
@@ -149,6 +151,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-8xl mx-auto space-y-6">
+        {loading ? (
+          <DashboardShimmer />
+        ) : (
+          <>
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
           <SearchInput
@@ -156,38 +162,50 @@ export default function Dashboard() {
             onChange={setSearchValue}
             onClear={() => setSearchValue("")}
             placeholder="Search Spare parts"
+            className="w-full sm:max-w-md"
           />
 
-          <div className="flex items-center gap-4">
-            <input
-              type="date"
-              className="border rounded px-2 py-1 bg-white"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <input
-              type="date"
-              className="border rounded px-2 py-1 bg-white"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
+              <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
+                <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
+                <input
+                  type="date"
+                  className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-neutral-700 placeholder:text-neutral-500 h-10 p-0 flex-1 outline-none text-sm"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="relative w-full sm:w-auto">
+              <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
+                <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
+                <input
+                  type="date"
+                  className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-neutral-700 placeholder:text-neutral-500 h-10 p-0 flex-1 outline-none text-sm"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Order Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {orderStats.map((stat, index) => (
             <StatCard key={index} className="p-3" title={stat.title} value={stat.value} color={stat.color} />
           ))}
         </div>
 
-        {/* Management + Product Grid: 2 rows x 3 columns, donut spans rows */}
+        {/* Management + Product Grid: Responsive layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[50%_20%_28%] gap-4">
           {/* Row 1, Col 1 */}
-         <div className="space-y-4 ">
+          <div className="space-y-4">
             <ManagementCard title="Employee Management" stats={employeeStats} className="p-4 rounded-[15px]" />
             <ManagementCard title="Dealer Management" stats={dealerStats} className="p-4 rounded-[15px]" />
           </div>
+          
           {/* Middle Column - Customer Management and Return Rate */}
           <div className="space-y-4">
             <ChartCard
@@ -210,33 +228,34 @@ export default function Dashboard() {
                 ]}
               />
             </ChartCard>
-
           </div>
+          
           {/* Col 3 spans both rows */}
-          <ChartCard title="Product Management" className="lg:row-span-2" contentClassName="h-50  ">
+          <ChartCard 
+            title="Product Management" 
+            className="lg:row-span-2 w-full" 
+            contentClassName="h-50"
+          >
             <DonutChart
               data={productData}
               centerValue={(productStats?.total ?? 0).toString()}
               centerLabel="PRODUCTS"
             />
           </ChartCard>
-
-          {/* Row 2, Col 1 */}
-
         </div>
 
         {/* Bottom Row - Order Summary Widget */}
-        <div className=" grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <ChartCard
             title="Order Summary"
             value={orderSummary ? orderSummary.summary.currentTotalAmount.toLocaleString() : undefined}
             change={orderSummary ? orderSummary.summary.comparisonText : undefined}
             changeType={orderSummary && orderSummary.summary.amountPercentageChange < 0 ? "negative" : "positive"}
-            className="w-[72%] rounded-[15px] p-2"
+            className="w-full lg:w-[72%] rounded-[15px] p-2"
             contentClassName="h-56"
             compactHeader
             rightNode={
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 {orderSummary && (
                   <div className="hidden sm:flex items-center text-xs text-neutral-600 mr-2">
                     <span className="font-medium mr-1">Orders:</span>
@@ -265,6 +284,8 @@ export default function Dashboard() {
             <CustomLineChart data={chartData} />
           </ChartCard>
         </div>
+          </>
+        )}
       </div>
     </div>
   )
