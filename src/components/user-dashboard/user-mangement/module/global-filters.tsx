@@ -6,7 +6,7 @@ import DynamicButton from "@/components/common/button/button";
 import SearchInput from "@/components/common/search/SearchInput";
 
 interface GlobalFiltersProps {
-  type: "employee" | "dealer";
+  type: "employee" | "dealer" | "users";
   search: string;
   onSearchChange: (search: string) => void;
   currentRole: string;
@@ -23,6 +23,8 @@ const EMPLOYEE_STATUSES = ["Active", "Inactive"] as const
 
 const DEALER_ROLES = ["admin", "user", "dealer"] as const;
 const DEALER_STATUSES = ["active", "inactive"] as const;
+// For app users, roles are dynamic (usually just "User"); no status filter for now
+const USER_STATUSES: readonly string[] = [] as const
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState<boolean>(() => {
@@ -67,8 +69,8 @@ export default function GlobalFilters({
     }
   }, [open, search, currentRole, currentStatus]);
 
-  const roles = type === "employee" ? availableRoles : DEALER_ROLES;
-  const statuses = type === "employee" ? EMPLOYEE_STATUSES : DEALER_STATUSES;
+  const roles = type === "dealer" ? DEALER_ROLES : availableRoles;
+  const statuses = type === "dealer" ? DEALER_STATUSES : type === "employee" ? EMPLOYEE_STATUSES : USER_STATUSES;
 
   const appliedFiltersCount = useMemo(
     () =>
@@ -132,9 +134,7 @@ export default function GlobalFilters({
             value={search}
             onChange={onSearchChange}
             onClear={() => onSearchChange("")}
-            placeholder={`Search ${
-              type === "employee" ? "employees" : "dealers"
-            }...`}
+            placeholder={`Search ${type === "employee" ? "employees" : type === "dealer" ? "dealers" : "users"}...`}
             className="w-full"
           />
         </div>
@@ -313,7 +313,7 @@ function SelectLike<T extends string>({
 }
 
 function PanelContent(props: {
-  type: "employee" | "dealer";
+  type: "employee" | "dealer" | "users";
   draftSearch: string;
   setDraftSearch: (v: string) => void;
   draftRole: string;
@@ -332,8 +332,8 @@ function PanelContent(props: {
     setDraftStatus,
     availableRoles = [],
   } = props;
-  const roles = type === "employee" ? availableRoles : DEALER_ROLES;
-  const statuses = type === "employee" ? EMPLOYEE_STATUSES : DEALER_STATUSES;
+  const roles = type === "dealer" ? DEALER_ROLES : availableRoles;
+  const statuses = type === "dealer" ? DEALER_STATUSES : type === "employee" ? EMPLOYEE_STATUSES : USER_STATUSES;
 
   return (
     <div className="space-y-4">
@@ -369,39 +369,41 @@ function PanelContent(props: {
         </div>
       </Collapsible>
 
-      {/* Collapsible Status */}
-      <Collapsible title="Status">
-        <div className="rounded-md border">
-          <ul className="max-h-40 overflow-auto p-1">
-            <li>
-              <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-                <input
-                  type="radio"
-                  name="status"
-                  checked={draftStatus === "all"}
-                  onChange={() => setDraftStatus("all")}
-                />
-                <span className="text-sm">All Statuses</span>
-              </label>
-            </li>
-            {statuses.map((s) => (
-              <li key={s}>
+      {/* Collapsible Status (hidden for users) */}
+      {statuses.length > 0 && (
+        <Collapsible title="Status">
+          <div className="rounded-md border">
+            <ul className="max-h-40 overflow-auto p-1">
+              <li>
                 <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
                   <input
                     type="radio"
                     name="status"
-                    checked={draftStatus === s}
-                    onChange={() => setDraftStatus(s)}
+                    checked={draftStatus === "all"}
+                    onChange={() => setDraftStatus("all")}
                   />
-                  <span className="text-sm">
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
-                  </span>
+                  <span className="text-sm">All Statuses</span>
                 </label>
               </li>
-            ))}
-          </ul>
-        </div>
-      </Collapsible>
+              {statuses.map((s) => (
+                <li key={s}>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
+                    <input
+                      type="radio"
+                      name="status"
+                      checked={draftStatus === s}
+                      onChange={() => setDraftStatus(s)}
+                    />
+                    <span className="text-sm">
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Collapsible>
+      )}
     </div>
   );
 }
