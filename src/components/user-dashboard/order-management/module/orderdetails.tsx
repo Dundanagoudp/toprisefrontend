@@ -45,6 +45,30 @@ import DynamicButton from "@/components/common/button/button";
 
 import formatDate from "@/utils/formateDate";
 
+// Helper function to get status badge styling
+const getStatusBadgeClasses = (status: string) => {
+  const s = (status || "").toLowerCase();
+  if (s === "delivered" || s === "completed") {
+    return "bg-emerald-100 text-emerald-800 hover:bg-emerald-100";
+  }
+  if (s === "packed") {
+    return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+  }
+  if (s === "shipped") {
+    return "bg-purple-100 text-purple-800 hover:bg-purple-100";
+  }
+  if (s === "cancelled" || s === "canceled") {
+    return "bg-red-100 text-red-800 hover:bg-red-100";
+  }
+  if (s === "pending" || s === "created") {
+    return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
+  }
+  if (s === "approved" || s === "confirmed") {
+    return "bg-green-100 text-green-800 hover:bg-green-100";
+  }
+  return "bg-gray-100 text-gray-800 hover:bg-gray-100";
+};
+
 interface ProductItem {
   id: string;
   name: string;
@@ -57,18 +81,44 @@ interface ProductItem {
 type Params = { id: string };
 
 function buildTrackingSteps(orderData: any) {
+  if (!orderData) return [];
+
   const firstSku = orderData?.skus?.[0] || {};
   const skuTracking = firstSku?.tracking_info || {};
   const skuTimestamps = skuTracking?.timestamps || {};
   const orderTimestamps = orderData?.timestamps || {};
   const borzo = orderData?.order_track_info || skuTracking || {};
+  const orderStatus = (orderData?.status || "").toLowerCase();
 
+  // Get timestamps with proper fallbacks
   const confirmedAt = skuTimestamps?.confirmedAt || orderTimestamps?.createdAt || orderData?.createdAt;
   const assignedAt = skuTimestamps?.assignedAt || orderTimestamps?.assignedAt;
-  const packedAt = skuTimestamps?.packedAt || orderTimestamps?.packedAt || (orderData?.dealerMapping?.some((m: any) => (m?.status || "").toLowerCase() === "packed") ? orderTimestamps?.packedAt || confirmedAt : undefined);
-  // If delivery occurred but shipped timestamp is missing at SKU level, we still want the "Shipped" step marked as completed.
+  const packedAt = skuTimestamps?.packedAt || orderTimestamps?.packedAt;
+  const shippedAt = skuTimestamps?.shippedAt || orderTimestamps?.shippedAt;
   const deliveredAt = skuTimestamps?.deliveredAt || orderTimestamps?.deliveredAt;
-  const shippedAt = skuTimestamps?.shippedAt || orderTimestamps?.shippedAt || deliveredAt;
+
+  // Check if any dealer mapping has "packed" status
+  const hasPackedStatus = orderData?.dealerMapping?.some((m: any) => 
+    (m?.status || "").toLowerCase() === "packed"
+  );
+
+  // SIMPLIFIED LOGIC: Only show steps as completed based on actual order status
+  // This ensures tracking matches the backend status exactly
+  
+  // Confirmed: Always true if order exists
+  const isConfirmed = true;
+  
+  // Assigned: Only if order status is assigned or higher
+  const isAssigned = ["assigned", "packed", "shipped", "delivered", "completed"].includes(orderStatus);
+  
+  // Packed: Only if order status is packed or higher
+  const isPacked = ["packed", "shipped", "delivered", "completed"].includes(orderStatus);
+  
+  // Shipped: Only if order status is shipped or higher
+  const isShipped = ["shipped", "delivered", "completed"].includes(orderStatus);
+  
+  // Delivered: Only if order status is delivered or completed
+  const isDelivered = ["delivered", "completed"].includes(orderStatus);
 
   const borzoStatus = borzo?.borzo_order_status || "";
   const borzoUrl = borzo?.borzo_tracking_url;
@@ -76,36 +126,36 @@ function buildTrackingSteps(orderData: any) {
   return [
     {
       title: "Confirmed",
-      status: confirmedAt ? "completed" : "pending",
+      status: isConfirmed ? "completed" : "pending",
       description: "Your order has been confirmed.",
       time: confirmedAt ? formatDate(confirmedAt, { includeTime: true, timeFormat: "12h" }) : "",
       details: [],
     },
     {
       title: "Assigned",
-      status: assignedAt ? "completed" : "pending",
+      status: isAssigned ? "completed" : "pending",
       description: "Order assigned for processing.",
       time: assignedAt ? formatDate(assignedAt, { includeTime: true, timeFormat: "12h" }) : "",
       details: [],
     },
     {
       title: "Packed",
-      status: packedAt ? "completed" : "pending",
+      status: isPacked ? "completed" : "pending",
       description: "Items packed and ready to ship.",
       time: packedAt ? formatDate(packedAt, { includeTime: true, timeFormat: "12h" }) : "",
       details: [],
     },
     {
       title: "Shipped",
-      status: shippedAt ? "completed" : "pending",
+      status: isShipped ? "completed" : "pending",
       description: borzoStatus ? `Courier: ${borzoStatus}${borzoUrl ? " (Track available)" : ""}` : "Shipment in progress",
       time: shippedAt ? formatDate(shippedAt, { includeTime: true, timeFormat: "12h" }) : "",
       details: [],
     },
     {
       title: "Delivered",
-      status: deliveredAt ? "completed" : "pending",
-      description: deliveredAt ? "Package delivered successfully" : "Your item will be delivered soon",
+      status: isDelivered ? "completed" : "pending",
+      description: isDelivered ? "Package delivered successfully" : "Your item will be delivered soon",
       time: deliveredAt ? formatDate(deliveredAt, { includeTime: true, timeFormat: "12h" }) : "",
       details: [],
     },
@@ -163,7 +213,27 @@ export default function OrderDetailsView() {
   }, []);
 
   // Compute tracking steps from live order data
-  const trackingSteps = useMemo(() => buildTrackingSteps(orderById), [orderById]);
+  const trackingSteps = useMemo(() => {
+    console.log("Order data for tracking:", {
+      status: orderById?.status,
+      dealerMapping: orderById?.dealerMapping,
+      timestamps: orderById?.timestamps,
+      skus: orderById?.skus?.map((s: any) => ({
+        tracking_info: s.tracking_info,
+        timestamps: s.tracking_info?.timestamps
+      }))
+    });
+    const steps = buildTrackingSteps(orderById);
+    console.log("Computed tracking steps:", steps);
+    console.log("Current order status:", orderById?.status, "Steps that should be completed based on status:", {
+      confirmed: true, // Always true if order exists
+      assigned: ["assigned", "packed", "shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
+      packed: ["packed", "shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
+      shipped: ["shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
+      delivered: ["delivered", "completed"].includes(orderById?.status?.toLowerCase())
+    });
+    return steps;
+  }, [orderById]);
 
   // Loading Skeleton Component
   const LoadingSkeleton = () => (
@@ -416,8 +486,8 @@ export default function OrderDetailsView() {
           <p className="text-xs sm:text-sm text-gray-600">Order Overview</p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 px-2 sm:px-3 py-1 text-xs sm:text-sm">
-            Active
+          <Badge className={`px-2 sm:px-3 py-1 text-xs sm:text-sm ${getStatusBadgeClasses(orderById?.status)}`}>
+            {orderById?.status || "Active"}
           </Badge>
           {isAuthorized && (
             <DynamicButton
@@ -496,62 +566,63 @@ export default function OrderDetailsView() {
               <div className="relative">
                 {trackingSteps.map((step, index) => {
                   const isLast = index === trackingSteps.length - 1;
-                  const nextCompleted = !isLast && trackingSteps[index + 1]?.status === "completed";
-                  const connectorColor = nextCompleted ? "bg-green-500" : "bg-gray-200";
-                  const circleColor = step.status === "completed" ? "bg-green-500" : "bg-gray-300";
+                  const isCompleted = step.status === "completed";
+                  const nextStep = trackingSteps[index + 1];
+                  const nextCompleted = nextStep && nextStep.status === "completed";
+                  
+                  // Determine connector color based on current and next step status
+                  let connectorColor = "bg-gray-200";
+                  if (isCompleted && nextCompleted) {
+                    connectorColor = "bg-green-500";
+                  } else if (isCompleted && !nextCompleted) {
+                    connectorColor = "bg-green-500";
+                  }
+                  
+                  const circleColor = isCompleted ? "bg-green-500" : "bg-gray-300";
+                  
                   return (
-                  <div key={index} className="relative flex items-start gap-4">
-                    {/* Vertical Line - Full Connection */}
-                    <div
-                      className={`absolute left-2 top-4 w-0.5 ${isLast ? "h-full bg-gray-200" : `h-full ${connectorColor}`}`}
-                      style={{
-                        height:
-                          isLast
-                            ? "100%"
-                            : "calc(100% + 24px)",
-                      }}
-                    ></div>
-
-                    {/* Progress Circle */}
-                    <div
-                      className={`w-4 h-4 rounded-full flex-shrink-0 mt-1 relative z-10 ${circleColor}`}
-                    ></div>
-
-                    {/* Step Content */}
-                    <div className="flex-1 min-w-0 pb-6">
-                      <div className="flex items-center gap-1 mb-1">
-                        <h3 className="font-semibold text-gray-900">{step.title}</h3>
-                        {/* {index === 0 && (
-                          <button
-                            type="button"
-                            aria-label="Edit Order Confirmation"
-                            style={{ marginLeft: 10, display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                            className="focus:outline-none focus:ring-2 focus:ring-red-200 rounded transition hover:scale-110"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E53935" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pen-line-icon" style={{ verticalAlign: 'middle' }}>
-                              <path d="M13 21h8" />
-                              <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-                            </svg>
-                          </button>
-                        )} */}
-                      </div>
-                      <p className="text-sm text-gray-700 mb-1">{step.description}</p>
-                      {step.time && (
-                        <p className="text-xs text-gray-500 mb-2">{step.time}</p>
+                    <div key={index} className="relative flex items-start gap-4">
+                      {/* Vertical Line - Only show if not the last step */}
+                      {!isLast && (
+                        <div
+                          className={`absolute left-2 top-4 w-0.5 h-full ${connectorColor}`}
+                        ></div>
                       )}
 
-                      {/* Additional Details */}
-                      {step.details.map((detail, detailIndex) => (
-                        <div key={detailIndex} className="mb-1">
-                          <p className="text-sm text-gray-600">{detail}</p>
-                          <p className="text-xs text-gray-500">
-                            Sun, 16 Jun '24 - 7:51 pm
-                          </p>
+                      {/* Progress Circle */}
+                      <div
+                        className={`w-4 h-4 rounded-full flex-shrink-0 mt-1 relative z-10 ${circleColor}`}
+                      ></div>
+
+                      {/* Step Content */}
+                      <div className="flex-1 min-w-0 pb-6">
+                        <div className="flex items-center gap-1 mb-1">
+                          <h3 className={`font-semibold ${isCompleted ? 'text-green-700' : 'text-gray-900'}`}>
+                            {step.title}
+                          </h3>
                         </div>
-                      ))}
+                        <p className={`text-sm mb-1 ${isCompleted ? 'text-green-600' : 'text-gray-700'}`}>
+                          {step.description}
+                        </p>
+                        {step.time && (
+                          <p className={`text-xs mb-2 ${isCompleted ? 'text-green-500' : 'text-gray-500'}`}>
+                            {step.time}
+                          </p>
+                        )}
+
+                        {/* Additional Details */}
+                        {step.details.map((detail, detailIndex) => (
+                          <div key={detailIndex} className="mb-1">
+                            <p className="text-sm text-gray-600">{detail}</p>
+                            <p className="text-xs text-gray-500">
+                              Sun, 16 Jun '24 - 7:51 pm
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );})}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
