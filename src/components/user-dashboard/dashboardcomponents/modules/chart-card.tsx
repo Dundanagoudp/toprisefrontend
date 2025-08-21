@@ -30,7 +30,7 @@ const ChartCard: React.FC<ChartCardProps> = ({
   rightNode,
 }) => {
   return (
-    <Card className={`p-3 bg-white border border-neutral-200 rounded-lg overflow-hidden  ${className}`}>
+    <Card className={`p-3 bg-white border border-neutral-200 rounded-lg ${className}`}>
       {/* Header */}
       <div className={`flex items-center justify-between ${compactHeader ? "mb-1" : "mb-2"}`}>
         <div>

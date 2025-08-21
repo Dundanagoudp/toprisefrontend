@@ -7,7 +7,7 @@ import ManagementCard from "./modules/management-card"
 import ChartCard from "./modules/chart-card"
 import DonutChart from "./modules/donut-chart"
 import CustomLineChart from "./modules/line-chart"
-import UserCountsBar from "./modules/user-counts-bar"
+import UserCountsRadial from "./modules/user-counts-radial"
 import { fetchOrderStats, fetchProductStats, fetchEmployeeStats, fetchDealerStats, fetchOrderSummary, fetchUserCounts } from "@/service/dashboardServices"
 import { ProductStatsResponse, EmployeeStatsResponse, DealerStatsResponse, UserCountsResponse } from "@/types/dashboard-Types"
 import { OrderStatsResponse, OrderSummaryResponse, OrderSummaryPeriod } from "@/types/dashboard-Types"
@@ -189,8 +189,14 @@ export default function Dashboard() {
           </div>
           {/* Middle Column - Customer Management and Return Rate */}
           <div className="space-y-4">
-            <ChartCard title="User Counts" className="rounded-[15px] h-42" hideActions>
-              <UserCountsBar
+            <ChartCard
+              title="User Counts"
+              value={userCounts ? userCounts.total.toLocaleString() : undefined}
+              className="rounded-[15px]"
+              contentClassName="h-64 sm:h-60"
+              hideActions
+            >
+              <UserCountsRadial
                 data={[
                   { name: "Users", value: userCounts?.Users ?? 0 },
                   { name: "Dealers", value: userCounts?.Dealers ?? 0 },
@@ -204,9 +210,6 @@ export default function Dashboard() {
               />
             </ChartCard>
 
-            <ChartCard title="User Total" value={userCounts ? String(userCounts.total) : undefined} className="rounded-[15px] h-42" hideActions>
-              <div className="w-full h-full flex items-center justify-center text-neutral-500 text-sm">Breakdown on top</div>
-            </ChartCard>
           </div>
           {/* Col 3 spans both rows */}
           <ChartCard title="Product Management" className="lg:row-span-2" contentClassName="h-50  ">
