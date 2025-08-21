@@ -6,17 +6,23 @@ interface StatCardProps {
   value: string | number
   color: string
   className?: string
+  size?: "default" | "sm"
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, color, className = "" }) => {
+const StatCard: React.FC<StatCardProps> = ({ title, value, color, className = "", size = "default" }) => {
+  const paddingClass = size === "sm" ? "p-3" : "p-4"
+  const titleClass = size === "sm" ? "text-xs" : "b4"
+  const valueClass = size === "sm" ? "text-base" : "h6"
+  const iconSizeClass = size === "sm" ? "w-6 h-6" : "w-8 h-8"
+
   return (
-    <Card className={`p-4 bg-white border border-neutral-200 rounded-lg ${className}`}>
+    <Card className={`${paddingClass} bg-white border border-neutral-200 rounded-lg ${className}`}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="b4 text-neutral-600 mb-1">{title}</p>
-          <p className="h6 text-neutral-1000 font-bold">{value}</p>
+          <p className={`${titleClass} text-neutral-600 mb-1`}>{title}</p>
+          <p className={`${valueClass} text-neutral-1000 font-bold`}>{value}</p>
         </div>
-        <div className="w-8 h-8 rounded-md flex-shrink-0" style={{ backgroundColor: color }} />
+        <div className={`${iconSizeClass} rounded-md flex-shrink-0`} style={{ backgroundColor: color }} />
       </div>
     </Card>
   )

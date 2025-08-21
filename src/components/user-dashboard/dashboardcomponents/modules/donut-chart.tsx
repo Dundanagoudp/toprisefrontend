@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 
 interface DonutChartProps {
   data: Array<{
@@ -11,6 +11,21 @@ interface DonutChartProps {
   }>
   centerValue?: string
   centerLabel?: string
+}
+
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const item = payload[0]
+    const name: string = item?.name ?? item?.payload?.name
+    const value: number = item?.value ?? item?.payload?.value
+    return (
+      <div className="rounded-md border bg-white/95 px-3 py-2 text-xs shadow-md">
+        <div className="font-medium">{name}</div>
+        <div className="text-neutral-700">{value}</div>
+      </div>
+    )
+  }
+  return null
 }
 
 const DonutChart: React.FC<DonutChartProps> = ({ data, centerValue, centerLabel }) => {
@@ -23,6 +38,7 @@ const DonutChart: React.FC<DonutChartProps> = ({ data, centerValue, centerLabel 
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
+          <Tooltip content={<CustomTooltip />} />
         </PieChart>
       </ResponsiveContainer>
 
