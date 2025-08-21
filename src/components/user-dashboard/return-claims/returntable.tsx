@@ -320,7 +320,7 @@ export default function ReturnClaims() {
 
   return (
     <div className="w-full ">
-      <Card >
+      <Card className="shadow-sm rounded-none">
       {/* Header: Search and Filters */}
       <CardHeader className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 py-4">
@@ -387,41 +387,41 @@ export default function ReturnClaims() {
 
       {/* Table */}
        <CardContent className="p-0">  
-      <div className="w-full overflow-x-auto">
-        <Table>
+      <div className="hidden sm:block overflow-x-auto">
+        <Table className="min-w-full table-fixed">
           <TableHeader>
             <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
               <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
                 <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} aria-label="Select all" />
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[120px]">
                 Return ID
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[140px] cursor-pointer select-none">
                 Order ID
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[140px] whitespace-nowrap">
                 SKU
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[140px] font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[200px] whitespace-nowrap">
                 Customer
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[140px] whitespace-nowrap overflow-hidden text-ellipsis">
                 Request Date
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[90px] whitespace-nowrap">
                 Quantity
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[140px] font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[220px] whitespace-nowrap overflow-hidden text-ellipsis">
                 Return Reason
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[170px] whitespace-nowrap">
                 Status
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-right pr-8 font-[Red Hat Display] w-[120px] whitespace-nowrap">
                 Refund Amount
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">
+              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center font-[Red Hat Display] w-[80px] whitespace-nowrap">
                 Action
               </TableHead>
             </TableRow>
@@ -476,10 +476,10 @@ export default function ReturnClaims() {
                           aria-label="Select row"
                         />
                       </TableCell>
-                      <TableCell className="px-6 py-4 font-[Poppins]">
+                      <TableCell className="px-6 py-4 font-[Poppins] whitespace-nowrap">
                         <span className="text-gray-900 b2 font-mono text-sm">{request._id.slice(-8)}</span>
                       </TableCell>
-                      <TableCell className="px-6 py-4 font-[Poppins]">
+                      <TableCell className="px-6 py-4 font-[Poppins] whitespace-nowrap max-w-[160px] truncate" title={request.orderId?.orderId || 'N/A'}>
                         <span className="text-gray-700 b2">
                           {request.orderId?.orderId
                             ? request.orderId.orderId.length > 8
@@ -488,11 +488,11 @@ export default function ReturnClaims() {
                             : 'N/A'}
                         </span>
                       </TableCell>
-                      <TableCell className="px-6 py-4 font-[Poppins]">
+                      <TableCell className="px-6 py-4 font-[Poppins] whitespace-nowrap max-w-[140px] truncate" title={request.sku}>
                         <span className="text-gray-900 b2 font-mono">{request.sku}</span>
                       </TableCell>
-                      <TableCell className="px-6 py-4 font-[Poppins]">
-                        <div className="flex flex-col">
+                      <TableCell className="px-6 py-4 font-[Poppins] max-w-[200px]">
+                        <div className="flex flex-col truncate">
                           <span className="text-gray-900 b2">
                             {request.orderId?.customerDetails?.name || 'N/A'}
                           </span>
@@ -501,14 +501,14 @@ export default function ReturnClaims() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-6 py-4 font-[Poppins]">
+                      <TableCell className="px-6 py-4 font-[Poppins] whitespace-nowrap font-semibold text-[#000000]">
                         <span className="text-gray-700 b2">{formatDate(request.createdAt)}</span>
                       </TableCell>
-                      <TableCell className="px-6 py-4 font-[Poppins]">
+                      <TableCell className="px-6 py-4 font-[Poppins] whitespace-nowrap font-semibold text-[#000000]">
                         <span className="text-gray-900 b2">{request.quantity}</span>
                       </TableCell>
                       <TableCell className="px-6 py-4 font-[Poppins]">
-                        <div className="max-w-[140px]">
+                        <div className="max-w-[220px] pr-4">
                           <span className="text-gray-700 b2 truncate block" title={request.returnReason}>
                             {request.returnReason}
                           </span>
@@ -517,7 +517,7 @@ export default function ReturnClaims() {
                       <TableCell className="px-6 py-4 font-[Poppins]">
                         <span className={getStatusBadge(request.returnStatus)}>{request.returnStatus}</span>
                       </TableCell>
-                      <TableCell className="px-6 py-4 font-[Poppins]">
+                      <TableCell className="px-6 py-4 font-[Poppins] whitespace-nowrap text-right">
                         <span className="text-gray-900 b2 font-semibold">
                           ₹{request.refund.refundAmount.toLocaleString()}
                         </span>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Employeetable from "./module/Employee-table"
 import Dealertable from "./module/Dealer-table"
+import AppUsersTable from "./module/AppUsers-table"
 import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -117,13 +118,23 @@ export default function Usermangement() {
               Dealer
             </button>
           )}
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
+              activeTab === "users"
+                ? "border-[#C72920] text-[#C72920]"
+                : "border-transparent text-gray-500 hover:text-[#C72920]"
+            }`}
+          >
+            Users
+          </button>
         </div>
 
         {/* Search and Actions Bar - Mobile responsive */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-4 md:mb-6">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
             <GlobalFilters 
-              type={activeTab as "employee" | "dealer"}
+              type={activeTab as "employee" | "dealer" | "users"}
               search={search}
               onSearchChange={handleSearchChange}
               currentRole={role || "all"}
@@ -131,7 +142,7 @@ export default function Usermangement() {
               currentStatus={status || "all"}
               onStatusChange={handleStatusChange}
               onResetFilters={handleResetFilters}
-              availableRoles={activeTab === "employee" ? availableRoles : []}
+              availableRoles={activeTab === "employee" ? availableRoles : activeTab === "users" ? ["User"] : []}
             />
           </div>
 
@@ -152,7 +163,7 @@ export default function Usermangement() {
                 text="Upload"
               />
             )}
-            {canPerformAdminActions() && (
+            {canPerformAdminActions() && activeTab !== "users" && (
               <Button
                 className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
                 variant="default"
@@ -172,9 +183,7 @@ export default function Usermangement() {
                 ) : (
                   <Image src={addSquare} alt="Add" className="h-4 w-4" />
                 )}
-                <span className="b3 font-RedHat">
-                  {activeTab === "employee" ? "Add Employee" : "Add Dealer"}
-                </span>
+                <span className="b3 font-RedHat">{activeTab === "employee" ? "Add Employee" : "Add Dealer"}</span>
               </Button>
             )}
           </div>
@@ -193,14 +202,25 @@ export default function Usermangement() {
               onSort={handleSort}
               onRolesUpdate={setAvailableRoles}
             />
-          : <Dealertable 
+          : activeTab === "dealer" ? (
+            <Dealertable 
               search={search} 
               role={role === "all" ? "" : role}
               status={status === "all" ? "" : status}
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={handleSort}
-            />}
+            />
+          ) : (
+            <AppUsersTable
+              search={search}
+              role={role === "all" ? "" : role}
+              status={status === "all" ? "" : status}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+            />
+          )}
       </div>
       <FileUploadModal
         isOpen={uploadOpen}
