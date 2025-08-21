@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table"
 import SearchFiltersModal from "./modules/modalpopus/searchfilters"
 import SearchInput from "@/components/common/search/SearchInput"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { getReturnRequests } from "@/service/return-service"
 import { ReturnRequest, ReturnRequestsResponse } from "@/types/return-Types"
 import ValidateReturnRequest from "./modules/modalpopus/Validate"
@@ -278,10 +278,10 @@ export default function ReturnClaims() {
   }
 
   return (
-    <div className="w-full">
-      <Card>
+    <div className="w-full ">
+      <Card >
       {/* Header: Search and Filters */}
-      <div className="mb-6">
+      <CardHeader className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1">
             <div className="relative flex-1 w-full sm:max-w-md">
@@ -341,9 +341,10 @@ export default function ReturnClaims() {
             </Button>
           </div>
         </div>
-      </div>
+      </CardHeader>
 
       {/* Table */}
+       <CardContent className="p-0">  
       <div className="w-full overflow-x-auto">
         <Table>
           <TableHeader>
@@ -438,7 +439,11 @@ export default function ReturnClaims() {
                       </TableCell>
                       <TableCell className="px-6 py-4 font-[Poppins]">
                         <span className="text-gray-700 b2">
-                          {request.orderId?.orderId || 'N/A'}
+                          {request.orderId?.orderId
+                            ? request.orderId.orderId.length > 8
+                              ? request.orderId.orderId.slice(0, 8) + "..."
+                              : request.orderId.orderId
+                            : 'N/A'}
                         </span>
                       </TableCell>
                       <TableCell className="px-6 py-4 font-[Poppins]">
@@ -513,7 +518,7 @@ export default function ReturnClaims() {
                 })}
           </TableBody>
         </Table>
-      </div>
+      </div></CardContent>
 
       {/* Pagination - consistent with CreatedProduct */}
       {filteredReturnRequests.length > 0 && Math.ceil(filteredReturnRequests.length / itemsPerPage) > 1 && (
