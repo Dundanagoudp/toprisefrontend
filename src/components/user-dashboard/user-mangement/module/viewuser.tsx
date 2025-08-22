@@ -76,10 +76,10 @@ export default function Viewuser({ id }: ViewUserProps) {
           <div className="text-gray-500 text-sm">Last Login</div>
           <div className="text-gray-900">{user.last_login ? new Date(user.last_login).toLocaleString() : '-'}</div>
         </div>
-        <div className="p-3 border rounded">
+        {/* <div className="p-3 border rounded">
           <div className="text-gray-500 text-sm">User Id</div>
           <div className="text-gray-900 break-all">{user._id}</div>
-        </div>
+        </div> */}
       </div>
     </div>
   )
