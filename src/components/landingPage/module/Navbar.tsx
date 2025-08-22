@@ -42,6 +42,7 @@ const routeList: RouteProps[] = [
     href: "/ShippingAndReturnPolicy",
     label: "Shipping & Returns Policy ",
   },
+  
   //   {
   //     href: "#pricing",
   //     label: "Pricing",

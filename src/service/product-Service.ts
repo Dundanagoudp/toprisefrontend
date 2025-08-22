@@ -1,4 +1,6 @@
 import { ProductResponse } from "@/types/product-Types";
+import { ApiResponse } from "@/types/apiReponses-Types";
+import type { Category as ProductCategory } from "@/types/product-Types";
 import apiClient from "@/apiClient";
 
 export async function getProducts(): Promise<ProductResponse> {
@@ -159,7 +161,8 @@ export async function rejectBulkProducts
   }
 }
 
-export async function getCategories(): Promise<ProductResponse> {
+// Categories API returns an array of categories
+export async function getCategories(): Promise<ApiResponse<ProductCategory[]>> {
   try {
     const response = await apiClient.get(`/category/api/category`);
     return response.data;
