@@ -33,6 +33,7 @@ import {
   getvarientByModel,
   getYearRange,
 } from "@/service/product-Service";
+import { getAllDealers } from "@/service/dealerServices";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store/hooks";
 // Helper to decode JWT and extract user id
@@ -129,6 +130,7 @@ export default function AddProducts() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [dealerOptions, setDealerOptions] = useState<any[]>([]);
   const allowedRoles = ["Super-admin", "Inventory-admin"];
 
 
@@ -151,24 +153,26 @@ export default function AddProducts() {
     },
   });
 
-  // Parallel fetch for categories, subcategories, types, and year ranges
+  // Parallel fetch for categories, subcategories, types, year ranges, and dealers
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         // console.log("Starting to fetch initial data...");
-        const [categories, subCategories, types, yearRanges] =
+        const [categories, subCategories, types, yearRanges, dealers] =
           await Promise.all([
             getCategories(),
             getSubCategories(),
             getTypes(),
             getYearRange(),
+            getAllDealers(),
           ]);
         
         // console.log("Raw API responses:", {
         //   categories,
         //   subCategories,
         //   types,
-        //   yearRanges
+        //   yearRanges,
+        //   dealers
         // });
 
         // Check if the response structure is correct and handle different structures
@@ -176,18 +180,21 @@ export default function AddProducts() {
         const subCategoryData = subCategories?.data?.products || subCategories?.data || subCategories || [];
         const typeData = types?.data?.products || types?.data || types || [];
         const yearRangeData = yearRanges?.data?.products || yearRanges?.data || yearRanges || [];
+        const dealerData = dealers?.data || dealers || [];
 
-        // console.log("Processed data:", {
-        //   categoryData,
-        //   subCategoryData,
-        //   typeData,
-        //   yearRangeData
-        // });
+        console.log("Processed data:", {
+          categoryData,
+          subCategoryData,
+          typeData,
+          yearRangeData,
+          dealerData
+        });
 
         setCategoryOptions(Array.isArray(categoryData) ? categoryData : []);
         setSubCategoryOptions(Array.isArray(subCategoryData) ? subCategoryData : []);
         setTypeOptions(Array.isArray(typeData) ? typeData : []);
         setYearRangeOptions(Array.isArray(yearRangeData) ? yearRangeData : []);
+        setDealerOptions(Array.isArray(dealerData) ? dealerData : []);
         
         console.log("Successfully fetched and set all initial data");
       } catch (error) {
@@ -197,6 +204,7 @@ export default function AddProducts() {
         setSubCategoryOptions([]);
         setTypeOptions([]);
         setYearRangeOptions([]);
+        setDealerOptions([]);
         showToast("Failed to load initial data. Please refresh the page.", "error");
       }
     };
@@ -1268,12 +1276,29 @@ export default function AddProducts() {
               <Label htmlFor="availableDealers" className="text-base font-medium font-sans">
                 Available Dealers
               </Label>
-              <Input
-                id="availableDealers"
-                placeholder="Enter Available Dealers"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("availableDealers")}
-              />
+              <Select
+                onValueChange={(value) => setValue("availableDealers", value)}
+              >
+                <SelectTrigger
+                  id="availableDealers"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue placeholder="Select Dealer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dealerOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      Loading...
+                    </SelectItem>
+                  ) : (
+                    dealerOptions.map((dealer) => (
+                      <SelectItem key={dealer._id} value={dealer._id}>
+                        {dealer.legal_name || dealer.dealerName || dealer.firstName + ' ' + dealer.lastName || dealer._id}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
               {errors.availableDealers && (
                 <span className="text-red-500 text-sm">
                   {errors.availableDealers.message}
