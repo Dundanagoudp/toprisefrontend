@@ -1,4 +1,3 @@
-"use client";
 import { useEffect, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import DynamicButton from "@/components/common/button/button";
@@ -13,6 +12,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
 import { startInspectReturnRequest } from "@/service/return-service";
+
+// Mock function to simulate uploading an image to a server and returning a URL
+const uploadImageToServer = async (file: File): Promise<string> => {
+  // Replace this mock implementation with actual image upload code
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(`https://example.com/images/${file.name}`); // Mock URL
+    }, 1000);
+  });
+};
 
 interface InspectionFormProps {
   open: boolean;
@@ -43,15 +52,15 @@ type FormValues = z.infer<typeof schema>;
 export default function InspectionForm({ open, onClose, onSubmit, returnId }: InspectionFormProps) {
   const { showToast } = useGlobalToast();
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  useEffect(()=>{
-    console.log("return id is ", returnId)
-  },[returnId])
+
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
     control,
   } = useForm<FormValues>({
@@ -68,52 +77,43 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
 
   const isApproved = watch("isApproved");
 
-  // Convert file to base64
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
   // Handle file upload
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
     try {
-      const base64Images: string[] = [];
-      
+      const imageUrls: string[] = [];
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
+
         // Validate file type
         if (!file.type.startsWith('image/')) {
           showToast(`${file.name} is not a valid image file`, "error");
           continue;
         }
-        
+
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
           showToast(`${file.name} is too large. Maximum size is 5MB`, "error");
           continue;
         }
-        
-        const base64 = await convertToBase64(file);
-        base64Images.push(base64);
+
+        // Upload file and get URL
+        const imageUrl = await uploadImageToServer(file);
+        imageUrls.push(imageUrl);
       }
-      
-      const newImages = [...uploadedImages, ...base64Images];
+
+      const newImages = [...uploadedImages, ...imageUrls];
       setUploadedImages(newImages);
       setValue("inspectionImages", newImages);
-      
-      showToast(`${base64Images.length} image(s) uploaded successfully`, "success");
+
+      showToast(`${imageUrls.length} image(s) uploaded successfully`, "success");
     } catch (error) {
       showToast("Failed to upload images", "error");
     }
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -140,62 +140,62 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
       showToast("Return ID is required", "error");
       return;
     }
-
     setIsSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append("skuMatch", String(data.skuMatch));
-      formData.append("condition", data.condition);
-      formData.append("isApproved", String(data.isApproved));
-      if (data.conditionNotes) formData.append("conditionNotes", data.conditionNotes);
+try {
+  const formData = new FormData();
+  formData.append("skuMatch", String(data.skuMatch));
+  formData.append("condition", data.condition);
+  formData.append("isApproved", String(data.isApproved));
+  if (data.conditionNotes) {
+    formData.append("conditionNotes", data.conditionNotes);
+  }
+  // Handle inspectionImages URLs
+  if (data.inspectionImages && data.inspectionImages.length > 0) {
+    data.inspectionImages.forEach((imgUrl, idx) => {
+      formData.append(`inspectionImages[${idx}]`, imgUrl);
+    });
+  }
+  if (!data.isApproved && data.rejectionReason) {
+    formData.append("rejectionReason", data.rejectionReason);
+  }
 
-      // Handle inspectionImages
-      if (data.inspectionImages) {
-        const imagesArray = data.inspectionImages.split(',').map(img => img.trim()).filter(img => img);
-        if (imagesArray.length > 0) {
-          imagesArray.forEach((img, idx) => {
-            formData.append(`inspectionImages[${idx}]`, img);
-          });
-        }
-      }
+  // Log the form data for debugging
+  console.log("FormData contents before submission:");
+  for (let [key, value] of formData.entries()) {
+    console.log(key, value);
+  }
 
-      if (data.rejectionReason) formData.append("rejectionReason", data.rejectionReason);
+  // Assuming startInspectReturnRequest is imported from your service/api module
+  const response = await startInspectReturnRequest(returnId, formData);
+  if (response.success) {
+    showToast("Inspection submitted successfully.", "success");
+    if (onSubmit) onSubmit(data);
+    onClose();
+    reset(); // Reset form fields after successful submission
+  } else {
+       const errorMessage = response.message || "Failed to submit inspection data.";
+    console.error("API error response:", response);
+    showToast(errorMessage || "Failed to submit inspection data.", "error");
 
-      console.log("FormData contents before submission:");
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
+  }
+} catch (error: any) {
+  console.error("Full error object:", error);
+  let errorMessage = "Failed to submit inspection data.";
+  if (error.response) {
+    console.error("Error response data:", error.response.data);
+    console.error("Error response status:", error.response.status);
+    console.error("Error response headers:", error.response.headers);
+    errorMessage = error.response.data.message || errorMessage;
+  } else if (error.request) {
+    console.error("Error request:", error.request);
+    errorMessage = "No response received from the server. Please check your network connection.";
+  } else {
+    console.error("Error message:", error.message);
+    errorMessage = error.message || errorMessage;
+  }
+  showToast(errorMessage, "error");
+}
 
-      // Assuming startInspectReturnRequest is imported from your service/api module
-      const response = await startInspectReturnRequest(returnId, formData);
-
-      if (response.success) {
-        showToast("Inspection submitted successfully.", "success");
-        if (onSubmit) onSubmit(data);
-        onClose();
-        reset(); // Reset form fields after successful submission
-      } else {
-        showToast(response.message || "Failed to submit inspection data.", "error");
-      }
-    } catch (error: any) {
-      console.error("Full error object:", error);
-      let errorMessage = "Failed to submit inspection data.";
-      if (error.response) {
-        console.error("Error response data:", error.response.data);
-        console.error("Error response status:", error.response.status);
-        console.error("Error response headers:", error.response.headers);
-        errorMessage = error.response.data.message || errorMessage;
-      } else if (error.request) {
-        console.error("Error request:", error.request);
-        errorMessage = "No response received from the server. Please check your network connection.";
-      } else {
-        console.error("Error message:", error.message);
-        errorMessage = error.message || errorMessage;
-      }
-      showToast(errorMessage, "error");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -220,7 +220,6 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
                   </label>
                 </div>
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
                 <Input
@@ -232,7 +231,6 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
                   <span className="text-xs text-red-500">{errors.condition.message}</span>
                 )}
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Condition Notes</label>
                 <Textarea
@@ -241,10 +239,9 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
                   placeholder="Enter any notes about the condition"
                 />
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Inspection Images</label>
-                
+
                 {/* Upload Button */}
                 <div className="mb-3">
                   <input
@@ -265,14 +262,13 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
                     Upload Images
                   </DynamicButton>
                 </div>
-
                 {/* Image Preview Grid */}
                 {uploadedImages.length > 0 && (
                   <div className="grid grid-cols-2 gap-2 mb-2">
-                    {uploadedImages.map((image, index) => (
+                    {uploadedImages.map((imageUrl, index) => (
                       <div key={index} className="relative group">
                         <img
-                          src={image}
+                          src={imageUrl}
                           alt={`Inspection ${index + 1}`}
                           className="w-full h-20 object-cover rounded border"
                         />
@@ -287,19 +283,16 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
                     ))}
                   </div>
                 )}
-
                 {/* Image Count */}
                 {uploadedImages.length > 0 && (
                   <p className="text-xs text-gray-500">
                     {uploadedImages.length} image(s) uploaded
                   </p>
                 )}
-
                 {errors.inspectionImages && (
                   <span className="text-xs text-red-500">{errors.inspectionImages.message}</span>
                 )}
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Approval Status</label>
                 <div className="flex items-center space-x-2">
@@ -313,7 +306,6 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
                   </label>
                 </div>
               </div>
-
               {!isApproved && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Rejection Reason</label>
@@ -327,7 +319,6 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
                   )}
                 </div>
               )}
-
               <DynamicButton type="submit" className="w-full">
                 Submit Inspection
               </DynamicButton>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { getReturnRequestsById } from "@/service/return-service";
+import { getReturnRequestsById, validateReturnRequest } from "@/service/return-service";
 import DynamicButton from "@/components/common/button/button";
+
 
 interface ValidateReturnRequestByIdProps {
   open: boolean;
@@ -14,11 +15,16 @@ export default function ReturnRequestById({ open, onClose, returnId }: ValidateR
   const [loading, setLoading] = useState(false);
   const [validateLoading, setValidateLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchReturnRequest = async () => {
       if (returnId) {
         setLoading(true);
+        // Reset states when fetching new data
+        setError(null);
+        setSuccess(false);
         try {
           const response = await getReturnRequestsById(returnId);
           setReturnRequest(response.data || null);
@@ -31,11 +37,49 @@ export default function ReturnRequestById({ open, onClose, returnId }: ValidateR
     fetchReturnRequest();
   }, [returnId]);
 
-  const handleValidate = async () => {
-    setValidateLoading(true);
-    // TODO: Call validate API here
-    setTimeout(() => setValidateLoading(false), 1200);
-  };
+  // Reset states when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setError(null);
+      setSuccess(false);
+    }
+  }, [open]);
+
+const handleValidate = async () => {
+  if (!returnId) return;
+
+  setValidateLoading(true);
+  setError(null);
+  setSuccess(false); // Reset success state
+
+  try {
+    const response = await validateReturnRequest(returnId);
+    console.log("Validation response:", response); // Debug log
+    
+    if (response.success) {
+      setSuccess(true);
+      // Optionally refresh the return request data to show updated status
+      setTimeout(() => {
+        const fetchUpdatedData = async () => {
+          try {
+            const updatedResponse = await getReturnRequestsById(returnId);
+            setReturnRequest(updatedResponse.data || null);
+          } catch (e) {
+            console.error("Error fetching updated data:", e);
+          }
+        };
+        fetchUpdatedData();
+      }, 1000);
+    } else {
+      setError(response.message || "Failed to validate return request. Please try again.");
+    }
+  } catch (err: any) {
+    console.error("Error validating return request:", err);
+    setError(err.response?.data?.message || "An error occurred while validating the return request.");
+  } finally {
+    setValidateLoading(false);
+  }
+};
 
   const handleImageClick = (imageUrl: string) => {
     setSelectedImage(imageUrl);
@@ -182,6 +226,21 @@ export default function ReturnRequestById({ open, onClose, returnId }: ValidateR
                 </div>
               </div>
             </div>
+
+            {/* Success/Error Messages */}
+            {success && (
+              <div className="rounded-md border border-green-200 bg-green-50 p-4">
+                <div className="text-green-800 font-semibold">✓ Validation Successful</div>
+                <div className="text-green-700 text-sm">Return request has been validated successfully.</div>
+              </div>
+            )}
+            
+            {error && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-4">
+                <div className="text-red-800 font-semibold">✗ Validation Failed</div>
+                <div className="text-red-700 text-sm">{error}</div>
+              </div>
+            )}
 
             {/* Validation Button */}
             <div className="flex justify-end pt-2">
