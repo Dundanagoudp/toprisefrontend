@@ -195,6 +195,9 @@ export default function ProductDetailsForOrder({
                     <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
                       <Edit className="h-4 w-4 mr-2" /> Create Picklist
                     </DropdownMenuItem>
+                    <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("markPacked"); setDealerId(safeDealerId(productItem.dealerId)); setActionOpen(true); }}>
+                      <Package className="h-4 w-4 mr-2" /> Mark as Packed
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </td>
@@ -318,6 +321,16 @@ export default function ProductDetailsForOrder({
                         }}
                       >
                         <Edit className="h-4 w-4 mr-2" /> Create Picklist
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="flex items-center gap-2 rounded hover:bg-neutral-100" 
+                        onClick={() => { 
+                          setActiveAction("markPacked"); 
+                          setDealerId(safeDealerId(productItem.dealerId)); 
+                          setActionOpen(true); 
+                        }}
+                      >
+                        <Package className="h-4 w-4 mr-2" /> Mark as Packed
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
