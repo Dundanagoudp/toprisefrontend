@@ -105,14 +105,15 @@ export interface ReturnPagination {
 
 // Enums and Type Unions
 export type ReturnStatus = 
-  | "Pending" 
+  | "Requested"
+  | "Validated" 
   | "Approved" 
   | "Rejected" 
-  | "In_Progress" 
-  | "Completed" 
-  | "Cancelled"
-  | "Pickup_Completed"
-  | "Pickup_Scheduled"
+  | "Pickup_Scheduled" 
+  | "Pickup_Completed" 
+  | "Approved"
+  | "Refund_Processed"
+  | "Completed"
   | "Under_Inspection";
 
 export type ReturnAction = 

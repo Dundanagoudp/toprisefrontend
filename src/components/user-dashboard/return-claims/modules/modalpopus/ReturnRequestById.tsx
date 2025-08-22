@@ -242,16 +242,18 @@ const handleValidate = async () => {
               </div>
             )}
 
-            {/* Validation Button */}
-            <div className="flex justify-end pt-2">
-              <DynamicButton
-                variant="outline"
-                customClassName="bg-green-50 border-green-200 hover:bg-green-100 hover:text-green-600 text-green-600"
-                onClick={handleValidate}
-                text={validateLoading ? "Validating..." : "Validate Return"}
-                disabled={validateLoading}
-              />
-            </div>
+            {/* Validation Button - Only show when status is pending */}
+            {data.returnStatus?.toLowerCase() === "pending" && (
+              <div className="flex justify-end pt-2">
+                <DynamicButton
+                  variant="outline"
+                  customClassName="bg-green-50 border-green-200 hover:bg-green-100 hover:text-green-600 text-green-600"
+                  onClick={handleValidate}
+                  text={validateLoading ? "Validating..." : "Validate Return"}
+                  disabled={validateLoading}
+                />
+              </div>
+            )}
           </div>
         </DialogContent>
         <DialogFooter></DialogFooter>

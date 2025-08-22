@@ -14,14 +14,7 @@ import { X, Upload, Image as ImageIcon } from "lucide-react";
 import { startInspectReturnRequest } from "@/service/return-service";
 
 // Mock function to simulate uploading an image to a server and returning a URL
-const uploadImageToServer = async (file: File): Promise<string> => {
-  // Replace this mock implementation with actual image upload code
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(`https://example.com/images/${file.name}`); // Mock URL
-    }, 1000);
-  });
-};
+
 
 interface InspectionFormProps {
   open: boolean;
@@ -78,48 +71,44 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
   const isApproved = watch("isApproved");
 
   // Handle file upload
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
-    try {
-      const imageUrls: string[] = [];
+const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const files = event.target.files;
+  if (!files) return;
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+  try {
+    const base64Images: string[] = [];
 
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-          showToast(`${file.name} is not a valid image file`, "error");
-          continue;
-        }
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          showToast(`${file.name} is too large. Maximum size is 5MB`, "error");
-          continue;
-        }
+      // Validation
+      if (!file.type.startsWith("image/")) continue;
+      if (file.size > 5 * 1024 * 1024) continue;
 
-        // Upload file and get URL
-        const imageUrl = await uploadImageToServer(file);
-        imageUrls.push(imageUrl);
-      }
-
-      const newImages = [...uploadedImages, ...imageUrls];
-      setUploadedImages(newImages);
-      setValue("inspectionImages", newImages);
-
-      showToast(`${imageUrls.length} image(s) uploaded successfully`, "success");
-    } catch (error) {
-      showToast("Failed to upload images", "error");
+      // Convert to base64
+      const base64 = await fileToBase64(file);
+      base64Images.push(base64);
     }
 
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+    setUploadedImages(base64Images);
+    setValue("inspectionImages", base64Images);
 
+    showToast(`${base64Images.length} image(s) uploaded successfully`, "success");
+  } catch (error) {
+    showToast("Failed to upload images", "error");
+  }
+
+  if (fileInputRef.current) fileInputRef.current.value = "";
+};
   // Remove image
   const removeImage = (index: number) => {
     const newImages = uploadedImages.filter((_, i) => i !== index);
@@ -141,61 +130,55 @@ export default function InspectionForm({ open, onClose, onSubmit, returnId }: In
       return;
     }
     setIsSubmitting(true);
-try {
-  const formData = new FormData();
-  formData.append("skuMatch", String(data.skuMatch));
-  formData.append("condition", data.condition);
-  formData.append("isApproved", String(data.isApproved));
-  if (data.conditionNotes) {
-    formData.append("conditionNotes", data.conditionNotes);
-  }
-  // Handle inspectionImages URLs
-  if (data.inspectionImages && data.inspectionImages.length > 0) {
-    data.inspectionImages.forEach((imgUrl, idx) => {
-      formData.append(`inspectionImages[${idx}]`, imgUrl);
-    });
-  }
-  if (!data.isApproved && data.rejectionReason) {
-    formData.append("rejectionReason", data.rejectionReason);
-  }
+    try {
+      // Create JSON body instead of FormData
+      const requestBody = {
+        skuMatch: data.skuMatch,
+        condition: data.condition,
+        isApproved: data.isApproved,
+        ...(data.conditionNotes && { conditionNotes: data.conditionNotes }),
+        ...(data.inspectionImages && data.inspectionImages.length > 0 && { 
+          inspectionImages: data.inspectionImages 
+        }),
+        ...(!data.isApproved && data.rejectionReason && { 
+          rejectionReason: data.rejectionReason 
+        }),
+      };
 
-  // Log the form data for debugging
-  console.log("FormData contents before submission:");
-  for (let [key, value] of formData.entries()) {
-    console.log(key, value);
-  }
+      // Log the request body for debugging
+      console.log("JSON request body before submission:", requestBody);
 
-  // Assuming startInspectReturnRequest is imported from your service/api module
-  const response = await startInspectReturnRequest(returnId, formData);
-  if (response.success) {
-    showToast("Inspection submitted successfully.", "success");
-    if (onSubmit) onSubmit(data);
-    onClose();
-    reset(); // Reset form fields after successful submission
-  } else {
-       const errorMessage = response.message || "Failed to submit inspection data.";
-    console.error("API error response:", response);
-    showToast(errorMessage || "Failed to submit inspection data.", "error");
-
-  }
-} catch (error: any) {
-  console.error("Full error object:", error);
-  let errorMessage = "Failed to submit inspection data.";
-  if (error.response) {
-    console.error("Error response data:", error.response.data);
-    console.error("Error response status:", error.response.status);
-    console.error("Error response headers:", error.response.headers);
-    errorMessage = error.response.data.message || errorMessage;
-  } else if (error.request) {
-    console.error("Error request:", error.request);
-    errorMessage = "No response received from the server. Please check your network connection.";
-  } else {
-    console.error("Error message:", error.message);
-    errorMessage = error.message || errorMessage;
-  }
-  showToast(errorMessage, "error");
-}
-
+      // Assuming startInspectReturnRequest is imported from your service/api module
+      const response = await startInspectReturnRequest(returnId, requestBody);
+      if (response.success) {
+        showToast("Inspection submitted successfully.", "success");
+        if (onSubmit) onSubmit(data);
+        onClose();
+        reset(); // Reset form fields after successful submission
+      } else {
+        const errorMessage = response.message || "Failed to submit inspection data.";
+        console.error("API error response:", response);
+        showToast(errorMessage || "Failed to submit inspection data.", "error");
+      }
+    } catch (error: any) {
+      console.error("Full error object:", error);
+      let errorMessage = "Failed to submit inspection data.";
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+        console.error("Error response headers:", error.response.headers);
+        errorMessage = error.response.data.message || errorMessage;
+      } else if (error.request) {
+        console.error("Error request:", error.request);
+        errorMessage = "No response received from the server. Please check your network connection.";
+      } else {
+        console.error("Error message:", error.message);
+        errorMessage = error.message || errorMessage;
+      }
+      showToast(errorMessage, "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -220,13 +203,23 @@ try {
                   </label>
                 </div>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                <Input
-                  {...register("condition")}
-                  className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2"
-                  placeholder="Enter product condition"
-                />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                  <Select
+                    onValueChange={(value) => setValue("condition", value)}
+                    value={watch("condition")}
+                  >
+                    <SelectTrigger className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                      <SelectValue placeholder="Select product condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Excellent">Excellent</SelectItem>
+                    <SelectItem value="Good">Good</SelectItem>
+                    <SelectItem value="Fair">Fair</SelectItem>
+                    <SelectItem value="Poor">Poor</SelectItem>
+                    <SelectItem value="Damaged">Damaged</SelectItem>
+                  </SelectContent>
+                </Select>
                 {errors.condition && (
                   <span className="text-xs text-red-500">{errors.condition.message}</span>
                 )}
