@@ -93,11 +93,24 @@ export const inspectReturnRequest = async (
 };
 export const startInspectReturnRequest = async (
   userId: string,
- data:FormData
+ data: any,
 ): Promise<ReturnRequestsResponse> => {
   try {
     const response = await apiClient.put(
       `/orders/api/returns/${userId}/complete-inspection`,
+      data
+    );
+    return response.data;
+  } catch (error: any) {
+    throw error;
+  }
+};
+export const refundInitiate = async (
+ data: any,
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.post(
+      `/orders/api/refunds/createRefund-online`,
       data
     );
     return response.data;
