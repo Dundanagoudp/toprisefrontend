@@ -155,6 +155,7 @@ export default function AddProducts() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
+        // console.log("Starting to fetch initial data...");
         const [categories, subCategories, types, yearRanges] =
           await Promise.all([
             getCategories(),
@@ -162,15 +163,41 @@ export default function AddProducts() {
             getTypes(),
             getYearRange(),
           ]);
-        setCategoryOptions(categories.data.products.map((category: any) => category));
-        setSubCategoryOptions(
-          subCategories.data.products.map((category: any) => category)
-        );
-        setTypeOptions(types.data.products.map((type: any) => type));
-        setYearRangeOptions(yearRanges.data.products.map((year: any) => year));
-        console.log("Fetched all initial data in parallel");
+        
+        // console.log("Raw API responses:", {
+        //   categories,
+        //   subCategories,
+        //   types,
+        //   yearRanges
+        // });
+
+        // Check if the response structure is correct and handle different structures
+        const categoryData = categories?.data?.products || categories?.data || categories || [];
+        const subCategoryData = subCategories?.data?.products || subCategories?.data || subCategories || [];
+        const typeData = types?.data?.products || types?.data || types || [];
+        const yearRangeData = yearRanges?.data?.products || yearRanges?.data || yearRanges || [];
+
+        // console.log("Processed data:", {
+        //   categoryData,
+        //   subCategoryData,
+        //   typeData,
+        //   yearRangeData
+        // });
+
+        setCategoryOptions(Array.isArray(categoryData) ? categoryData : []);
+        setSubCategoryOptions(Array.isArray(subCategoryData) ? subCategoryData : []);
+        setTypeOptions(Array.isArray(typeData) ? typeData : []);
+        setYearRangeOptions(Array.isArray(yearRangeData) ? yearRangeData : []);
+        
+        console.log("Successfully fetched and set all initial data");
       } catch (error) {
         console.error("Failed to fetch initial data in parallel:", error);
+        // Set empty arrays as fallback
+        setCategoryOptions([]);
+        setSubCategoryOptions([]);
+        setTypeOptions([]);
+        setYearRangeOptions([]);
+        showToast("Failed to load initial data. Please refresh the page.", "error");
       }
     };
     fetchInitialData();
@@ -184,11 +211,19 @@ export default function AddProducts() {
     }
     const fetchBrandsByType = async () => {
       try {
+        console.log("Fetching brands for type ID:", selectedProductTypeId);
         const response = await getBrandByType(selectedProductTypeId);
-        setFilteredBrandOptions(response.data.products.map((brand: any) => brand));
+        console.log("Brands response:", response);
+        
+        // Handle different response structures
+        const brandData = response?.data?.products || response?.data || response || [];
+        console.log("Processed brand data:", brandData);
+        
+        setFilteredBrandOptions(Array.isArray(brandData) ? brandData : []);
       } catch (error) {
-        setFilteredBrandOptions([]);
         console.error("Failed to fetch brands by type:", error);
+        setFilteredBrandOptions([]);
+        showToast("Failed to load brands for selected type", "error");
       }
     };
     fetchBrandsByType();
@@ -202,10 +237,19 @@ export default function AddProducts() {
     }
     const fetchModelsByBrand = async () => {
       try {
+        console.log("Fetching models for brand ID:", selectedbrandId);
         const response = await getModelByBrand(selectedbrandId);
-        setModelOptions(response.data.products.map((model: any) => model));
+        console.log("Models response:", response);
+        
+        // Handle different response structures
+        const modelData = response?.data?.products || response?.data || response || [];
+        console.log("Processed model data:", modelData);
+        
+        setModelOptions(Array.isArray(modelData) ? modelData : []);
       } catch (error) {
         console.error("Failed to fetch models by brand:", error);
+        setModelOptions([]);
+        showToast("Failed to load models for selected brand", "error");
       }
     };
     fetchModelsByBrand();
@@ -219,11 +263,19 @@ export default function AddProducts() {
     }
     const fetchVarientByModel = async () => {
       try {
+        console.log("Fetching variants for model ID:", modelId);
         const response = await getvarientByModel(modelId);
-        setVarientOptions(response.data.products.map((varient: any) => varient));
-        console.log("Varient Options:", response.data);
+        console.log("Variants response:", response);
+        
+        // Handle different response structures
+        const variantData = response?.data?.products || response?.data || response || [];
+        console.log("Processed variant data:", variantData);
+        
+        setVarientOptions(Array.isArray(variantData) ? variantData : []);
       } catch (error) {
-        console.error("Failed to fetch varient options:", error);
+        console.error("Failed to fetch variant options:", error);
+        setVarientOptions([]);
+        showToast("Failed to load variants for selected model", "error");
       }
     };
     fetchVarientByModel();
