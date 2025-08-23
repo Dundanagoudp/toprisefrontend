@@ -1,0 +1,33 @@
+import apiClient from "@/apiClient";
+import { CartResponse } from "@/types/User/cart-Types";
+
+
+
+export async function addToCart(data:any): Promise<CartResponse> {
+  try {
+    const response = await apiClient.post(`/orders/api/carts/addProduct`, data);
+    return response.data;
+  } catch (error) {
+    console.error(" Failed to fetch products:", error);
+    throw error;
+  }
+}
+export async function getCart(id: string): Promise<CartResponse> {
+  try {
+    const response = await apiClient.get(`orders/api/carts/getCart/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(" Failed to fetch products:", error);
+    throw error;
+  }
+}
+
+export async function addAddress(id:string , data:any): Promise<any> {
+  try {
+    const response = await apiClient.put(`/users/api/users/updateAddress/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error(" Failed to fetch products:", error);
+    throw error;
+  }
+}

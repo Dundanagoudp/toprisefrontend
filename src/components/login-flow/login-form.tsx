@@ -73,7 +73,11 @@ export function LoginForm({
           router.replace("/dealer/dashboard");
         } else if (role === "Fulfillment-Admin" || role === "Fullfillment-staff") {
           router.replace("/user/dashboard/product");
-        } else {
+        }
+        else if (role === "User" ) {
+          router.replace("/shop");
+        }
+        else {
           router.replace("/user/dashboard");
         }
       } else {
