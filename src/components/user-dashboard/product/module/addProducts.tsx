@@ -176,19 +176,19 @@ export default function AddProducts() {
         // });
 
         // Check if the response structure is correct and handle different structures
-        const categoryData = categories?.data?.products || categories?.data || categories || [];
+        const categoryData = categories?.data || categories || [];
         const subCategoryData = subCategories?.data?.products || subCategories?.data || subCategories || [];
         const typeData = types?.data?.products || types?.data || types || [];
         const yearRangeData = yearRanges?.data?.products || yearRanges?.data || yearRanges || [];
         const dealerData = dealers?.data || dealers || [];
 
-        console.log("Processed data:", {
-          categoryData,
-          subCategoryData,
-          typeData,
-          yearRangeData,
-          dealerData
-        });
+        // console.log("Processed data:", {
+        //   categoryData,
+        //   subCategoryData,
+        //   typeData,
+        //   yearRangeData,
+        //   dealerData
+        // });
 
         setCategoryOptions(Array.isArray(categoryData) ? categoryData : []);
         setSubCategoryOptions(Array.isArray(subCategoryData) ? subCategoryData : []);

@@ -3,6 +3,10 @@ import React from "react"
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
 import { getProductsByPage } from "@/service/product-Service"
 import type { Product as ProductType } from "@/types/product-Types"
+import { DynamicButton } from "@/components/common/button"
+import { addToCart } from "@/service/user/cartService"
+import { useSelector } from "react-redux"
+import { useAppSelector } from "@/store/hooks"
 
 export default function FeaturedProducts() {
   const [products, setProducts] = React.useState<ProductType[]>([])
@@ -23,6 +27,7 @@ export default function FeaturedProducts() {
       setLoading(true)
       try {
         const res = await getProductsByPage(currentPage, pageSize, "Approved")
+        console.log("productid ", res?.data?.products?.[0]?._id)
         const items = (res?.data?.products ?? []) as ProductType[]
         setProducts(items)
         const tp = res?.data?.pagination?.totalPages
@@ -36,6 +41,14 @@ export default function FeaturedProducts() {
     }
     fetchData()
   }, [currentPage])
+
+  const userId = useAppSelector((state) => state.auth.user?._id)
+
+  const handleSubmit = async (productId: string) => {
+    if (!userId || !productId) return
+    await addToCart({ userId, productId })
+    console.log("Product added to cart:", productId)
+  }
 
   const computeDiscount = (mrp?: number, price?: number) => {
     if (!mrp || !price || mrp <= 0) return 0
@@ -115,10 +128,12 @@ export default function FeaturedProducts() {
                   )}
                 </div>
 
-                <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2">
-                  <ShoppingCart className="w-4 h-4" />
-                  Add
-                </button>
+                <DynamicButton className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2"
+                text="Add"
+                icon={<ShoppingCart className="w-4 h-4" />}
+                onClick={() => handleSubmit(product._id)}
+                />
+             
               </div>
             </div>
           )
