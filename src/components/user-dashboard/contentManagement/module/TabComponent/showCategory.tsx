@@ -20,6 +20,7 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
 
     // Filter categories by searchQuery
     const filteredCategories = React.useMemo(() => {
+      if (!Categories || !Array.isArray(Categories)) return [];
       if (!searchQuery || !searchQuery.trim()) return Categories;
       const q = searchQuery.trim().toLowerCase();
       return Categories.filter((item) =>
@@ -29,7 +30,7 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
       );
     }, [Categories, searchQuery]);
 
-    const totalPages = Math.ceil(filteredCategories.length / itemPerPage);
+    const totalPages = Math.ceil((filteredCategories?.length || 0) / itemPerPage);
     const paginatedData = filteredCategories.slice(
       (currentPage - 1) * itemPerPage,
       currentPage * itemPerPage
@@ -115,14 +116,14 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
       </Table>
 
       {/* Pagination - moved outside of table */}
-      {Categories.length > 0 && totalPages > 1 && (
+      {(Categories?.length || 0) > 0 && totalPages > 1 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
           {/* Left: Showing X-Y of Z subcategories */}
           <div className="text-sm text-gray-600 text-center sm:text-left">
             {`Showing ${(currentPage - 1) * itemPerPage + 1}-${Math.min(
               currentPage * itemPerPage,
-              Categories.length
-            )} of ${Categories.length} categories`}
+              Categories?.length || 0
+            )} of ${Categories?.length || 0} categories`}
           </div>
           {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">

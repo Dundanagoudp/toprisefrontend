@@ -19,6 +19,7 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
 
   // Filter subcategories by searchQuery
   const filteredSubCategories = React.useMemo(() => {
+    if (!subCategories || !Array.isArray(subCategories)) return [];
     if (!searchQuery || !searchQuery.trim()) return subCategories;
     const q = searchQuery.trim().toLowerCase();
     return subCategories.filter((item) =>
@@ -28,7 +29,7 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
     );
   }, [subCategories, searchQuery]);
 
-  const totalPages = Math.ceil(filteredSubCategories.length / itemPerPage);
+  const totalPages = Math.ceil((filteredSubCategories?.length || 0) / itemPerPage);
   const paginatedData = filteredSubCategories.slice(
     (currentPage - 1) * itemPerPage,
     currentPage * itemPerPage
@@ -113,14 +114,14 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
       </Table>
 
       {/* Pagination - moved outside of table */}
-      {subCategories.length > 0 && totalPages > 1 && (
+      {(subCategories?.length || 0) > 0 && totalPages > 1 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
           {/* Left: Showing X-Y of Z subcategories */}
           <div className="text-sm text-gray-600 text-center sm:text-left">
             {`Showing ${(currentPage - 1) * itemPerPage + 1}-${Math.min(
               currentPage * itemPerPage,
-              subCategories.length
-            )} of ${subCategories.length} subcategories`}
+              subCategories?.length || 0
+            )} of ${subCategories?.length || 0} subcategories`}
           </div>
           {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">

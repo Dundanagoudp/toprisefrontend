@@ -64,7 +64,17 @@ export default function CheckoutPage() {
 
     const onSubmit = async (data: AddressFormValues) => {
     try {
-      const response = await addAddress(userId,data);
+      const addressData = {
+        address: [{
+          nick_name: "Home", // You might want to make this dynamic
+          street: data.addressLine1 + (data.addressLine2 ? `, ${data.addressLine2}` : ''),
+          city: data.city,
+          pincode: data.pinCode,
+          state: data.state,
+          // Add other fields that might be required
+        }]
+      };
+      const response = await addAddress(userId,addressData);
 
       if (!response.ok) {
         throw new Error("Failed to add address");
