@@ -267,6 +267,7 @@ export default function DealerProductEdit() {
   // Populate form with fetched product data
   useEffect(() => {
     if (product) {
+      console.log("Setting form values for product:", product);
       reset({
         sku_code: product.sku_code || "",
         manufacturer_part_name: product.manufacturer_part_name || "",
@@ -282,7 +283,7 @@ export default function DealerProductEdit() {
         fulfillment_priority: product.fulfillment_priority,
         admin_notes: product.admin_notes || "",
         make: product.make && product.make.length > 0 ? product.make[0] : "",
-       
+        vehicle_type: "", // Will be set in separate useEffect
         model: product.model?._id || "",
         year_range:
           product.year_range && product.year_range.length > 0
@@ -323,6 +324,7 @@ export default function DealerProductEdit() {
         search_tags: product.search_tags || [],
         seo_description: product.seo_description || "",
       });
+      
       // Initialize image previews for existing images
       if (product.images && Array.isArray(product.images)) {
         setExistingImages(product.images);
@@ -334,6 +336,33 @@ export default function DealerProductEdit() {
       setRemovedExistingIndexes([]);
     }
   }, [product, reset]);
+
+  // Force update all form fields after reset to ensure proper population
+  useEffect(() => {
+    if (product) {
+      // Set vehicle_type immediately if typeOptions are available
+      if (typeOptions.length > 0) {
+        const selectedTypeObj = typeOptions.find(
+          (t) => t.type_name === product.product_type || t._id === product.product_type
+        );
+        if (selectedTypeObj) {
+          setValue("vehicle_type", selectedTypeObj._id);
+          setSelectedProductTypeId(selectedTypeObj._id);
+        }
+      }
+      
+      // Set brand immediately if brandOptions are available
+      if (brandOptions.length > 0 && product.brand?._id) {
+        const selectedBrandObj = brandOptions.find(
+          (b) => b._id === product.brand?._id
+        );
+        if (selectedBrandObj) {
+          setValue("brand", selectedBrandObj._id);
+          setSelectedBrandId(selectedBrandObj._id);
+        }
+      }
+    }
+  }, [product, typeOptions, brandOptions, setValue]);
 
   // Initialize dependent state variables when product loads
   useEffect(() => {
@@ -361,56 +390,59 @@ export default function DealerProductEdit() {
   }, [product, typeOptions]);
 
   // Prepopulate dependent dropdowns in correct order after product data loads
-
-  
   useEffect(() => {
-    if (!product) return;
+    if (!product || !typeOptions.length) return;
 
-    // Product Type
-    if (typeOptions.length > 0) {
+    // Product Type - Find and set the vehicle type ID
+    const selectedTypeObj = typeOptions.find(
+      (t) => t.type_name === product.product_type || t._id === product.product_type
+    );
+    if (selectedTypeObj) {
+      setValue("vehicle_type", selectedTypeObj._id);
+      setSelectedProductTypeId(selectedTypeObj._id);
+    }
+  }, [product, typeOptions, setValue]);
+
+  // Force update vehicle_type when product loads
+  useEffect(() => {
+    if (product && typeOptions.length > 0) {
       const selectedTypeObj = typeOptions.find(
-        (t) =>
-          t.type_name === product.product_type || t._id === product.product_type
+        (t) => t.type_name === product.product_type || t._id === product.product_type
       );
       if (selectedTypeObj) {
-        setValue("product_type", selectedTypeObj.type_name);
-        setValue("vehicle_type", selectedTypeObj._id); // Set ID for Select component
+        setValue("vehicle_type", selectedTypeObj._id);
       }
     }
   }, [product, typeOptions, setValue]);
 
   useEffect(() => {
-    // Brand
+    // Brand - Wait for brandOptions to be populated
     if (product && brandOptions.length > 0 && product.brand) {
       const selectedBrandObj = brandOptions.find(
-        (b) =>
-          b.brand_name === product.brand?.brand_name ||
-          b._id === product.brand?._id
+        (b) => b._id === product.brand?._id
       );
       if (selectedBrandObj) {
         setSelectedBrandId(selectedBrandObj._id);
-        setValue("brand", selectedBrandObj._id); // Set ID, not name
+        setValue("brand", selectedBrandObj._id);
       }
     }
   }, [product, brandOptions, setValue]);
 
   useEffect(() => {
-    // Model
+    // Model - Wait for modelOptions to be populated
     if (product && modelOptions.length > 0 && product.model) {
       const selectedModelObj = modelOptions.find(
-        (m) =>
-          m.model_name === product.model?.model_name ||
-          m._id === product.model?._id
+        (m) => m._id === product.model?._id
       );
       if (selectedModelObj) {
         setModelId(selectedModelObj._id);
-        setValue("model", selectedModelObj._id); // Set ID, not name
+        setValue("model", selectedModelObj._id);
       }
     }
   }, [product, modelOptions, setValue]);
 
   useEffect(() => {
-    // Variant
+    // Variant - Wait for varientOptions to be populated
     if (
       product &&
       varientOptions.length > 0 &&
@@ -418,18 +450,16 @@ export default function DealerProductEdit() {
       product.variant.length > 0
     ) {
       const selectedVariantObj = varientOptions.find(
-        (v) =>
-          v.variant_name === product.variant?.[0]?.variant_name ||
-          v._id === product.variant?.[0]?._id
+        (v) => v._id === product.variant?.[0]?._id
       );
       if (selectedVariantObj) {
-        setValue("variant", selectedVariantObj._id); // Set ID, not name
+        setValue("variant", selectedVariantObj._id);
       }
     }
   }, [product, varientOptions, setValue]);
 
   useEffect(() => {
-    // Year Range
+    // Year Range - Wait for yearRangeOptions to be populated
     if (
       product &&
       yearRangeOptions.length > 0 &&
@@ -437,15 +467,86 @@ export default function DealerProductEdit() {
       product.year_range.length > 0
     ) {
       const selectedYearObj = yearRangeOptions.find(
-        (y) =>
-          y.year_name === product.year_range?.[0]?.year_name ||
-          y._id === product.year_range?.[0]?._id
+        (y) => y._id === product.year_range?.[0]?._id
       );
       if (selectedYearObj) {
-        setValue("year_range", selectedYearObj._id); // Set ID for Select component
+        setValue("year_range", selectedYearObj._id);
       }
     }
   }, [product, yearRangeOptions, setValue]);
+
+  // Force form update when options are loaded
+  useEffect(() => {
+    if (product && categoryOptions.length > 0) {
+      setValue("category", product.category?._id || "");
+    }
+  }, [product, categoryOptions, setValue]);
+
+  useEffect(() => {
+    if (product && subCategoryOptions.length > 0) {
+      setValue("sub_category", product.sub_category?._id || "");
+    }
+  }, [product, subCategoryOptions, setValue]);
+
+  // Ensure product type is set when product loads
+  useEffect(() => {
+    if (product) {
+      setValue("product_type", product.product_type || "");
+    }
+  }, [product, setValue]);
+
+  // Ensure vehicle_type is set when both product and typeOptions are available
+  useEffect(() => {
+    if (product && typeOptions.length > 0) {
+      console.log("Setting vehicle_type for product:", product.product_type);
+      console.log("Available typeOptions:", typeOptions);
+      
+      // First try to find by type_name (string match)
+      let selectedTypeObj = typeOptions.find(
+        (t) => t.type_name === product.product_type
+      );
+      
+      // If not found, try to find by _id
+      if (!selectedTypeObj) {
+        selectedTypeObj = typeOptions.find(
+          (t) => t._id === product.product_type
+        );
+      }
+      
+      if (selectedTypeObj) {
+        console.log("Found matching type:", selectedTypeObj);
+        setValue("vehicle_type", selectedTypeObj._id);
+        setSelectedProductTypeId(selectedTypeObj._id);
+      } else {
+        console.log("No matching type found for:", product.product_type);
+        // Set a default value if no match found
+        if (typeOptions.length > 0) {
+          setValue("vehicle_type", typeOptions[0]._id);
+          setSelectedProductTypeId(typeOptions[0]._id);
+        }
+      }
+    }
+  }, [product, typeOptions, setValue]);
+
+  // Ensure brand is set when both product and brandOptions are available
+  useEffect(() => {
+    if (product && brandOptions.length > 0) {
+      console.log("Setting brand for product:", product.brand);
+      console.log("Available brandOptions:", brandOptions);
+      
+      const selectedBrandObj = brandOptions.find(
+        (b) => b._id === product.brand?._id
+      );
+      
+      if (selectedBrandObj) {
+        console.log("Found matching brand:", selectedBrandObj);
+        setValue("brand", selectedBrandObj._id);
+        setSelectedBrandId(selectedBrandObj._id);
+      } else {
+        console.log("No matching brand found for:", product.brand?._id);
+      }
+    }
+  }, [product, brandOptions, setValue]);
 
   const onSubmit = async (data: FormValues) => {
     setApiError("");
@@ -809,8 +910,8 @@ export default function DealerProductEdit() {
                 Product Type
               </Label>
               <Select
+                value={watch("product_type") || ""}
                 onValueChange={(value) => setValue("product_type", value)}
-                defaultValue={watch("product_type")}
                 disabled={Boolean(allowedFields && !allowedFields.includes("product_type"))}
               >
                 <SelectTrigger
