@@ -17,36 +17,45 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
   const [loading, setLoading] = useState(false);
   const itemPerPage = 10;
 
-  // Filter subcategories by searchQuery
+  // Filter subcategories by searchQuery with safe array operations
   const filteredSubCategories = React.useMemo(() => {
+    if (!subCategories || !Array.isArray(subCategories)) return [];
     if (!searchQuery || !searchQuery.trim()) return subCategories;
+    
     const q = searchQuery.trim().toLowerCase();
     return subCategories.filter((item) =>
-      (item.subcategory_name?.toLowerCase().includes(q) ||
-        item.subcategory_status?.toLowerCase().includes(q) ||
-        item.category_ref?.category_name?.toLowerCase().includes(q))
+      (item?.subcategory_name?.toLowerCase().includes(q) ||
+        item?.subcategory_status?.toLowerCase().includes(q) ||
+        item?.category_ref?.category_name?.toLowerCase().includes(q))
     );
   }, [subCategories, searchQuery]);
 
-  const totalPages = Math.ceil(filteredSubCategories.length / itemPerPage);
-  const paginatedData = filteredSubCategories.slice(
-    (currentPage - 1) * itemPerPage,
-    currentPage * itemPerPage
-  );
+  // Safe pagination calculations
+  const totalPages = Math.ceil((filteredSubCategories?.length || 0) / itemPerPage);
+  const paginatedData = React.useMemo(() => {
+    if (!filteredSubCategories || !Array.isArray(filteredSubCategories)) return [];
+    return filteredSubCategories.slice(
+      (currentPage - 1) * itemPerPage,
+      currentPage * itemPerPage
+    );
+  }, [filteredSubCategories, currentPage, itemPerPage]);
+
   useEffect(() => {
     const fetchData = async () => {
-        setLoading(true);
+      setLoading(true);
       try {
         const response = await getSubCategories();
-        setLoading(false);
         if (!response || !response.data) {
           console.error("No data found in response");
+          setSubCategories([]);
           return;
         }
         const Items = response.data;
-        setSubCategories(Items);
+        setSubCategories(Array.isArray(Items) ? Items : []);
       } catch (err: any) {
         console.error("Error fetching data:", err);
+        setSubCategories([]);
+      } finally {
         setLoading(false);
       }
     };
@@ -64,6 +73,10 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
     );
   }
 
+  // Safe check for data existence
+  const hasData = paginatedData && Array.isArray(paginatedData) && paginatedData.length > 0;
+  const totalItems = subCategories && Array.isArray(subCategories) ? subCategories.length : 0;
+
   return (
     <div className="p-6">
       <h2 className="text-xl font-semibold mb-4">SubCategory</h2>
@@ -77,23 +90,23 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedData.length > 0 ? (
+          {hasData ? (
             paginatedData.map((item) => (
-              <TableRow key={item._id}>
-                <TableCell>{item.subcategory_name || "No Title"}</TableCell>
+              <TableRow key={item?._id || Math.random()}>
+                <TableCell>{item?.subcategory_name || "No Title"}</TableCell>
                 <TableCell>
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
-                      item.subcategory_status === "Created"
+                      item?.subcategory_status === "Created"
                         ? "bg-green-100 text-green-800"
                         : "bg-orange-100 text-orange-800"
                     }`}
                   >
-                    {item.subcategory_status || "Draft"}
+                    {item?.subcategory_status || "Draft"}
                   </span>
                 </TableCell>
                 <TableCell>
-                  {item.category_ref?.category_name || "No Category"}
+                  {item?.category_ref?.category_name || "No Category"}
                 </TableCell>
                 <TableCell>
                   <Button variant="outline" size="sm">
@@ -112,15 +125,15 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
         </TableBody>
       </Table>
 
-      {/* Pagination - moved outside of table */}
-      {subCategories.length > 0 && totalPages > 1 && (
+      {/* Pagination - with safe checks */}
+      {totalItems > 0 && totalPages > 1 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
           {/* Left: Showing X-Y of Z subcategories */}
           <div className="text-sm text-gray-600 text-center sm:text-left">
             {`Showing ${(currentPage - 1) * itemPerPage + 1}-${Math.min(
               currentPage * itemPerPage,
-              subCategories.length
-            )} of ${subCategories.length} subcategories`}
+              totalItems
+            )} of ${totalItems} subcategories`}
           </div>
           {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">
