@@ -7,6 +7,8 @@ import { DynamicButton } from "@/components/common/button"
 import { addToCart } from "@/service/user/cartService"
 import { useSelector } from "react-redux"
 import { useAppSelector } from "@/store/hooks"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/toast"
 
 export default function FeaturedProducts() {
   const [products, setProducts] = React.useState<ProductType[]>([])
@@ -21,6 +23,9 @@ export default function FeaturedProducts() {
     if (/^https?:\/\//i.test(path)) return path
     return `${filesOrigin}${path.startsWith("/") ? "" : "/"}${path}`
   }, [filesOrigin])
+  
+  const router = useRouter()
+  const { showToast } = useToast()
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -43,11 +48,26 @@ export default function FeaturedProducts() {
   }, [currentPage])
 
   const userId = useAppSelector((state) => state.auth.user?._id)
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
 
   const handleSubmit = async (productId: string) => {
-    if (!userId || !productId) return
-    await addToCart({ userId, productId })
-    console.log("Product added to cart:", productId)
+    // Check if user is authenticated
+    if (!isAuthenticated || !userId) {
+      showToast("Please login to add items to cart", "error")
+      router.push("/login")
+      return
+    }
+    
+    if (!productId) return
+    
+    try {
+      await addToCart({ userId, productId })
+      showToast("Product added to cart successfully", "success")
+      console.log("Product added to cart:", productId)
+    } catch (error) {
+      showToast("Failed to add product to cart", "error")
+      console.error("Error adding to cart:", error)
+    }
   }
 
   const computeDiscount = (mrp?: number, price?: number) => {

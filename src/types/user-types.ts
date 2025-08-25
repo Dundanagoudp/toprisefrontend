@@ -1,6 +1,9 @@
 export interface AppUser {
 	_id: string;
 	email?: string;
+	firstName?: string;
+	lastName?: string;
+	phone?: string;
 	username?: string;
 	phone_Number?: string;
 	role?: string;
