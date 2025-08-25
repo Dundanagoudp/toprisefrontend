@@ -1,33 +1,30 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import {
   NavigationMenu,
+  NavigationMenuContent,
   NavigationMenuItem,
+  NavigationMenuLink,
   NavigationMenuList,
+  NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-
-// import { GitHubLogoIcon } from "@radix-ui/react-icons";
-// import { buttonVariants } from "./ui/button";
-import { Bell, Menu, Phone, Search, User } from "lucide-react";
-import DynamicButton from "@/components/common/button/button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search, User } from "lucide-react";
+import { CartSidebar } from "./CartSideBar";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useCart } from "@/hooks/use-cart";
+import { CartItem } from "@/types/User/cart-Types";
 import logo from "../../../../public/assets/logo.png";
 import Image from "next/image";
-import ContactDialog from "@/components/landingPage/module/popup/contactus";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { getCart } from "@/service/user/cartService";
-import { useAppSelector } from "@/store/hooks";
-import { CartItem } from "@/types/User/cart-Types";
-import { CartSidebar } from "./CartSideBar";
-
-// import ContactDialog from "./popup/contactus";
-// import { ModeToggle } from "./mode-toggle";
-// import { LogoIcon } from "./Icons";
-
+import { LogOut } from "@/store/slice/auth/authSlice";
 interface RouteProps {
   href: string;
   label: string;
 }
+
 
 const routeList: RouteProps[] = [
   {
@@ -57,48 +54,38 @@ export const Header = () => {
   const userId = useAppSelector((state) => state.auth.user?._id);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [contactUsOpen, setContactUsOpen] = useState(false);
-  const [cart, setCart] = useState<any>(null);
   const [cartOpen, setCartOpen] = useState(false);
-  
-  const handleSLAFormSubmit = (data: any) => {
-    setContactUsOpen(false);
-  };
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const { 
+    cartData: cart, 
+    fetchCart, 
+    updateItemQuantity, 
+    removeItemFromCart 
+  } = useCart();
 
   useEffect(() => {
-    const fetchCart = async () => {
-      if (!isAuthenticated || !userId) {
-        setCart(null);
-        return;
-      }
-      
-      try {
-        const response = await getCart(userId);
-        setCart(response.data || null);
-      } catch (err: any) {
-        console.error("Failed to fetch cart:", err);
-        setCart(null);
-      }
-    };
     fetchCart();
-  }, [userId, isAuthenticated]);
+  }, [fetchCart]);
+const handleLogout = () => {
+  Cookies.remove('token');
+  Cookies.remove('role');
+  Cookies.remove('lastlogin');
+  localStorage.clear();
+  sessionStorage.clear();
+  dispatch(LogOut());
 
+ 
+  router.replace('/login');
+  window.location.reload();
+  }
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-    
-    setCart((prevCart: any) => ({
-      ...prevCart,
-      items: prevCart.items.map((item: CartItem) =>
-        item._id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    }));
+    updateItemQuantity(itemId, newQuantity);
   };
 
   const removeFromCart = (itemId: string) => {
-    setCart((prevCart: any) => ({
-      ...prevCart,
-      items: prevCart.items.filter((item: CartItem) => item._id !== itemId)
-    }));
+    removeItemFromCart(itemId);
   };
 
   const calculateTotal = () => {
@@ -107,7 +94,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-slate-700 dark:bg-background">
+    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <NavigationMenu className="mx-auto">
         <NavigationMenuList className="container h-16 px-4 w-screen flex justify-between">
           <NavigationMenuItem className="font-bold flex">
@@ -157,16 +144,13 @@ export const Header = () => {
               variant="ghost"
               size="sm"
               className="text-gray-600 hover:text-red-600"
+              onClick={handleLogout}
             >
               <User className="h-5 w-5" />
             </Button>
           </div>
         </NavigationMenuList>
       </NavigationMenu>
-      <ContactDialog
-        open={contactUsOpen}
-        onClose={() => setContactUsOpen(false)}
-      />
     </header>
   );
 };
