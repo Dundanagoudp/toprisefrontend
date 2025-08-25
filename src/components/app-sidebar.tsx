@@ -10,6 +10,7 @@ import {
    LogOutIcon as LogOut,
    LogOutIcon,
    SettingsIcon,
+   FileText,
  
 } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
@@ -115,6 +116,11 @@ const data = {
       title: "Settings",
       url: "/user/dashboard/setting",
       icon: SettingsIcon,
+    },
+    {
+      title: "Audit Logs",
+      url: "/user/dashboard/audit-logs",
+      icon: FileText,
     }
   ],
 }
