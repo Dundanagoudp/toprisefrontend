@@ -28,6 +28,7 @@ import { getUserById } from "@/service/user/userService";
 import { Cart, CartItem, CartResponse } from "@/types/User/cart-Types";
 import { ApiListResponse, AppUser } from "@/types/user-types";
 import OrderConfirmationDialog from "@/service/user/PopUps/OrderPlaced";
+import { useCart } from "@/hooks/use-cart";
 
 // Define the schema for the address form
 const addressSchema = z.object({
@@ -50,7 +51,7 @@ const addressSchema = z.object({
 type AddressFormValues = z.infer<typeof addressSchema>;
 
 export default function CheckoutPage() {
-  const [cart, setCart] = useState<any | null>(null);
+  const { cartData: cart, fetchCart } = useCart();
   const { showToast } = useGlobalToast();
   const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,12 +78,12 @@ export default function CheckoutPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [userResponse, cartResponse] = await Promise.all([
+        const [userResponse] = await Promise.all([
           getUserById(userId),
-          getCart(userId),
         ]);
         setUser(userResponse.data);
-        setCart(cartResponse.data || null);
+        // Cart data is now managed by Redux, so we don't need to fetch it here
+        await fetchCart();
       } catch (err) {
         console.error("Failed to fetch data:", err);
         showToast("Failed to fetch data", "error");
@@ -91,7 +92,7 @@ export default function CheckoutPage() {
       }
     };
     fetchData();
-  }, [userId]);
+  }, [userId, fetchCart]);
   const prepareOrderBody = (user: AppUser, cart: Cart) => {
     const address = user.address?.[0] || {};
 
@@ -485,7 +486,7 @@ export default function CheckoutPage() {
                     </span>
                   </div>
 
-                  {cart?.deliveryCharge > 0 && (
+                  {cart?.deliveryCharge && cart.deliveryCharge > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Delivery:</span>
                       <span className="font-medium">
@@ -494,7 +495,7 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {cart?.handlingCharge > 0 && (
+                  {cart?.handlingCharge && cart.handlingCharge > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Handling:</span>
                       <span className="font-medium">

@@ -4,9 +4,7 @@ import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
 import { getProductsByPage } from "@/service/product-Service"
 import type { Product as ProductType } from "@/types/product-Types"
 import { DynamicButton } from "@/components/common/button"
-import { addToCart } from "@/service/user/cartService"
-import { useSelector } from "react-redux"
-import { useAppSelector } from "@/store/hooks"
+import { useCart } from "@/hooks/use-cart"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 
@@ -26,6 +24,7 @@ export default function FeaturedProducts() {
   
   const router = useRouter()
   const { showToast } = useToast()
+  const { addItemToCart } = useCart()
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -47,26 +46,21 @@ export default function FeaturedProducts() {
     fetchData()
   }, [currentPage])
 
-  const userId = useAppSelector((state) => state.auth.user?._id)
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
-
   const handleSubmit = async (productId: string) => {
-    // Check if user is authenticated
-    if (!isAuthenticated || !userId) {
-      showToast("Please login to add items to cart", "error")
-      router.push("/login")
-      return
-    }
-    
     if (!productId) return
     
     try {
-      await addToCart({ userId, productId })
+      await addItemToCart(productId, 1)
       showToast("Product added to cart successfully", "success")
       console.log("Product added to cart:", productId)
-    } catch (error) {
-      showToast("Failed to add product to cart", "error")
-      console.error("Error adding to cart:", error)
+    } catch (error: any) {
+      if (error.message === 'User not authenticated') {
+        showToast("Please login to add items to cart", "error")
+        router.push("/login")
+      } else {
+        showToast("Failed to add product to cart", "error")
+        console.error("Error adding to cart:", error)
+      }
     }
   }
 
