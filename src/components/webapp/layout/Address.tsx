@@ -1,15 +1,33 @@
-"use client"
-import { ShoppingCart, Package, FileText, CreditCard, Bell, User, Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { use, useEffect ,useState } from "react"
-import { addAddress, getCart } from "@/service/user/cartService"
-import { useAppSelector } from "@/store/hooks"
+"use client";
+import {
+  ShoppingCart,
+  Package,
+  FileText,
+  CreditCard,
+  Bell,
+  User,
+  Search,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { use, useEffect, useState } from "react";
+import {
+  addAddress,
+  createOrders,
+  getCart,
+  removeProductFromCart,
+} from "@/service/user/cartService";
+import { useAppSelector } from "@/store/hooks";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useToast as useGlobalToast } from "@/components/ui/toast"
+import { useToast as useGlobalToast } from "@/components/ui/toast";
+import { assert } from "console";
+import { getUserById } from "@/service/user/userService";
+import { Cart, CartItem, CartResponse } from "@/types/User/cart-Types";
+import { ApiListResponse, AppUser } from "@/types/user-types";
+import OrderConfirmationDialog from "@/service/user/PopUps/OrderPlaced";
 
 // Define the schema for the address form
 const addressSchema = z.object({
@@ -32,10 +50,14 @@ const addressSchema = z.object({
 type AddressFormValues = z.infer<typeof addressSchema>;
 
 export default function CheckoutPage() {
-    const [cart, setCart] = useState<any | null>(null);
-    const {showToast} = useGlobalToast()
+  const [cart, setCart] = useState<any | null>(null);
+  const { showToast } = useGlobalToast();
+  const [user, setUser] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
 
-    const {
+  const {
     register,
     handleSubmit,
     reset,
@@ -49,38 +71,108 @@ export default function CheckoutPage() {
       },
     },
   });
-    const userId = useAppSelector((state)=>state.auth.user._id)
-      useEffect(() => {
-        const fetchCart = async () => {
-          try {
-            const response = await getCart(userId);
-            setCart(response.data || null);
-          } catch (err: any) {
-            console.error("Failed to fetch cart:", err);
-          }
-        };
-        fetchCart();
-      }, [userId]);
+  const userId = useAppSelector((state) => state.auth.user._id);
 
-    const onSubmit = async (data: AddressFormValues) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [userResponse, cartResponse] = await Promise.all([
+          getUserById(userId),
+          getCart(userId),
+        ]);
+        setUser(userResponse.data);
+        setCart(cartResponse.data || null);
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+        showToast("Failed to fetch data", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [userId]);
+  const prepareOrderBody = (user: AppUser, cart: Cart) => {
+    const address = user.address?.[0] || {};
+
+    const orderBody = {
+      orderId: `ORD${Math.floor(Math.random() * 100000)}`,
+      orderType: "Online",
+      orderSource: "Web",
+      order_Amount: cart.total_mrp_with_gst?.toFixed(2) || "0.00",
+      skus: cart.items.map((item) => ({
+        sku: item.sku || "",
+        quantity: item.quantity,
+        productId: item.productId || item._id,
+        productName: item.product_name,
+        mrp: item.mrp || item.selling_price || 0,
+        mrp_gst_amount: item.mrp_gst_amount || 0,
+        gst_percentage: item.gst_percentage || "0",
+        gst_amount: item.gst_amount || 0,
+        product_total: item.product_total || item.selling_price * item.quantity,
+        totalPrice: item.totalPrice || item.selling_price * item.quantity,
+      })),
+      customerDetails: {
+        userId: user._id,
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        phone: user.phone || "",
+        address: `${address.street || ""}, ${address.city || ""}, ${
+          address.state || ""
+        }, ${address.country || ""}`.trim(),
+        pincode: address.pincode || "",
+        email: user.email || "",
+      },
+      paymentType: "COD",
+      delivery_type: "standard",
+      deliveryCharges: cart.deliveryCharge || 0,
+      GST: cart.total_mrp_gst_amount || 0,
+    };
+    return orderBody;
+  };
+
+  const handleCheckOut = async () => {
+    if (!user || !cart) {
+      showToast("User or cart data is not available", "error");
+      return;
+    }
+
+    if (!user.address || user.address.length === 0) {
+      showToast("Please add an address before checkout", "error");
+      return;
+    }
+
+    const orderBody = prepareOrderBody(user, cart);
+    try {
+      const response = await createOrders(orderBody);
+      setOrderId(response.data.orderId || response.data._id); 
+      setIsOrderConfirmed(true);
+      console.log("order", response.data);
+
+      showToast("Order created successfully", "success");
+    } catch (error) {
+      console.error("Failed to create order:", error);
+      showToast("Failed to create order", "error");
+    }
+  };
+  const onSubmit = async (data: AddressFormValues) => {
     try {
       const addressData = {
-        address: [{
-          nick_name: "Home", // You might want to make this dynamic
-          street: data.addressLine1 + (data.addressLine2 ? `, ${data.addressLine2}` : ''),
-          city: data.city,
-          pincode: data.pinCode,
-          state: data.state,
-          // Add other fields that might be required
-        }]
+        address: [
+          {
+            nick_name: "Home",
+            street:
+              data.addressLine1 +
+              (data.addressLine2 ? `, ${data.addressLine2}` : ""),
+            city: data.city,
+            pincode: data.pinCode,
+            state: data.state,
+          },
+        ],
       };
-      const response = await addAddress(userId,addressData);
 
-      if (!response.ok) {
-        throw new Error("Failed to add address");
-      }
+      const response = await addAddress(userId, addressData);
 
-    showToast("Address added successfully", "success");
+      showToast("Address added successfully", "success");
 
       reset();
     } catch (error) {
@@ -110,7 +202,9 @@ export default function CheckoutPage() {
               <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
                 <Package className="w-5 h-5 text-white" />
               </div>
-              <div className="ml-2 text-sm font-medium text-red-600">Address</div>
+              <div className="ml-2 text-sm font-medium text-red-600">
+                Address
+              </div>
             </div>
 
             {/* Connector */}
@@ -121,7 +215,9 @@ export default function CheckoutPage() {
               <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
                 <FileText className="w-5 h-5 text-gray-500" />
               </div>
-              <div className="ml-2 text-sm font-medium text-gray-500">Review</div>
+              <div className="ml-2 text-sm font-medium text-gray-500">
+                Review
+              </div>
             </div>
 
             {/* Connector */}
@@ -144,12 +240,17 @@ export default function CheckoutPage() {
           {/* Left Column - Billing Details */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Billing Address Details</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Billing Address Details
+              </h2>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="firstName"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       First Name
                     </label>
                     <Input
@@ -158,10 +259,18 @@ export default function CheckoutPage() {
                       placeholder="First Name"
                       className="mt-1"
                     />
-                    {errors.firstName && <p className="text-red-600 text-sm">{errors.firstName.message}</p>}
+                    {errors.firstName && (
+                      <p className="text-red-600 text-sm">
+                        {errors.firstName.message}
+                      </p>
+                    )}
                   </div>
+
                   <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="lastName"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Last Name
                     </label>
                     <Input
@@ -170,51 +279,19 @@ export default function CheckoutPage() {
                       placeholder="Last Name"
                       className="mt-1"
                     />
-                    {errors.lastName && <p className="text-red-600 text-sm">{errors.lastName.message}</p>}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                      Email
-                    </label>
-                    <Input
-                      id="email"
-                      {...register("email")}
-                      placeholder="Email"
-                      type="email"
-                      className="mt-1"
-                    />
-                    {errors.email && <p className="text-red-600 text-sm">{errors.email.message}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Mobile
-                    </label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        {...register("mobile.countryCode")}
-                        placeholder="+91"
-                        className="w-20 text-center"
-                      />
-                      <Input
-                        {...register("mobile.number")}
-                        placeholder="Mobile"
-                        className="flex-1"
-                      />
-                    </div>
-                    {errors.mobile?.countryCode && (
-                      <p className="text-red-600 text-sm">{errors.mobile.countryCode.message}</p>
-                    )}
-                    {errors.mobile?.number && (
-                      <p className="text-red-600 text-sm">{errors.mobile.number.message}</p>
+                    {errors.lastName && (
+                      <p className="text-red-600 text-sm">
+                        {errors.lastName.message}
+                      </p>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="addressLine1"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Address Line 1
                   </label>
                   <Input
@@ -223,11 +300,18 @@ export default function CheckoutPage() {
                     placeholder="Address Line 1"
                     className="mt-1"
                   />
-                  {errors.addressLine1 && <p className="text-red-600 text-sm">{errors.addressLine1.message}</p>}
+                  {errors.addressLine1 && (
+                    <p className="text-red-600 text-sm">
+                      {errors.addressLine1.message}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="addressLine2"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Address Line 2 (Optional)
                   </label>
                   <Input
@@ -240,7 +324,10 @@ export default function CheckoutPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="city"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       City
                     </label>
                     <Input
@@ -249,10 +336,17 @@ export default function CheckoutPage() {
                       placeholder="City"
                       className="mt-1"
                     />
-                    {errors.city && <p className="text-red-600 text-sm">{errors.city.message}</p>}
+                    {errors.city && (
+                      <p className="text-red-600 text-sm">
+                        {errors.city.message}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="state"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       State
                     </label>
                     <Input
@@ -261,10 +355,17 @@ export default function CheckoutPage() {
                       placeholder="State"
                       className="mt-1"
                     />
-                    {errors.state && <p className="text-red-600 text-sm">{errors.state.message}</p>}
+                    {errors.state && (
+                      <p className="text-red-600 text-sm">
+                        {errors.state.message}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label htmlFor="pinCode" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="pinCode"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Pin Code
                     </label>
                     <Input
@@ -273,12 +374,19 @@ export default function CheckoutPage() {
                       placeholder="Pin Code"
                       className="mt-1"
                     />
-                    {errors.pinCode && <p className="text-red-600 text-sm">{errors.pinCode.message}</p>}
+                    {errors.pinCode && (
+                      <p className="text-red-600 text-sm">
+                        {errors.pinCode.message}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="country"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Country
                   </label>
                   <Input
@@ -287,11 +395,18 @@ export default function CheckoutPage() {
                     placeholder="Country"
                     className="mt-1"
                   />
-                  {errors.country && <p className="text-red-600 text-sm">{errors.country.message}</p>}
+                  {errors.country && (
+                    <p className="text-red-600 text-sm">
+                      {errors.country.message}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="notes"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Notes (Optional)
                   </label>
                   <Textarea
@@ -302,7 +417,10 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white py-2">
+                <Button
+                  type="submit"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-2"
+                >
                   Add Address
                 </Button>
               </form>
@@ -313,13 +431,18 @@ export default function CheckoutPage() {
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               <div className="bg-white rounded-lg p-6 shadow-sm border">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Your Order</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                  Your Order
+                </h2>
 
                 {/* Cart Items */}
                 {cart?.items && cart.items.length > 0 && (
                   <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
                     {cart.items.map((item: any) => (
-                      <div key={item._id} className="flex items-center gap-3 p-2 border-b border-gray-100 last:border-b-0">
+                      <div
+                        key={item._id}
+                        className="flex items-center gap-3 p-2 border-b border-gray-100 last:border-b-0"
+                      >
                         <div className="w-12 h-12 bg-gray-100 rounded-md flex-shrink-0">
                           {item.product_image && item.product_image[0] && (
                             <img
@@ -330,8 +453,12 @@ export default function CheckoutPage() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">{item.product_name}</h4>
-                          <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                            {item.product_name}
+                          </h4>
+                          <p className="text-xs text-gray-500">
+                            Qty: {item.quantity}
+                          </p>
                         </div>
                         <div className="text-sm font-medium text-gray-900">
                           ₹{(item.selling_price * item.quantity).toFixed(2)}
@@ -344,25 +471,35 @@ export default function CheckoutPage() {
                 {/* Order Summary */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Subtotal ({cart?.items?.length ?? 0} items):</span>
-                    <span className="font-medium">₹{cart?.total_mrp?.toFixed(2) || '0.00'}</span>
+                    <span className="text-gray-600">
+                      Subtotal ({cart?.items?.length ?? 0} items):
+                    </span>
+                    <span className="font-medium">
+                      ₹{cart?.total_mrp?.toFixed(2) || "0.00"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">GST + Tax:</span>
-                    <span className="font-medium">₹{cart?.total_mrp_gst_amount?.toFixed(2) || '0.00'}</span>
+                    <span className="font-medium">
+                      ₹{cart?.total_mrp_gst_amount?.toFixed(2) || "0.00"}
+                    </span>
                   </div>
-                  
+
                   {cart?.deliveryCharge > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Delivery:</span>
-                      <span className="font-medium">₹{cart.deliveryCharge.toFixed(2)}</span>
+                      <span className="font-medium">
+                        ₹{cart.deliveryCharge.toFixed(2)}
+                      </span>
                     </div>
                   )}
-                  
+
                   {cart?.handlingCharge > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Handling:</span>
-                      <span className="font-medium">₹{cart.handlingCharge.toFixed(2)}</span>
+                      <span className="font-medium">
+                        ₹{cart.handlingCharge.toFixed(2)}
+                      </span>
                     </div>
                   )}
 
@@ -372,14 +509,23 @@ export default function CheckoutPage() {
                     <div>
                       <div className="font-semibold text-lg">Total</div>
                       <div className="text-xs text-gray-500">
-                        (includes ₹{cart?.total_mrp_gst_amount?.toFixed(2) || '0.00'} GST)
+                        (includes ₹
+                        {cart?.total_mrp_gst_amount?.toFixed(2) || "0.00"} GST)
                       </div>
                     </div>
-                    <span className="text-xl font-bold text-gray-900">₹{cart?.total_mrp_with_gst?.toFixed(2) || '0.00'}</span>
+                    <span className="text-xl font-bold text-gray-900">
+                      ₹{cart?.total_mrp_with_gst?.toFixed(2) || "0.00"}
+                    </span>
                   </div>
                 </div>
 
-                <Button className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium">
+                <Button
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium"
+                  onClick={handleCheckOut}
+                  disabled={
+                    !user || !cart || !user.address || user.address.length === 0
+                  }
+                >
                   Proceed To Checkout
                 </Button>
               </div>
@@ -387,6 +533,11 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+      <OrderConfirmationDialog
+        open={isOrderConfirmed}
+        onClose={() => setIsOrderConfirmed(false)}
+        orderId={orderId ?? undefined}
+      />
     </div>
-  )
+  );
 }

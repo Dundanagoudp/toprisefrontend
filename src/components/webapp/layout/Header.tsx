@@ -54,7 +54,8 @@ const routeList: RouteProps[] = [
 ];
 
 export const Header = () => {
-  const userId = useAppSelector((state) => state.auth.user._id);
+  const userId = useAppSelector((state) => state.auth.user?._id);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [contactUsOpen, setContactUsOpen] = useState(false);
   const [cart, setCart] = useState<any>(null);
@@ -66,15 +67,21 @@ export const Header = () => {
 
   useEffect(() => {
     const fetchCart = async () => {
+      if (!isAuthenticated || !userId) {
+        setCart(null);
+        return;
+      }
+      
       try {
         const response = await getCart(userId);
         setCart(response.data || null);
       } catch (err: any) {
         console.error("Failed to fetch cart:", err);
+        setCart(null);
       }
     };
     fetchCart();
-  }, [userId]);
+  }, [userId, isAuthenticated]);
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;

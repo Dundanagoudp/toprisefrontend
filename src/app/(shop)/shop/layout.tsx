@@ -19,20 +19,14 @@ export const metadata: Metadata = {
   description: "TOPRISE VENTURES",
 };
 
-export default function RootLayout({
+export default function ShopLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${plusJakartaSans.variable} ${poppins.variable} antialiased`}
-      >
-        <ToastProvider>
-          <Providers>{children}</Providers>
-        </ToastProvider>
-      </body>
-    </html>
+    <>
+      {children}
+    </>
   );
 }

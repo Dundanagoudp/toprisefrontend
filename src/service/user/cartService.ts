@@ -31,3 +31,25 @@ export async function addAddress(id:string , data:any): Promise<any> {
     throw error;
   }
 }
+
+
+export async function createOrders(data:any): Promise<any> {
+  try {
+    const response = await apiClient.post(`/orders/api/orders/create`, data);
+    return response.data;
+  } catch (error) {
+    console.error(" Failed to fetch products:", error);
+    throw error;
+  }
+}
+
+export async function removeProductFromCart(data:string): Promise<any> {
+  try {
+    const response = await apiClient.post(`/orders/api/carts/removeProduct`,data);
+    return response.data;
+  }
+  catch(err:any){
+    console.error(" Failed to fetch products:", err);
+    throw err;
+  }
+}
