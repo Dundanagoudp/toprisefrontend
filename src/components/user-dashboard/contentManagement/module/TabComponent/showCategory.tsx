@@ -31,16 +31,11 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
       );
     }, [Categories, searchQuery]);
 
-    // Safe pagination calculations
-    const totalPages = Math.ceil((filteredCategories?.length || 0) / itemPerPage);
-    const paginatedData = React.useMemo(() => {
-      if (!filteredCategories || !Array.isArray(filteredCategories)) return [];
-      return filteredCategories.slice(
-        (currentPage - 1) * itemPerPage,
-        currentPage * itemPerPage
-      );
-    }, [filteredCategories, currentPage, itemPerPage]);
-
+    const totalPages = Math.ceil(filteredCategories.length / itemPerPage);
+    const paginatedData = filteredCategories.slice(
+      (currentPage - 1) * itemPerPage,
+      currentPage * itemPerPage
+    );
    useEffect(() => {
       const fetchData = async () => {
           setLoading(true);
@@ -127,15 +122,15 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
         </TableBody>
       </Table>
 
-      {/* Pagination - with safe checks */}
-      {totalItems > 0 && totalPages > 1 && (
+      {/* Pagination - moved outside of table */}
+      {Categories.length > 0 && totalPages > 1 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
           {/* Left: Showing X-Y of Z categories */}
           <div className="text-sm text-gray-600 text-center sm:text-left">
             {`Showing ${(currentPage - 1) * itemPerPage + 1}-${Math.min(
               currentPage * itemPerPage,
-              totalItems
-            )} of ${totalItems} categories`}
+              Categories.length
+            )} of ${Categories.length} categories`}
           </div>
           {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">

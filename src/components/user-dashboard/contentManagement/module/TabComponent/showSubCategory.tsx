@@ -30,16 +30,11 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
     );
   }, [subCategories, searchQuery]);
 
-  // Safe pagination calculations
-  const totalPages = Math.ceil((filteredSubCategories?.length || 0) / itemPerPage);
-  const paginatedData = React.useMemo(() => {
-    if (!filteredSubCategories || !Array.isArray(filteredSubCategories)) return [];
-    return filteredSubCategories.slice(
-      (currentPage - 1) * itemPerPage,
-      currentPage * itemPerPage
-    );
-  }, [filteredSubCategories, currentPage, itemPerPage]);
-
+  const totalPages = Math.ceil(filteredSubCategories.length / itemPerPage);
+  const paginatedData = filteredSubCategories.slice(
+    (currentPage - 1) * itemPerPage,
+    currentPage * itemPerPage
+  );
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -125,15 +120,15 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
         </TableBody>
       </Table>
 
-      {/* Pagination - with safe checks */}
-      {totalItems > 0 && totalPages > 1 && (
+      {/* Pagination - moved outside of table */}
+      {subCategories.length > 0 && totalPages > 1 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
           {/* Left: Showing X-Y of Z subcategories */}
           <div className="text-sm text-gray-600 text-center sm:text-left">
             {`Showing ${(currentPage - 1) * itemPerPage + 1}-${Math.min(
               currentPage * itemPerPage,
-              totalItems
-            )} of ${totalItems} subcategories`}
+              subCategories.length
+            )} of ${subCategories.length} subcategories`}
           </div>
           {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">
