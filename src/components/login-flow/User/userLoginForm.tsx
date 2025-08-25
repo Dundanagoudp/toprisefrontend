@@ -4,48 +4,98 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// import { registerUser } from "@/service/auth-service"; // Assuming we have a registerUser function
+import { loginUser } from "@/service/auth-service";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { loginSuccess } from "@/store/slice/auth/authSlice";
 import { useToast } from "@/components/ui/toast";
 
-export function UserSignUpForm({
+const sidebarVisibilityConfig = {
+  'Fulfillment-Admin': {
+    hide: [""],
+    show: [""],
+  },
+  'Fullfillment-staff': {
+    hide: [""],
+    show: [],
+  },
+  // Add more roles here as needed
+};
+
+export function UserLoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const auth = useAppSelector((state) => state.auth.user);
+  const dispatch = useAppDispatch();
   const { showToast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      showToast("Passwords do not match", "error");
-      return;
+  /**
+   * Handles the form submission for the login form.
+   * @param e The React FormEvent
+   * @returns A Promise that resolves if the login is successful, rejects if not
+   */
+ const handleSubmit = async (
+  e: React.FormEvent<HTMLFormElement>
+): Promise<void> => {
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await loginUser({ email, password });
+    if (response.data) {
+      const { token, user } = response.data;
+      const { role, last_login, _id } = user;
+
+      // Convert role to lowercase for case-insensitive comparison
+      const userRole = typeof role === 'string' ? role.toLowerCase() : role;
+      const adminRoles = ["fulfillment-admin", "fullfillment-staff", "admin", "super-admin"];
+
+      // Check if role is in adminRoles array
+      if (adminRoles.includes(userRole)) {
+        showToast("Access denied. This login is for users only. Please use the admin login portal.", "error");
+        return;
+      }
+
+      // For regular users, proceed with login
+      Cookies.set("role", role, {
+        expires: 1,
+        path: "/",
+      });
+      Cookies.set("token", token, { expires: 1, path: "/" });
+      Cookies.set("lastlogin", last_login, {
+        expires: 1,
+        path: "/",
+      });
+      dispatch(loginSuccess({ token, role, last_login, _id }));
+
+      // Handle regular user login
+      if (role === "User") {
+        router.replace("/shop");
+        showToast("Successfully Login", "success");
+      } else {
+        // Handle other non-admin roles if needed
+        showToast("Your account type is not allowed to log in here.", "error");
+      }
+    } else {
+      showToast("Login failed", "error");
     }
-    setLoading(true);
-    setError(null);
-    try {
-      // const response = await registerUser({ name, email, password });
-      // if (response.data) {
-      //   showToast("Successfully registered", "success");
-      //   router.replace("/login"); // Redirect to login page after successful registration
-      // } else {
-      //   showToast("Registration failed", "error");
-      // }
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err.message || "Registration failed";
-      showToast(`${message}`, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err: any) {
+    const message =
+      err?.response?.data?.message || err.message || "Login failed";
+    showToast(`${message}`, "error");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -55,22 +105,12 @@ export function UserSignUpForm({
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-2xl font-bold">
-                  Welcome <span className="text-primary-red">to</span> our platform
+                  Welcome <span className="text-primary-red">back</span>
                 </h1>
                 <p className="text-muted-foreground text-balance text-sm">
-                  Sign Up to create your account
+                  User Login - Sign In to your Account
                 </p>
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+         
               </div>
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
@@ -94,18 +134,12 @@ export function UserSignUpForm({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-              </div>
-              <div className="grid gap-3">
-                <div className="flex items-center">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                </div>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+                <a
+                  href="#"
+                  className="ml-auto text-sm underline-offset-2 hover:underline"
+                >
+                  Forgot your password?
+                </a>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
@@ -130,10 +164,10 @@ export function UserSignUpForm({
                         d="M4 12a8 8 0 018-8v8z"
                       ></path>
                     </svg>
-                    Registering...
+                    Logging in...
                   </span>
                 ) : (
-                  "Sign Up"
+                  "Login"
                 )}
               </Button>
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
@@ -142,12 +176,12 @@ export function UserSignUpForm({
                 </span>
               </div>
               <div className="text-center text-sm">
-                Already have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <a
-                  href="/login"
+                  href="/signup"
                   className="underline underline-offset-4 text-primary-red hover:text-primary-red/80 transition-colors"
                 >
-                  Log in
+                  Sign up
                 </a>
               </div>
             </div>

@@ -144,7 +144,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   sessionStorage.clear();
   dispatch(logoutAction());
   persistor.purge(); 
-  router.replace('/login');
+  router.replace('/admin/login');
   window.location.reload();
   }
 
