@@ -10,7 +10,8 @@ import {
    LogOutIcon as LogOut,
    LogOutIcon,
    SettingsIcon,
- 
+   FileText,
+   BarChart3,
 } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {LogOut as logoutAction } from "../store/slice/auth/authSlice"
@@ -82,7 +83,7 @@ const data = {
       icon: LayoutDashboard,
     },
     {
-      title: "Pricing & Margin Management",
+      title: "SLA Violations & Reporting",
       url: "/user/dashboard/PricingMarginMangement",
       icon: TicketIcon,
     },
@@ -115,6 +116,16 @@ const data = {
       title: "Settings",
       url: "/user/dashboard/setting",
       icon: SettingsIcon,
+    },
+    {
+      title: "Audit Logs",
+      url: "/user/dashboard/audit-logs",
+      icon: FileText,
+    },
+    {
+      title: "Reports",
+      url: "/user/dashboard/reports",
+      icon: BarChart3,
     }
   ],
 }
