@@ -23,6 +23,7 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
+  CalendarDays,
 } from "lucide-react";
 import Cookies from "js-cookie";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,9 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
 
 interface AuditLog {
   _id: string;
@@ -97,9 +101,16 @@ export default function AuditLogs() {
   const [activeTab, setActiveTab] = useState("orders");
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [orderLogs, setOrderLogs] = useState<AuditLog[]>([]);
+  const [userLogs, setUserLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Filter states
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [selectedAction, setSelectedAction] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Summary statistics data for different services
   const summaryStats = {
@@ -175,36 +186,42 @@ export default function AuditLogs() {
         trend: "down",
       },
     ],
-    users: [
-      {
-        title: "User Events",
-        value: "1,247",
-        color: "text-indigo-600",
-        chartColor: "bg-indigo-500",
-        trend: "up",
-      },
-      {
-        title: "Login Attempts",
-        value: "856",
-        color: "text-blue-600",
-        chartColor: "bg-blue-500",
-        trend: "up",
-      },
-      {
-        title: "Failed Logins",
-        value: "89",
-        color: "text-red-600",
-        chartColor: "bg-red-500",
-        trend: "up",
-      },
-      {
-        title: "Permission Changes",
-        value: "302",
-        color: "text-orange-600",
-        chartColor: "bg-orange-500",
-        trend: "stable",
-      },
-    ],
+         users: [
+       {
+         title: "User Events",
+         value: userLogs.length.toString(),
+         color: "text-indigo-600",
+         chartColor: "bg-indigo-500",
+         trend: "up",
+       },
+       {
+         title: "Employee Stats Access",
+         value: userLogs
+           .filter((log) => log.action === "EMPLOYEE_STATS_ACCESSED")
+           .length.toString(),
+         color: "text-blue-600",
+         chartColor: "bg-blue-500",
+         trend: "up",
+       },
+       {
+         title: "Login Attempts",
+         value: userLogs
+           .filter((log) => log.action === "LOGIN_ATTEMPT")
+           .length.toString(),
+         color: "text-green-600",
+         chartColor: "bg-green-500",
+         trend: "up",
+       },
+       {
+         title: "Permission Changes",
+         value: userLogs
+           .filter((log) => log.action === "PERMISSION_CHANGED")
+           .length.toString(),
+         color: "text-orange-600",
+         chartColor: "bg-orange-500",
+         trend: "stable",
+       },
+     ],
   };
 
   // Fetch audit logs from API
@@ -291,11 +308,55 @@ export default function AuditLogs() {
     }
   };
 
+  // Fetch user audit logs from API
+  const fetchUserLogs = async () => {
+    setLoading(true);
+    try {
+      // Get token from cookies using js-cookie
+      const token = Cookies.get("token");
+      
+      if (!token) {
+        console.error("No authentication token found in cookies");
+        return;
+      }
+      
+      const response = await fetch(
+        "http://193.203.161.146:3000/api/users/api/audit/logs",
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          credentials: 'include', // Include cookies in the request
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: AuditLogsResponse = await response.json();
+
+      if (data.success) {
+        setUserLogs(data.data.logs);
+      } else {
+        console.error("Failed to fetch user audit logs:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching user audit logs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "products") {
       fetchAuditLogs();
     } else if (activeTab === "orders") {
       fetchOrderLogs();
+    } else if (activeTab === "users") {
+      fetchUserLogs();
     }
   }, [activeTab]);
 
@@ -354,12 +415,18 @@ export default function AuditLogs() {
         return <ShoppingCart className="h-4 w-4 text-blue-500" />;
       case "ORDER_CANCELLED":
         return <X className="h-4 w-4 text-red-500" />;
-      case "ORDER_COMPLETED":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      default:
-        return <FileText className="h-4 w-4 text-gray-500" />;
-    }
-  };
+             case "ORDER_COMPLETED":
+         return <CheckCircle className="h-4 w-4 text-green-500" />;
+       case "EMPLOYEE_STATS_ACCESSED":
+         return <Users className="h-4 w-4 text-blue-500" />;
+       case "LOGIN_ATTEMPT":
+         return <User className="h-4 w-4 text-green-500" />;
+       case "PERMISSION_CHANGED":
+         return <AlertCircle className="h-4 w-4 text-orange-500" />;
+       default:
+         return <FileText className="h-4 w-4 text-gray-500" />;
+     }
+   };
 
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
@@ -368,6 +435,91 @@ export default function AuditLogs() {
   const handleLogClick = (log: AuditLog) => {
     setSelectedLog(log);
     setSidebarOpen(true);
+  };
+
+  // Get unique actions for current tab
+  const getUniqueActions = () => {
+    let logs: AuditLog[] = [];
+    if (activeTab === "products") logs = auditLogs;
+    else if (activeTab === "orders") logs = orderLogs;
+    else if (activeTab === "users") logs = userLogs;
+    
+    return [...new Set(logs.map(log => log.action))];
+  };
+
+  // Filter logs based on current filters
+  const getFilteredLogs = () => {
+    let logs: AuditLog[] = [];
+    if (activeTab === "products") logs = auditLogs;
+    else if (activeTab === "orders") logs = orderLogs;
+    else if (activeTab === "users") logs = userLogs;
+
+    return logs.filter(log => {
+      // Date filter
+      if (startDate || endDate) {
+        const logDate = new Date(log.timestamp);
+        if (startDate && logDate < startDate) return false;
+        if (endDate && logDate > endDate) return false;
+      }
+
+      // Action filter
+      if (selectedAction && selectedAction !== "all" && log.action !== selectedAction) return false;
+
+      // Search filter
+      if (searchValue) {
+        const searchLower = searchValue.toLowerCase();
+        return (
+          log.action.toLowerCase().includes(searchLower) ||
+          log.actorName.toLowerCase().includes(searchLower) ||
+          log.targetId.toLowerCase().includes(searchLower) ||
+          log.ipAddress.toLowerCase().includes(searchLower)
+        );
+      }
+
+      return true;
+    });
+  };
+
+  // Export filtered data
+  const exportFilteredData = () => {
+    const filteredLogs = getFilteredLogs();
+    const csvContent = [
+      // CSV Headers
+      "Action,Actor Name,Actor Role,Target Type,Target ID,IP Address,Severity,Timestamp,Status,Execution Time,Category,URL",
+      // CSV Data
+      ...filteredLogs.map(log => [
+        log.action,
+        log.actorName,
+        log.actorRole,
+        log.targetType,
+        log.targetId,
+        log.ipAddress,
+        log.severity,
+        log.timestamp,
+        log.details.statusCode,
+        log.executionTime,
+        log.category,
+        log.details.url
+      ].map(field => `"${field}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${activeTab}_audit_logs_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSelectedAction("all");
+    setSearchValue("");
   };
 
   const getTabTitle = (tab: string) => {
@@ -399,38 +551,157 @@ export default function AuditLogs() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header with Search */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              placeholder={`Find ${activeTab} audit events by ID, user, or action`}
-              className="pl-10 bg-white border-gray-200"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 bg-white border-gray-200"
-            >
-              <Filter className="h-4 w-4" />
-              Filter
-            </Button>
-            <Select>
-              <SelectTrigger className="w-40 bg-white border-gray-200">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="timestamp">Timestamp</SelectItem>
-                <SelectItem value="severity">Severity</SelectItem>
-                <SelectItem value="user">User</SelectItem>
-                <SelectItem value="action">Action</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+                 {/* Header with Search and Filters */}
+         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+           <div className="relative flex-1 max-w-md">
+             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+             <Input
+               value={searchValue}
+               onChange={(e) => setSearchValue(e.target.value)}
+               placeholder={`Find ${activeTab} audit events by ID, user, or action`}
+               className="pl-10 bg-white border-gray-200"
+             />
+           </div>
+           <div className="flex items-center gap-2">
+             <Button
+               variant="outline"
+               className="flex items-center gap-2 bg-white border-gray-200"
+               onClick={() => setShowFilters(!showFilters)}
+             >
+               <Filter className="h-4 w-4" />
+               Filters
+             </Button>
+             <Button
+               variant="outline"
+               className="flex items-center gap-2 bg-white border-gray-200"
+               onClick={exportFilteredData}
+             >
+               <Download className="h-4 w-4" />
+               Export
+             </Button>
+           </div>
+         </div>
+
+         {/* Filter Panel */}
+         {showFilters && (
+           <Card className="bg-white border-gray-200 p-6">
+             <div className="flex flex-col lg:flex-row gap-6">
+               {/* Date Range Filters */}
+               <div className="flex flex-col gap-4 flex-1">
+                 <Label className="text-sm font-medium text-gray-700">Date Range</Label>
+                 <div className="flex gap-4">
+                   <div className="flex-1">
+                     <Popover>
+                       <PopoverTrigger asChild>
+                         <Button
+                           variant="outline"
+                           className="w-full justify-start text-left font-normal"
+                         >
+                           <CalendarDays className="mr-2 h-4 w-4" />
+                           {startDate ? startDate.toLocaleDateString() : "Start date"}
+                         </Button>
+                       </PopoverTrigger>
+                       <PopoverContent className="w-auto p-0">
+                         <Calendar
+                           mode="single"
+                           selected={startDate}
+                           onSelect={setStartDate}
+                           initialFocus
+                         />
+                       </PopoverContent>
+                     </Popover>
+                   </div>
+                   <div className="flex-1">
+                     <Popover>
+                       <PopoverTrigger asChild>
+                         <Button
+                           variant="outline"
+                           className="w-full justify-start text-left font-normal"
+                         >
+                           <CalendarDays className="mr-2 h-4 w-4" />
+                           {endDate ? endDate.toLocaleDateString() : "End date"}
+                         </Button>
+                       </PopoverTrigger>
+                       <PopoverContent className="w-auto p-0">
+                         <Calendar
+                           mode="single"
+                           selected={endDate}
+                           onSelect={setEndDate}
+                           initialFocus
+                         />
+                       </PopoverContent>
+                     </Popover>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Action Type Filter */}
+               <div className="flex flex-col gap-4 flex-1">
+                 <Label className="text-sm font-medium text-gray-700">Action Type</Label>
+                                   <Select value={selectedAction} onValueChange={setSelectedAction}>
+                    <SelectTrigger className="w-full bg-white border-gray-200">
+                      <SelectValue placeholder="All actions" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All actions</SelectItem>
+                      {getUniqueActions().map((action) => (
+                        <SelectItem key={action} value={action}>
+                          {action.replace(/_/g, " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+               </div>
+
+               {/* Clear Filters */}
+               <div className="flex items-end">
+                 <Button
+                   variant="outline"
+                   onClick={clearFilters}
+                   className="bg-white border-gray-200"
+                 >
+                   Clear Filters
+                 </Button>
+               </div>
+             </div>
+           </Card>
+         )}
+
+         {/* Active Filters Summary */}
+                   {(startDate || endDate || (selectedAction && selectedAction !== "all") || searchValue) && (
+           <Card className="bg-blue-50 border-blue-200 p-4">
+             <div className="flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                 <span className="text-sm font-medium text-blue-800">Active Filters:</span>
+                 <div className="flex flex-wrap gap-2">
+                   {startDate && (
+                     <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                       From: {startDate.toLocaleDateString()}
+                     </Badge>
+                   )}
+                   {endDate && (
+                     <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                       To: {endDate.toLocaleDateString()}
+                     </Badge>
+                   )}
+                                       {selectedAction && selectedAction !== "all" && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        Action: {selectedAction.replace(/_/g, " ")}
+                      </Badge>
+                    )}
+                   {searchValue && (
+                     <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                       Search: "{searchValue}"
+                     </Badge>
+                   )}
+                 </div>
+               </div>
+               <div className="text-sm text-blue-600">
+                 {getFilteredLogs().length} of {activeTab === "products" ? auditLogs.length : activeTab === "orders" ? orderLogs.length : userLogs.length} results
+               </div>
+             </div>
+           </Card>
+         )}
 
         {/* Alert Banner */}
         <div className="bg-black text-white p-4 rounded-lg border-l-4 border-red-500">
@@ -543,36 +814,12 @@ export default function AuditLogs() {
                         {getTabDescription(tab)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2 bg-white border-gray-200"
-                      >
-                        <Filter className="h-4 w-4" />
-                        Filter
-                      </Button>
-                      <Select>
-                        <SelectTrigger className="w-32 bg-white border-gray-200">
-                          <SelectValue placeholder="Sort by" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="timestamp">Timestamp</SelectItem>
-                          <SelectItem value="severity">Severity</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        New Audit Event
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2 bg-white border-gray-200"
-                      >
-                        <Download className="h-4 w-4" />
-                        Export
-                      </Button>
-                    </div>
+                                         <div className="flex items-center gap-2">
+                       <Button className="flex items-center gap-2">
+                         <Plus className="h-4 w-4" />
+                         New Audit Event
+                       </Button>
+                     </div>
                   </div>
                 </div>
 
@@ -609,7 +856,7 @@ export default function AuditLogs() {
                     </TableHeader>
                                          <TableBody>
                        {tab === "products" &&
-                         auditLogs.map((log, index) => (
+                         getFilteredLogs().map((log, index) => (
                            <TableRow
                              key={log._id}
                              className={`${
@@ -670,7 +917,7 @@ export default function AuditLogs() {
                            </TableRow>
                          ))}
                        {tab === "orders" &&
-                         orderLogs.map((log, index) => (
+                         getFilteredLogs().map((log, index) => (
                            <TableRow
                              key={log._id}
                              className={`${
@@ -730,16 +977,77 @@ export default function AuditLogs() {
                              </TableCell>
                            </TableRow>
                          ))}
-                       {tab !== "products" && tab !== "orders" && (
-                         <TableRow>
-                           <TableCell
-                             colSpan={8}
-                             className="text-center text-gray-500 py-8"
-                           >
-                             No data available for {tab} tab
-                           </TableCell>
-                         </TableRow>
-                       )}
+                                                                      {tab === "users" &&
+                         getFilteredLogs().map((log, index) => (
+                            <TableRow
+                              key={log._id}
+                              className={`${
+                                index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                              } cursor-pointer hover:bg-gray-100 transition-colors`}
+                              onClick={() => handleLogClick(log)}
+                            >
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {getActionIcon(log.action)}
+                                  <span className="text-sm">
+                                    {log.action.replace(/_/g, " ")}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {log.actorName}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {log.actorRole}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="text-sm">{log.targetType}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {log.targetId}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-mono text-sm">
+                                {log.ipAddress}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className={`w-2 h-2 rounded-full ${getSeverityColor(
+                                      log.severity
+                                    )}`}
+                                  ></div>
+                                  <span className="capitalize text-sm">
+                                    {log.severity?.toLowerCase()}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-gray-600">
+                                {formatTimestamp(log.timestamp)}
+                              </TableCell>
+                              <TableCell>
+                                {getStatusBadge(log.details.statusCode)}
+                              </TableCell>
+                              <TableCell className="text-sm text-gray-600">
+                                {log.executionTime}ms
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        {tab !== "products" && tab !== "orders" && tab !== "users" && (
+                          <TableRow>
+                            <TableCell
+                              colSpan={8}
+                              className="text-center text-gray-500 py-8"
+                            >
+                              No data available for {tab} tab
+                            </TableCell>
+                          </TableRow>
+                        )}
                      </TableBody>
                   </Table>
                 </div>

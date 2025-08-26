@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
@@ -47,13 +48,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getReturnRequests } from "@/service/return-service";
 import { ReturnRequest, ReturnRequestsResponse } from "@/types/return-Types";
 import ValidateReturnRequest from "./modules/modalpopus/Validate";
-import ReturnRequestById from "./modules/modalpopus/ReturnRequestById";
+
 import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog";
 import CompletePickupDialog from "./modules/modalpopus/CompletePickupDialog";
 import InspectDialog from "./modules/modalpopus/inspectDialog";
 import InitiateRefundForm from "./modules/modalpopus/InitiateReturn";
 
 export default function ReturnClaims() {
+  const router = useRouter();
   const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,14 +75,7 @@ export default function ReturnClaims() {
     returnId: null,
   });
 
-  // View details dialog state
-  const [detailsDialog, setDetailsDialog] = useState<{
-    open: boolean;
-    returnId: string | null;
-  }>({
-    open: false,
-    returnId: null,
-  });
+
 
   // Schedule pickup dialog state
   const [schedulePickupDialog, setSchedulePickupDialog] = useState<{
@@ -156,10 +151,7 @@ export default function ReturnClaims() {
 
   // Handle details dialog open
   const handleOpenDetails = (returnId: string) => {
-    setDetailsDialog({
-      open: true,
-      returnId,
-    });
+    router.push(`/user/dashboard/returnclaims/${returnId}`);
   };
 
   // Handle schedule pickup dialog open
@@ -208,13 +200,7 @@ export default function ReturnClaims() {
     });
   };
 
-  // Handle details dialog close
-  const handleCloseDetails = () => {
-    setDetailsDialog({
-      open: false,
-      returnId: null,
-    });
-  };
+
 
   // Handle schedule pickup dialog close
   const handleCloseSchedulePickup = () => {
@@ -565,9 +551,10 @@ export default function ReturnClaims() {
                       return (
                         <TableRow
                           key={`${rowId}`}
-                          className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${zebra}`}
+                          className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${zebra} cursor-pointer`}
+                          onClick={() => handleOpenDetails(request._id)}
                         >
-                          <TableCell className="px-4 py-4 w-8 font-[Poppins]">
+                          <TableCell className="px-4 py-4 w-8 font-[Poppins]" onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={selectedClaims.includes(rowId)}
                               onCheckedChange={() =>
@@ -644,7 +631,7 @@ export default function ReturnClaims() {
                               ₹{request.refund.refundAmount.toLocaleString()}
                             </span>
                           </TableCell>
-                          <TableCell className="px-6 py-4 text-center font-[Poppins]">
+                          <TableCell className="px-6 py-4 text-center font-[Poppins]" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
@@ -855,11 +842,7 @@ export default function ReturnClaims() {
           onValidationComplete={handleValidationComplete}
           returnId={validationDialog.returnId}
         />
-        <ReturnRequestById
-          open={detailsDialog.open}
-          onClose={handleCloseDetails}
-          returnId={detailsDialog.returnId}
-        />
+
         <SchedulePickupDialog
           open={schedulePickupDialog.open}
           onClose={handleCloseSchedulePickup}
