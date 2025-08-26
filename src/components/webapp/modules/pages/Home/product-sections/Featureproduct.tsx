@@ -4,9 +4,7 @@ import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
 import { getProductsByPage } from "@/service/product-Service"
 import type { Product as ProductType } from "@/types/product-Types"
 import { DynamicButton } from "@/components/common/button"
-import { addToCart } from "@/service/user/cartService"
-import { useSelector } from "react-redux"
-import { useAppSelector } from "@/store/hooks"
+import { useCart } from "@/hooks/use-cart"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 
@@ -26,7 +24,10 @@ export default function FeaturedProducts() {
   
   const router = useRouter()
   const { showToast } = useToast()
-
+  const { addItemToCart } = useCart()
+  const handleProductClick = (productId: string) => {
+    router.push(`/shop/product/${productId}`)
+  }
   React.useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -47,26 +48,21 @@ export default function FeaturedProducts() {
     fetchData()
   }, [currentPage])
 
-  const userId = useAppSelector((state) => state.auth.user?._id)
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
-
   const handleSubmit = async (productId: string) => {
-    // Check if user is authenticated
-    if (!isAuthenticated || !userId) {
-      showToast("Please login to add items to cart", "error")
-      router.push("/login")
-      return
-    }
-    
     if (!productId) return
     
     try {
-      await addToCart({ userId, productId })
+      await addItemToCart(productId, 1)
       showToast("Product added to cart successfully", "success")
       console.log("Product added to cart:", productId)
-    } catch (error) {
-      showToast("Failed to add product to cart", "error")
-      console.error("Error adding to cart:", error)
+    } catch (error: any) {
+      if (error.message === 'User not authenticated') {
+        showToast("Please login to add items to cart", "error")
+        router.push("/login")
+      } else {
+        showToast("Failed to add product to cart", "error")
+        console.error("Error adding to cart:", error)
+      }
     }
   }
 
@@ -115,16 +111,29 @@ export default function FeaturedProducts() {
           return (
             <div
               key={key}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+              className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${product?._id ? 'cursor-pointer' : ''}`}
+              onClick={product?._id ? () => handleProductClick(product._id) : undefined}
+              role={product?._id ? "button" : undefined}
+              tabIndex={product?._id ? 0 : -1}
             >
               <div className="relative p-4 bg-gray-50">
-                <button className="absolute top-2 right-2 p-2 rounded-full bg-white shadow-sm hover:bg-gray-50 transition-colors">
+                <button
+                  className="absolute top-2 right-2 p-2 rounded-full bg-white shadow-sm hover:bg-gray-50 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    // TODO: wishlist logic
+                  }}
+                >
                   <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
                 </button>
                 <img
                   src={imageSrc}
                   alt={name}
                   className="w-full h-48 object-contain"
+                  onClick={product?._id ? (e) => {
+                    e.stopPropagation()
+                    handleProductClick(product._id)
+                  } : undefined}
                 />
                 {discount > 0 && (
                   <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-sm font-medium">
@@ -134,7 +143,13 @@ export default function FeaturedProducts() {
               </div>
 
               <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-1">{name}</h3>
+                <h3
+                  className="font-semibold text-gray-900 mb-1"
+                  onClick={product?._id ? (e) => {
+                    e.stopPropagation()
+                    handleProductClick(product._id)
+                  } : undefined}
+                >{name}</h3>
                 {vehicle ? (
                   <p className="text-sm text-gray-600 mb-3">{vehicle}</p>
                 ) : (
@@ -151,7 +166,10 @@ export default function FeaturedProducts() {
                 <DynamicButton className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2"
                 text="Add"
                 icon={<ShoppingCart className="w-4 h-4" />}
-                onClick={() => handleSubmit(product._id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (product?._id) handleSubmit(product._id)
+                }}
                 />
              
               </div>
