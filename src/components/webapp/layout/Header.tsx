@@ -71,12 +71,11 @@ const handleLogout = () => {
   Cookies.remove('token');
   Cookies.remove('role');
   Cookies.remove('lastlogin');
+
   localStorage.clear();
   sessionStorage.clear();
   dispatch(LogOut());
-
- 
-  router.replace('/login');
+  router.replace('/shop');
   window.location.reload();
   }
   const handleQuantityChange = (itemId: string, newQuantity: number) => {

@@ -1,4 +1,4 @@
-import CheckoutPage from '@/components/webapp/layout/Address'
+import CheckoutPage from '@/components/webapp/layout/Checkout'
 import { Header } from '@/components/webapp/layout/Header'
 import React from 'react'
 
