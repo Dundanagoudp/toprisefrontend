@@ -9,9 +9,7 @@ import {
   Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   addAddress,
   createOrders,
@@ -19,36 +17,13 @@ import {
   removeProductFromCart,
 } from "@/service/user/cartService";
 import { useAppSelector } from "@/store/hooks";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
-import { assert } from "console";
 import { getUserById } from "@/service/user/userService";
 import { Cart, CartItem, CartResponse } from "@/types/User/cart-Types";
 import { ApiListResponse, AppUser } from "@/types/user-types";
 import OrderConfirmationDialog from "@/service/user/PopUps/OrderPlaced";
 import { useCart } from "@/hooks/use-cart";
-
-// Define the schema for the address form
-const addressSchema = z.object({
-  firstName: z.string().min(1, "First Name is required"),
-  lastName: z.string().min(1, "Last Name is required"),
-  mobile: z.object({
-    countryCode: z.string().min(1, "Country code is required"),
-    number: z.string().min(10, "Mobile number must be at least 10 digits"),
-  }),
-  email: z.string().email("Invalid email address"),
-  addressLine1: z.string().min(1, "Address Line 1 is required"),
-  addressLine2: z.string().optional(),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  pinCode: z.string().min(1, "Pin Code is required"),
-  country: z.string().min(1, "Country is required"),
-  notes: z.string().optional(),
-});
-
-type AddressFormValues = z.infer<typeof addressSchema>;
+import BillingAddressForm, { AddressFormValues } from "./BillingAddressForm";
 
 export default function CheckoutPage() {
   const { cartData: cart, fetchCart } = useCart();
@@ -57,21 +32,9 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<AddressFormValues>({
-    resolver: zodResolver(addressSchema),
-    defaultValues: {
-      mobile: {
-        countryCode: "+91",
-        number: "",
-      },
-    },
-  });
+
   const userId = useAppSelector((state) => state.auth.user._id);
 
   useEffect(() => {
@@ -81,7 +44,12 @@ export default function CheckoutPage() {
         const [userResponse] = await Promise.all([
           getUserById(userId),
         ]);
+        console.log("userResponse", userResponse);
         setUser(userResponse.data);
+        // Set the first address as selected by default if available
+        if (userResponse.data?.address && userResponse.data.address.length > 0) {
+          setSelectedAddress(userResponse.data.address[0]);
+        }
         // Cart data is now managed by Redux, so we don't need to fetch it here
         await fetchCart();
       } catch (err) {
@@ -94,7 +62,7 @@ export default function CheckoutPage() {
     fetchData();
   }, [userId, fetchCart]);
   const prepareOrderBody = (user: AppUser, cart: Cart) => {
-    const address = user.address?.[0] || {};
+    const address = selectedAddress || user.address?.[0] || {};
 
     const orderBody = {
       orderId: `ORD${Math.floor(Math.random() * 100000)}`,
@@ -115,8 +83,8 @@ export default function CheckoutPage() {
       })),
       customerDetails: {
         userId: user._id,
-        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-        phone: user.phone || "",
+        name: user.username || "",
+        phone: user.phone_Number || "",
         address: `${address.street || ""}, ${address.city || ""}, ${
           address.state || ""
         }, ${address.country || ""}`.trim(),
@@ -137,22 +105,60 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!user.address || user.address.length === 0) {
-      showToast("Please add an address before checkout", "error");
+    if (!selectedAddress) {
+      showToast("Please select an address for your order", "error");
       return;
     }
 
     const orderBody = prepareOrderBody(user, cart);
+    console.log("=== ORDER BODY ===");
+    console.log("Full Order Body:", JSON.stringify(orderBody, null, 2));
+    console.log("Selected Address:", selectedAddress);
+    console.log("Cart Data:", cart);
+    console.log("User Data:", user);
+    console.log("================");
+    
+    // Debug authentication state
+    console.log("=== AUTHENTICATION DEBUG ===");
+    console.log("User ID from Redux:", userId);
+    console.log("User Role:", user.role);
+    console.log("User from state:", user);
+    
+    // Check for authentication tokens/cookies
+    const cookies = document.cookie;
+    console.log("Document Cookies:", cookies);
+    console.log("Local Storage Auth:", localStorage.getItem('authToken'));
+    console.log("Session Storage Auth:", sessionStorage.getItem('authToken'));
+    console.log("=============================");
+    
     try {
+      console.log("=== MAKING API CALL ===");
+      console.log("Calling createOrders with body:", orderBody);
+      
       const response = await createOrders(orderBody);
+      
       setOrderId(response.data.orderId || response.data._id); 
       setIsOrderConfirmed(true);
-      console.log("order", response.data);
+      console.log("=== ORDER RESPONSE ===");
+      console.log("Order Response:", JSON.stringify(response.data, null, 2));
+      console.log("===================");
 
       showToast("Order created successfully", "success");
-    } catch (error) {
-      console.error("Failed to create order:", error);
-      showToast("Failed to create order", "error");
+    } catch (error: any) {
+      console.error("=== ORDER ERROR ===");
+      console.error("Full Error Object:", error);
+      console.error("Error Response:", error.response);
+      console.error("Error Status:", error.response?.status);
+      console.error("Error Data:", error.response?.data);
+      console.error("Error Config:", error.response?.config);
+      console.error("Request Headers:", error.response?.config?.headers);
+      console.error("==================");
+      
+      if (error.response?.status === 403) {
+        showToast("Access denied. Please check your login status.", "error");
+      } else {
+        showToast("Failed to create order", "error");
+      }
     }
   };
   const onSubmit = async (data: AddressFormValues) => {
@@ -174,8 +180,19 @@ export default function CheckoutPage() {
       const response = await addAddress(userId, addressData);
 
       showToast("Address added successfully", "success");
-
-      reset();
+      
+      // Refresh user data and auto-select the new address
+      try {
+        const userResponse = await getUserById(userId);
+        setUser(userResponse.data);
+        // Select the newly added address (last one in the array)
+        if (userResponse.data?.address && userResponse.data.address.length > 0) {
+          const newAddress = userResponse.data.address[userResponse.data.address.length - 1];
+          setSelectedAddress(newAddress);
+        }
+      } catch (error) {
+        console.error("Failed to refresh user data:", error);
+      }
     } catch (error) {
       showToast("Failed to add address", "error");
     }
@@ -240,192 +257,13 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Billing Details */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Billing Address Details
-              </h2>
-
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="firstName"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      First Name
-                    </label>
-                    <Input
-                      id="firstName"
-                      {...register("firstName")}
-                      placeholder="First Name"
-                      className="mt-1"
-                    />
-                    {errors.firstName && (
-                      <p className="text-red-600 text-sm">
-                        {errors.firstName.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="lastName"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Last Name
-                    </label>
-                    <Input
-                      id="lastName"
-                      {...register("lastName")}
-                      placeholder="Last Name"
-                      className="mt-1"
-                    />
-                    {errors.lastName && (
-                      <p className="text-red-600 text-sm">
-                        {errors.lastName.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="addressLine1"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Address Line 1
-                  </label>
-                  <Input
-                    id="addressLine1"
-                    {...register("addressLine1")}
-                    placeholder="Address Line 1"
-                    className="mt-1"
-                  />
-                  {errors.addressLine1 && (
-                    <p className="text-red-600 text-sm">
-                      {errors.addressLine1.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="addressLine2"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Address Line 2 (Optional)
-                  </label>
-                  <Input
-                    id="addressLine2"
-                    {...register("addressLine2")}
-                    placeholder="Address Line 2"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label
-                      htmlFor="city"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      City
-                    </label>
-                    <Input
-                      id="city"
-                      {...register("city")}
-                      placeholder="City"
-                      className="mt-1"
-                    />
-                    {errors.city && (
-                      <p className="text-red-600 text-sm">
-                        {errors.city.message}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="state"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      State
-                    </label>
-                    <Input
-                      id="state"
-                      {...register("state")}
-                      placeholder="State"
-                      className="mt-1"
-                    />
-                    {errors.state && (
-                      <p className="text-red-600 text-sm">
-                        {errors.state.message}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="pinCode"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Pin Code
-                    </label>
-                    <Input
-                      id="pinCode"
-                      {...register("pinCode")}
-                      placeholder="Pin Code"
-                      className="mt-1"
-                    />
-                    {errors.pinCode && (
-                      <p className="text-red-600 text-sm">
-                        {errors.pinCode.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="country"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Country
-                  </label>
-                  <Input
-                    id="country"
-                    {...register("country")}
-                    placeholder="Country"
-                    className="mt-1"
-                  />
-                  {errors.country && (
-                    <p className="text-red-600 text-sm">
-                      {errors.country.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="notes"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Notes (Optional)
-                  </label>
-                  <Textarea
-                    id="notes"
-                    {...register("notes")}
-                    placeholder="Additional notes"
-                    className="mt-1"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-red-600 hover:bg-red-700 text-white py-2"
-                >
-                  Add Address
-                </Button>
-              </form>
-            </div>
+            <BillingAddressForm 
+              onSubmit={onSubmit}
+              onAddressSelect={setSelectedAddress}
+              selectedAddressId={selectedAddress?._id}
+              showSelection={true}
+              isLoading={isLoading}
+            />
           </div>
 
           {/* Right Column - Order Summary */}
@@ -524,11 +362,19 @@ export default function CheckoutPage() {
                   className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium"
                   onClick={handleCheckOut}
                   disabled={
-                    !user || !cart || !user.address || user.address.length === 0
+                    !user || !cart || !selectedAddress
                   }
                 >
                   Proceed To Checkout
                 </Button>
+                {selectedAddress && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800 font-medium">Selected Address:</p>
+                    <p className="text-sm text-green-700">
+                      {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
