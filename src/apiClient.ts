@@ -13,12 +13,30 @@ const apiClient = axios.create({
   timeout: 45000, 
 })
 
-
+ 
 apiClient.interceptors.request.use(
   (config) => {
     const token = Cookies.get("token"); 
+    
+    // Debug authentication for order creation
+    if (config.url?.includes('/orders/api/orders/create')) {
+      console.log("=== API CLIENT DEBUG (Order Creation) ===");
+      console.log("Token from cookies:", token);
+      console.log("All cookies:", document.cookie);
+      console.log("Request URL:", config.url);
+      console.log("Request Method:", config.method);
+      console.log("Current Headers:", config.headers);
+    }
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`; 
+      if (config.url?.includes('/orders/api/orders/create')) {
+        console.log("Authorization header set:", config.headers.Authorization);
+      }
+    } else {
+      if (config.url?.includes('/orders/api/orders/create')) {
+        console.log("⚠️ NO TOKEN FOUND - This will likely cause a 403 error");
+      }
     }
     
     // Handle FormData requests - don't override Content-Type for FormData
@@ -31,6 +49,12 @@ apiClient.interceptors.request.use(
     if (config.method === "get" && config.data) {
       config.headers["Content-Type"] = "application/json"
     }
+    
+    if (config.url?.includes('/orders/api/orders/create')) {
+      console.log("Final request config:", config);
+      console.log("========================================");
+    }
+    
     return config;
   },
   (error) => {
