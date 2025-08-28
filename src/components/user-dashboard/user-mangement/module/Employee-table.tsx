@@ -14,7 +14,14 @@ import {
 } from "@/components/ui/pagination"
 import { useState, useEffect } from "react" 
 import { useRouter } from "next/navigation"
-import { getAllEmployees, revokeRole } from "@/service/employeeServices"
+import { 
+  getAllEmployees, 
+  revokeRole, 
+  getEmployeesByRegion, 
+  getEmployeesByDealer, 
+  getEmployeesByRegionAndDealer,
+  getFulfillmentStaffByRegion 
+} from "@/service/employeeServices"
 import type { Employee } from "@/types/employee-types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAppSelector } from "@/store/hooks"
@@ -25,6 +32,8 @@ interface EmployeeTableProps {
   search?: string;
   role?: string;
   status?: string;
+  region?: string;
+  dealer?: string;
   sortField?: string;
   sortDirection?: "asc" | "desc";
   onSort?: (field: string) => void;
@@ -35,6 +44,8 @@ export default function EmployeeTable({
   search = "",
   role = "",
   status = "",
+  region = "",
+  dealer = "",
   sortField = "", 
   sortDirection = "asc", 
   onSort,
@@ -47,7 +58,7 @@ export default function EmployeeTable({
   const [employees, setEmployees] = useState<Employee[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
   const { showToast } = useToast();
 
@@ -89,26 +100,73 @@ export default function EmployeeTable({
     }
   };
 
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      setIsLoading(true)
-      setError(null)
-      try {
-        const response = await getAllEmployees()
-        setEmployees(response.data || [])
-      } catch (err: any) {
-        setError(err)
-      } finally {
-        setIsLoading(false)
+  // Enhanced fetch function that uses different API endpoints based on filters
+  const fetchEmployees = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      let response;
+      
+      // Determine which API endpoint to use based on filters
+      if (region && dealer && region !== "all" && dealer !== "all") {
+        // Both region and dealer filters are active
+        response = await getEmployeesByRegionAndDealer(region, dealer, {
+          role: role || undefined,
+          page: currentPage,
+          limit: itemsPerPage
+        });
+      } else if (region && region !== "all") {
+        // Only region filter is active
+        if (auth?.role === "Fulfillment-Admin" && role === "Fulfillment-Staff") {
+          // Use specialized fulfillment staff endpoint
+          response = await getFulfillmentStaffByRegion(region, {
+            page: currentPage,
+            limit: itemsPerPage
+          });
+        } else {
+          response = await getEmployeesByRegion(region, {
+            role: role || undefined,
+            page: currentPage,
+            limit: itemsPerPage
+          });
+        }
+      } else if (dealer && dealer !== "all") {
+        // Only dealer filter is active
+        response = await getEmployeesByDealer(dealer, {
+          role: role || undefined,
+          page: currentPage,
+          limit: itemsPerPage
+        });
+      } else {
+        // No specific filters, use the general endpoint
+        response = await getAllEmployees();
       }
+      
+      // Handle different response structures
+      if (response.data?.employees) {
+        // New API endpoints return data in { employees: [], pagination: {} } format
+        setEmployees(response.data.employees || []);
+      } else {
+        // Legacy endpoint returns data directly as array
+        setEmployees(response.data || []);
+      }
+    } catch (err: any) {
+      setError(err);
+      showToast(`Failed to fetch employees: ${err.message || "Unknown error"}`, "error");
+    } finally {
+      setIsLoading(false);
     }
-    fetchEmployees()
-  }, [])
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [search, role, status, region, dealer, currentPage]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, role, status, employees]);
+  }, [search, role, status, region, dealer]);
 
   // Sort employees based on sortField and sortDirection
   const sortedEmployees = [...employees].sort((a, b) => {
@@ -246,12 +304,14 @@ export default function EmployeeTable({
   return (
     <div className="overflow-x-auto">
       {/* Filter Summary */}
-      {(role || status) && (
+      {(role || status || region || dealer) && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <div className="text-sm text-gray-600">
             <strong>Active Filters:</strong>
             {role && <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Role: {role}</span>}
             {status && <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Status: {status}</span>}
+            {region && <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">Region: {region}</span>}
+            {dealer && <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">Dealer: {dealer}</span>}
             <span className="ml-2 text-gray-500">({filteredEmployees.length} of {employees.length} employees)</span>
           </div>
         </div>

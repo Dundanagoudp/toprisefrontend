@@ -41,7 +41,7 @@ export default function ViewProductDetails() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
   const getStatusColor = (currentStatus: string) => {
     switch (currentStatus) {
       case "Created":

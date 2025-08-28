@@ -71,8 +71,16 @@ export function LoginForm({
         showToast("Successfully Login", "success");
         if (role === "Dealer") {
           router.replace("/dealer/dashboard");
-        } else if (role === "Fulfillment-Admin" || role === "Fullfillment-staff") {
+        } else if (role === "Fulfillment-Admin") {
+          router.replace("/user/dashboard");
+        } else if (role === "Fullfillment-staff") {
+          router.replace("/user/dashboard/fulfillment");
+        }
+        else if (role === "Inventory-Staff") {
           router.replace("/user/dashboard/product");
+        }
+        else if (role === "Inventory-Admin") {
+          router.replace("/user/dashboard/inventory-admin");
         }
         else if (role === "User" ) {
           router.replace("/shop");

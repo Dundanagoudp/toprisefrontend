@@ -6,12 +6,13 @@ import useDebounce from "@/utils/useDebounce";
 import { useAppSelector } from "@/store/hooks";
 import DynamicButton from "@/components/common/button/button";
 import SearchInput from "@/components/common/search/SearchInput";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, FileText, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import uploadFile from "../../../../../public/assets/uploadFile.svg";
 import CreatedProduct from "./tabs/Super-Admin/CreatedProduct";
 import ApprovedProduct from "./tabs/Super-Admin/ApprovedProduct";
 import RejectedProduct from "./tabs/Super-Admin/RejectedProduct";
 import PendingProduct from "./tabs/Super-Admin/PendingProduct";
+import PendingProductsRequests from "./requests/PendingProductsRequests";
 import UploadBulkCard from "./uploadBulk";
 import { useRouter } from "next/navigation";
 import { set } from "zod";
@@ -26,7 +27,7 @@ import { useAppDispatch } from "@/store/hooks";
 import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
 import { fetchAndDownloadCSV } from "@/components/common/ExportCsv";
 
-type TabType = "Created" | "Approved" | "Pending" | "Rejected";
+type TabType = "Created" | "Approved" | "Pending" | "Rejected" | "Requests";
 interface TabConfig {
   id: TabType;
   label: string;
@@ -68,12 +69,11 @@ const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 const selectedProducts = useAppSelector(
   (state) => state.productIdForBulkAction.products || []
 );
-const allowedRoles = ["Super-admin", "Inventory-admin"];
+const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff", "Fulfillment-Admin"];
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
   const [subCategories, setSubCategories] = useState<any[]>([]);
   const [selectedSubCategoryName, setSelectedSubCategoryName] = useState<string | null>(null);
-
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Approved":
@@ -141,6 +141,18 @@ const getStatusColor = (status: string) => {
     };
     loadCategories();
   }, []);
+
+
+
+  // Set active tab when switching to requests view
+  useEffect(() => {
+    if (showRequestsView) {
+      setActiveTab("Requests");
+    } else {
+      setActiveTab("Created");
+    }
+  }, [showRequestsView]);
+
   const handleUploadBulk = () => {
     setBulkMode("upload");
     setUploadBulkLoading(true);
@@ -223,14 +235,9 @@ const handleBulkReject = useCallback(() => {
     if (showRequestsView) {
       return [
         {
-          id: "Pending",
-          label: "Pending",
-          component: require("./requestedProduct/PendingProductByDealer").default,
-        },
-        {
-          id: "Rejected",
-          label: "Rejected",
-          component: require("./requestedProduct/RejectedProductByDealer").default,
+          id: "Requests",
+          label: "Product Requests",
+          component: PendingProductsRequests,
         },
       ];
     }
@@ -265,10 +272,11 @@ const handleBulkReject = useCallback(() => {
   const renderTabContent = useCallback(() => {
     const TabComponent = currentTabConfig.component;
     if (!TabComponent) return null;
-    if (showRequestsView && currentTabConfig.id === "Pending") {
-      // Only pass searchQuery for PendingProductByDealer
+    
+    if (showRequestsView && currentTabConfig.id === "Requests") {
       return <TabComponent searchQuery={searchQuery} />;
     }
+    
     if (currentTabConfig.id === "Created") {
       return (
         <TabComponent
@@ -413,7 +421,8 @@ const handleBulkReject = useCallback(() => {
             {/* Right: Upload, Add Product */}
             <div className="flex items-center gap-3 w-full lg:w-auto justify-start grid-ro-2 sm:justify-end">
               {(auth?.role === "Super-admin" ||
-                auth?.role === "Inventory-admin") && (
+                auth?.role === "Inventory-Admin" ||
+                auth?.role === "Inventory-Staff") && (
                 <>
                   <DynamicButton
                     variant="default"
@@ -463,6 +472,8 @@ const handleBulkReject = useCallback(() => {
 
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 w-full"></div>
         </CardHeader>
+
+
         <CardContent className="p-0">
           {/* Tab Bar */}
           <div

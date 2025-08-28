@@ -16,6 +16,8 @@ import uploadFile from "../../../../public/assets/uploadFile.svg";
 import FileUploadModal from "./module/Employee-upload"
 import { useAppSelector } from "@/store/hooks"
 import GlobalFilters from "./module/global-filters"
+import { getAllDealers } from "@/service/dealerServices"
+import { getAvailableRegions } from "@/service/employeeServices"
 
 
 export default function Usermangement() {
@@ -26,24 +28,51 @@ export default function Usermangement() {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
+  const [region, setRegion] = useState("");
+  const [dealer, setDealer] = useState("");
   
   // Available roles state
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  const [availableRegions, setAvailableRegions] = useState<string[]>([]);
+  const [availableDealers, setAvailableDealers] = useState<Array<{ _id: string; legal_name: string; trade_name: string }>>([]);
   
   // Sorting state
   const [sortField, setSortField] = useState("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   
   const router = useRouter();
-  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
 
-  // Set default tab based on user role - hide dealer tab for fulfillment roles
+  // Set default tab based on user role - hide dealer tab for fulfillment staff only
   useEffect(() => {
-    if (["Fulfillment-Admin", "Fulfillment-Staff"].includes(auth?.role)) {
+    if (["Fulfillment-Staff"].includes(auth?.role)) {
       setActiveTab("employee");
     }
   }, [auth?.role]);
+
+  // Fetch dealers and regions for employee filtering
+  useEffect(() => {
+    const fetchFilterData = async () => {
+      try {
+        // Fetch dealers
+        const dealersResponse = await getAllDealers();
+        setAvailableDealers(dealersResponse.data || []);
+        
+        // Fetch available regions
+        const regions = await getAvailableRegions();
+        setAvailableRegions(regions);
+      } catch (error) {
+        console.error("Failed to fetch filter data:", error);
+        setAvailableDealers([]);
+        setAvailableRegions([]);
+      }
+    };
+
+    if (activeTab === "employee") {
+      fetchFilterData();
+    }
+  }, [activeTab]);
 
   // Helper function to check if user can perform admin actions
   const canPerformAdminActions = () => {
@@ -69,10 +98,14 @@ export default function Usermangement() {
   const handleSearchChange = (search: string) => setSearch(search);
   const handleRoleChange = (role: string) => setRole(role);
   const handleStatusChange = (status: string) => setStatus(status);
+  const handleRegionChange = (region: string) => setRegion(region);
+  const handleDealerChange = (dealer: string) => setDealer(dealer);
   const handleResetFilters = () => {
     setSearch("");
     setRole("");
     setStatus("");
+    setRegion("");
+    setDealer("");
   };
 
 
@@ -105,8 +138,8 @@ export default function Usermangement() {
           >
             Employee
           </button>
-          {/* Hide Dealer tab for Fulfillment roles */}
-          {!["Fulfillment-Admin", "Fulfillment-Staff"].includes(auth.role) && (
+          {/* Hide Dealer tab for Fulfillment-Staff only */}
+          {!["Fulfillment-Staff"].includes(auth.role) && (
             <button
               onClick={() => setActiveTab("dealer")}
               className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
@@ -141,8 +174,14 @@ export default function Usermangement() {
               onRoleChange={handleRoleChange}
               currentStatus={status || "all"}
               onStatusChange={handleStatusChange}
+              currentRegion={region || "all"}
+              onRegionChange={handleRegionChange}
+              currentDealer={dealer || "all"}
+              onDealerChange={handleDealerChange}
               onResetFilters={handleResetFilters}
               availableRoles={activeTab === "employee" ? availableRoles : activeTab === "users" ? ["User"] : []}
+              availableRegions={availableRegions}
+              availableDealers={availableDealers}
             />
           </div>
 
@@ -197,6 +236,8 @@ export default function Usermangement() {
               search={search}
               role={role === "all" ? "" : role}
               status={status === "all" ? "" : status}
+              region={region === "all" ? "" : region}
+              dealer={dealer === "all" ? "" : dealer}
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={handleSort}

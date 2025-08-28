@@ -8,6 +8,12 @@ import {
   Truck,
   UserCheck,
   Eye,
+  ExternalLink,
+  Calendar,
+  CreditCard,
+  MapPin,
+  Phone,
+  Mail,
 } from "lucide-react";
 // Removed unused shadcn Button import; using shared DynamicButton where needed
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -167,7 +173,6 @@ export default function OrderDetailsView() {
   const [dealerModalOpen, setDealerModalOpen] = useState(false);
   const [selectedDealer, setSelectedDealer] = useState<any>(null); // State to hold dealer data for the modal
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  // const [createPickListOpen, setCreatePickListOpen] = useState(false); // removed duplicate modal state
   const dispatch = useAppDispatch();
 
   const params = useParams<Params>();
@@ -187,6 +192,7 @@ export default function OrderDetailsView() {
   console.log(orderById);
   const auth = useAppSelector((state: any) => state.auth.user);
   const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role);
+  
   // Simulate loading
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -384,29 +390,6 @@ export default function OrderDetailsView() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Update Status Skeleton */}
-          <Card className="border border-gray-200 shadow-sm">
-            <CardHeader className="pb-3 lg:pb-4">
-              <Skeleton className="h-5 lg:h-6 w-32 lg:w-40" />
-            </CardHeader>
-            <CardContent className="space-y-3 lg:space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Skeleton className="h-4 lg:h-5 w-20 lg:w-24 mb-1" />
-                  <Skeleton className="h-3 lg:h-4 w-12 lg:w-16" />
-                </div>
-                <div className="text-right">
-                  <Skeleton className="h-4 lg:h-5 w-16 lg:w-20 mb-1" />
-                  <Skeleton className="h-3 w-20 lg:w-24" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-3 lg:h-4 w-24 lg:w-32" />
-                <Skeleton className="h-8 lg:h-10 w-full" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
@@ -500,6 +483,140 @@ export default function OrderDetailsView() {
         </div>
       </div>
 
+      {/* Order Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Calendar className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Order Date</p>
+                <p className="font-semibold text-gray-900">
+                  {orderById?.orderDate ? formatDate(orderById.orderDate, { includeTime: true }) : "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CreditCard className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Payment Type</p>
+                <p className="font-semibold text-gray-900">
+                  {orderById?.paymentType || "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Truck className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Delivery Type</p>
+                <p className="font-semibold text-gray-900">
+                  {orderById?.type_of_delivery || "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Package className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Total Amount</p>
+                <p className="font-semibold text-gray-900">
+                  ₹{orderById?.order_Amount?.toLocaleString() || "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Order Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Calendar className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Order Date</p>
+                <p className="font-semibold text-gray-900">
+                  {orderById?.orderDate ? formatDate(orderById.orderDate, { includeTime: true }) : "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CreditCard className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Payment Type</p>
+                <p className="font-semibold text-gray-900">
+                  {orderById?.paymentType || "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Truck className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Delivery Type</p>
+                <p className="font-semibold text-gray-900">
+                  {orderById?.type_of_delivery || "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Package className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Total Amount</p>
+                <p className="font-semibold text-gray-900">
+                  ₹{orderById?.order_Amount?.toLocaleString() || "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
         {/* Left Column */}
@@ -507,7 +624,8 @@ export default function OrderDetailsView() {
           {/* Customer Information */}
           <Card className="border border-gray-200 shadow-sm">
             <CardHeader className="pb-3 lg:pb-4">
-              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <UserCheck className="h-5 w-5 text-gray-600" />
                 Customer Information
               </CardTitle>
               <p className="text-xs sm:text-sm text-gray-600">
@@ -517,13 +635,19 @@ export default function OrderDetailsView() {
             <CardContent className="space-y-3 lg:space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                 <div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Name</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <UserCheck className="h-3 w-3" />
+                    Name
+                  </p>
                   <p className="font-medium text-gray-900 text-sm sm:text-base">
                     {orderById?.customerDetails?.name || "-"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Email</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    Email
+                  </p>
                   <p className="font-medium text-gray-900 text-sm sm:text-base break-all">
                     {orderById?.customerDetails?.email || "-"}
                   </p>
@@ -531,7 +655,8 @@ export default function OrderDetailsView() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                 <div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
                     Phone Number
                   </p>
                   <p className="font-medium text-gray-900 text-sm sm:text-base">
@@ -539,7 +664,8 @@ export default function OrderDetailsView() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
                     Delivery Address
                   </p>
                   <p className="font-medium text-gray-900 text-sm sm:text-base">
@@ -554,7 +680,8 @@ export default function OrderDetailsView() {
           {/* Tracking Information */}
           <Card className="border border-gray-200 shadow-sm">
             <CardHeader className="pb-3 lg:pb-4">
-              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Truck className="h-5 w-5 text-gray-600" />
                 Tracking Information
               </CardTitle>
               <p className="text-xs sm:text-sm text-gray-600">
@@ -624,6 +751,45 @@ export default function OrderDetailsView() {
                   );
                 })}
               </div>
+
+              {/* Borzo Tracking Information */}
+              {orderById?.order_track_info && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Courier Tracking
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1">Status</p>
+                      <p className="font-medium text-gray-900 text-sm">
+                        {orderById.order_track_info.borzo_order_status || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1">Last Updated</p>
+                      <p className="font-medium text-gray-900 text-sm">
+                        {orderById.order_track_info.borzo_last_updated ? 
+                          formatDate(orderById.order_track_info.borzo_last_updated, { includeTime: true }) : "-"}
+                      </p>
+                    </div>
+                    {orderById.order_track_info.borzo_tracking_url && (
+                      <div className="sm:col-span-2">
+                        <p className="text-xs text-gray-600 mb-1">Tracking URL</p>
+                        <a 
+                          href={orderById.order_track_info.borzo_tracking_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                        >
+                          Track Package
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -637,78 +803,45 @@ export default function OrderDetailsView() {
             orderId={orderId}
           />
 
-
-          {/* Update Orders Status Card */}
+          {/* Order Summary */}
           <Card className="border border-gray-200 shadow-sm">
             <CardHeader className="pb-3 lg:pb-4">
               <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
-                Update Orders Status
+                Order Summary
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 lg:space-y-4">
-              {isAuthorized ? (
-                <>
-                  {/* Product Info */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
-                        Rear shocker
-                      </h3>
-                      <p className="text-xs sm:text-sm text-gray-600">Yamaha</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items.center gap-2">
-                        <span className="text-base sm:text-lg font-semibold text-gray-900">
-                          ₹6399.00
-                        </span>
-                        <span className="text-xs sm:text-sm text-gray-500 line-through">
-                          ₹6599.00
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500">25 Jan 2025 12:00 PM</p>
-                    </div>
-                  </div>
-
-                  {/* Update Status Dropdown */}
-                  <div className="space-y-2 ">
-                    <label className="text-xs sm:text-sm font-medium text-gray-900 ">
-                      Update Order Status
-                    </label>
-                    <Select>
-                      <SelectTrigger className="w-full bg-white border-gray-300 h-9 sm:h-10">
-                        <SelectValue placeholder="Select Reason" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="shipped">Shipped</SelectItem>
-                        <SelectItem value="delivered">Delivered</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                        <SelectItem value="returned">Returned</SelectItem>
-                        <SelectItem value="refunded">Refunded</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Textarea
-                      id="remark"
-                      placeholder="Remark"
-                      className="w-full bg-white border-gray-300 min-h-[80px]"
-                    />
-                  </div>
-                  <div className="flex justify-end pt-2">
-                    <DynamicButton
-                      variant="default"
-                      text="Update"
-                      customClassName="bg-[#C72920] text-[#FFFFFF] "
-                    />
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-gray-600">You do not have permission to update order status.</p>
-              )}
+            <CardContent className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Subtotal</span>
+                <span className="font-medium text-gray-900">
+                  ₹{(orderById?.order_Amount - (orderById?.GST || 0) - (orderById?.deliveryCharges || 0)).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">GST</span>
+                <span className="font-medium text-gray-900">
+                  ₹{orderById?.GST?.toLocaleString() || "0"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Delivery Charges</span>
+                <span className="font-medium text-gray-900">
+                  ₹{orderById?.deliveryCharges?.toLocaleString() || "0"}
+                </span>
+              </div>
+              <div className="border-t pt-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-gray-900">Total</span>
+                  <span className="font-semibold text-gray-900 text-lg">
+                    ₹{orderById?.order_Amount?.toLocaleString() || "0"}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+      
       {/* DealerIdentification Modal */}
       <DealerIdentification
         isOpen={dealerModalOpen}
@@ -735,7 +868,6 @@ export default function OrderDetailsView() {
         onClose={() => setProductModalOpen(false)}
         productId={selectedProduct?.productId}
       />
-      {/* Removed old CreatePickList modal; create action is now inside DealerIdentification */}
     </div>
   );
 }

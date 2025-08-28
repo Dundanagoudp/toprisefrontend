@@ -276,7 +276,7 @@ const handleBulkReject = useCallback(() => {
             {/* Right: Upload, Add Product */}
             <div className="flex items-center gap-3 w-full lg:w-auto justify-start grid-ro-2 sm:justify-end">
               {(auth?.role === "Super-admin" ||
-                auth?.role === "Inventory-admin") && (
+                auth?.role === "Inventory-Admin") && (
                 <>
                   <DynamicButton
                     variant="default"

@@ -131,7 +131,7 @@ export default function AddProducts() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [dealerOptions, setDealerOptions] = useState<any[]>([]);
-  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
 
 
 

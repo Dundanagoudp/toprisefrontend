@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,11 +27,11 @@ import useDebounce from "@/utils/useDebounce";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import { getPaymentDetails } from "@/service/payment-service";
 import { PaymentDetail, PaymentDetailsResponse, PaymentPagination } from "@/types/paymentDetails-Types";
-import PaymentDetailById from "./popup/PaymentDetailById";
 
 // Using PaymentDetail interface from types file instead of local interface
 
 export default function PaymentDetails() {
+  const router = useRouter();
   const [payments, setPayments] = useState<PaymentDetail[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,10 +47,6 @@ export default function PaymentDetails() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
-  
-  // Dialog state
-  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   // Fetch payments with pagination
   useEffect(() => {
     const fetchPaymentDetails = async () => {
@@ -213,16 +210,9 @@ export default function PaymentDetails() {
     }
   };
 
-  // Handle opening payment details dialog
+  // Handle opening payment details page
   const handleViewPaymentDetails = (paymentId: string) => {
-    setSelectedPaymentId(paymentId);
-    setIsDialogOpen(true);
-  };
-
-  // Handle closing payment details dialog
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setSelectedPaymentId(null);
+    router.push(`/user/dashboard/paymentDetails/${paymentId}`);
   };
 
   return (
@@ -369,14 +359,18 @@ export default function PaymentDetails() {
                       </TableRow>
                     ))
                                       : paginatedData.map((payment) => (
-                      <TableRow key={payment._id}>
-                        <TableCell className="px-4 py-4 w-8">
+                      <TableRow 
+                        key={payment._id}
+                        className="cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => handleViewPaymentDetails(payment._id)}
+                      >
+                        <TableCell 
+                          className="px-4 py-4 w-8"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Checkbox />
                         </TableCell>
-                        <TableCell 
-                          className="px-6 py-4 font-medium cursor-pointer hover:text-[#C72920] transition-colors"
-                          onClick={() => handleViewPaymentDetails(payment._id)}
-                        >
+                        <TableCell className="px-6 py-4 font-medium">
                           {payment.payment_id || 'N/A'}
                         </TableCell>
                         <TableCell className="px-6 py-4 font-medium">
@@ -439,12 +433,7 @@ export default function PaymentDetails() {
         )}
       </Card>
       
-      {/* Payment Details Dialog */}
-      <PaymentDetailById
-        open={isDialogOpen}
-        onClose={handleCloseDialog}
-        paymentId={selectedPaymentId}
-      />
+
     </div>
   );
 }

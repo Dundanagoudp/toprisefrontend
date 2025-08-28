@@ -202,7 +202,7 @@ const getPriorityBadge = (priority: string) => {
 export default function SLAViolationsAndReporting() {
   const route = useRouter();
   const payload = getTokenPayload();
-  const isAllowed = payload?.role === "Inventory-admin" || payload?.role === "Super-admin";
+  const isAllowed = payload?.role === "Inventory-Admin" || payload?.role === "Super-admin";
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedViolationIds, setSelectedViolationIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("tabular");

@@ -45,7 +45,7 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
 
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const csvInputRef = React.useRef<HTMLInputElement>(null);
-    const allowedRoles = [ "Super-admin", "Inventory-admin"];
+    const allowedRoles = [ "Super-admin", "Inventory-Admin"];
 // Handle file change for both image and CSV files
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fileType: string) => {
     const files = event.target.files;

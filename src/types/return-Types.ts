@@ -9,6 +9,12 @@ export interface ReturnRequestsResponse {
   };
 }
 
+export interface SingleReturnResponse {
+  success: boolean;
+  message: string;
+  data: ReturnRequest;
+}
+
 export interface ReturnRequest {
   _id: string;
   orderId: OrderInfo | null;

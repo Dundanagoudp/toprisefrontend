@@ -20,7 +20,7 @@ export default function Addemployee() {
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [formData, setFormData] = useState<EmployeeFormValues | null>(null)
   const { toast } = useToast()
-  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
 
   const form = useForm<EmployeeFormValues>({
@@ -56,6 +56,7 @@ export default function Addemployee() {
         First_name: formData.fullName,
         mobile_number: formData.mobileNumber,
         employeeRole: formData.role,
+        assigned_regions: formData.assignedRegion || [],
       }
       
       const response = await addEmployee(payload)
@@ -249,6 +250,45 @@ export default function Addemployee() {
               </Select>
               {form.formState.errors.role && (
                 <p className="text-red-500 text-xs mt-1">{form.formState.errors.role.message}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Region Assignment */}
+        <Card className="border-gray-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-red-600 font-semibold text-lg">Region Assignment</CardTitle>
+            <p className="text-sm text-gray-500">Assign the employee to specific regions for operational management.</p>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-1 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Assigned Regions
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {["North", "South", "East", "West", "Central", "Northeast", "Northwest", "Southeast", "Southwest"].map((region) => (
+                  <label key={region} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      value={region}
+                      checked={form.watch("assignedRegion")?.includes(region) || false}
+                      onChange={(e) => {
+                        const currentRegions = form.watch("assignedRegion") || [];
+                        if (e.target.checked) {
+                          form.setValue("assignedRegion", [...currentRegions, region]);
+                        } else {
+                          form.setValue("assignedRegion", currentRegions.filter(r => r !== region));
+                        }
+                      }}
+                      className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-sm text-gray-700">{region}</span>
+                  </label>
+                ))}
+              </div>
+              {form.formState.errors.assignedRegion && (
+                <p className="text-red-500 text-xs mt-1">{form.formState.errors.assignedRegion.message}</p>
               )}
             </div>
           </CardContent>

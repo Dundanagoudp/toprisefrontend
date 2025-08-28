@@ -39,7 +39,7 @@ export default function Dealertable({
   const [loading, setLoading] = useState(true)
   const { showToast } = useToastMessage()
   const itemsPerPage = 10
-  const allowedRoles = ["Super-admin", "Inventory-admin"]
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"]
   const auth = useAppSelector((state) => state.auth.user)
 
   // Helper function to check if user can perform admin actions

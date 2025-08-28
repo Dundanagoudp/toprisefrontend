@@ -12,6 +12,7 @@ import {
    SettingsIcon,
    FileText,
    BarChart3,
+   Package,
 } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {LogOut as logoutAction } from "../store/slice/auth/authSlice"
@@ -37,13 +38,21 @@ import { title } from "process"
 // Role-based sidebar visibility config for scalability
 const sidebarVisibilityConfig = {
   'Fulfillment-Admin': {
-    hide: ["Dashboard", "Pricing & Margin Management", "Content Management", "Settings"],
-    show: ["User Management"],
+    hide: ["Dashboard", "Inventory Management", "SLA Violations & Reporting", "Content Management", "Ticket", "Settings", "Reports", "Requests"],
+    show: ["Product Management", "User Management", "Payment & Details", "Order Management", "Return Claims", "Audit Logs"],
   },
   'Fulfillment-Staff': {
-    hide: ["Dashboard", "Pricing & Margin Management", "Content Management", "Settings"],
-    show: ["User Management"],
+    hide: ["User Management", "Inventory Management", "SLA Violations & Reporting", "Payment & Details", "Content Management", "Ticket", "Settings", "Audit Logs", "Reports", "Requests"],
+    show: ["Dashboard", "Product Management", "Order Management", "Return Claims", "Pickup"],
   },
+          'Inventory-Staff': {
+          hide: ["Dashboard", "User Management", "Inventory Management", "SLA Violations & Reporting", "Payment & Details", "Order Management", "Return Claims", "Pickup", "Content Management", "Ticket", "Settings", "Audit Logs", "Reports"],
+          show: ["Product Management", "Requests"],
+        },
+        'Inventory-Admin': {
+          hide: ["Dashboard", "User Management", "Inventory Management", "SLA Violations & Reporting", "Payment & Details", "Order Management", "Return Claims", "Pickup", "Ticket", "Settings", "Reports"],
+          show: ["Product Management", "Requests", "Dealer Management", "Content Management", "Audit Logs"],
+        },
   // Add more roles here as needed
 };
 
@@ -102,6 +111,11 @@ const data = {
       url: "/user/dashboard/returnclaims",
       icon: Box,
     },
+    {
+      title: "Pickup",
+      url: "/user/dashboard/pickup",
+      icon: Package,
+    },
        {
       title: "Content Management",
       url: "/user/dashboard/contentManagement",
@@ -126,6 +140,11 @@ const data = {
       title: "Reports",
       url: "/user/dashboard/reports",
       icon: BarChart3,
+    },
+    {
+      title: "Requests",
+      url: "/user/dashboard/requests",
+      icon: FileText,
     }
   ],
 }
@@ -163,7 +182,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     navItems = data.navMain
       .filter(item => {
         if (hide.includes(item.title)) return false;
-        if (show.length > 0 && !show.includes(item.title) && item.title === "User Management") return false;
+        if (show.length > 0 && !show.includes(item.title)) return false;
         return true;
       })
       .map(item => ({
