@@ -48,6 +48,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { set } from "zod";
 import Addmodel from "../../popUpForm/Addmodel";
 import AddCategory from "../../popUpForm/AddCategory";
+import StockManagementModal from "../../StockManagementModal";
+import DealerAssignmentModal from "../../DealerAssignmentModal";
+import { 
+  updateProductStock, 
+  assignProductToDealers, 
+  unassignProductFromDealers, 
+  getAllDealers,
+  getProductDealerAssignments 
+} from "@/service/inventory-staff-service";
 
 export default function CreatedProduct({
   searchQuery,
@@ -74,11 +83,15 @@ export default function CreatedProduct({
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
-  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
   const itemsPerPage = 10;
   const [isAddModelOpen, setIsAddModelOpen] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [isDealerModalOpen, setIsDealerModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [dealers, setDealers] = useState<any[]>([]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -361,6 +374,64 @@ export default function CreatedProduct({
     setIsAddCategoryOpen(true);
   };
 
+  const handleStockManagement = (product: any) => {
+    setSelectedProduct(product);
+    setIsStockModalOpen(true);
+  };
+
+  const handleDealerAssignment = async (product: any) => {
+    setSelectedProduct(product);
+    try {
+      // Fetch dealers and current assignments
+      const [dealersResponse, assignmentsResponse] = await Promise.all([
+        getAllDealers(),
+        getProductDealerAssignments(product._id)
+      ]);
+      
+      // Merge dealer data with assignment status
+      const dealersWithAssignments = dealersResponse.data.map((dealer: any) => ({
+        ...dealer,
+        assignedProducts: assignmentsResponse.data
+          .filter((assignment: any) => assignment.dealerId === dealer._id)
+          .map((assignment: any) => assignment.productId)
+      }));
+      
+      setDealers(dealersWithAssignments);
+      setIsDealerModalOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch dealers:", error);
+      showToast("Failed to load dealers", "error");
+    }
+  };
+
+  const handleStockUpdate = async (productId: string, newStock: number, reason: string) => {
+    try {
+      await updateProductStock(productId, newStock, reason);
+      showToast("Stock updated successfully", "success");
+      // Refresh products list
+      fetchProducts();
+    } catch (error) {
+      console.error("Failed to update stock:", error);
+      showToast("Failed to update stock", "error");
+    }
+  };
+
+  const handleDealerAssignmentUpdate = async (productId: string, dealerIds: string[], action: 'assign' | 'unassign') => {
+    try {
+      if (action === 'assign') {
+        await assignProductToDealers(productId, dealerIds);
+      } else {
+        await unassignProductFromDealers(productId, dealerIds);
+      }
+      showToast(`Dealers ${action === 'assign' ? 'assigned' : 'unassigned'} successfully`, "success");
+      // Refresh products list
+      fetchProducts();
+    } catch (error) {
+      console.error("Failed to update dealer assignment:", error);
+      showToast("Failed to update dealer assignment", "error");
+    }
+  };
+
   return (
     <div className=" w-full overflow-x-auto">
       <Table>
@@ -594,7 +665,13 @@ export default function CreatedProduct({
                           <>
                             <DropdownMenuItem
                               className="cursor-pointer"
-                              onClick={() => handleViewProduct(product._id)}
+                              onClick={() => handleStockManagement(product)}
+                            >
+                              Manage Stock
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() => handleDealerAssignment(product)}
                             >
                               Assign Dealer
                             </DropdownMenuItem>
@@ -723,6 +800,29 @@ export default function CreatedProduct({
           productId={activeProductId}
         />
       )}
+
+      {/* Stock Management Modal */}
+      <StockManagementModal
+        isOpen={isStockModalOpen}
+        onClose={() => {
+          setIsStockModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        product={selectedProduct}
+        onStockUpdate={handleStockUpdate}
+      />
+
+      {/* Dealer Assignment Modal */}
+      <DealerAssignmentModal
+        isOpen={isDealerModalOpen}
+        onClose={() => {
+          setIsDealerModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        product={selectedProduct}
+        dealers={dealers}
+        onDealerAssignment={handleDealerAssignmentUpdate}
+      />
     </div>
   );
 }

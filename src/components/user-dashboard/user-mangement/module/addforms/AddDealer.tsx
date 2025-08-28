@@ -29,7 +29,7 @@ export default function AddDealer() {
   const [submitLoading, setSubmitLoading] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [formData, setFormData] = useState<DealerFormValues | null>(null)
-  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
 
   const form = useForm<DealerFormValues>({

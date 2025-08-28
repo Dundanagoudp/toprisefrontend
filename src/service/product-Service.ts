@@ -161,6 +161,42 @@ export async function rejectBulkProducts
   }
 }
 
+// New endpoints for product approval requests
+export async function getPendingProducts(page?: number, limit?: number): Promise<ProductResponse> {
+  try {
+    let url = `/category/products/v1/pending`;
+    if (page && limit) {
+      url += `?page=${page}&limit=${limit}`;
+    }
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch pending products:", error);
+    throw error;
+  }
+}
+
+export async function approveSingleProduct(productId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.patch(`/category/products/v1/approve/${productId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to approve product:", error);
+    throw error;
+  }
+}
+
+export async function rejectSingleProduct(productId: string, rejectionReason?: string): Promise<ProductResponse> {
+  try {
+    const data = rejectionReason ? { rejectionReason } : {};
+    const response = await apiClient.patch(`/category/products/v1/reject/${productId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to reject product:", error);
+    throw error;
+  }
+}
+
 // Categories API returns an array of categories
 export async function getCategories(): Promise<ApiResponse<ProductCategory[]>> {
   try {
