@@ -6,6 +6,7 @@ import {
   Bell,
   User,
   Search,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -15,7 +16,8 @@ import {
   getCart,
   removeProductFromCart,
 } from "@/service/user/cartService";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { clearCart } from "@/store/slice/cart/cartSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { getUserById } from "@/service/user/userService";
 import { Cart, CartItem, CartResponse } from "@/types/User/cart-Types";
@@ -29,6 +31,7 @@ import type { Step } from "@/components/common/StepProgressBar";
 export default function CheckoutPage() {
   const { cartData: cart, fetchCart } = useCart();
   const { showToast } = useGlobalToast();
+  const dispatch = useAppDispatch();
   const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
@@ -144,6 +147,9 @@ export default function CheckoutPage() {
       // Move to review step
       goToNextStep();
     } else if (currentStep === 1) { // Review step
+      // Move to payment step
+      goToNextStep();
+    } else if (currentStep === 2) { // Payment step
       // Place the order
       await handlePlaceOrder();
     }
@@ -161,25 +167,8 @@ export default function CheckoutPage() {
     }
 
     const orderBody = prepareOrderBody(user, cart);
-    console.log("=== ORDER BODY ===");
-    console.log("Full Order Body:", JSON.stringify(orderBody, null, 2));
-    console.log("Selected Address:", selectedAddress);
-    console.log("Cart Data:", cart);
-    console.log("User Data:", user);
-    console.log("================");
-    
-    // Debug authentication state
-    console.log("=== AUTHENTICATION DEBUG ===");
-    console.log("User ID from Redux:", userId);
-    console.log("User Role:", user.role);
-    console.log("User from state:", user);
-    
-    // Check for authentication tokens/cookies
-    const cookies = document.cookie;
-    console.log("Document Cookies:", cookies);
-    console.log("Local Storage Auth:", localStorage.getItem('authToken'));
-    console.log("Session Storage Auth:", sessionStorage.getItem('authToken'));
-    console.log("=============================");
+
+
     
     try {
       console.log("=== MAKING API CALL ===");
@@ -189,20 +178,15 @@ export default function CheckoutPage() {
       
       setOrderId(response.data.orderId || response.data._id); 
       setIsOrderConfirmed(true);
-      console.log("=== ORDER RESPONSE ===");
-      console.log("Order Response:", JSON.stringify(response.data, null, 2));
-      console.log("===================");
+      
+      // Clear cart from Redux after successful order
+      dispatch(clearCart());
 
       showToast("Order created successfully", "success");
     } catch (error: any) {
-      console.error("=== ORDER ERROR ===");
+
       console.error("Full Error Object:", error);
-      console.error("Error Response:", error.response);
-      console.error("Error Status:", error.response?.status);
-      console.error("Error Data:", error.response?.data);
-      console.error("Error Config:", error.response?.config);
-      console.error("Request Headers:", error.response?.config?.headers);
-      console.error("==================");
+
       
       if (error.response?.status === 403) {
         showToast("Access denied. Please check your login status.", "error");
@@ -211,6 +195,24 @@ export default function CheckoutPage() {
       }
     }
   };
+  const removeItem = async (productId: string) => {
+    try {
+      const data = {
+        userId: userId,
+        productId: productId,
+      }
+      const response = await removeProductFromCart(data);
+      console.log("response", response);
+  
+      // Refresh cart data after successful removal
+      await fetchCart();
+      showToast("Item removed from cart", "success");
+    } catch(error) {
+      console.error("Failed to remove item:", error);
+      showToast("Failed to remove item from cart", "error");
+    }
+  }
+
   const onSubmit = async (data: AddressFormValues) => {
     try {
       const addressData = {
@@ -340,13 +342,23 @@ export default function CheckoutPage() {
                                 Quantity: {item.quantity}
                               </p>
                             </div>
-                            <div className="text-right">
-                              <p className="font-medium text-gray-900">
-                                ₹{(item.selling_price * item.quantity).toFixed(2)}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                ₹{item.selling_price} each
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className="font-medium text-gray-900">
+                                  ₹{(item.selling_price * item.quantity).toFixed(2)}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  ₹{item.selling_price} each
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                onClick={() => removeItem(item._id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         ))}
@@ -365,6 +377,98 @@ export default function CheckoutPage() {
                         Pay when your order is delivered
                       </p>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Payment & Confirmation
+                </h2>
+                
+                {/* Payment Confirmation */}
+                <div className="space-y-6">
+                  {/* Selected Payment Method */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Payment Method
+                    </h3>
+                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                          <CreditCard className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Cash on Delivery (COD)</p>
+                          <p className="text-sm text-gray-600">
+                            Pay ₹{cart?.total_mrp_with_gst?.toFixed(2) || "0.00"} when your order is delivered
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Summary */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Order Summary
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Items ({cart?.items?.length ?? 0}):</span>
+                        <span className="font-medium">₹{cart?.total_mrp?.toFixed(2) || "0.00"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">GST & Taxes:</span>
+                        <span className="font-medium">₹{cart?.total_mrp_gst_amount?.toFixed(2) || "0.00"}</span>
+                      </div>
+                      {cart?.deliveryCharge && cart.deliveryCharge > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Delivery Charges:</span>
+                          <span className="font-medium">₹{cart.deliveryCharge.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <hr className="border-gray-300" />
+                      <div className="flex justify-between text-lg font-semibold">
+                        <span>Total Amount:</span>
+                        <span className="text-green-600">₹{cart?.total_mrp_with_gst?.toFixed(2) || "0.00"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Delivery Address Confirmation */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Delivery Address
+                    </h3>
+                    {selectedAddress && (
+                      <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                        <p className="font-medium text-gray-900">
+                          {selectedAddress.nick_name || "Delivery Address"}
+                        </p>
+                        <p className="text-gray-600">
+                          {selectedAddress.street}
+                        </p>
+                        <p className="text-gray-600">
+                          {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirmation Message */}
+                  <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-5 h-5 text-yellow-600" />
+                      <p className="text-sm text-yellow-800 font-medium">
+                        Please confirm your order details before proceeding
+                      </p>
+                    </div>
+                    <p className="text-xs text-yellow-700 mt-1">
+                      By clicking "Confirm & Place Order", you agree to our terms and conditions.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -404,8 +508,18 @@ export default function CheckoutPage() {
                             Qty: {item.quantity}
                           </p>
                         </div>
-                        <div className="text-sm font-medium text-gray-900">
-                          ₹{(item.selling_price * item.quantity).toFixed(2)}
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium text-gray-900">
+                            ₹{(item.selling_price * item.quantity).toFixed(2)}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeItem(item._id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -465,13 +579,13 @@ export default function CheckoutPage() {
 
                 {/* Navigation Buttons */}
                 <div className="space-y-3">
-                  {currentStep === 1 && (
+                  {(currentStep === 1 || currentStep === 2) && (
                     <Button
                       variant="outline"
                       className="w-full"
                       onClick={goToPreviousStep}
                     >
-                      Back to Address
+                      {currentStep === 1 ? "Back to Address" : "Back to Review"}
                     </Button>
                   )}
                   
@@ -482,7 +596,9 @@ export default function CheckoutPage() {
                       !user || !cart || !selectedAddress
                     }
                   >
-                    {currentStep === 0 ? "Proceed To Review" : "Place Order"}
+                    {currentStep === 0 ? "Proceed To Review" : 
+                     currentStep === 1 ? "Proceed To Payment" : 
+                     "Confirm & Place Order"}
                   </Button>
                 </div>
                 

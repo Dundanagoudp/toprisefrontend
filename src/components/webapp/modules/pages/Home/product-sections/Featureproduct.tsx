@@ -53,8 +53,7 @@ export default function FeaturedProducts() {
     
     try {
       await addItemToCart(productId, 1)
-      showToast("Product added to cart successfully", "success")
-      console.log("Product added to cart:", productId)
+
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error")

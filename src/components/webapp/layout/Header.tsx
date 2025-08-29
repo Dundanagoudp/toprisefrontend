@@ -40,14 +40,7 @@ const routeList: RouteProps[] = [
     label: "Shipping & Returns Policy ",
   },
 
-  //   {
-  //     href: "#pricing",
-  //     label: "Pricing",
-  //   },
-  //   {
-  //     href: "#faq",
-  //     label: "FAQ",
-  //   },
+
 ];
 
 export const Header = () => {
