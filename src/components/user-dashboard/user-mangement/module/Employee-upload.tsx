@@ -31,7 +31,7 @@ export default function FileUploadModal ({ isOpen, onClose }: UploadBulkCardProp
   const route = useRouter();
 
   const csvInputRef = React.useRef<HTMLInputElement>(null);
-  const allowedRoles = [ "Super-admin", "Inventory-admin"];
+  const allowedRoles = [ "Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
 // Handle file change for CSV files
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

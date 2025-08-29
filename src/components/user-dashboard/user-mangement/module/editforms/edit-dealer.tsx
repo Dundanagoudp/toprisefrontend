@@ -32,7 +32,7 @@ export default function EditDealer() {
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
-  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
 
   const form = useForm<DealerFormValues>({

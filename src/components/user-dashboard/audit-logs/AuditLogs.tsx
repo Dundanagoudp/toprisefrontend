@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAppSelector } from "@/store/hooks";
 import { Button } from "@/components/ui/button";
 import {
   Search,
@@ -97,8 +98,12 @@ interface AuditLogsResponse {
 }
 
 export default function AuditLogs() {
+  const auth = useAppSelector((state) => state.auth.user);
   const [searchValue, setSearchValue] = useState("");
-  const [activeTab, setActiveTab] = useState("orders");
+  const [activeTab, setActiveTab] = useState(
+    auth?.role === "Inventory-Admin" ? "products" : 
+    auth?.role === "Fulfillment-Admin" ? "orders" : "orders"
+  );
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [orderLogs, setOrderLogs] = useState<AuditLog[]>([]);
   const [userLogs, setUserLogs] = useState<AuditLog[]>([]);
@@ -740,22 +745,33 @@ export default function AuditLogs() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200">
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              Orders
-            </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Products
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Users
-            </TabsTrigger>
+          <TabsList className={`grid w-full bg-white border border-gray-200 ${
+            auth?.role === "Inventory-Admin" ? "grid-cols-1" : 
+            auth?.role === "Fulfillment-Admin" ? "grid-cols-2" : "grid-cols-3"
+          }`}>
+            {(auth?.role !== "Inventory-Admin") && (
+              <TabsTrigger value="orders" className="flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4" />
+                Orders
+              </TabsTrigger>
+            )}
+            {(auth?.role !== "Inventory-Admin" && auth?.role !== "Fulfillment-Admin") && (
+              <TabsTrigger value="products" className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Products
+              </TabsTrigger>
+            )}
+            {(auth?.role !== "Inventory-Admin") && (
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Users
+              </TabsTrigger>
+            )}
           </TabsList>
 
-          {["orders", "products", "users"].map((tab) => (
+          {(auth?.role === "Inventory-Admin" ? ["products"] : 
+            auth?.role === "Fulfillment-Admin" ? ["orders", "users"] : 
+            ["orders", "products", "users"]).map((tab) => (
             <TabsContent key={tab} value={tab} className="space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

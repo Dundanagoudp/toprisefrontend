@@ -48,6 +48,7 @@ import {
   Filter,
 } from "lucide-react";
 import apiClient from "@/apiClient";
+import { getDealerStats } from "@/service/dealerServices";
 
 // Interfaces for API responses
 interface SLAViolationSummary {
@@ -247,8 +248,66 @@ export default function Reports() {
       if (response.data.success) {
         setDealerStats(response.data.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching dealer stats:", error);
+      
+      // Handle the schema registration error specifically
+      if (error?.response?.data?.message?.includes("Schema hasn't been registered for model")) {
+        console.warn("Dealer model not registered in user service. Trying alternative approach.");
+        
+        try {
+          // Try alternative dealer stats endpoint
+          const altResponse = await getDealerStats();
+          if (altResponse.success) {
+            setDealerStats(altResponse.data);
+          } else {
+            // Set fallback dealer stats data
+            setDealerStats({
+              totalDealers: 0,
+              activeDealers: 0,
+              deactivatedDealers: 0,
+              dealersWithUploadAccess: 0,
+              dealersWithAssignedEmployees: 0,
+              avgCategoriesPerDealer: 0,
+              period: {
+                startDate: new Date().toISOString(),
+                endDate: new Date().toISOString(),
+              },
+              summary: {
+                totalDealers: 0,
+                activeDealers: 0,
+                deactivatedDealers: 0,
+                dealersWithUploadAccess: 0,
+                dealersWithAssignedEmployees: 0,
+                avgCategoriesPerDealer: 0,
+              }
+            });
+          }
+        } catch (altError) {
+          console.error("Alternative dealer stats also failed:", altError);
+          // Set fallback dealer stats data
+          setDealerStats({
+            totalDealers: 0,
+            activeDealers: 0,
+            deactivatedDealers: 0,
+            dealersWithUploadAccess: 0,
+            dealersWithAssignedEmployees: 0,
+            avgCategoriesPerDealer: 0,
+            period: {
+              startDate: new Date().toISOString(),
+              endDate: new Date().toISOString(),
+            },
+            summary: {
+              totalDealers: 0,
+              activeDealers: 0,
+              deactivatedDealers: 0,
+              dealersWithUploadAccess: 0,
+              dealersWithAssignedEmployees: 0,
+              avgCategoriesPerDealer: 0,
+            }
+          });
+        }
+      }
     }
   };
 

@@ -1,5 +1,5 @@
 import apiClient from "@/apiClient";
-import { ReturnRequestsResponse } from "@/types/return-Types";
+import { ReturnRequestsResponse, SingleReturnResponse } from "@/types/return-Types";
 
 export const getReturnRequests = async (): Promise<ReturnRequestsResponse> => {
   try {
@@ -12,7 +12,7 @@ export const getReturnRequests = async (): Promise<ReturnRequestsResponse> => {
 };
 export const getReturnRequestsById = async (
   id: string
-): Promise<ReturnRequestsResponse> => {
+): Promise<SingleReturnResponse> => {
   try {
     const response = await apiClient.get(`/orders/api/returns/${id}`);
     return response.data;

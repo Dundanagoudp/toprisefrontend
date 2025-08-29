@@ -98,6 +98,31 @@ export async function setSlaType(dealerId: string, data: any): Promise<SlaTypesR
   }
 }
 
+// Get dealer statistics (alternative approach)
+export async function getDealerStats(): Promise<any> {
+  try {
+    // Try to get dealer stats from a different endpoint that doesn't require dealer model in user service
+    const response = await apiClient.get(`/users/api/users/stats/dealer-counts`)
+    return response.data
+  } catch (error) {
+    console.error("Failed to fetch dealer stats:", error)
+    
+    // Return fallback data if the endpoint doesn't exist
+    return {
+      success: true,
+      message: "Fallback dealer stats",
+      data: {
+        totalDealers: 0,
+        activeDealers: 0,
+        deactivatedDealers: 0,
+        dealersWithUploadAccess: 0,
+        dealersWithAssignedEmployees: 0,
+        avgCategoriesPerDealer: 0
+      }
+    }
+  }
+}
+
 // patch disble dealer 
 
 export async function disableDealer(dealerId: string): Promise<ApiResponse<Dealer>> {

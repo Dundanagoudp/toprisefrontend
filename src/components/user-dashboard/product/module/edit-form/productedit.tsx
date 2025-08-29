@@ -134,7 +134,7 @@ export default function ProductEdit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const { showToast } = useGlobalToast();
-  const allowedRoles = ["Super-admin", "Inventory-admin"];
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
 
 
   const {
