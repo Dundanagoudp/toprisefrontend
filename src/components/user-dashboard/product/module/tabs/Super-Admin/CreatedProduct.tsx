@@ -57,6 +57,7 @@ import {
   getAllDealers,
   getProductDealerAssignments 
 } from "@/service/inventory-staff-service";
+import Emptydata from "../../Emptydata";
 
 export default function CreatedProduct({
   searchQuery,
@@ -111,7 +112,15 @@ export default function CreatedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        const res = await getProductsByPage(currentPage, itemsPerPage);
+        console.log("CreatedProduct: Fetching products with status:", "Created");
+        const res = await getProductsByPage(
+          currentPage, 
+          itemsPerPage, 
+          "Created", // status - reverted back to "Created"
+          searchQuery, 
+          categoryFilter, 
+          subCategoryFilter
+        );
         const data = res.data;
 
         if (data?.products) {
@@ -127,7 +136,12 @@ export default function CreatedProduct({
     };
 
     fetchProducts();
-  }, [currentPage]);
+  }, [currentPage, searchQuery, categoryFilter, subCategoryFilter]);
+
+  // Reset to first page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, subCategoryFilter]);
 
   //sorting products by name
   const handleSortByName = () => {
@@ -191,64 +205,8 @@ export default function CreatedProduct({
     if (!paginatedproducts) return [];
     let products = paginatedproducts;
 
-    // Filter
-    if (searchQuery && searchQuery.trim() !== "") {
-      const q = searchQuery.trim().toLowerCase();
-      products = products.filter((product: any) => {
-        const candidateValues = [
-          product?.product_name,
-          product?.category?.category_name,
-          product?.category?.name,
-          product?.category,
-          product?.brand?.brand_name,
-          product?.brand?.name,
-          product?.brand,
-          product?.sub_category?.subcategory_name,
-          product?.sub_category?.name,
-          product?.subCategory?.subcategory_name,
-          product?.subCategory?.name,
-          product?.subCategory,
-          product?.product_type,
-          product?.productType,
-        ];
-        return candidateValues.some(
-          (val: any) =>
-            val !== undefined &&
-            val !== null &&
-            String(val).toLowerCase().includes(q)
-        );
-      });
-    }
-
-    // Category filter
-    if (categoryFilter && categoryFilter.trim() !== "") {
-      const cat = categoryFilter.trim().toLowerCase();
-      products = products.filter((product: any) => {
-        const candidateNames = [
-          product?.category?.category_name,
-          product?.category?.name,
-          product?.category,
-        ];
-        return candidateNames.some((n: any) =>
-          n ? String(n).toLowerCase() === cat : false
-        );
-      });
-    }
-
-    // Subcategory filter (robust across varying shapes)
-    if (subCategoryFilter && subCategoryFilter.trim() !== "") {
-      const sub = subCategoryFilter.trim().toLowerCase();
-      products = products.filter((product: any) => {
-        const candidateNames = [
-          product?.sub_category?.subcategory_name,
-          product?.sub_category?.name,
-          product?.subCategory,
-          product?.subCategory?.name,
-          product?.sub_category,
-        ];
-        return candidateNames.some((n: any) => (n ? String(n).toLowerCase() === sub : false));
-      });
-    }
+    // Note: Search, category, and subcategory filtering are now handled by the API
+    // This memo now only handles sorting since filtering is done server-side
 
     // Sort products based on sortField
     if (sortField) {
@@ -296,9 +254,6 @@ export default function CreatedProduct({
     return products;
   }, [
     paginatedproducts,
-    searchQuery,
-    categoryFilter,
-    subCategoryFilter,
     sortField,
     sortDirection,
   ]);
@@ -431,6 +386,11 @@ export default function CreatedProduct({
       showToast("Failed to update dealer assignment", "error");
     }
   };
+
+  // Empty state
+  if (!loadingProducts && (filteredProducts.length === 0)) {
+    return <Emptydata />;
+  }
 
   return (
     <div className=" w-full overflow-x-auto">

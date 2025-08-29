@@ -76,6 +76,7 @@ const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff", "Fulf
   const [selectedSubCategoryName, setSelectedSubCategoryName] = useState<string | null>(null);
 const getStatusColor = (status: string) => {
   switch (status) {
+
     case "Approved":
       return "text-green-600 font-medium";
     case "Rejected":
@@ -277,18 +278,15 @@ const handleBulkReject = useCallback(() => {
       return <TabComponent searchQuery={searchQuery} />;
     }
     
-    if (currentTabConfig.id === "Created") {
-      return (
-        <TabComponent
-          searchQuery={searchQuery}
-          selectedTab={selectedTab}
-          categoryFilter={selectedCategoryName || undefined}
-          subCategoryFilter={selectedSubCategoryName || undefined}
-        />
-      );
-    }
-    return <TabComponent searchQuery={searchQuery} selectedTab={selectedTab} />;
-  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName, showRequestsView]);
+    return (
+      <TabComponent
+        searchQuery={searchQuery}
+        selectedTab={selectedTab}
+        categoryFilter={selectedCategoryName || undefined}
+        subCategoryFilter={selectedSubCategoryName || undefined}
+      />
+    );
+  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName, selectedSubCategoryName, showRequestsView]);
 
   return (
     <div className="w-full ">

@@ -314,11 +314,11 @@ export default function DealerAssignTable() {
 
     // Filter by tab
     if (selectedTab === "Active") {
-      currentProducts = currentProducts.filter((product) => product.live_status === "Active")
+      currentProducts = currentProducts.filter((product) => product.status === "Active")
     } else if (selectedTab === "Disable") {
-      currentProducts = currentProducts.filter((product) => product.live_status === "Disable")
+      currentProducts = currentProducts.filter((product) => product.status === "Disable")
     } else if (selectedTab === "Pending") {
-      currentProducts = currentProducts.filter((product) => product.live_status === "Pending")
+      currentProducts = currentProducts.filter((product) => product.status === "Pending")
     } else if (selectedTab === "Approved") {
       currentProducts = currentProducts.filter((product) => product.live_status === "Approved")
     } else if (selectedTab === "Rejected") {

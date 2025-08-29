@@ -12,13 +12,24 @@ export async function getProducts(): Promise<ProductResponse> {
     throw error;
   }
 }
-export async function getProductsByPage(page: number, limit: number,status?:string): Promise<ProductResponse> {
+export async function getProductsByPage(page: number, limit: number, status?: string, searchQuery?: string, categoryFilter?: string, subCategoryFilter?: string): Promise<ProductResponse> {
   try {
-       let url = `/category/products/v1/get-all-products/pagination?page=${page}&limit=${limit}`;
+    let url = `/category/products/v1/get-all-products/pagination?page=${page}&limit=${limit}`;
     if (status) {
       url += `&status=${status}`;
     }
+    if (searchQuery && searchQuery.trim() !== "") {
+      url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+    }
+    if (categoryFilter && categoryFilter.trim() !== "") {
+      url += `&category=${encodeURIComponent(categoryFilter.trim())}`;
+    }
+    if (subCategoryFilter && subCategoryFilter.trim() !== "") {
+      url += `&subCategory=${encodeURIComponent(subCategoryFilter.trim())}`;
+    }
+    console.log("API URL for getProductsByPage:", url);
     const response = await apiClient.get(url);
+    console.log("API response for getProductsByPage:", response.data);
     return response.data;
   } catch (error) {
     console.error(" Failed to fetch products:", error);
