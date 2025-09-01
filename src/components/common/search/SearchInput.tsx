@@ -7,6 +7,7 @@ interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
   onClear?: () => void;
+  onSubmit?: (value: string) => void;
   isLoading?: boolean;
   placeholder?: string;
   className?: string;
@@ -16,10 +17,16 @@ const SearchInput: React.FC<SearchInputProps> = ({
   value,
   onChange,
   onClear,
+  onSubmit,
   isLoading = false,
   placeholder = "Search...",
   className = "",
 }) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && onSubmit && value.trim()) {
+      onSubmit(value.trim());
+    }
+  };
   return (
     <div className={`relative w-full sm:w-80 lg:w-96 ${className}`}>
       <div className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-4 py-0">
@@ -32,6 +39,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyPress={handleKeyPress}
           className="bg-transparent font-[Poppins] border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#A3A3A3] h-10 p-0 flex-1 outline-none shadow-none"
         />
         {value && onClear && (
