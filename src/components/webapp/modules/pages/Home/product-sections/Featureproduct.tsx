@@ -162,7 +162,7 @@ export default function FeaturedProducts() {
                   )}
                 </div>
 
-                <DynamicButton className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2"
+                <DynamicButton className="w-full  text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2"
                 text="Add"
                 icon={<ShoppingCart className="w-4 h-4" />}
                 onClick={(e) => {
