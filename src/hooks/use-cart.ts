@@ -70,17 +70,17 @@ export const useCart = () => {
     // For now, we'll just update the local state
   }, [dispatch]);
 
-  const removeItemFromCart = useCallback(async (itemId: string) => {
+  const removeItemFromCart = useCallback(async (productId: string) => {
     if (!isAuthenticated || !user?._id) {
       return;
     }
 
     try {
       // Optimistically remove from UI
-      dispatch(removeFromCart(itemId));
+      dispatch(removeFromCart(productId));
       
       // Call API to remove from server
-      await removeProductFromCart(itemId);
+      await removeProductFromCart(user._id, productId);
     } catch (err: any) {
       console.error('Failed to remove item from cart:', err);
       // Revert the optimistic update by refetching cart

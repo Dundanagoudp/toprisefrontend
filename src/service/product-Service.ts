@@ -1,4 +1,4 @@
-import { ProductResponse } from "@/types/product-Types";
+import { ProductResponse, SubCategoryResponse } from "@/types/product-Types";
 import { ApiResponse } from "@/types/apiReponses-Types";
 import type { Category as ProductCategory } from "@/types/product-Types";
 import apiClient from "@/apiClient";
@@ -12,6 +12,7 @@ export async function getProducts(): Promise<ProductResponse> {
     throw error;
   }
 }
+
 export async function getProductsByPage(page: number, limit: number, status?: string, searchQuery?: string, categoryFilter?: string, subCategoryFilter?: string): Promise<ProductResponse> {
   try {
     // Validate input parameters
@@ -81,6 +82,7 @@ export async function getProductsByPage(page: number, limit: number, status?: st
     throw error;
   }
 }
+
 //get products by dealer added
 export async function getDealerProductsByPage(page: number, limit: number, status?: string): Promise<ProductResponse> {
   try {
@@ -209,9 +211,9 @@ export async function deactivateProduct(
   }
 }
 export async function approveBulkProducts
-(
-  data: string | any
-): Promise<ProductResponse> {
+  (
+    data: string | any
+  ): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
       `/category/products/v1/bulk/approve`,
@@ -224,9 +226,9 @@ export async function approveBulkProducts
   }
 }
 export async function deactivateBulkProducts
-(
-  data: string | any
-): Promise<ProductResponse> {
+  (
+    data: string | any
+  ): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
       `/category/products/v1/deactivateProduct/bulk`,
@@ -239,9 +241,9 @@ export async function deactivateBulkProducts
   }
 }
 export async function rejectBulkProducts
-(
-  data: string | any
-): Promise<ProductResponse> {
+  (
+    data: string | any
+  ): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
       `/category/products/v1/bulk/reject`,
@@ -310,99 +312,99 @@ export async function getBrand(): Promise<ProductResponse> {
     throw error;
   }
 }
-export async function createCategory(data:FormData):Promise<any>{
-  try{
-    const response = await apiClient.post(`/category/api/category`,data, {
+export async function createCategory(data: FormData): Promise<any> {
+  try {
+    const response = await apiClient.post(`/category/api/category`, data, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     })
     return response.data
   }
-  catch(err:any){
+  catch (err: any) {
     console.error("Failed to create category:", err);
     throw err
   }
 }
-export async function createSubCategory(data:FormData):Promise<any>{
-  try{
-    const response = await apiClient.post(`/subCategory/api/subCategory`,data, {
+export async function createSubCategory(data: FormData): Promise<any> {
+  try {
+    const response = await apiClient.post(`/subCategory/api/subCategory`, data, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     })
     return response.data
   }
-  catch(err:any){
+  catch (err: any) {
     console.error("Failed to create category:", err);
     throw err
   }
 }
 
-export async function createModel(data:FormData):Promise<any>{
-  try{
-    const response = await apiClient.post(`/category/api/model`,data, {
+export async function createModel(data: FormData): Promise<any> {
+  try {
+    const response = await apiClient.post(`/category/api/model`, data, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     })
     return response.data
   }
-  catch(err:any){
+  catch (err: any) {
     console.error("Failed to create category:", err);
     throw err
   }
 }
-export async function createBrand(data:FormData):Promise<any>{
-  try{
-    const response = await apiClient.post(`/category/api/brands`,data, {
+export async function createBrand(data: FormData): Promise<any> {
+  try {
+    const response = await apiClient.post(`/category/api/brands`, data, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     })
     return response.data
   }
-  catch(err:any){
+  catch (err: any) {
     console.error("Failed to create category:", err);
     throw err
   }
 }
-export async function createVariant(data:FormData):Promise<any>{
-  try{
-    const response = await apiClient.post(`/subCategory/variants/`,data, {
+export async function createVariant(data: FormData): Promise<any> {
+  try {
+    const response = await apiClient.post(`/subCategory/variants/`, data, {
       headers: {
         'Content-Type': 'application/json',
       },
     })
     return response.data
   }
-  catch(err:any){
+  catch (err: any) {
     console.error("Failed to create category:", err);
     throw err
   }
 }
 
-export async function createVariants(data:FormData):Promise<ProductResponse>{
-  try{
-     const response = await apiClient.post(`/subCategory/variants/`,data,{
-       headers: {
-         'Content-Type': 'application/json',
-       },
-     })
-     return response.data
+export async function createVariants(data: FormData): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/subCategory/variants/`, data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return response.data
   }
-  catch(err:any){
+  catch (err: any) {
     console.error("Failed to create category:", err);
     throw err
   }
 }
 
-export async function getSubCategories(): Promise<ProductResponse> {
+export async function getSubCategories(): Promise<SubCategoryResponse> {
   try {
     const response = await apiClient.get(`/subCategory/api/subCategory`);
     return response.data;
   } catch (error) {
-    console.error("Failed to fetch categories:", error);
+    console.error("Failed to fetch subcategories:", error);
     throw error;
   }
 }
@@ -499,7 +501,7 @@ export async function editProduct(
     const response = await apiClient.put(
       `/category/products/v1/updateProduct/${productId}`,
       data
-      
+
     );
     return response.data;
   } catch (error) {
@@ -508,7 +510,7 @@ export async function editProduct(
   }
 }
 
-export async function addProduct(productData:FormData | any): Promise<ProductResponse> {
+export async function addProduct(productData: FormData | any): Promise<ProductResponse> {
   try {
     const response = await apiClient.post(
       `/category/products/v1/createProduct`,
@@ -630,3 +632,25 @@ export async function uploadBulkVariants(
 
 
 
+export async function getProductsByCategory(
+  categoryId: string,
+  product_type?: string,
+  brand?: string
+): Promise<ProductResponse> {
+  try {
+    let url = `/category/products/v1?categoryId=${categoryId}`;
+
+    if (product_type) {
+      url += `&product_type=${product_type}`;
+    }
+    if (brand) {
+      url += `&brand=${brand}`;
+    }
+
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch category products:", error);
+    throw error;
+  }
+}

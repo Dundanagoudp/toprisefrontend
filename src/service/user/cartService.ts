@@ -41,9 +41,13 @@ export async function createOrders(data: any): Promise<any> {
   }
 }
 
-export async function removeProductFromCart(itemId: string): Promise<any> {
+export async function removeProductFromCart(data: any): Promise<any> {
   try {
-    const response = await apiClient.post(`/orders/api/carts/removeProduct`, { itemId });
+    console.log("Removing product from cart:", data);
+    const response = await apiClient.post(`/orders/api/carts/removeProduct`, { 
+   data: data
+    });
+    console.log("Removed product from cart:", response.data);
     return response.data;
   } catch (err: any) {
     console.error("Failed to remove product from cart:", err);

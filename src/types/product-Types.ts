@@ -165,4 +165,10 @@ export interface Pagination {
   hasPreviousPage: boolean;
 }
 
+export interface SubCategoryResponse {
+  success: boolean;
+  message: string;
+  data: SubCategory[];
+}
+
 export type AddProductPayload = Omit<Product, '_id' | 'created_at' | 'updated_at' | 'Qc_status' | 'available_dealers' | 'brand' | 'category' | 'sub_category' | 'model' | 'year_range' | 'variant' | 'created_by' | 'iteration_number' | 'last_stock_inquired' | 'rejection_state' | 'change_logs' | '__v'>;
