@@ -57,6 +57,11 @@ const data = {
       icon: BoxIcon,
     },
     {
+      title: "Product Logs",
+      url: "/dealer/dashboard/product/Logs",
+      icon: FileText,
+    },
+    {
       title:"Order Management",
       url: "/dealer/dashboard/order",
       icon: SiPhotobucket ,

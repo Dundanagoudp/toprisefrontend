@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { FileUp, ImageUp, X } from "lucide-react";
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, useState, useEffect } from "react";
 import { editBulkProducts } from "@/service/product-Service";
 import { bulkUploadByDealer } from "@/service/dealer-product";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
@@ -38,6 +38,13 @@ export default function ProductBulkupload ({ isOpen, onClose, mode = 'upload' }:
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const csvInputRef = React.useRef<HTMLInputElement>(null);
     const allowedRoles = [ "Super-admin", "Inventory-admin", "Dealer"];
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      resetState();
+    }
+  }, [isOpen]);
 // Handle file change for both image and CSV files
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fileType: string) => {
     const files = event.target.files;
@@ -54,7 +61,14 @@ export default function ProductBulkupload ({ isOpen, onClose, mode = 'upload' }:
     setImageZipFile(null);
     setCsvFile(null);
     setIsUploading(false);
-  
+    setUploadMessage('');
+    // Clear file input values
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+    if (csvInputRef.current) {
+      csvInputRef.current.value = '';
+    }
   };
    const handleClose = () => {
     resetState();
@@ -74,10 +88,12 @@ export default function ProductBulkupload ({ isOpen, onClose, mode = 'upload' }:
       setIsUploading(true);
       setUploadMessage('');
 
-      // Show upload started toast
+      // Show initial loading message
       if (mode === 'edit') {
+        setUploadMessage('🔄 Processing CSV file for bulk edit...');
         showToast("Starting bulk edit process... ⏳", "warning");
       } else {
+        setUploadMessage('🔄 Processing files for bulk upload...');
         showToast("Starting bulk upload process... ⏳", "warning");
       }
 
@@ -99,19 +115,23 @@ export default function ProductBulkupload ({ isOpen, onClose, mode = 'upload' }:
 
       try {
         let response;
+        
+        // Update loading message based on operation
         if (mode === 'edit') {
+          setUploadMessage('📝 Updating products from CSV...');
           response = await editBulkProducts(formData);
           showToast("Updated successfully", "success");
           console.log('Editing bulk upload with formData:');
         }
         else {
+          setUploadMessage('📤 Uploading products and images...');
           response = await bulkUploadByDealer(formData);
           showToast("Uploaded successfully", "success");
           console.log('Uploading bulk upload with formData:');
         }
 
         if (response) {
-          setUploadMessage(response.message || (mode === 'edit' ? 'Files edited successfully!' : 'Files uploaded successfully!'));
+          setUploadMessage('✅ ' + (response.message || (mode === 'edit' ? 'Products updated successfully!' : 'Products uploaded successfully!')));
           setImageZipFile(null);
           setCsvFile(null);
           
@@ -122,18 +142,21 @@ export default function ProductBulkupload ({ isOpen, onClose, mode = 'upload' }:
             showToast("Bulk upload completed successfully! 🚀", "success");
           }
           
-          handleClose();
-
-          setIsLogOpen(true);
+          // Small delay to show success message
+          setTimeout(() => {
+            handleClose();
+            // Redirect to logs page to show updated logs
+            window.location.href = '/dealer/dashboard/product/Logs';
+          }, 1500);
          
         } else {
-          setUploadMessage((mode === 'edit' ? 'Edit failed. Please try again.' : 'Upload failed. Please try again.'));
+          setUploadMessage('❌ ' + (mode === 'edit' ? 'Edit failed. Please try again.' : 'Upload failed. Please try again.'));
         }
       } catch (error: any) {
         console.error('Error uploading files:', error);
         showToast( 'An error occurred during upload. Please check the console.', "error");
         const message = error.response?.data?.message || error.message || 'An error occurred during upload. Please check the console.';
-        setUploadMessage(message);
+        setUploadMessage('❌ ' + message);
       } finally {
         setIsUploading(false);
       }
@@ -247,13 +270,18 @@ return (
           }
           onClick={handleUpload}
         >
-          {isUploading
-            ? (mode === 'edit'
+          {isUploading ? (
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              {mode === 'edit'
                 ? 'Editing...'
-                : 'Uploading...')
-            : (mode === 'edit'
-                ? 'Edit Bulk'
-                : 'Upload')}
+                : 'Uploading...'}
+            </div>
+          ) : (
+            mode === 'edit'
+              ? 'Edit Bulk'
+              : 'Upload'
+          )}
         </Button>
       </DialogFooter>
     </DialogContent>

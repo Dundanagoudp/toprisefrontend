@@ -31,12 +31,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
+import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import Emptydata from "../../Emptydata";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
   switch (status) {
+    
     case "Approved":
       return "text-green-600 font-medium";
     case "Rejected":
@@ -50,12 +53,18 @@ const getStatusColor = (status: string) => {
 
 export default function RejectedProduct({
   searchQuery,
+  selectedTab,
+  categoryFilter,
+  subCategoryFilter,
 }: {
   searchQuery: string;
+  selectedTab?: string;
+  categoryFilter?: string;
+  subCategoryFilter?: string;
 }) {
   const dispatch = useAppDispatch();
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,10 +80,14 @@ export default function RejectedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
+        console.log("RejectedProduct: Fetching products with status:", "Rejected");
         const response = await getProductsByPage(
           currentPage,
           itemsPerPage,
-          "Rejected"
+          "Rejected",
+          searchQuery,
+          categoryFilter,
+          subCategoryFilter
         );
         if (response.data) {
           setPaginatedProducts(response.data.products || []);
@@ -91,25 +104,20 @@ export default function RejectedProduct({
     };
 
     fetchProducts();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter]);
+
+  // Reset to first page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, subCategoryFilter]);
 
   // Filter products by search query only (pagination is handled server-side)
   const filteredProducts = React.useMemo(() => {
     if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
 
-    // Step 1: Filter products based on search query
+    // Note: Search filtering is now handled by the API
+    // This memo now only handles sorting since filtering is done server-side
     let filtered = [...paginatedProducts];
-    if (searchQuery && searchQuery.trim() !== "") {
-      const q = searchQuery.trim().toLowerCase();
-      filtered = paginatedProducts.filter(
-        (product: any) =>
-          product.name?.toLowerCase().includes(q) ||
-          product.category?.toLowerCase().includes(q) ||
-          product.brand?.toLowerCase().includes(q) ||
-          product.subCategory?.toLowerCase().includes(q) ||
-          product.productType?.toLowerCase().includes(q)
-      );
-    }
 
     // Step 2: Sort filtered products based on sortField and sortDirection
     if (sortField === "product_name") {
@@ -131,23 +139,27 @@ export default function RejectedProduct({
     }
 
     return filtered;
-  }, [paginatedProducts, searchQuery, sortField, sortDirection]);
+  }, [paginatedProducts, sortField, sortDirection]);
 
   // Selection handlers
   const handleSelectOne = (id: string) => {
-    setSelectedProducts((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-    );
+    const newSelectedProducts = selectedProducts.includes(id)
+      ? selectedProducts.filter((pid) => pid !== id)
+      : [...selectedProducts, id];
+    // Only dispatch to Redux store
+    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
   const allSelected =
     filteredProducts.length > 0 &&
-    filteredProducts.every((p: any) => selectedProducts.includes(p.id));
+    filteredProducts.every((p: any) => selectedProducts.includes(p._id));
 
   const handleSelectAll = () => {
-    setSelectedProducts(
-      allSelected ? [] : filteredProducts.map((p: any) => p.id)
-    );
+    const newSelectedProducts = allSelected
+      ? []
+      : filteredProducts.map((p: any) => p._id);
+    // Only dispatch to Redux store
+    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
   const handleEditProduct = (id: string) => {
@@ -175,6 +187,11 @@ export default function RejectedProduct({
       setSortDirection("asc");
     }
   };
+
+  // Empty state
+  if (!loadingProducts && (filteredProducts.length === 0)) {
+    return <Emptydata />;
+  }
 
   return (
     <div className="px-4">

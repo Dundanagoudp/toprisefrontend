@@ -288,8 +288,7 @@ export default function DealerAddProducts() {
               <Label
                 htmlFor="skuCode"
                 className="text-base font-medium font-sans">
-              
-                Sku Code
+                Sku Code <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="skuCode"
@@ -346,7 +345,7 @@ export default function DealerAddProducts() {
             {/* Product Name */}
             <div className="space-y-2">
               <Label htmlFor="productName" className="text-base font-medium font-sans">
-                Product Name
+                Product Name <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="productName"
@@ -389,7 +388,7 @@ export default function DealerAddProducts() {
             {/* Category */}
             <div className="space-y-2">
               <Label htmlFor="category" className="text-base font-medium font-sans">
-                Category
+                Category <span className="text-red-500">*</span>
               </Label>
               <Select
                 onValueChange={(value) => setValue("category", value)}
@@ -424,7 +423,7 @@ export default function DealerAddProducts() {
             {/* Sub-category */}
             <div className="space-y-2">
               <Label htmlFor="subCategory" className="text-base font-medium font-sans">
-                Sub-category
+                Sub-category <span className="text-red-500">*</span>
               </Label>
               <Select
                 onValueChange={(value) => setValue("sub_category", value)}
@@ -458,7 +457,7 @@ export default function DealerAddProducts() {
             {/* Product Type (OE, OEM, Aftermarket) */}
             <div className="space-y-2">
               <Label htmlFor="productType" className="text-base font-medium font-sans">
-                Product Type
+                Product Type <span className="text-red-500">*</span>
               </Label>
               <Select
                 onValueChange={(value) => setValue("product_type", value)}
@@ -574,7 +573,7 @@ export default function DealerAddProducts() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="make" className="text-base font-medium font-sans">
-                Make
+                Make <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="make"
@@ -592,7 +591,7 @@ export default function DealerAddProducts() {
             {/* Model */}
             <div className="space-y-2">
               <Label htmlFor="model" className="text-base font-medium font-sans">
-                Model
+                Model <span className="text-red-500">*</span>
               </Label>
               <Select
                 onValueChange={(value) => {
@@ -665,7 +664,7 @@ export default function DealerAddProducts() {
             {/* Variant */}
             <div className="space-y-2">
               <Label htmlFor="variant" className="text-base font-medium font-sans">
-                Variant
+                Variant <span className="text-red-500">*</span>
               </Label>
               <Select onValueChange={(value) => setValue("variant", value)}>
                 <SelectTrigger
@@ -1044,7 +1043,7 @@ export default function DealerAddProducts() {
             {/* MRP (with GST) */}
             <div className="space-y-2">
               <Label htmlFor="mrp" className="text-base font-medium font-sans">
-                MRP (with GST)
+                MRP (with GST) <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="mrp"
@@ -1085,7 +1084,7 @@ export default function DealerAddProducts() {
             {/* GST % */}
             <div className="space-y-2">
               <Label htmlFor="gst" className="text-base font-medium font-sans">
-                GST %
+                GST % <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="gst_percentage"
@@ -1133,7 +1132,7 @@ export default function DealerAddProducts() {
             {/* Return Policy */}
             <div className="space-y-2">
               <Label htmlFor="returnPolicy" className="text-base font-medium font-sans">
-                Return Policy
+                Return Policy <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="returnPolicy"

@@ -44,10 +44,12 @@ import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
+import Emptydata from "../../Emptydata";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
   switch (status) {
+    
     case "Approved":
       return "text-green-600 font-medium";
     case "Rejected":
@@ -61,14 +63,20 @@ const getStatusColor = (status: string) => {
 
 export default function ApprovedProduct({
   searchQuery,
+  selectedTab,
+  categoryFilter,
+  subCategoryFilter,
 }: {
   searchQuery: string;
+  selectedTab?: string;
+  categoryFilter?: string;
+  subCategoryFilter?: string;
 }) {
   const dispatch = useAppDispatch();
   // Use the correct state for products with live status
 
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
@@ -86,10 +94,14 @@ export default function ApprovedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
+        console.log("ApprovedProduct: Fetching products with status:", "Approved", "searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
         const res = await getProductsByPage(
           currentPage,
           itemsPerPage,
-          "Approved"
+          "Approved",
+          searchQuery,
+          categoryFilter,
+          subCategoryFilter
         );
         const data = res.data;
         if (data?.products) {
@@ -107,7 +119,12 @@ export default function ApprovedProduct({
     };
 
     fetchProducts();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter]);
+
+  // Reset to first page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, subCategoryFilter]);
 
   // Filter products by approved live status and search query
 
@@ -116,18 +133,8 @@ export default function ApprovedProduct({
 
     let filtered = [...paginatedProducts];
 
-    // Filter
-    if (searchQuery && searchQuery.trim() !== "") {
-      const q = searchQuery.trim().toLowerCase();
-      filtered = filtered.filter(
-        (product) =>
-          product.product_name?.toLowerCase().includes(q) ||
-          product.category?.toLowerCase().includes(q) ||
-          product.brand?.toLowerCase().includes(q) ||
-          product.subCategory?.toLowerCase().includes(q) ||
-          product.productType?.toLowerCase().includes(q)
-      );
-    }
+    // Note: Search filtering is now handled by the API
+    // This memo now only handles sorting since filtering is done server-side
 
     // Sort
     if (sortField === "product_name") {
@@ -149,7 +156,7 @@ export default function ApprovedProduct({
     }
 
     return filtered;
-  }, [paginatedProducts, searchQuery, sortField, sortDirection]);
+  }, [paginatedProducts, sortField, sortDirection]);
 
   // Update total products count when filtered products change
   useEffect(() => {
@@ -161,8 +168,7 @@ export default function ApprovedProduct({
     const newSelectedProducts = selectedProducts.includes(id)
       ? selectedProducts.filter((pid) => pid !== id)
       : [...selectedProducts, id];
-    setSelectedProducts(newSelectedProducts);
-    // Always dispatch as array of product IDs
+    // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
@@ -174,8 +180,7 @@ export default function ApprovedProduct({
     const newSelectedProducts = allSelected
       ? []
       : filteredProducts.map((p: any) => p._id);
-    setSelectedProducts(newSelectedProducts);
-    // Always dispatch as array of product IDs
+    // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
@@ -232,6 +237,11 @@ export default function ApprovedProduct({
       setSortDirection("asc");
     }
   };
+
+  // Empty state
+  if (!loadingProducts && (filteredProducts.length === 0)) {
+    return <Emptydata />;
+  }
 
   return (
     <div className="px-4">

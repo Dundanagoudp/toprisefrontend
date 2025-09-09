@@ -47,6 +47,9 @@ import {
 } from "@/components/ui/pagination";
 import SearchInput from "@/components/common/search/SearchInput";
 import OrdersFilters from "@/components/user-dashboard/order-management/OrdersFilters";
+import OrderStats from "@/components/user-dashboard/order-management/OrderStats";
+import EnhancedOrderStats from "@/components/user-dashboard/order-management/EnhancedOrderStats";
+import EnhancedOrderFilters from "@/components/user-dashboard/order-management/EnhancedOrderFilters";
 import DynamicButton from "@/components/common/button/button";
 import {
   Table,
@@ -123,6 +126,19 @@ export default function OrdersTable() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
   const [filterOrderSource, setFilterOrderSource] = useState("all");
+  
+  // Enhanced filters state
+  const [enhancedFilters, setEnhancedFilters] = useState({
+    search: "",
+    status: "all",
+    paymentMethod: "all",
+    orderSource: "all",
+    dateRange: { from: undefined, to: undefined },
+    orderValue: { min: "", max: "" },
+    customerType: "all",
+    region: "all",
+    assignedDealer: "all",
+  });
   // Search + Sort combined
   const filteredOrders = useMemo(() => {
     let list = ordersState;
@@ -329,6 +345,21 @@ export default function OrdersTable() {
     }
   }, [dispatch]);
 
+  // Enhanced filter handlers
+  const handleEnhancedFiltersChange = (newFilters: any) => {
+    setEnhancedFilters(newFilters);
+    // Update legacy filters for backward compatibility
+    setFilterStatus(newFilters.status);
+    setFilterPayment(newFilters.paymentMethod);
+    setFilterOrderSource(newFilters.orderSource);
+    setSearchQuery(newFilters.search);
+  };
+
+  const handleExport = () => {
+    // Implement export functionality
+    showToast("Export functionality will be implemented", "info");
+  };
+
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 rounded text-xs font-medium";
     const s = (status || "").toLowerCase();
@@ -351,7 +382,19 @@ export default function OrdersTable() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-6">
+      {/* Order Statistics */}
+      <EnhancedOrderStats />
+
+      {/* Enhanced Filters */}
+      <EnhancedOrderFilters
+        onFiltersChange={handleEnhancedFiltersChange}
+        onExport={handleExport}
+        onRefresh={refreshOrders}
+        loading={loading}
+      />
+
+      {/* Orders Table */}
       <Card className="shadow-sm rounded-none">
         {/* Header */}
         <CardHeader className="space-y-4 sm:space-y-6">
@@ -359,36 +402,10 @@ export default function OrdersTable() {
             <span>Order Management</span>
           </CardTitle>
 
-          {/* Search and Filters */}
-          <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 gap-4 w-full">
-            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3 w-full lg:w-auto">
-
-              <SearchInput
-                placeholder="Search Spare parts"
-                value={searchInput}
-                onChange={handleSearchChange}
-                onClear={handleClearSearch}
-                isLoading={isSearching}
-              />
-              <OrdersFilters
-                currentStatus={filterStatus}
-                onStatusChange={(v) => { setFilterStatus(v); setCurrentPage(1); }}
-                currentPayment={filterPayment}
-                onPaymentChange={(v) => { setFilterPayment(v); setCurrentPage(1); }}
-                currentOrderType={"all"}
-                onOrderTypeChange={() => { /* no-op: order type removed */ }}
-                currentOrderSource={filterOrderSource}
-                onOrderSourceChange={(v) => { setFilterOrderSource(v); setCurrentPage(1); }}
-                onResetFilters={() => { setFilterStatus("all"); setFilterPayment("all"); setFilterOrderSource("all"); setCurrentPage(1); }}
-                orders={ordersState}
-              />
-            </div>
-          </div>
-
           {/* Orders Section Header */}
           <div className="mb-4">
             <CardTitle className="font-sans font-bold text-lg text-[#000000]">
-              Order
+              Orders
             </CardTitle>
             <CardDescription className="text-sm text-[#737373] font-medium font-sans">
               Manage your Orders details

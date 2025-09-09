@@ -1,18 +1,25 @@
 "use client"
 import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MapPin, Phone, Mail, User, Building, Clock, Package, Truck } from "lucide-react"
 import { getProductById } from "@/service/product-Service"
+import { getDealerById } from "@/service/dealerServices"
 
 interface ProductPopupModalProps {
   isOpen: boolean
   onClose: () => void
   productId?: string
+  dealerId?: string
 }
 
-export default function ProductPopupModal({ isOpen, onClose, productId = "" }: ProductPopupModalProps) {
+export default function ProductPopupModal({ isOpen, onClose, productId = "", dealerId = "" }: ProductPopupModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [product, setProduct] = useState<any | null>(null)
+  const [dealer, setDealer] = useState<any | null>(null)
+  const [dealerLoading, setDealerLoading] = useState(false)
 
   useEffect(() => {
     async function fetchProduct() {
@@ -36,6 +43,28 @@ export default function ProductPopupModal({ isOpen, onClose, productId = "" }: P
     }
     fetchProduct()
   }, [isOpen, productId])
+
+  useEffect(() => {
+    async function fetchDealer() {
+      if (!isOpen || !dealerId) {
+        setDealer(null)
+        return
+      }
+      try {
+        setDealerLoading(true)
+        const res = await getDealerById(dealerId)
+        
+        const data = (res as any)?.data ?? res
+        setDealer(data || null)
+      } catch (e: any) {
+        console.error("Failed to load dealer:", e)
+        setDealer(null)
+      } finally {
+        setDealerLoading(false)
+      }
+    }
+    fetchDealer()
+  }, [isOpen, dealerId])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -251,32 +280,161 @@ export default function ProductPopupModal({ isOpen, onClose, productId = "" }: P
                 </div>
               </div>
 
-              {/* Dealer-Level Mapping & Routing */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Dealer-Level Mapping & Routing</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Quantity in Stock</p>
-                    <p className="text-base font-semibold text-gray-900">{product?.no_of_stock ?? "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Fulfilment Priority</p>
-                    <p className="text-base font-semibold text-gray-900">{product?.fulfillment_priority ?? "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Last Stock Update</p>
-                    <p className="text-sm text-gray-800">
-                      {Array.isArray(product?.available_dealers) && product.available_dealers.length > 0
-                        ? product.available_dealers[0]?.last_stock_update || "-"
-                        : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Last Inquired At</p>
-                    <p className="text-sm text-gray-800">{product?.last_stock_inquired || "-"}</p>
+              {/* Dealer Information */}
+              {dealerId && (
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    Dealer Information
+                  </h3>
+                  {dealerLoading ? (
+                    <div className="text-sm text-gray-600">Loading dealer information...</div>
+                  ) : dealer ? (
+                    <div className="space-y-4">
+                      {/* Dealer Basic Info */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs text-gray-500">Dealer Name</p>
+                            <p className="text-base font-semibold text-gray-900">{dealer.legal_name || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Contact Person</p>
+                            <p className="text-base font-semibold text-gray-900">{dealer.contact_person || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Business Type</p>
+                            <p className="text-base font-semibold text-gray-900">{dealer.business_type || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">GST Number</p>
+                            <p className="text-base font-semibold text-gray-900">{dealer.gst_number || "-"}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs text-gray-500">Phone Number</p>
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-gray-400" />
+                              <p className="text-base font-semibold text-gray-900">{dealer.phone_number || "-"}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Email Address</p>
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-gray-400" />
+                              <p className="text-base font-semibold text-gray-900">{dealer.email || "-"}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Status</p>
+                            <Badge 
+                              variant={dealer.is_active ? "default" : "secondary"}
+                              className={dealer.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
+                            >
+                              {dealer.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Address Information */}
+                      <div className="border-t pt-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Address Information
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500">Address</p>
+                            <p className="text-sm text-gray-800">{dealer.address || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">City</p>
+                            <p className="text-sm text-gray-800">{dealer.city || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">State</p>
+                            <p className="text-sm text-gray-800">{dealer.state || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Pincode</p>
+                            <p className="text-sm text-gray-800">{dealer.pincode || "-"}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Product Availability */}
+                      <div className="border-t pt-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Product Availability
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500">Quantity in Stock</p>
+                            <p className="text-base font-semibold text-gray-900">{product?.no_of_stock ?? "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Fulfilment Priority</p>
+                            <p className="text-base font-semibold text-gray-900">{product?.fulfillment_priority ?? "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Last Stock Update</p>
+                            <p className="text-sm text-gray-800">
+                              {Array.isArray(product?.available_dealers) && product.available_dealers.length > 0
+                                ? product.available_dealers[0]?.last_stock_update || "-"
+                                : "-"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Business Hours */}
+                      {dealer.business_hours && (
+                        <div className="border-t pt-4">
+                          <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            Business Hours
+                          </h4>
+                          <p className="text-sm text-gray-800">{dealer.business_hours}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-600">No dealer information available</div>
+                  )}
+                </div>
+              )}
+
+              {/* Product Stock Information (when no dealer info) */}
+              {!dealerId && (
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Product Stock Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500">Quantity in Stock</p>
+                      <p className="text-base font-semibold text-gray-900">{product?.no_of_stock ?? "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Fulfilment Priority</p>
+                      <p className="text-base font-semibold text-gray-900">{product?.fulfillment_priority ?? "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Last Stock Update</p>
+                      <p className="text-sm text-gray-800">
+                        {Array.isArray(product?.available_dealers) && product.available_dealers.length > 0
+                          ? product.available_dealers[0]?.last_stock_update || "-"
+                          : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Last Inquired At</p>
+                      <p className="text-sm text-gray-800">{product?.last_stock_inquired || "-"}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* SEO & Search Optimization */}
               <div className="bg-white rounded-lg border border-gray-200 p-4">
