@@ -454,6 +454,7 @@ export default function OrderDetailsView() {
       image: product.image,
       remarks:
         "Popular item, frequently restocked. Check for new models compatibility.", // Update as needed
+      dealerId: product.dealerId, // Add dealerId to selectedProduct
     });
     setProductModalOpen(true);
   };
@@ -867,6 +868,7 @@ export default function OrderDetailsView() {
         isOpen={productModalOpen}
         onClose={() => setProductModalOpen(false)}
         productId={selectedProduct?.productId}
+        dealerId={selectedProduct?.dealerId}
       />
     </div>
   );

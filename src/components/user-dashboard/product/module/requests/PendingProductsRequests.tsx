@@ -194,7 +194,7 @@ export default function PendingProductsRequests({
   };
 
   const handleViewProduct = (productId: string) => {
-    route.push(`/user/dashboard/product/productdetails/${productId}`);
+    route.push(`/user/dashboard/product/product-details/${productId}`);
   };
 
   const handleBulkApprove = async () => {

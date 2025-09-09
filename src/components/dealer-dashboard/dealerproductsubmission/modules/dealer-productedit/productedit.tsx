@@ -32,6 +32,7 @@ import {
   editProduct,
   getProductById,
 } from "@/service/product-Service";
+import { getDealersByCategory } from "@/service/dealerServices";
 import { useParams } from "next/navigation";
 import { Product } from "@/types/product-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
@@ -67,6 +68,8 @@ export default function DealerProductEdit() {
   const [apiError, setApiError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+  const [availableDealers, setAvailableDealers] = useState<any[]>([]);
+  const [loadingDealers, setLoadingDealers] = useState(false);
   const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-admin", "Dealer"];
   const [allowedFields, setAllowedFields] = useState<string[] | null>(null);
@@ -84,6 +87,30 @@ export default function DealerProductEdit() {
   } = useForm<FormValues>({
     resolver: zodResolver(dealerProductSchema) as any,
   });
+
+  // Function to fetch dealers by category
+  const fetchDealersByCategory = async (categoryId: string) => {
+    if (!categoryId) {
+      setAvailableDealers([]);
+      return;
+    }
+    
+    try {
+      setLoadingDealers(true);
+      const response = await getDealersByCategory(categoryId);
+      
+      if (response.success && response.data && Array.isArray(response.data)) {
+        setAvailableDealers(response.data);
+      } else {
+        setAvailableDealers([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dealers by category:", error);
+      setAvailableDealers([]);
+    } finally {
+      setLoadingDealers(false);
+    }
+  };
   // Handle image file input change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -263,6 +290,16 @@ export default function DealerProductEdit() {
     
     fetchProducts();
   }, [id.id]);
+
+  // Watch for category changes and fetch dealers
+  useEffect(() => {
+    const categoryId = watch("category");
+    if (categoryId) {
+      fetchDealersByCategory(categoryId);
+    } else {
+      setAvailableDealers([]);
+    }
+  }, [watch("category")]);
 
   // Populate form with fetched product data
   useEffect(() => {
@@ -1493,6 +1530,111 @@ export default function DealerProductEdit() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Dealer-Level Mapping & Routing */}
+        <Card className="border-gray-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-red-600 font-semibold text-lg">
+              Dealer-Level Mapping & Routing
+            </CardTitle>
+            <p className="text-sm text-gray-500">
+              Dealer product quantity and quality
+            </p>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Available Dealers */}
+            <div className="space-y-2">
+              <Label htmlFor="availableDealers" className="text-sm font-medium">
+                Available Dealers {availableDealers.length > 0 && `(${availableDealers.length} found)`}
+              </Label>
+              <Select
+                value={watch("availableDealers") || ""}
+                onValueChange={(value) => setValue("availableDealers", value)}
+                disabled={Boolean(allowedFields && !allowedFields.includes("availableDealers"))}
+              >
+                <SelectTrigger className="bg-gray-50 border-gray-200 rounded-[8px] p-4">
+                  <SelectValue placeholder={loadingDealers ? "Loading dealers..." : "Select a dealer"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDealers.length > 0 ? (
+                    availableDealers.map((dealer) => (
+                      <SelectItem key={dealer._id} value={dealer._id}>
+                        {dealer.legal_name} ({dealer.trade_name})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-dealers" disabled>
+                      {loadingDealers ? "Loading..." : "No dealers available for this category"}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.availableDealers && (
+                <span className="text-red-500 text-sm">
+                  {errors.availableDealers.message}
+                </span>
+              )}
+            </div>
+            {/* Quantity per Dealer */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="quantityPerDealer"
+                className="text-sm font-medium"
+              >
+                Quantity per Dealer
+              </Label>
+              <Input
+                id="quantityPerDealer"
+                placeholder="Enter Quantity"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("quantityPerDealer")}
+                disabled={Boolean(allowedFields && !allowedFields.includes("quantityPerDealer"))}
+              />
+              {errors.quantityPerDealer && (
+                <span className="text-red-500 text-sm">
+                  {errors.quantityPerDealer.message}
+                </span>
+              )}
+            </div>
+            {/* Dealer Margin % */}
+            <div className="space-y-2">
+              <Label htmlFor="dealerMargin" className="text-sm font-medium">
+                Dealer Margin %
+              </Label>
+              <Input
+                id="dealerMargin"
+                placeholder="Enter Margin %"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("dealerMargin")}
+                disabled={Boolean(allowedFields && !allowedFields.includes("dealerMargin"))}
+              />
+              {errors.dealerMargin && (
+                <span className="text-red-500 text-sm">
+                  {errors.dealerMargin.message}
+                </span>
+              )}
+            </div>
+            {/* Dealer Priority Override */}
+            <div className="space-y-2">
+              <Label htmlFor="dealerPriorityOverride" className="text-sm font-medium">
+                Dealer Priority Override
+              </Label>
+              <Input
+                id="dealerPriorityOverride"
+                placeholder="Enter Priority"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("dealerPriorityOverride")}
+                disabled={Boolean(allowedFields && !allowedFields.includes("dealerPriorityOverride"))}
+              />
+              {errors.dealerPriorityOverride && (
+                <span className="text-red-500 text-sm">
+                  {errors.dealerPriorityOverride.message}
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end pt-4">
           <Button
             type="submit"

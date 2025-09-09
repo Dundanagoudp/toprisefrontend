@@ -398,8 +398,7 @@ export default function AddProducts() {
               <Label
                 htmlFor="skuCode"
                 className="text-base font-medium font-sans">
-              
-                Sku Code
+                Sku Code <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="skuCode"
@@ -456,7 +455,7 @@ export default function AddProducts() {
             {/* Product Name */}
             <div className="space-y-2">
               <Label htmlFor="productName" className="text-base font-medium font-sans">
-                Product Name
+                Product Name <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="productName"
@@ -499,7 +498,7 @@ export default function AddProducts() {
             {/* Category */}
             <div className="space-y-2">
               <Label htmlFor="category" className="text-base font-medium font-sans">
-                Category
+                Category <span className="text-red-500">*</span>
               </Label>
               <Select
                 onValueChange={(value) => setValue("category", value)}
@@ -534,7 +533,7 @@ export default function AddProducts() {
             {/* Sub-category */}
             <div className="space-y-2">
               <Label htmlFor="subCategory" className="text-base font-medium font-sans">
-                Sub-category
+                Sub-category <span className="text-red-500">*</span>
               </Label>
               <Select
                 onValueChange={(value) => setValue("sub_category", value)}
@@ -568,7 +567,7 @@ export default function AddProducts() {
             {/* Product Type (OE, OEM, Aftermarket) */}
             <div className="space-y-2">
               <Label htmlFor="productType" className="text-base font-medium font-sans">
-                Product Type
+                Product Type <span className="text-red-500">*</span>
               </Label>
               <Select
                 onValueChange={(value) => setValue("product_type", value)}
@@ -684,7 +683,7 @@ export default function AddProducts() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="make" className="text-base font-medium font-sans">
-                Make
+                Make <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="make"
@@ -702,7 +701,7 @@ export default function AddProducts() {
             {/* Model */}
             <div className="space-y-2">
               <Label htmlFor="model" className="text-base font-medium font-sans">
-                Model
+                Model <span className="text-red-500">*</span>
               </Label>
               <Select
                 onValueChange={(value) => {
@@ -775,7 +774,7 @@ export default function AddProducts() {
             {/* Variant */}
             <div className="space-y-2">
               <Label htmlFor="variant" className="text-base font-medium font-sans">
-                Variant
+                Variant <span className="text-red-500">*</span>
               </Label>
               <Select onValueChange={(value) => setValue("variant", value)}>
                 <SelectTrigger
@@ -1154,7 +1153,7 @@ export default function AddProducts() {
             {/* MRP (with GST) */}
             <div className="space-y-2">
               <Label htmlFor="mrp" className="text-base font-medium font-sans">
-                MRP (with GST)
+                MRP (with GST) <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="mrp"
@@ -1195,7 +1194,7 @@ export default function AddProducts() {
             {/* GST % */}
             <div className="space-y-2">
               <Label htmlFor="gst" className="text-base font-medium font-sans">
-                GST %
+                GST % <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="gst_percentage"
@@ -1243,7 +1242,7 @@ export default function AddProducts() {
             {/* Return Policy */}
             <div className="space-y-2">
               <Label htmlFor="returnPolicy" className="text-base font-medium font-sans">
-                Return Policy
+                Return Policy <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="returnPolicy"
@@ -1496,39 +1495,7 @@ export default function AddProducts() {
           loadingText="Adding..."
           text="Add Product"
           />
-          {/* <Button
-            type="submit"
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
-            disabled={submitLoading}
-          >
-            {submitLoading ? (
-              <span className="flex items-center gap-2">
-                <svg
-                  className="animate-spin h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8z"
-                  ></path>
-                </svg>
-                Adding...
-              </span>
-            ) : (
-              "Add Product"
-            )}
-          </Button> */}
+          
         </div>
       </form>
     </div>

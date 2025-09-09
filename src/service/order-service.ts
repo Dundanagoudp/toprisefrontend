@@ -21,6 +21,43 @@ export async function getOrderById(id: string): Promise<orderResponse> {
   }
 }
 
+// Get order statistics
+export async function getOrderStats(): Promise<{
+  success: boolean;
+  data: {
+    totalOrders: number;
+    statusCounts: {
+      Confirmed: number;
+      Assigned: number;
+      Shipped: number;
+      Delivered: number;
+      Cancelled: number;
+      Returned: number;
+    };
+    todaysOrders: number;
+    todaysStatusCounts: {
+      Confirmed: number;
+      Assigned: number;
+      Shipped: number;
+      Delivered: number;
+      Cancelled: number;
+      Returned: number;
+    };
+    dateRange: {
+      startDate: string;
+      endDate: string;
+    };
+  };
+}> {
+  try {
+    const response = await apiClient.get(`/orders/api/orders/stats`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch order statistics:", error);
+    throw error;
+  }
+}
+
 // Assign dealers to SKUs
 export async function assignDealersToOrder(payload: AssignDealersRequest): Promise<{ success: boolean; message: string }> {
   try {

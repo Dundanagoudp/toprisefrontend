@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 // Custom components and hooks
 import useDebounce from "@/utils/useDebounce"
+import { filterProductsBySearch } from "@/utils/searchUtils"
 import SearchInput from "@/components/common/search/SearchInput"
 import DynamicButton from "@/components/common/button/button"
 import DataTable from "@/components/common/table/DataTable"
@@ -342,15 +343,7 @@ export default function DealerAssignTable() {
 
     // Filter by search query
     if (searchQuery.trim() !== "") {
-      const q = searchQuery.trim().toLowerCase()
-      currentProducts = currentProducts.filter(
-        (product) =>
-          product.product_name?.toLowerCase().includes(q) ||
-          product.category?.category_name?.toLowerCase().includes(q) ||
-          product.sub_category?.subcategory_name?.toLowerCase().includes(q) ||
-          product.brand?.brand_name?.toLowerCase().includes(q) ||
-          product.product_type?.toLowerCase().includes(q),
-      )
+      currentProducts = filterProductsBySearch(currentProducts, searchQuery);
     }
 
     // Sort products
@@ -464,7 +457,7 @@ export default function DealerAssignTable() {
 
   const handleViewProduct = (id: string) => {
     setViewProductLoading(id)
-    router.push(`/dealer/dashboard/product/productdetails/${id}`)
+    router.push(`/dealer/dashboard/product/product-details/${id}`)
     setTimeout(() => setViewProductLoading(null), 1000)
   }
 

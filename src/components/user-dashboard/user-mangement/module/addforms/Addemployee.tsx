@@ -8,7 +8,7 @@ import { employeeSchema, type EmployeeFormValues } from "@/lib/schemas/employee-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { addEmployee } from "@/service/employeeServices"
 import { useToast } from "@/hooks/use-toast"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
@@ -36,6 +36,19 @@ export default function Addemployee() {
     },
   })
 
+  // Ensure form is properly reset when component mounts
+  useEffect(() => {
+    form.reset({
+      email: "",
+      username: "",
+      password: "",
+      mobileNumber: "",
+      role: "",
+      employeeId: "",
+      fullName: "",
+    })
+  }, [form])
+
   const handleFormSubmit = (data: EmployeeFormValues) => {
     setFormData(data)
     setShowConfirmation(true)
@@ -61,13 +74,22 @@ export default function Addemployee() {
       
       const response = await addEmployee(payload)
       
+      // Enhanced success notification
+      console.log("Employee created successfully, showing toast...")
       toast({
-        title: "Employee Added Successfully! 🎉",
-        description: `Employee "${formData.fullName}" has been added to the system successfully.`,
+        title: "🎉 Employee Created Successfully!",
+        description: `Employee "${formData.fullName}" (${formData.employeeId}) has been added to the system successfully. They can now log in with their credentials.`,
         variant: "default",
       })
-      form.reset()
-      setFormData(null)
+      
+      // Close confirmation dialog first
+      setShowConfirmation(false)
+      
+      // Reset form after a short delay to ensure toast is visible
+      setTimeout(() => {
+        form.reset()
+        setFormData(null)
+      }, 100)
     } catch (error: any) {
       
       // Better error handling
@@ -158,6 +180,7 @@ export default function Addemployee() {
                 placeholder="Username"
                 {...form.register("username")}
                 className="bg-gray-50 border-gray-200"
+                autoComplete="off"
               />
               {form.formState.errors.username && (
                 <p className="text-red-500 text-xs mt-1">{form.formState.errors.username.message}</p>
@@ -173,6 +196,7 @@ export default function Addemployee() {
                 placeholder="Enter Password"
                 {...form.register("password")}
                 className="bg-gray-50 border-gray-200"
+                autoComplete="new-password"
               />
               {form.formState.errors.password && (
                 <p className="text-red-500 text-xs mt-1">{form.formState.errors.password.message}</p>
@@ -211,6 +235,7 @@ export default function Addemployee() {
                 placeholder="Registered email ID"
                 {...form.register("email")}
                 className="bg-gray-50 border-gray-200"
+                autoComplete="off"
               />
               {form.formState.errors.email && (
                 <p className="text-red-500 text-xs mt-1">{form.formState.errors.email.message}</p>

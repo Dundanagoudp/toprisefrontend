@@ -8,6 +8,8 @@ export const slaViolationsService = {
     endDate?: string;
     dealerId?: string;
     groupBy?: "dealer" | "date" | "month";
+    includeDetails?: boolean;
+    includeOrderDetails?: boolean;
   }) => {
     const response = await apiClient.get("/orders/api/sla-violations/stats", {
       params,

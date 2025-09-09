@@ -1,7 +1,5 @@
-import React from 'react'
+import DealerDashboard from "@/components/dealer-dashboard/dashboard/DealerDashboard"
 
-export default function page() {
-  return (
-    <div>page</div>
-  )
+export default function DealerDashboardPage() {
+  return <DealerDashboard />
 }

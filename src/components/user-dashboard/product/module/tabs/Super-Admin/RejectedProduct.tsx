@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
+import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import Emptydata from "../../Emptydata";
@@ -63,7 +64,7 @@ export default function RejectedProduct({
 }) {
   const dispatch = useAppDispatch();
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -142,19 +143,23 @@ export default function RejectedProduct({
 
   // Selection handlers
   const handleSelectOne = (id: string) => {
-    setSelectedProducts((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-    );
+    const newSelectedProducts = selectedProducts.includes(id)
+      ? selectedProducts.filter((pid) => pid !== id)
+      : [...selectedProducts, id];
+    // Only dispatch to Redux store
+    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
   const allSelected =
     filteredProducts.length > 0 &&
-    filteredProducts.every((p: any) => selectedProducts.includes(p.id));
+    filteredProducts.every((p: any) => selectedProducts.includes(p._id));
 
   const handleSelectAll = () => {
-    setSelectedProducts(
-      allSelected ? [] : filteredProducts.map((p: any) => p.id)
-    );
+    const newSelectedProducts = allSelected
+      ? []
+      : filteredProducts.map((p: any) => p._id);
+    // Only dispatch to Redux store
+    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
   const handleEditProduct = (id: string) => {

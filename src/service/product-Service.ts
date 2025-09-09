@@ -14,40 +14,122 @@ export async function getProducts(): Promise<ProductResponse> {
 }
 export async function getProductsByPage(page: number, limit: number, status?: string, searchQuery?: string, categoryFilter?: string, subCategoryFilter?: string): Promise<ProductResponse> {
   try {
+    // Validate input parameters
+    if (page < 1) page = 1;
+    if (limit < 1) limit = 10;
+    
     let url = `/category/products/v1/get-all-products/pagination?page=${page}&limit=${limit}`;
-    if (status) {
-      url += `&status=${status}`;
+    
+    if (status && status.trim() !== "") {
+      url += `&status=${encodeURIComponent(status.trim())}`;
     }
+    
     if (searchQuery && searchQuery.trim() !== "") {
-      url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+      // Sanitize search query to prevent potential issues
+      const sanitizedQuery = searchQuery.trim().replace(/[<>]/g, '');
+      if (sanitizedQuery.length > 0) {
+        url += `&search=${encodeURIComponent(sanitizedQuery)}`;
+      }
     }
+    
     if (categoryFilter && categoryFilter.trim() !== "") {
       url += `&category=${encodeURIComponent(categoryFilter.trim())}`;
     }
+    
     if (subCategoryFilter && subCategoryFilter.trim() !== "") {
       url += `&subCategory=${encodeURIComponent(subCategoryFilter.trim())}`;
     }
+    
     console.log("API URL for getProductsByPage:", url);
+    console.log("Search parameters - searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+    
     const response = await apiClient.get(url);
     console.log("API response for getProductsByPage:", response.data);
+    
+    // Validate response structure
+    if (!response.data) {
+      throw new Error("Invalid API response: No data received");
+    }
+    
     return response.data;
-  } catch (error) {
-    console.error(" Failed to fetch products:", error);
+  } catch (error: any) {
+    console.error("Failed to fetch products:", error);
+    
+    // Return a safe fallback response structure
+    const fallbackResponse: ProductResponse = {
+      success: false,
+      message: error.message || "Failed to fetch products",
+      data: {
+        products: [],
+        pagination: {
+          currentPage: page,
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: limit,
+          hasNextPage: false,
+          hasPreviousPage: page > 1
+        }
+      }
+    };
+    
+    // If it's a network error or server error, return fallback
+    if (error.code === 'NETWORK_ERROR' || error.response?.status >= 500) {
+      return fallbackResponse;
+    }
+    
+    // For other errors, still throw to let the component handle it
     throw error;
   }
 }
 //get products by dealer added
-export async function getDealerProductsByPage(page: number, limit: number,status?:string): Promise<ProductResponse> {
+export async function getDealerProductsByPage(page: number, limit: number, status?: string): Promise<ProductResponse> {
   try {
-       let url = `/category/products/v1/getProducts/byDealer?pageNumber=${page}&limitNumber=${limit}`;
+    // Get dealer ID from token
+    const { getAuthToken } = await import("@/utils/auth");
+    const token = getAuthToken();
+    let dealerId = null;
+    
+    console.log("[getDealerProductsByPage] Starting dealer ID extraction...");
+    
+    if (token) {
+      try {
+        const payloadBase64 = token.split(".")[1];
+        if (payloadBase64) {
+          const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+          const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+          const payloadJson = atob(paddedBase64);
+          const payload = JSON.parse(payloadJson);
+          
+          console.log("[getDealerProductsByPage] Token payload:", payload);
+          
+          // Try dealerId, fallback to id
+          dealerId = payload.dealerId || payload.id;
+          console.log(`[getDealerProductsByPage] Extracted dealer ID: ${dealerId} (from ${payload.dealerId ? 'dealerId' : 'id'})`);
+        }
+      } catch (err) {
+        console.error("Failed to decode token for dealerId:", err);
+      }
+    } else {
+      console.error("[getDealerProductsByPage] No authentication token found");
+    }
+    
+    if (!dealerId) {
+      throw new Error("Dealer ID not found in token");
+    }
+
+    let url = `/category/products/v1/getProducts/byDealer/${dealerId}?pageNumber=${page}&limitNumber=${limit}`;
     if (status) {
       url += `&status=${status}`;
-    
     }
+    
+    console.log(`[getDealerProductsByPage] Fetching products for dealer ID: ${dealerId}`);
+    console.log(`[getDealerProductsByPage] API URL: ${url}`);
+    
     const response = await apiClient.get(url);
+    console.log(`[getDealerProductsByPage] Successfully fetched products for dealer ${dealerId}`);
     return response.data;
   } catch (error) {
-    console.error(" Failed to fetch products:", error);
+    console.error("Failed to fetch products:", error);
     throw error;
   }
 }

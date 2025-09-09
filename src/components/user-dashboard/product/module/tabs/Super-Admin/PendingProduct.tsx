@@ -73,7 +73,7 @@ export default function PendingProduct({
 }) {
   const dispatch = useAppDispatch();
   const { showToast } = useGlobalToast();
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
   const [totalProducts, setTotalProducts] = useState<number>(0);
@@ -99,17 +99,33 @@ export default function PendingProduct({
           categoryFilter,
           subCategoryFilter
         );
-        if (response.data) {
-          setPaginatedProducts(response.data.products || []);
-          setTotalProducts(response.data.pagination?.totalItems || 0);
-          setTotalPages(response.data.pagination?.totalPages || 0);
+        
+        // Handle response safely
+        if (response && response.data) {
+          const products = Array.isArray(response.data.products) ? response.data.products : [];
+          const pagination = response.data.pagination || {};
+          
+          setPaginatedProducts(products);
+          setTotalProducts(pagination.totalItems || 0);
+          setTotalPages(pagination.totalPages || 0);
         } else {
-          console.error("Unexpected API response structure:", response.data);
-          showToast("Unexpected API response structure", "error");
+          console.error("Unexpected API response structure:", response);
+          setPaginatedProducts([]);
+          setTotalProducts(0);
+          setTotalPages(0);
+          showToast("No products found", "info");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to fetch products:", error);
-        showToast("Failed to fetch products", "error");
+        
+        // Set safe fallback values
+        setPaginatedProducts([]);
+        setTotalProducts(0);
+        setTotalPages(0);
+        
+        // Show appropriate error message
+        const errorMessage = error.message || "Failed to fetch products";
+        showToast(errorMessage, "error");
       } finally {
         setLoadingProducts(false);
       }
@@ -186,7 +202,7 @@ export default function PendingProduct({
     const newSelectedProducts = selectedProducts.includes(id)
       ? selectedProducts.filter((pid) => pid !== id)
       : [...selectedProducts, id];
-    setSelectedProducts(newSelectedProducts);
+    // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
@@ -238,7 +254,7 @@ export default function PendingProduct({
       const newSelectedProducts = selectedProducts.filter(
         (id) => !filteredProducts.some((product: any) => product._id === id)
       );
-      setSelectedProducts(newSelectedProducts);
+      // Only dispatch to Redux store
       dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
     } else {
       const filteredProductIds = filteredProducts.map(
@@ -247,7 +263,7 @@ export default function PendingProduct({
       const newSelectedProducts = Array.from(
         new Set([...selectedProducts, ...filteredProductIds])
       );
-      setSelectedProducts(newSelectedProducts);
+      // Only dispatch to Redux store
       dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
     }
   };

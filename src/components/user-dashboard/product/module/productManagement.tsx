@@ -90,8 +90,18 @@ const getStatusColor = (status: string) => {
 
 
   const performSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    setIsSearching(false);
+    try {
+      console.log("ProductManagement: performSearch called with query:", query);
+      
+      // Sanitize the search query
+      const sanitizedQuery = query ? query.trim() : "";
+      setSearchQuery(sanitizedQuery);
+      setIsSearching(false);
+    } catch (error) {
+      console.error("Error in performSearch:", error);
+      setSearchQuery("");
+      setIsSearching(false);
+    }
   }, []);
   useEffect(() => {
     const loadSubCategories = async () => {
@@ -112,11 +122,21 @@ const getStatusColor = (status: string) => {
    setUploadDealerBulkLoading(false);
   };
   const { debouncedCallback: debouncedSearch, cleanup: cleanupDebounce } =
-    useDebounce(performSearch, 500);
+    useDebounce(performSearch, 300);
   const handleSearchChange = (value: string) => {
-    setSearchInput(value);
-    setIsSearching(value.trim() !== "");
-    debouncedSearch(value);
+    try {
+      console.log("ProductManagement: handleSearchChange called with value:", value);
+      
+      // Sanitize input value
+      const sanitizedValue = value || "";
+      setSearchInput(sanitizedValue);
+      setIsSearching(sanitizedValue.trim() !== "");
+      debouncedSearch(sanitizedValue);
+    } catch (error) {
+      console.error("Error in handleSearchChange:", error);
+      setSearchInput("");
+      setIsSearching(false);
+    }
   };
   const handleDownload = async () => {
     try {
@@ -153,6 +173,11 @@ const getStatusColor = (status: string) => {
       setActiveTab("Created");
     }
   }, [showRequestsView]);
+
+  // Debug: Monitor searchQuery changes
+  useEffect(() => {
+    console.log("ProductManagement: searchQuery changed to:", searchQuery);
+  }, [searchQuery]);
 
   const handleUploadBulk = () => {
     setBulkMode("upload");
@@ -274,6 +299,8 @@ const handleBulkReject = useCallback(() => {
     const TabComponent = currentTabConfig.component;
     if (!TabComponent) return null;
     
+    console.log("ProductManagement: renderTabContent - searchQuery:", searchQuery, "activeTab:", activeTab);
+    
     if (showRequestsView && currentTabConfig.id === "Requests") {
       return <TabComponent searchQuery={searchQuery} />;
     }
@@ -286,7 +313,7 @@ const handleBulkReject = useCallback(() => {
         subCategoryFilter={selectedSubCategoryName || undefined}
       />
     );
-  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName, selectedSubCategoryName, showRequestsView]);
+  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName, selectedSubCategoryName, showRequestsView, activeTab]);
 
   return (
     <div className="w-full ">

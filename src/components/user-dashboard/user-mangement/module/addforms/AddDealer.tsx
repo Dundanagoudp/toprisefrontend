@@ -70,12 +70,47 @@ export default function AddDealer() {
     fetchCategories()
   }, [])
 
+  // Ensure form is properly reset when component mounts
+  useEffect(() => {
+    form.reset({
+      email: "",
+      password: "",
+      phone_Number: "",
+      legal_name: "",
+      trade_name: "",
+      GSTIN: "",
+      Pan: "",
+      Address: {
+        street: "",
+        city: "",
+        pincode: "",
+        state: "",
+      },
+      contact_person: {
+        name: "",
+        email: "",
+        phone_number: "",
+      },
+      categories_allowed: [],
+      upload_access_enabled: true,
+      default_margin: 15,
+      last_fulfillment_date: new Date().toISOString(),
+      assigned_Toprise_employee: [],
+      SLA_type: "Standard",
+      dealer_dispatch_time: 72,
+      onboarding_date: new Date().toISOString().split("T")[0],
+      remarks: "",
+    })
+  }, [form])
+
   const fetchUsers = async () => {
     setIsLoadingData(true)
     try {
       const usersResponse = await getAllUsers()
       if (usersResponse.success) {
-        setUsers(usersResponse.data)
+        // Keep only Fulfillment-Staff employees
+        const fulfillmentStaff = (usersResponse.data || []).filter((u: any) => u?.role === "Fulfillment-Staff")
+        setUsers(fulfillmentStaff)
       }
     } catch (error) {
       showToast("Failed to load users. Please refresh the page.", "error");
@@ -109,7 +144,13 @@ export default function AddDealer() {
       const safeData = { ...formData, password: formData.password ?? "", remarks: formData.remarks ?? "" };
       const response = await createDealer(safeData)
       if (response.success) {
-        showToast("Dealer created successfully", "success");
+        // Enhanced success notification
+        showToast(`Dealer "${formData.legal_name}" (${formData.trade_name}) has been created successfully! They can now log in and start using the platform. 🎉`, "success");
+        
+        // Close confirmation dialog
+        setShowConfirmDialog(false);
+        
+        // Redirect after showing success message
         setTimeout(() => {
           router.push("/user/dashboard/user");
         }, 2000);
@@ -169,7 +210,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="email" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input placeholder="email" {...field} className="bg-gray-50 border-gray-200" autoComplete="off" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -187,6 +228,7 @@ export default function AddDealer() {
                         placeholder="Enter password"
                         {...field}
                         className="bg-gray-50 border-gray-200"
+                        autoComplete="new-password"
                       />
                     </FormControl>
                     <FormMessage />
@@ -200,7 +242,19 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Phone Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="phone_Number" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="phone_Number"
+                        maxLength={15}
+                        {...field}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, "");
+                          field.onChange(digitsOnly);
+                        }}
+                        className="bg-gray-50 border-gray-200"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -328,7 +382,19 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Pincode</FormLabel>
                     <FormControl>
-                      <Input placeholder="pincode" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="pincode"
+                        maxLength={6}
+                        {...field}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, "");
+                          field.onChange(digitsOnly);
+                        }}
+                        className="bg-gray-50 border-gray-200"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -377,7 +443,19 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Contact Person Phone</FormLabel>
                     <FormControl>
-                      <Input placeholder="phone_number" {...field} className="bg-gray-50 border-gray-200" />
+                      <Input
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="phone_number"
+                        maxLength={15}
+                        {...field}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, "");
+                          field.onChange(digitsOnly);
+                        }}
+                        className="bg-gray-50 border-gray-200"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

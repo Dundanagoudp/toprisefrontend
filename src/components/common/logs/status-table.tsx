@@ -116,21 +116,47 @@ export default function statusTable() {
   useEffect(() => {
     async function handleUploadLogs() {
       try {
+        setLoading(true);
         const response = await uploadLogs();
-        if (response) {
-          console.log("Logs uploaded successfully:", response.data);
+        if (response && response.data) {
+          console.log("Logs fetched successfully:", response.data);
           setUploadMessage(response.data);
           setLogs(response.data.products || []);
         } else {
-          console.error("Failed to upload logs");
+          console.error("Failed to fetch logs - no data received");
+          setLogs([]);
         }
       } catch (error) {
-        console.error("Failed to upload logs", error);
+        console.error("Failed to fetch logs", error);
+        setLogs([]);
+      } finally {
+        setLoading(false);
       }
     }
 
     handleUploadLogs();
   }, []);
+
+  // Function to refresh logs
+  const refreshLogs = async () => {
+    try {
+      setLoading(true);
+      const response = await uploadLogs();
+      if (response && response.data) {
+        console.log("Logs refreshed successfully:", response.data);
+        setUploadMessage(response.data);
+        setLogs(response.data.products || []);
+      } else {
+        console.error("Failed to refresh logs - no data received");
+        setLogs([]);
+      }
+    } catch (error) {
+      console.error("Failed to refresh logs", error);
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle search input change
   const handleSearchChange = (value: string) => {
@@ -145,12 +171,12 @@ export default function statusTable() {
     setSearchQuery("");
     setIsSearching(false);
   };
-  // Use uploadMessage if it has data, otherwise fallback to tableData
-  const rows =
-    uploadMessage && uploadMessage.products && uploadMessage.products.length > 0 
+  // Use logs data if available, otherwise fallback to uploadMessage, then tableData
+  const rows = logs && logs.length > 0 
+    ? logs 
+    : (uploadMessage && uploadMessage.products && uploadMessage.products.length > 0 
       ? uploadMessage.products 
-      : tableData;
-  const rowToShow = logs ? (Array.isArray(logs) ? logs : []) : rows;
+      : tableData);
 
   // Calculate totals
   const uploadedCount = rows.filter(
@@ -184,7 +210,13 @@ export default function statusTable() {
                   {` Rejected : ${rejectedCount}`}
                 </span>
               </div>
-              <div>
+              <div className="flex gap-2">
+                <DynamicButton 
+                  variant="outline" 
+                  text={loading ? "Refreshing..." : "Refresh"} 
+                  onClick={refreshLogs}
+                  disabled={loading}
+                />
                 <DynamicButton variant="default" text="Done" onClick={() => router.push('/user/dashboard/product')} />
               </div>
             </div>
@@ -193,6 +225,29 @@ export default function statusTable() {
 
         <CardContent className="px-4">
           <div className=" bg-white shadow-sm">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                <span className="ml-2 text-gray-600">Loading logs...</span>
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No logs found</h3>
+                <p className="text-gray-500 text-center mb-4">
+                  No product upload logs are available yet. Upload some products to see logs here.
+                </p>
+                <DynamicButton 
+                  variant="default" 
+                  text="Refresh" 
+                  onClick={refreshLogs}
+                />
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow className="bg-transparent">
@@ -316,6 +371,7 @@ export default function statusTable() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </div>
         </CardContent>
       </Card>

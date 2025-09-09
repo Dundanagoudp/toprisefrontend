@@ -187,3 +187,63 @@ export const getPermissionsByModuleUserAndRole = async (
   )
   return response.data
 }
+
+// Dealer Permissions Endpoints
+/**
+ * Adds permissions for specific dealers to a module.
+ * This corresponds to the POST /api/users/api/permissionMatrix/permissions endpoint.
+ * @param data The request body containing module, role, userIds, and permissions.
+ * @returns A promise that resolves to the AddPermissionsResponse.
+ */
+export const addDealerPermissions = async (data: {
+  module: string
+  role: string
+  userIds: string[]
+  permissions: {
+    allowedFields: string[]
+    read: boolean
+    write: boolean
+    update: boolean
+    delete: boolean
+  }
+}): Promise<AddPermissionsResponse> => {
+  const response = await apiClient.post<AddPermissionsResponse>(`${BASE_PATH}/permissions`, data)
+  return response.data
+}
+
+/**
+ * Updates permissions for specific dealers in a module.
+ * This corresponds to the PUT /api/users/api/permissionMatrix/permissions/update endpoint.
+ * @param data The request body containing module, role, userIds, and permissions.
+ * @returns A promise that resolves to the UpdateUserPermissionsResponse.
+ */
+export const updateDealerPermissions = async (data: {
+  module: string
+  role: string
+  userIds: string[]
+  permissions: {
+    allowedFields: string[]
+    read: boolean
+    write: boolean
+    update: boolean
+    delete: boolean
+  }
+}): Promise<UpdateUserPermissionsResponse> => {
+  const response = await apiClient.put<UpdateUserPermissionsResponse>(`${BASE_PATH}/permissions/update`, data)
+  return response.data
+}
+
+/**
+ * Removes permissions for specific dealers from a module.
+ * This corresponds to the DELETE /api/users/api/permissionMatrix/permissions/remove endpoint.
+ * @param data The request body containing module, role, and userIds.
+ * @returns A promise that resolves to the RemoveUserPermissionsResponse.
+ */
+export const removeDealerPermissions = async (data: {
+  module: string
+  role: string
+  userIds: string[]
+}): Promise<RemoveUserPermissionsResponse> => {
+  const response = await apiClient.delete<RemoveUserPermissionsResponse>(`${BASE_PATH}/permissions/remove`, { data })
+  return response.data
+}

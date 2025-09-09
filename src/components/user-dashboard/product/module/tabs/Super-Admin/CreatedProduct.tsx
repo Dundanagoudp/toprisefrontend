@@ -72,8 +72,8 @@ export default function CreatedProduct({
 }) {
   const dispatch = useAppDispatch();
   const [paginatedproducts, setPaginatedProducts] = useState<any[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const auth = useAppSelector((state) => state.auth.user);
+  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const { showToast } = useGlobalToast();
@@ -112,7 +112,7 @@ export default function CreatedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        console.log("CreatedProduct: Fetching products with status:", "Created");
+        console.log("CreatedProduct: Fetching products with status:", "Created", "searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
         const res = await getProductsByPage(
           currentPage, 
           itemsPerPage, 
@@ -265,7 +265,7 @@ export default function CreatedProduct({
         filteredProducts.some((product) => product._id === id)
       );
       if (validSelections.length !== selectedProducts.length) {
-        setSelectedProducts(validSelections);
+        // Only dispatch to Redux store
         dispatch(fetchProductIdForBulkActionSuccess(validSelections));
       }
     }
@@ -285,8 +285,7 @@ export default function CreatedProduct({
     const newSelectedProducts = selectedProducts.includes(id)
       ? selectedProducts.filter((pid) => pid !== id)
       : [...selectedProducts, id];
-    setSelectedProducts(newSelectedProducts);
-    // Always dispatch as array of product IDs
+    // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
@@ -298,8 +297,7 @@ export default function CreatedProduct({
     const newSelectedProducts = allSelected
       ? []
       : filteredProducts.map((p: any) => p._id);
-    setSelectedProducts(newSelectedProducts);
-    // Always dispatch as array of product IDs
+    // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 

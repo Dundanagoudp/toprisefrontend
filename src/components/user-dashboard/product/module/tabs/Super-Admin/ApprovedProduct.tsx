@@ -76,7 +76,7 @@ export default function ApprovedProduct({
   // Use the correct state for products with live status
 
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
@@ -94,7 +94,7 @@ export default function ApprovedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        console.log("ApprovedProduct: Fetching products with status:", "Approved");
+        console.log("ApprovedProduct: Fetching products with status:", "Approved", "searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
         const res = await getProductsByPage(
           currentPage,
           itemsPerPage,
@@ -168,8 +168,7 @@ export default function ApprovedProduct({
     const newSelectedProducts = selectedProducts.includes(id)
       ? selectedProducts.filter((pid) => pid !== id)
       : [...selectedProducts, id];
-    setSelectedProducts(newSelectedProducts);
-    // Always dispatch as array of product IDs
+    // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
@@ -181,8 +180,7 @@ export default function ApprovedProduct({
     const newSelectedProducts = allSelected
       ? []
       : filteredProducts.map((p: any) => p._id);
-    setSelectedProducts(newSelectedProducts);
-    // Always dispatch as array of product IDs
+    // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
