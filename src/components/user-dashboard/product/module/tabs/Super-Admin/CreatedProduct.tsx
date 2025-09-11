@@ -379,7 +379,7 @@ export default function CreatedProduct({
       await updateProductStock(productId, newStock, reason);
       showToast("Stock updated successfully", "success");
       // Refresh products list
-      fetchProducts();
+     
     } catch (error) {
       console.error("Failed to update stock:", error);
       showToast("Failed to update stock", "error");
@@ -395,7 +395,7 @@ export default function CreatedProduct({
       }
       showToast(`Dealers ${action === 'assign' ? 'assigned' : 'unassigned'} successfully`, "success");
       // Refresh products list
-      fetchProducts();
+    
     } catch (error) {
       console.error("Failed to update dealer assignment:", error);
       showToast("Failed to update dealer assignment", "error");

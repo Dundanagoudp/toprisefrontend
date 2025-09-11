@@ -1,10 +1,12 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import React from "react"
+import { useRouter } from "next/navigation"
 import { getCategories } from "@/service/product-Service"
 import type { Category as ProductCategory } from "@/types/product-Types"
 
 export default function CategorySection() {
+  const router = useRouter()
   const [categories, setCategories] = React.useState<ProductCategory[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || ""
@@ -15,12 +17,18 @@ export default function CategorySection() {
     return `${filesOrigin}${path.startsWith("/") ? "" : "/"}${path}`
   }, [filesOrigin])
 
+  const handleCategoryClick = (category: ProductCategory) => {
+    if (category._id) {
+      router.push(`/shop/category/${category._id}`)
+    }
+  }
+
   React.useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
         const res = await getCategories()
-        // ApiResponse<{Category[]}> -> use data fallback
+       
         const items = (res?.data ?? []) as ProductCategory[]
         setCategories(items)
       } catch (e) {
@@ -42,6 +50,7 @@ export default function CategorySection() {
             <div
               key={category?._id ?? idx}
               className="flex-shrink-0 bg-white rounded-lg border border-gray-200 p-8 hover:shadow-lg transition-shadow cursor-pointer min-w-[240px] min-h-[240px] text-center flex flex-col items-center justify-center"
+              onClick={() => category?._id && handleCategoryClick(category)}
             >
               <div className="mb-4 flex justify-center">
                 <img

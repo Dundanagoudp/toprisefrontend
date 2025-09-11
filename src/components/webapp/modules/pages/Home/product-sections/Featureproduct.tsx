@@ -78,8 +78,7 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
     
     try {
       await addItemToCart(productId, 1)
-      showToast("Product added to cart successfully", "success")
-      console.log("Product added to cart:", productId)
+
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error")
@@ -188,7 +187,7 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
                   )}
                 </div>
 
-                <DynamicButton className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2"
+                <DynamicButton className="w-full  text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2"
                 text="Add"
                 icon={<ShoppingCart className="w-4 h-4" />}
                 onClick={(e) => {
