@@ -8,7 +8,16 @@ import { useCart } from "@/hooks/use-cart"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 
-export default function FeaturedProducts() {
+interface FeaturedProductsProps {
+  filters?: {
+    brand?: string;
+    model?: string;
+    variant?: string;
+    year?: string;
+  };
+}
+
+export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps) {
   const [products, setProducts] = React.useState<ProductType[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
   const [currentPage, setCurrentPage] = React.useState<number>(1)
@@ -28,11 +37,27 @@ export default function FeaturedProducts() {
   const handleProductClick = (productId: string) => {
     router.push(`/shop/product/${productId}`)
   }
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [filters])
+
   React.useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const res = await getProductsByPage(currentPage, pageSize, "Approved")
+        // Build search query from filters
+        let searchQuery = ""
+        if (filters.brand || filters.model || filters.variant || filters.year) {
+          const filterParts = []
+          if (filters.brand) filterParts.push(`brand:${filters.brand}`)
+          if (filters.model) filterParts.push(`model:${filters.model}`)
+          if (filters.variant) filterParts.push(`variant:${filters.variant}`)
+          if (filters.year) filterParts.push(`year:${filters.year}`)
+          searchQuery = filterParts.join(" ")
+        }
+
+        const res = await getProductsByPage(currentPage, pageSize, "Approved", searchQuery)
         console.log("productid ", res?.data?.products?.[0]?._id)
         const items = (res?.data?.products ?? []) as ProductType[]
         setProducts(items)
@@ -46,7 +71,7 @@ export default function FeaturedProducts() {
       }
     }
     fetchData()
-  }, [currentPage])
+  }, [currentPage, filters])
 
   const handleSubmit = async (productId: string) => {
     if (!productId) return

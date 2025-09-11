@@ -263,40 +263,45 @@ export default function DealerAssignTable() {
       setLoadingProducts(true);
       setLoadingPermission(true);
       try {
-        // Get dealerId using the same logic as getProductsByDealerId
+        // Get dealerId and userId using the same logic as getProductsByDealerId
         let dealerId = undefined;
+        let userId = undefined;
         try {
           const { getCookie, getAuthToken } = await import("@/utils/auth");
           dealerId = getCookie("dealerId");
-          if (!dealerId) {
-            const token = getAuthToken();
-            if (token) {
-              const payloadBase64 = token.split(".")[1];
-              if (payloadBase64) {
-                const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
-                const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-                const payloadJson = atob(paddedBase64);
-                const payload = JSON.parse(payloadJson);
-                dealerId = payload.dealerId || payload.id;
-              }
+          const token = getAuthToken();
+          if (token) {
+            const payloadBase64 = token.split(".")[1];
+            if (payloadBase64) {
+              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+              const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+              const payloadJson = atob(paddedBase64);
+              const payload = JSON.parse(payloadJson);
+              dealerId = dealerId || payload.dealerId || payload.id;
+              userId = payload.id || payload.userId; // Get the actual user ID for permission check
             }
           }
         } catch (err) {
-          console.error("Failed to get dealerId for permission check:", err);
+          console.error("Failed to get dealerId/userId for permission check:", err);
         }
         if (!dealerId) {
           throw new Error("Dealer ID not found in cookie, argument, or token");
         }
-        // Fetch permissions
-        const permissionRes = await checkDealerProductPermission(dealerId);
+        if (!userId) {
+          throw new Error("User ID not found in token for permission check");
+        }
+        // Fetch permissions using userId (not dealerId)
+        console.log("Checking permissions for userId:", userId, "dealerId:", dealerId);
+        const permissionRes = await checkDealerProductPermission(userId);
+        console.log("Permission response:", permissionRes);
         setPermission(permissionRes);
-        // Fetch products
+        // Fetch products using dealerId
         const fetchedProducts = await getProductsByDealerId(dealerId);
         setProducts(fetchedProducts);
       } catch (error: any) {
         console.error("Failed to fetch products or permissions:", error);
-        if (typeof error?.message === 'string' && error.message.includes('Dealer ID not found')) {
-          showToast("Dealer ID missing. Please log out and log in again to refresh your session.", "error");
+        if (typeof error?.message === 'string' && error.message.includes('ID not found')) {
+          showToast("Session expired. Please log out and log in again to refresh your session.", "error");
         } else {
           showToast("Failed to load products or permissions.", "error");
         }

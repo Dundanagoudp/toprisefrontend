@@ -16,6 +16,7 @@ import RemoveCategoriesModal from "./addforms/RemoveCategoriesModal"
 import { useAppSelector } from "@/store/hooks"
 import AssignStaffPopup from "./assignpop/AssignStaff"
 import RemoveStaffPopup from "./assignpop/RemoveStaff"
+import ExportButton from "./ExportButton"
 
 interface DealertableProps {
   search?: string
@@ -392,6 +393,16 @@ export default function Dealertable({
 
   return (
     <div className="overflow-x-auto">
+      {/* Export Button */}
+      <div className="mb-4 flex justify-end">
+        <ExportButton
+          data={filteredDealers}
+          dataType="dealers"
+          disabled={loading || filteredDealers.length === 0}
+          className="bg-[#C72920] hover:bg-[#A0221C] text-white"
+        />
+      </div>
+      
       <table className="w-full min-w-[1000px] max-w-full">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">

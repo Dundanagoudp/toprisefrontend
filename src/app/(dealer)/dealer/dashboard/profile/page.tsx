@@ -1,10 +1,10 @@
-import Dealerprofile from '@/components/dealer-dashboard/dealer-profile/Dealerprofile'
+import DealerProfileDetails from '@/components/dealer-dashboard/profile/DealerProfileDetails'
 import React from 'react'
 
 export default function page() {
   return (
-    <div>
-      <Dealerprofile />
+    <div className="p-6">
+      <DealerProfileDetails />
     </div>
   )
 }

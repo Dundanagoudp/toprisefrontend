@@ -128,17 +128,17 @@ export default function ApprovedProduct({
 
   // Filter products by approved live status and search query
 
-  const filteredProducts = React.useMemo(() => {
-    if (!paginatedProducts) return [];
+  const sortedProducts = React.useMemo(() => {
+    if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
 
-    let filtered = [...paginatedProducts];
+    // If no sorting is applied, return products as-is
+    if (!sortField) return paginatedProducts;
 
-    // Note: Search filtering is now handled by the API
-    // This memo now only handles sorting since filtering is done server-side
+    let sorted = [...paginatedProducts];
 
     // Sort
     if (sortField === "product_name") {
-      filtered.sort((a, b) => {
+      sorted.sort((a, b) => {
         const nameA = a.product_name?.toLowerCase() || "";
         const nameB = b.product_name?.toLowerCase() || "";
         if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
@@ -146,7 +146,7 @@ export default function ApprovedProduct({
         return 0;
       });
     } else if (sortField === "mrp_with_gst") {
-      filtered.sort((a, b) => {
+      sorted.sort((a, b) => {
         const priceA = Number(a.mrp_with_gst) || 0;
         const priceB = Number(b.mrp_with_gst) || 0;
         if (priceA < priceB) return sortDirection === "asc" ? -1 : 1;
@@ -155,13 +155,13 @@ export default function ApprovedProduct({
       });
     }
 
-    return filtered;
+    return sorted;
   }, [paginatedProducts, sortField, sortDirection]);
 
-  // Update total products count when filtered products change
+  // Update total products count when sorted products change
   useEffect(() => {
-    setTotalProducts(filteredProducts.length);
-  }, [filteredProducts]);
+    setTotalProducts(sortedProducts.length);
+  }, [sortedProducts]);
 
   // Selection handlers
   const handleSelectOne = (id: string) => {
@@ -173,13 +173,13 @@ export default function ApprovedProduct({
   };
 
   const allSelected =
-    filteredProducts.length > 0 &&
-    filteredProducts.every((p: any) => selectedProducts.includes(p.id));
+    sortedProducts.length > 0 &&
+    sortedProducts.every((p: any) => selectedProducts.includes(p.id));
 
   const handleSelectAll = () => {
     const newSelectedProducts = allSelected
       ? []
-      : filteredProducts.map((p: any) => p._id);
+      : sortedProducts.map((p: any) => p._id);
     // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
@@ -239,7 +239,7 @@ export default function ApprovedProduct({
   };
 
   // Empty state
-  if (!loadingProducts && (filteredProducts.length === 0)) {
+  if (!loadingProducts && (sortedProducts.length === 0)) {
     return <Emptydata />;
   }
 
@@ -349,7 +349,7 @@ export default function ApprovedProduct({
                 </TableRow>
               ))
             : // Original content when not loading
-              filteredProducts.map((product: any, index: number) => (
+              sortedProducts.map((product: any, index: number) => (
                 <TableRow
                   key={product._id}
                   className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${

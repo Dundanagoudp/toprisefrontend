@@ -53,6 +53,7 @@ import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog";
 import CompletePickupDialog from "./modules/modalpopus/CompletePickupDialog";
 import InspectDialog from "./modules/modalpopus/inspectDialog";
 import InitiateRefundForm from "./modules/modalpopus/InitiateReturn";
+import ReturnStatsCards from "./ReturnStatsCards";
 
 export default function ReturnClaims() {
   const router = useRouter();
@@ -384,6 +385,9 @@ export default function ReturnClaims() {
       <Card className="shadow-sm rounded-none">
         {/* Header: Search and Filters */}
         <CardHeader className="space-y-4 sm:space-y-6">
+          {/* Return Statistics Cards */}
+          <ReturnStatsCards returnRequests={returnRequests} className="mb-6" />
+          
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 py-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1">
               <div className="relative flex-1 w-full sm:max-w-md">

@@ -432,6 +432,14 @@ export default function OrderDetailsView() {
       gst: sku.gst || orderData.GST || 0,
       totalPrice: sku.totalPrice || sku.quantity * (sku.mrp || 0), // Calculate if not provided
       _id: sku._id,
+      // Add tracking information
+      tracking_info: sku.tracking_info || { status: "Pending" },
+      return_info: sku.return_info || { is_returned: false, return_id: null },
+      dealerMapped: sku.dealerMapped || [],
+      gst_percentage: sku.gst_percentage || "0",
+      mrp_gst_amount: sku.mrp_gst_amount || 0,
+      gst_amount: sku.gst_amount || 0,
+      product_total: sku.product_total || 0,
     }));
   };
 

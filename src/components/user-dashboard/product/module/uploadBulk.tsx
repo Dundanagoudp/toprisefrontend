@@ -15,6 +15,7 @@ import {
 import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
 import { uploadDealerBulk } from "@/service/dealerServices";
+import { uploadLogStorage, createStoredUploadLog, type UploadLogResponse } from "@/service/uploadLogService";
 
 
 interface UploadBulkCardProps {
@@ -147,6 +148,23 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
         }
 
         if (response) {
+          // Store the detailed upload log data
+          try {
+            console.log('API Response received:', response);
+            const uploadType = mode === 'edit' ? 'bulk_edit' : mode === 'uploadDealer' ? 'dealer_upload' : 'bulk_upload';
+            const storedLog = createStoredUploadLog(
+              response as UploadLogResponse,
+              uploadType,
+              auth?.email || 'Unknown User'
+            );
+            
+            uploadLogStorage.setLog(storedLog.id, storedLog);
+            console.log('Upload log stored successfully:', storedLog);
+          } catch (error) {
+            console.error('Failed to store upload log:', error);
+            console.error('Response that failed:', response);
+          }
+
           setUploadMessage('✅ ' + (response.message || (mode === 'edit' ? 'Products updated successfully!' : mode === 'uploadDealer' ? 'Dealer products uploaded successfully!' : 'Products uploaded successfully!')));
           setImageZipFile(null);
           setCsvFile(null);
@@ -159,8 +177,6 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
             } else {
               route.push(`/user/dashboard/product/Logs`);
             }
-            // Trigger a page refresh to show updated logs
-            window.location.reload();
           }, 1500);
          
         } else {

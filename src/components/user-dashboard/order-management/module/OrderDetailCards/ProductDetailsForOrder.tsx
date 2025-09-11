@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ChevronDown, Edit, Package, HandHeart, Truck, UserCheck, Eye, MoreHorizontal } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ChevronDown, Edit, Package, HandHeart, Truck, UserCheck, Eye, MoreHorizontal, Info, ChevronRight } from "lucide-react"
 import { DynamicButton } from "@/components/common/button"
 import CreatePicklist from "./CreatePicklist"
 import { useToast as GlobalToast } from "@/components/ui/toast"
@@ -23,6 +24,19 @@ interface ProductItem {
   gst: number | string 
   totalPrice: number
   image?: string
+  // Tracking information
+  tracking_info?: {
+    status: string
+  }
+  return_info?: {
+    is_returned: boolean
+    return_id: string | null
+  }
+  dealerMapped?: any[]
+  gst_percentage?: string
+  mrp_gst_amount?: number
+  gst_amount?: number
+  product_total?: number
 }
 
 interface ProductDetailsForOrderProps {
@@ -46,6 +60,7 @@ export default function ProductDetailsForOrder({
   const [dealerId, setDealerId] = useState("")
   const [createPicklistOpen, setCreatePicklistOpen] = useState(false)
   const [activeProductForPicklist, setActiveProductForPicklist] = useState<ProductItem | null>(null)
+  const [expandedTracking, setExpandedTracking] = useState<Set<string>>(new Set())
   // Remove per-product mark packed state - now works per order
   const { showToast } = GlobalToast()
   const auth = useAppSelector((state) => state.auth.user)
@@ -73,6 +88,37 @@ export default function ProductDetailsForOrder({
     return 0
   }
 
+  // Helper function to get status badge classes
+  const getStatusBadgeClasses = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'processing':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'shipped':
+        return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'delivered':
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-200'
+      case 'returned':
+        return 'bg-orange-100 text-orange-800 border-orange-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  // Helper function to toggle tracking expansion
+  const toggleTrackingExpansion = (productId: string) => {
+    const newExpanded = new Set(expandedTracking)
+    if (newExpanded.has(productId)) {
+      newExpanded.delete(productId)
+    } else {
+      newExpanded.add(productId)
+    }
+    setExpandedTracking(newExpanded)
+  }
+
   // cleaned unused dealer-loading and assignment helpers
 
   return (
@@ -89,6 +135,29 @@ export default function ProductDetailsForOrder({
               <span>No.of Product:</span>
               <span className="font-medium">{products?.length || 0}</span>
             </div>
+            {/* Tracking Summary */}
+            {products && products.length > 0 && (
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                  <span>Pending: {products.filter(p => p.tracking_info?.status === 'Pending').length}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  <span>Processing: {products.filter(p => p.tracking_info?.status === 'Processing').length}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span>Delivered: {products.filter(p => p.tracking_info?.status === 'Delivered').length}</span>
+                </div>
+                {products.some(p => p.return_info?.is_returned) && (
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                    <span>Returned: {products.filter(p => p.return_info?.is_returned).length}</span>
+                  </div>
+                )}
+              </div>
+            )}
             {products && products.length > 3 && (
               <DynamicButton
                 text="View All"
@@ -105,23 +174,26 @@ export default function ProductDetailsForOrder({
     <table className="w-full table-fixed">
       <thead className="bg-gray-50">
         <tr>
-          <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[35%]">
+          <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[25%]">
             Product Name
           </th>
-          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[15%]">
+          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[12%]">
             Dealers
           </th>
           <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[12%]">
+            Status
+          </th>
+          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[10%]">
             MRP
           </th>
           <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[8%]">
             GST
           </th>
-          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[15%]">
+          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[13%]">
             Total Price
           </th>
           {isAuthorized && (
-            <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[15%]">
+            <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[20%]">
               Actions
             </th>
           )}
@@ -133,7 +205,7 @@ export default function ProductDetailsForOrder({
             key={productItem._id || index} 
             className="hover:bg-gray-50 transition-colors duration-150"
           >
-            <td className="py-4 px-6 align-middle w-[35%]">
+            <td className="py-4 px-6 align-middle w-[25%]">
               <div className="flex items-center gap-3">
                 <div className="flex flex-col min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -148,10 +220,13 @@ export default function ProductDetailsForOrder({
                       <Eye className="w-4 h-4 flex-shrink-0" />
                     </button>
                   </div>
+                  {productItem.sku && (
+                    <p className="text-xs text-gray-500 mt-1">SKU: {productItem.sku}</p>
+                  )}
                 </div>
               </div>
             </td>
-            <td className="py-4 px-4 align-middle w-[15%]">
+            <td className="py-4 px-4 align-middle w-[12%]">
               <div className="flex items-center">
                 <span className="text-sm font-medium text-gray-900">{getDealerCount(productItem.dealerId)}</span>
                 <button
@@ -163,17 +238,56 @@ export default function ProductDetailsForOrder({
                 </button>
               </div>
             </td>
-            <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[12%]">
+            <td className="py-4 px-4 align-middle w-[12%]">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1">
+                  <Badge className={`px-2 py-1 text-xs ${getStatusBadgeClasses(productItem.tracking_info?.status || 'Pending')}`}>
+                    {productItem.tracking_info?.status || 'Pending'}
+                  </Badge>
+                  {productItem.return_info?.is_returned && (
+                    <Badge className="px-2 py-1 text-xs bg-orange-100 text-orange-800 border-orange-200">
+                      Returned
+                    </Badge>
+                  )}
+                </div>
+                {productItem.dealerMapped && productItem.dealerMapped.length > 0 && (
+                  <div className="text-xs text-gray-500">
+                    {productItem.dealerMapped.length} dealer{productItem.dealerMapped.length > 1 ? 's' : ''} assigned
+                  </div>
+                )}
+                {/* Expandable tracking details */}
+                <button
+                  onClick={() => toggleTrackingExpansion(productItem._id || productItem.productId || index.toString())}
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <ChevronRight className={`h-3 w-3 transition-transform ${expandedTracking.has(productItem._id || productItem.productId || index.toString()) ? 'rotate-90' : ''}`} />
+                  Details
+                </button>
+                {expandedTracking.has(productItem._id || productItem.productId || index.toString()) && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded text-xs space-y-1">
+                    <div><span className="font-medium">SKU:</span> {productItem.sku}</div>
+                    <div><span className="font-medium">Quantity:</span> {productItem.quantity}</div>
+                    {productItem.return_info?.return_id && (
+                      <div><span className="font-medium">Return ID:</span> {productItem.return_info.return_id}</div>
+                    )}
+                    {productItem.gst_percentage && (
+                      <div><span className="font-medium">GST %:</span> {productItem.gst_percentage}%</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </td>
+            <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[10%]">
               ₹{productItem.mrp.toLocaleString()}
             </td>
             <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[8%]">
               {productItem.gst}%
             </td>
-            <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[15%]">
+            <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[13%]">
               ₹{productItem.totalPrice.toLocaleString()}
             </td>
             {isAuthorized && (
-              <td className="py-4 px-4 align-middle w-[15%]">
+              <td className="py-4 px-4 align-middle w-[20%]">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <DynamicButton
@@ -246,7 +360,7 @@ export default function ProductDetailsForOrder({
                     </button>
                   </div>
                   
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-600">Dealers:</span>
@@ -259,6 +373,54 @@ export default function ProductDetailsForOrder({
                           <Eye className="w-4 h-4 flex-shrink-0" />
                         </button>
                       </div>
+                    </div>
+                    
+                    {/* Status Information */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-600">Status:</span>
+                        <div className="flex items-center gap-1">
+                          <Badge className={`px-2 py-1 text-xs ${getStatusBadgeClasses(productItem.tracking_info?.status || 'Pending')}`}>
+                            {productItem.tracking_info?.status || 'Pending'}
+                          </Badge>
+                          {productItem.return_info?.is_returned && (
+                            <Badge className="px-2 py-1 text-xs bg-orange-100 text-orange-800 border-orange-200">
+                              Returned
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {productItem.dealerMapped && productItem.dealerMapped.length > 0 && (
+                        <div className="text-xs text-gray-500">
+                          {productItem.dealerMapped.length} dealer{productItem.dealerMapped.length > 1 ? 's' : ''} assigned
+                        </div>
+                      )}
+                      {/* Expandable tracking details for mobile */}
+                      <button
+                        onClick={() => toggleTrackingExpansion(productItem._id || productItem.productId || 'mobile')}
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <ChevronRight className={`h-3 w-3 transition-transform ${expandedTracking.has(productItem._id || productItem.productId || 'mobile') ? 'rotate-90' : ''}`} />
+                        Tracking Details
+                      </button>
+                      {expandedTracking.has(productItem._id || productItem.productId || 'mobile') && (
+                        <div className="mt-2 p-3 bg-gray-50 rounded text-xs space-y-2">
+                          <div><span className="font-medium">SKU:</span> {productItem.sku}</div>
+                          <div><span className="font-medium">Quantity:</span> {productItem.quantity}</div>
+                          {productItem.return_info?.return_id && (
+                            <div><span className="font-medium">Return ID:</span> {productItem.return_info.return_id}</div>
+                          )}
+                          {productItem.gst_percentage && (
+                            <div><span className="font-medium">GST %:</span> {productItem.gst_percentage}%</div>
+                          )}
+                          {productItem.mrp_gst_amount && (
+                            <div><span className="font-medium">MRP + GST:</span> ₹{productItem.mrp_gst_amount}</div>
+                          )}
+                          {productItem.gst_amount && (
+                            <div><span className="font-medium">GST Amount:</span> ₹{productItem.gst_amount}</div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2">

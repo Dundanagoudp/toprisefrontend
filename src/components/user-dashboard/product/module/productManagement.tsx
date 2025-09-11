@@ -6,7 +6,7 @@ import useDebounce from "@/utils/useDebounce";
 import { useAppSelector } from "@/store/hooks";
 import DynamicButton from "@/components/common/button/button";
 import SearchInput from "@/components/common/search/SearchInput";
-import { Plus, Pencil, FileText, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, FileText, Clock, CheckCircle, AlertTriangle, FileBarChart } from "lucide-react";
 import uploadFile from "../../../../../public/assets/uploadFile.svg";
 import CreatedProduct from "./tabs/Super-Admin/CreatedProduct";
 import ApprovedProduct from "./tabs/Super-Admin/ApprovedProduct";
@@ -440,6 +440,13 @@ const handleBulkReject = useCallback(() => {
                   customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
                   text="Export"
                   onClick={handleDownload}
+                />
+                <DynamicButton
+                  variant="outline"
+                  customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
+                  text="Logs"
+                  onClick={() => route.push('/user/dashboard/product/Logs')}
+                  icon={<FileBarChart className="w-4 h-4 mr-2" />}
                 />
               </div>
             </div>

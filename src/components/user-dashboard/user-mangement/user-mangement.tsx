@@ -18,6 +18,7 @@ import { useAppSelector } from "@/store/hooks"
 import GlobalFilters from "./module/global-filters"
 import { getAllDealers } from "@/service/dealerServices"
 import { getAvailableRegions } from "@/service/employeeServices"
+import UserManagementStatsCards from "./module/UserManagementStatsCards"
 
 
 export default function Usermangement() {
@@ -43,6 +44,12 @@ export default function Usermangement() {
   const router = useRouter();
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
+
+  // Debug: Log auth state
+  useEffect(() => {
+    console.log("User Management - Auth state:", auth);
+    console.log("User Management - User role:", auth?.role);
+  }, [auth]);
 
   // Set default tab based on user role - hide dealer tab for fulfillment staff only
   useEffect(() => {
@@ -126,6 +133,9 @@ export default function Usermangement() {
       <div className="mb-6">
         <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-4 md:mb-6">User Management</h1>
 
+        {/* Stats Cards */}
+        <UserManagementStatsCards className="mb-6" />
+
         {/* Tabs - Connected design */}
         <div className="inline-flex mb-4 md:mb-6 border-b border-gray-200">
           <button
@@ -151,16 +161,25 @@ export default function Usermangement() {
               Dealer
             </button>
           )}
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
-              activeTab === "users"
-                ? "border-[#C72920] text-[#C72920]"
-                : "border-transparent text-gray-500 hover:text-[#C72920]"
-            }`}
-          >
-            Users
-          </button>
+          {/* Show Users tab for Inventory Admin and other allowed roles */}
+          {(() => {
+            const userRole = auth?.role?.trim() || "";
+            const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
+            const shouldShowUsersTab = allowedRoles.includes(userRole);
+            console.log("Should show Users tab:", shouldShowUsersTab, "for role:", userRole, "allowed roles:", allowedRoles);
+            return shouldShowUsersTab;
+          })() && (
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
+                activeTab === "users"
+                  ? "border-[#C72920] text-[#C72920]"
+                  : "border-transparent text-gray-500 hover:text-[#C72920]"
+              }`}
+            >
+              Users
+            </button>
+          )}
         </div>
 
         {/* Search and Actions Bar - Mobile responsive */}

@@ -11,6 +11,7 @@ import formatDate from "@/utils/formateDate"
 import { AppUser } from "@/types/user-types"
 import UserDetailsDialog from "./UserDetailsDialog"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
+import ExportButton from "./ExportButton"
 
 interface AppUsersTableProps {
 	search?: string
@@ -119,6 +120,16 @@ export default function AppUsersTable({
 
 	return (
 		<div className="overflow-x-auto">
+			{/* Export Button */}
+			<div className="mb-4 flex justify-end">
+				<ExportButton
+					data={filtered}
+					dataType="users"
+					disabled={loading || filtered.length === 0}
+					className="bg-[#C72920] hover:bg-[#A0221C] text-white"
+				/>
+			</div>
+			
 			<table className="w-full min-w-[900px]">
 				<thead>
 					<tr className="border-b border-gray-200 bg-gray-50">

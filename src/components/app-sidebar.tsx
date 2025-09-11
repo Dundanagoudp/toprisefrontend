@@ -96,7 +96,6 @@ const sidebarVisibilityConfig = {
   "Inventory-Admin": {
     hide: [
       "Dashboard",
-      "User Management",
       "Inventory Management",
       "SLA Violations ",
       "Payment & Details",
@@ -113,6 +112,7 @@ const sidebarVisibilityConfig = {
       "Dealer Management",
       "Content Management",
       "Audit Logs",
+      "User Management",
     ],
   },
   // Add more roles here as needed

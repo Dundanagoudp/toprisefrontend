@@ -1,9 +1,9 @@
-import DealerAssignTable from "@/components/dealer-dashboard/dealerproductsubmission/dealerassigntable";
+import DealerProductsTable from "@/components/dealer-dashboard/products/DealerProductsTable";
 
 export default function page() {
   return (
-    <div>
-           <DealerAssignTable/>
+    <div className="p-6">
+      <DealerProductsTable />
     </div>
   )
 }

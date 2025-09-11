@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
@@ -18,6 +18,8 @@ import SearchInput from "@/components/common/search/SearchInput";
 import useDebounce from "@/utils/useDebounce";
 import ContentMangementBulk from "./uploadbulkpopup/contentMangementBulk";
 import Image from "next/image";
+import { getContentStats } from "@/service/product-Service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Tab types
 type TabType = "Model" | "Brand" | "Variant" | "Category" | "Subcategory";
@@ -54,6 +56,34 @@ export default function ShowContent() {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  
+  // Content stats state
+  const [contentStats, setContentStats] = useState<{
+    categories: number;
+    subcategories: number;
+    brands: number;
+    models: number;
+    variants: number;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Fetch content stats on component mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        const stats = await getContentStats();
+        setContentStats(stats);
+      } catch (error) {
+        console.error("Failed to fetch content stats:", error);
+        showToast("Failed to load content statistics", "error");
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [showToast]);
 
   // Tab-specific action handlers
   const handleCategoryAction = useCallback(() => {
@@ -231,6 +261,38 @@ export default function ShowContent() {
             </div>
           </div>
         </CardHeader>
+        
+        {/* Content Stats Cards */}
+        <div className="px-6 pb-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {statsLoading ? (
+              // Loading skeletons
+              Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-4">
+                  <Skeleton className="h-4 w-16 mb-2" />
+                  <Skeleton className="h-8 w-12" />
+                </div>
+              ))
+            ) : (
+              // Stat cards
+              [
+                { label: "Categories", count: contentStats?.categories || 0, color: "bg-blue-50 text-blue-600" },
+                { label: "Subcategories", count: contentStats?.subcategories || 0, color: "bg-green-50 text-green-600" },
+                { label: "Brands", count: contentStats?.brands || 0, color: "bg-purple-50 text-purple-600" },
+                { label: "Models", count: contentStats?.models || 0, color: "bg-orange-50 text-orange-600" },
+                { label: "Variants", count: contentStats?.variants || 0, color: "bg-red-50 text-red-600" },
+              ].map((stat, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                  <div className="text-sm font-medium text-gray-600 mb-1">{stat.label}</div>
+                  <div className={`text-2xl font-bold ${stat.color}`}>
+                    {stat.count.toLocaleString()}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <CardContent className="p-0">
           {/* Tab Navigation */}
           <div className="border-b border-gray-200">

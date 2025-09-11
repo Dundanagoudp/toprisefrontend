@@ -11,6 +11,40 @@ export type User = {
 }
 
 /**
+ * Represents a dealer object as returned in assigned_dealers array.
+ */
+export type AssignedDealer = {
+  _id: string
+  dealerId: string
+  legal_name: string
+  trade_name: string
+  GSTIN: string
+  Pan: string
+  Address: {
+    street: string
+    city: string
+    pincode: string
+    state: string
+  }
+  categories_allowed: string[]
+  SLA_type: string
+  dispatch_hours: any
+  SLA_max_dispatch_time: number
+  user_details: {
+    _id: string
+    email: string
+    phone_Number: string
+    role: string
+  }
+  created_at: string
+  updated_at: string
+  assigned_categories: Array<{
+    _id: string
+    category_name: string
+  }>
+}
+
+/**
  * Represents an Employee object as returned by the API.
  */
 export type Employee = {
@@ -18,16 +52,16 @@ export type Employee = {
   user_id: string | User
   employee_id: string
   First_name: string
-  profile_image: string
+  profile_image?: string
   mobile_number: string
   email: string
   role: string
-  assigned_dealers: string[]
+  assigned_dealers: AssignedDealer[]
   assigned_regions: string[]
   last_login: string
   updated_at: string
   created_at: string
-  __v: number
+  __v?: number
   designation?: string
   department?: string
   status?: string

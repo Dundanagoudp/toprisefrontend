@@ -49,6 +49,9 @@ import {
 } from "lucide-react";
 import apiClient from "@/apiClient";
 import { getDealerStats } from "@/service/dealerServices";
+import AnalyticsDashboard from "./analytics/AnalyticsDashboard";
+import OrderAnalyticsDashboard from "./order-analytics/OrderAnalyticsDashboard";
+import ProductAnalyticsDashboard from "./product-analytics/ProductAnalyticsDashboard";
 
 // Interfaces for API responses
 interface SLAViolationSummary {
@@ -200,8 +203,19 @@ export default function Reports() {
   const [dateRange, setDateRange] = useState("30d");
   const [selectedService, setSelectedService] = useState("all");
 
-  // API Functions
-  const fetchSLAViolationSummary = async () => {
+  // API Health Check
+  const checkAPIHealth = async () => {
+    try {
+      const response = await apiClient.get('/health');
+      return response.status === 200;
+    } catch (error) {
+      console.warn("API health check failed:", error);
+      return false;
+    }
+  };
+
+  // API Functions with retry mechanism
+  const fetchSLAViolationSummary = async (retryCount = 0) => {
     try {
       const response = await apiClient.get(
         `/orders/api/sla-violations/summary?includeDetails=true`
@@ -210,12 +224,32 @@ export default function Reports() {
       if (response.data.success) {
         setSlaSummary(response.data.data.summary);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching SLA summary:", error);
+      
+      // Check if it's a network error and retry once
+      if (retryCount < 1 && (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error'))) {
+        console.log("Retrying SLA summary fetch...");
+        setTimeout(() => fetchSLAViolationSummary(retryCount + 1), 2000);
+        return;
+      }
+      
+      // Set fallback data to prevent UI crashes
+      setSlaSummary({
+        totalViolations: 0,
+        totalViolationMinutes: 0,
+        avgViolationMinutes: 0,
+        maxViolationMinutes: 0,
+        resolvedViolations: 0,
+        unresolvedViolations: 0,
+        uniqueDealerCount: 0,
+        uniqueOrderCount: 0,
+        resolutionRate: 0,
+      });
     }
   };
 
-  const fetchDealersWithViolations = async () => {
+  const fetchDealersWithViolations = async (retryCount = 0) => {
     try {
       const response = await apiClient.get(
         `/orders/api/sla-violations/multiple-violations?includeDetails=true`
@@ -224,8 +258,18 @@ export default function Reports() {
       if (response.data.success) {
         setDealersWithViolations(response.data.data || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching dealers with violations:", error);
+      
+      // Check if it's a network error and retry once
+      if (retryCount < 1 && (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error'))) {
+        console.log("Retrying dealers with violations fetch...");
+        setTimeout(() => fetchDealersWithViolations(retryCount + 1), 2000);
+        return;
+      }
+      
+      // Set fallback data to prevent UI crashes
+      setDealersWithViolations([]);
     }
   };
 
@@ -238,6 +282,15 @@ export default function Reports() {
       }
     } catch (error) {
       console.error("Error fetching user stats:", error);
+      // Set fallback data to prevent UI crashes
+      setUserStats({
+        totalUsers: 0,
+        activeUsers: 0,
+        inactiveUsers: 0,
+        totalDealers: 0,
+        activeDealers: 0,
+        inactiveDealers: 0,
+      });
     }
   };
 
@@ -320,6 +373,14 @@ export default function Reports() {
       }
     } catch (error) {
       console.error("Error fetching employee stats:", error);
+      // Set fallback data to prevent UI crashes
+      setEmployeeStats({
+        totalEmployees: 0,
+        activeEmployees: 0,
+        inactiveEmployees: 0,
+        employeesByRole: {},
+        avgAssignedDealers: 0,
+      });
     }
   };
 
@@ -334,6 +395,16 @@ export default function Reports() {
       }
     } catch (error) {
       console.error("Error fetching order analytics:", error);
+      // Set fallback data to prevent UI crashes
+      setOrderAnalytics({
+        totalOrders: 0,
+        totalRevenue: 0,
+        avgOrderValue: 0,
+        orderStatusBreakdown: {},
+        monthlyTrends: [],
+        topProducts: [],
+        topDealers: [],
+      });
     }
   };
 
@@ -348,15 +419,24 @@ export default function Reports() {
       }
     } catch (error) {
       console.error("Error fetching audit logs:", error);
+      // Set fallback data to prevent UI crashes
+      setRecentAuditLogs([]);
     }
   };
 
   const fetchAllData = async () => {
     setLoading(true);
     setError(null);
-
+    
     try {
-      await Promise.all([
+      // Check API health first
+      const isAPIHealthy = await checkAPIHealth();
+      if (!isAPIHealthy) {
+        console.warn("API appears to be unavailable. Using fallback data.");
+      }
+
+      // Use Promise.allSettled to handle individual API failures gracefully
+      const results = await Promise.allSettled([
         fetchSLAViolationSummary(),
         fetchDealersWithViolations(),
         fetchUserStats(),
@@ -365,9 +445,32 @@ export default function Reports() {
         fetchOrderAnalytics(),
         fetchRecentAuditLogs(),
       ]);
+
+      // Log any failed requests but don't show error to user since we have fallback data
+      const failedAPIs: string[] = [];
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const apiNames = [
+            'SLA Violation Summary',
+            'Dealers with Violations', 
+            'User Stats',
+            'Dealer Stats',
+            'Employee Stats',
+            'Order Analytics',
+            'Recent Audit Logs'
+          ];
+          failedAPIs.push(apiNames[index]);
+          console.warn(`Failed to fetch ${apiNames[index]}:`, result.reason);
+        }
+      });
+
+      // Show a gentle warning if many APIs failed
+      if (failedAPIs.length > 3) {
+        setError("Some data may not be available due to network issues. Please check your connection and refresh.");
+      }
     } catch (error) {
-      setError("Failed to load reports data. Please try again.");
-      console.error("Error fetching reports data:", error);
+      console.error("Unexpected error in fetchAllData:", error);
+      setError("Unable to load reports data. Please check your connection and refresh.");
     } finally {
       setLoading(false);
     }
@@ -487,8 +590,11 @@ export default function Reports() {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="order-analytics">Order Analytics</TabsTrigger>
+          <TabsTrigger value="product-analytics">Product Analytics</TabsTrigger>
           <TabsTrigger value="sla">SLA Violations</TabsTrigger>
           <TabsTrigger value="users">Users & Dealers</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
@@ -626,6 +732,21 @@ export default function Reports() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-6">
+          <AnalyticsDashboard />
+        </TabsContent>
+
+        {/* Order Analytics Tab */}
+        <TabsContent value="order-analytics" className="space-y-6">
+          <OrderAnalyticsDashboard />
+        </TabsContent>
+
+        {/* Product Analytics Tab */}
+        <TabsContent value="product-analytics" className="space-y-6">
+          <ProductAnalyticsDashboard />
         </TabsContent>
 
         {/* SLA Violations Tab */}
