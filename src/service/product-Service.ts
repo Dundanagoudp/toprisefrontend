@@ -503,6 +503,37 @@ export async function getvarientByModel(id: string): Promise<ProductResponse> {
   }
 }
 
+// New API functions for the updated endpoints
+export async function getBrandsByType(typeId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/brands/brandByType/${typeId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch brands by type:", error);
+    throw error;
+  }
+}
+
+export async function getModelsByBrand(brandId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/model/brand/${brandId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch models by brand:", error);
+    throw error;
+  }
+}
+
+export async function getVariantsByModel(modelId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/variants/model/${modelId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch variants by model:", error);
+    throw error;
+  }
+}
+
 export async function editProduct(
   productId: string,
   data: FormData | any

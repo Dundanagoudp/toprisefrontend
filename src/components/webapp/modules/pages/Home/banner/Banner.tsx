@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useAppSelector } from "@/store/hooks"
+import { selectVehicleTypeId } from "@/store/slice/vehicle/vehicleSlice"
 import { 
-  getModels, 
-  getvarient, 
   getYearRange, 
-  getBrand,
-  getModelByBrand,
-  getvarientByModel
+  getBrandsByType,
+  getModelsByBrand,
+  getVariantsByModel
 } from "@/service/product-Service"
 import { useToast } from "@/components/ui/toast"
 
@@ -34,157 +35,169 @@ interface Brand {
   brand_name: string;
 }
 
-interface BannerSectionProps {
-  onFiltersChange?: (filters: {
-    brand?: string;
-    model?: string;
-    variant?: string;
-    year?: string;
-  }) => void;
-}
-
-export default function BannerSection({ onFiltersChange }: BannerSectionProps) {
-  const { showToast } = useToast();
+export default function BannerSection() {
   const [offsetY, setOffsetY] = useState(0)
   const handleScroll = () => setOffsetY(window.pageYOffset)
-
+  
+  // Vehicle search state
+  const { showToast } = useToast()
+  const router = useRouter()
+  const typeId = useAppSelector(selectVehicleTypeId)
+  
   // State for dropdown data
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
-  const [variants, setVariants] = useState<Variant[]>([]);
-  const [years, setYears] = useState<Year[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([])
+  const [models, setModels] = useState<Model[]>([])
+  const [variants, setVariants] = useState<Variant[]>([])
+  const [years, setYears] = useState<Year[]>([])
   
   // State for selected values
-  const [selectedBrand, setSelectedBrand] = useState<string>("");
-  const [selectedModel, setSelectedModel] = useState<string>("");
-  const [selectedVariant, setSelectedVariant] = useState<string>("");
-  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedBrand, setSelectedBrand] = useState<string>("")
+  const [selectedModel, setSelectedModel] = useState<string>("")
+  const [selectedVariant, setSelectedVariant] = useState<string>("")
+  const [selectedYear, setSelectedYear] = useState<string>("")
+  
+  // Number plate search
+  const [numberPlate, setNumberPlate] = useState<string>("")
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Fetch initial data
+  // Fetch initial data when typeId changes
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         const [brandsRes, yearsRes] = await Promise.all([
-          getBrand(),
+          getBrandsByType(typeId),
           getYearRange()
-        ]);
+        ])
         
         if (brandsRes.success && brandsRes.data) {
-          // Handle different response structures
-          const brandsData = Array.isArray(brandsRes.data) ? brandsRes.data : brandsRes.data?.products || [];
-          setBrands(brandsData as Brand[]);
+          const brandsData = Array.isArray(brandsRes.data) ? brandsRes.data : brandsRes.data.products || []
+          setBrands(brandsData as Brand[])
         }
         
         if (yearsRes.success && yearsRes.data) {
-          // Handle different response structures
-          const yearsData = Array.isArray(yearsRes.data) ? yearsRes.data : yearsRes.data?.products || [];
-          setYears(yearsData as Year[]);
+          const yearsData = Array.isArray(yearsRes.data) ? yearsRes.data : yearsRes.data.products || []
+          setYears(yearsData as Year[])
         }
+        
+        // Reset all selections when vehicle type changes
+        setSelectedBrand("")
+        setSelectedModel("")
+        setSelectedVariant("")
+        setModels([])
+        setVariants([])
       } catch (error) {
-        console.error("Error fetching initial data:", error);
-        showToast("Failed to load initial data", "error");
+        console.error("Error fetching initial data:", error)
+        showToast("Failed to load initial data", "error")
       }
-    };
+    }
 
-    fetchInitialData();
-  }, [showToast]);
+    if (typeId) {
+      fetchInitialData()
+    }
+  }, [typeId, showToast])
 
   // Fetch models when brand changes
   useEffect(() => {
     const fetchModels = async () => {
       if (!selectedBrand) {
-        setModels([]);
-        setSelectedModel("");
-        setSelectedVariant("");
-        setVariants([]);
-        return;
+        setModels([])
+        setSelectedModel("")
+        setSelectedVariant("")
+        setVariants([])
+        return
       }
 
       try {
-        const modelsRes = await getModelByBrand(selectedBrand);
+        const modelsRes = await getModelsByBrand(selectedBrand)
         
         if (modelsRes.success && modelsRes.data) {
-          // Handle different response structures
-          const modelsData = Array.isArray(modelsRes.data) ? modelsRes.data : modelsRes.data?.products || [];
-          setModels(modelsData as Model[]);
+          const modelsData = Array.isArray(modelsRes.data) ? modelsRes.data : modelsRes.data.products || []
+          setModels(modelsData as Model[])
         } else {
-          setModels([]);
+          setModels([])
         }
         
         // Reset dependent selections
-        setSelectedModel("");
-        setSelectedVariant("");
-        setVariants([]);
+        setSelectedModel("")
+        setSelectedVariant("")
+        setVariants([])
       } catch (error) {
-        console.error("Error fetching models:", error);
-        showToast("Failed to load models", "error");
-        setModels([]);
+        console.error("Error fetching models:", error)
+        showToast("Failed to load models", "error")
+        setModels([])
       }
-    };
+    }
 
-    fetchModels();
-  }, [selectedBrand, showToast]);
+    fetchModels()
+  }, [selectedBrand, showToast])
 
   // Fetch variants when model changes
   useEffect(() => {
     const fetchVariants = async () => {
       if (!selectedModel) {
-        setVariants([]);
-        setSelectedVariant("");
-        return;
+        setVariants([])
+        setSelectedVariant("")
+        return
       }
 
       try {
-        const variantsRes = await getvarientByModel(selectedModel);
+        const variantsRes = await getVariantsByModel(selectedModel)
         
         if (variantsRes.success && variantsRes.data) {
-          // Handle different response structures
-          const variantsData = Array.isArray(variantsRes.data) ? variantsRes.data : variantsRes.data?.products || [];
-          setVariants(variantsData as Variant[]);
+          const variantsData = Array.isArray(variantsRes.data) ? variantsRes.data : variantsRes.data.products || []
+          setVariants(variantsData as Variant[])
         } else {
-          setVariants([]);
+          setVariants([])
         }
         
         // Reset dependent selection
-        setSelectedVariant("");
+        setSelectedVariant("")
       } catch (error) {
-        console.error("Error fetching variants:", error);
-        showToast("Failed to load variants", "error");
-        setVariants([]);
+        console.error("Error fetching variants:", error)
+        showToast("Failed to load variants", "error")
+        setVariants([])
       }
-    };
-
-    fetchVariants();
-  }, [selectedModel, showToast]);
-
-  // Notify parent component when filters change
-  useEffect(() => {
-    if (onFiltersChange) {
-      onFiltersChange({
-        brand: selectedBrand || undefined,
-        model: selectedModel || undefined,
-        variant: selectedVariant || undefined,
-        year: selectedYear || undefined,
-      });
     }
-  }, [selectedBrand, selectedModel, selectedVariant, selectedYear, onFiltersChange]);
 
-  // Handle search button click
-  const handleSearch = useCallback(() => {
-    if (onFiltersChange) {
-      onFiltersChange({
-        brand: selectedBrand || undefined,
-        model: selectedModel || undefined,
-        variant: selectedVariant || undefined,
-        year: selectedYear || undefined,
-      });
+    fetchVariants()
+  }, [selectedModel, showToast])
+
+  // Handle vehicle search
+  const handleVehicleSearch = () => {
+    if (!selectedBrand || !selectedModel) {
+      showToast("Please select at least Brand and Model", "error")
+      return
     }
-  }, [selectedBrand, selectedModel, selectedVariant, selectedYear, onFiltersChange]);
+
+    // Build search query
+    const searchParams = new URLSearchParams()
+    if (selectedBrand) searchParams.append("brand", selectedBrand)
+    if (selectedModel) searchParams.append("model", selectedModel)
+    if (selectedVariant) searchParams.append("variant", selectedVariant)
+    if (selectedYear) searchParams.append("year", selectedYear)
+    searchParams.append("vehicleTypeId", typeId)
+
+    router.push(`/shop/search-results/?${searchParams.toString()}`)
+  }
+
+  // Handle number plate search
+  const handleNumberPlateSearch = () => {
+    if (!numberPlate.trim()) {
+      showToast("Please enter a number plate", "error")
+      return
+    }
+
+    const searchParams = new URLSearchParams({
+      query: numberPlate.trim(),
+      vehicleTypeId: typeId,
+    })
+
+    router.push(`/shop/search-results/?${searchParams.toString()}`)
+  }
 
   return (
      <section className="relative min-h-screen w-full overflow-hidden">
@@ -242,7 +255,7 @@ export default function BannerSection({ onFiltersChange }: BannerSectionProps) {
                     className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="" className="bg-gray-800 text-white">
-                      {selectedBrand ? "Select Model" : "Select Brand First"}
+                      {selectedBrand ? "Select Model" : "Select Brand first"}
                     </option>
                     {models.map((model) => (
                       <option key={model._id} value={model._id} className="bg-gray-800 text-white">
@@ -271,7 +284,7 @@ export default function BannerSection({ onFiltersChange }: BannerSectionProps) {
                     className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="" className="bg-gray-800 text-white">
-                      {selectedModel ? "Select Variant" : "Select Model First"}
+                      {selectedModel ? "Select Variant" : "Select Model first"}
                     </option>
                     {variants.map((variant) => (
                       <option key={variant._id} value={variant._id} className="bg-gray-800 text-white">
@@ -282,7 +295,7 @@ export default function BannerSection({ onFiltersChange }: BannerSectionProps) {
                 </div>
 
                 <button 
-                  onClick={handleSearch}
+                  onClick={handleVehicleSearch}
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Search
@@ -296,9 +309,19 @@ export default function BannerSection({ onFiltersChange }: BannerSectionProps) {
                   <input
                     type="text"
                     placeholder="e.g., ABC123"
+                    value={numberPlate}
+                    onChange={(e) => setNumberPlate(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleNumberPlateSearch()
+                      }
+                    }}
                     className="flex-1 p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 placeholder-white/70 hover:bg-gray-600/80 transition-colors"
                   />
-                  <button className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl">
+                  <button 
+                    onClick={handleNumberPlateSearch}
+                    className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
                     Search
                   </button>
                 </div>

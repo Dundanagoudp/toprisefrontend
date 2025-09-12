@@ -13,11 +13,6 @@ import { useState, useEffect } from "react";
 const addressSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
   lastName: z.string().min(1, "Last Name is required"),
-  mobile: z.object({
-    countryCode: z.string().min(1, "Country code is required"),
-    number: z.string().min(10, "Mobile number must be at least 10 digits"),
-  }),
-  email: z.string().email("Invalid email address"),
   addressLine1: z.string().min(1, "Address Line 1 is required"),
   addressLine2: z.string().optional(),
   city: z.string().min(1, "City is required"),
@@ -59,27 +54,37 @@ export default function BillingAddressForm({
   } = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
-      mobile: {
-        countryCode: "+91",
-        number: "",
-      },
+      firstName: "",
+      lastName: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      state: "",
+      pinCode: "",
+      country: "India",
+      notes: "",
     },
   });
   const userId = useAppSelector((state)=> state.auth.user?._id)
 
   const handleFormSubmit = async (data: AddressFormValues) => {
-    await onSubmit(data);
-    reset();
-    setShowForm(false); // Hide form after successful submission
-    setShowAllAddresses(false); // Reset to show only first 3 addresses
-    // Refetch user data to show updated addresses
-    if (userId) {
-      try {
-        const response = await getUserById(userId);
-        setUser(response.data);
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
+    try {
+      console.log("Form submitted with data:", data);
+      await onSubmit(data);
+      reset();
+      setShowForm(false); // Hide form after successful submission
+      setShowAllAddresses(false); // Reset to show only first 3 addresses
+      // Refetch user data to show updated addresses
+      if (userId) {
+        try {
+          const response = await getUserById(userId);
+          setUser(response.data);
+        } catch (error) {
+          console.error("Failed to fetch user:", error);
+        }
       }
+    } catch (error) {
+      console.error("Form submission error:", error);
     }
   };
 
@@ -107,7 +112,10 @@ export default function BillingAddressForm({
         </h2>
         {!showForm && (
           <Button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              console.log("Add New Address button clicked");
+              setShowForm(true);
+            }}
             className="bg-red-600 hover:bg-red-700 text-white"
           >
             Add New Address
@@ -413,6 +421,10 @@ export default function BillingAddressForm({
                 type="submit"
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2"
                 disabled={isLoading}
+                onClick={() => {
+                  console.log("Submit button clicked");
+                  console.log("Form errors:", errors);
+                }}
               >
                 {isLoading ? "Adding..." : submitButtonText}
               </Button>
