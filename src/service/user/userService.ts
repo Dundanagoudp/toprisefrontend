@@ -38,3 +38,6 @@ export async function getUserProfile(userId: string): Promise<UserProfileRespons
     throw error;
   }
 }
+
+// Alias for getUserProfile to maintain backward compatibility
+export const getUserById = getUserProfile;

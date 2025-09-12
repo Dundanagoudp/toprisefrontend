@@ -1,5 +1,5 @@
 'use client'
-import { Search, ShoppingCart, Star, Heart, Share2, Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, ShoppingCart, Star, Heart, Share2, Minus, Plus, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -29,6 +29,8 @@ export default function ProductPage() {
   const [featuredProducts, setFeaturedProducts] = useState<ProductType[]>([]);
   const [featuredCurrentPage, setFeaturedCurrentPage] = useState<number>(1);
   const [featuredLoading, setFeaturedLoading] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [addingFeaturedToCart, setAddingFeaturedToCart] = useState<string | null>(null);
   const featuredPageSize = 8
   const userId = useAppSelector((state) => state.auth.user?._id);
   const id = useParams<{ id: string }>();
@@ -78,6 +80,28 @@ useEffect(() => {
   const handleProductClick = (productId: string) => {
     router.push(`/shop/product/${productId}`)
   }
+
+  const handleBuyNow = async () => {
+    if (!product?._id) return;
+    
+    try {
+      setAddingToCart(true);
+      await addItemToCart(product._id, quantity);
+      showToast("Product added to cart successfully", "success");
+      // Navigate to checkout page
+      router.push('/shop/checkout');
+    } catch (error: any) {
+      if (error.message === 'User not authenticated') {
+        showToast("Please login to buy products", "error");
+        router.push("/login");
+      } else {
+        showToast("Failed to add product to cart", "error");
+        console.error("Error adding to cart:", error);
+      }
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   // Separate useEffect for featured products
   useEffect(() => {
@@ -151,15 +175,19 @@ useEffect(() => {
     if (!product?._id) return;
     
     try {
+      setAddingToCart(true);
       await addItemToCart(product._id, quantity);
       showToast("Product added to cart successfully", "success");
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error");
+        router.push("/login");
       } else {
         showToast("Failed to add product to cart", "error");
         console.error("Error adding to cart:", error);
       }
+    } finally {
+      setAddingToCart(false);
     }
   };
 
@@ -306,13 +334,26 @@ useEffect(() => {
                 className="flex-1 bg-red-600 hover:bg-red-700" 
                 size="lg"
                 onClick={handleAddToCart}
-                disabled={product.out_of_stock}
+                disabled={product.out_of_stock || addingToCart}
               >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Add to Cart
+                {addingToCart ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                )}
+                {addingToCart ? "Adding..." : "Add to Cart"}
               </Button>
-              <Button variant="secondary" size="lg" className="flex-1" disabled={product.out_of_stock}>
-                Buy Now
+              <Button 
+                variant="secondary" 
+                size="lg" 
+                className="flex-1" 
+                disabled={product.out_of_stock || addingToCart}
+                onClick={handleBuyNow}
+              >
+                {addingToCart ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                {addingToCart ? "Adding..." : "Buy Now"}
               </Button>
               <Button variant="outline" size="lg" className="px-4">
                 <Heart className="w-5 h-5" />
@@ -484,6 +525,9 @@ useEffect(() => {
                const discount = computeDiscount(originalPrice, price)
                const inStock = !product?.out_of_stock && product?.no_of_stock > 0
                
+               // Skip out of stock products in featured products
+               if (!inStock) return null
+               
                return (
                  <div key={product._id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
                    <div className="relative">
@@ -494,11 +538,7 @@ useEffect(() => {
                          className="w-full h-full object-contain"
                        />
                      </div>
-                     {inStock ? (
-                       <Badge className="absolute top-2 left-2 bg-green-600">In Stock</Badge>
-                     ) : (
-                       <Badge className="absolute top-2 left-2" variant="secondary">Out of Stock</Badge>
-                     )}
+                     <Badge className="absolute top-2 left-2 bg-green-600">In Stock</Badge>
                      <button className="absolute top-2 right-2 p-1.5 bg-background rounded-full border hover:bg-muted">
                        <Heart className="w-4 h-4" />
                      </button>
@@ -521,9 +561,10 @@ useEffect(() => {
                        <Button 
                          className="flex-1" 
                          variant="outline"
-                         disabled={!inStock}
+                         disabled={addingFeaturedToCart === product._id}
                          onClick={async () => {
                            try {
+                             setAddingFeaturedToCart(product._id);
                              await addItemToCart(product._id, 1);
                              showToast("Product added to cart successfully", "success");
                            } catch (error: any) {
@@ -533,16 +574,21 @@ useEffect(() => {
                              } else {
                                showToast("Failed to add product to cart", "error");
                              }
+                           } finally {
+                             setAddingFeaturedToCart(null);
                            }
                          }}
                        >
-                         <ShoppingCart className="w-4 h-4 mr-2" />
-                         Add
+                         {addingFeaturedToCart === product._id ? (
+                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                         ) : (
+                           <ShoppingCart className="w-4 h-4 mr-2" />
+                         )}
+                         {addingFeaturedToCart === product._id ? "Adding..." : "Add"}
                        </Button>
                        <Button 
                          className="flex-1" 
-                         variant={inStock ? "destructive" : "secondary"} 
-                         disabled={!inStock}
+                         variant="destructive"
                          onClick={() => handleProductClick(product._id)}
                        >
                          View

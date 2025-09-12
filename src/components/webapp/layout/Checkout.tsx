@@ -7,14 +7,20 @@ import {
   User,
   Search,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   addAddress,
   createOrders,
   getCart,
   removeProductFromCart,
+  checkPincode,
+  updateDeliveryType,
 } from "@/service/user/cartService";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { clearCart } from "@/store/slice/cart/cartSlice";
@@ -32,16 +38,25 @@ export default function CheckoutPage() {
   const { cartData: cart, fetchCart } = useCart();
   const { showToast } = useGlobalToast();
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
-  const [currentStep, setCurrentStep] = useState(0); // 0: Address, 1: Review, 2: Pay
+  const [currentStep, setCurrentStep] = useState(0); // 0: Delivery, 1: Address, 2: Review, 3: Pay
+  
+  // Delivery type state
+  const [deliveryType, setDeliveryType] = useState<'Standard' | 'express'>('Standard');
+  const [pincode, setPincode] = useState('');
+  const [pincodeData, setPincodeData] = useState<any>(null);
+  const [checkingPincode, setCheckingPincode] = useState(false);
+  const [expressAvailable, setExpressAvailable] = useState(false);
 
   // Define checkout steps
   const checkoutSteps: Step[] = [
-    { id: "address", label: "Address", icon: Package },
+    { id: "delivery", label: "Delivery", icon: Package },
+    { id: "address", label: "Address", icon: User },
     { id: "review", label: "Review", icon: FileText },
     { id: "pay", label: "Pay", icon: CreditCard },
   ];
@@ -74,10 +89,58 @@ export default function CheckoutPage() {
     }
   };
 
-  const userId = useAppSelector((state) => state.auth.user._id);
+  // Handle pincode checking
+  const handlePincodeCheck = async () => {
+    if (!pincode || pincode.length !== 6) {
+      showToast("Please enter a valid 6-digit pincode", "error");
+      return;
+    }
+
+    setCheckingPincode(true);
+    try {
+      const response = await checkPincode(pincode);
+      if (response.success && response.data.delivery_available) {
+        setPincodeData(response.data);
+        setExpressAvailable(true);
+        showToast(`express delivery available! Delivery charges: ₹${response.data.delivery_charges}`, "success");
+      } else {
+        setExpressAvailable(false);
+        setPincodeData(null);
+        showToast("express delivery not available for this pincode", "error");
+      }
+    } catch (error) {
+      console.error("Failed to check pincode:", error);
+      showToast("Failed to check pincode availability", "error");
+      setExpressAvailable(false);
+      setPincodeData(null);
+    } finally {
+      setCheckingPincode(false);
+    }
+  };
+
+  // Handle delivery type selection
+  const handleDeliveryTypeSelect = async (type: 'Standard' | 'express') => {
+    setDeliveryType(type);
+    
+    // Update delivery type in cart if we have a cart ID
+    if (cart?._id) {
+      try {
+        await updateDeliveryType(cart._id, type);
+        await fetchCart(); // Refresh cart data
+        showToast(`Delivery type updated to ${type}`, "success");
+      } catch (error) {
+        console.error("Failed to update delivery type:", error);
+        showToast("Failed to update delivery type", "error");
+      }
+    }
+  };
+
+  const userId = useAppSelector((state) => state.auth.user?._id);
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!userId) return; // Don't fetch if userId is not available
+      
       setIsLoading(true);
       try {
         const [userResponse] = await Promise.all([
@@ -149,7 +212,7 @@ export default function CheckoutPage() {
     } else if (currentStep === 1) { // Review step
       // Move to payment step
       goToNextStep();
-    } else if (currentStep === 2) { // Payment step
+    } else if (currentStep === 3) { // Payment step
       // Place the order
       await handlePlaceOrder();
     }
@@ -183,6 +246,11 @@ export default function CheckoutPage() {
       dispatch(clearCart());
 
       showToast("Order created successfully", "success");
+      
+      // Navigate to shop page after successful order placement
+      setTimeout(() => {
+        router.push('/shop');
+      }, 2000); // Wait 2 seconds to show the success message
     } catch (error: any) {
 
       console.error("Full Error Object:", error);
@@ -265,6 +333,157 @@ export default function CheckoutPage() {
           {/* Left Column - Step Content */}
           <div className="lg:col-span-2">
             {currentStep === 0 && (
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Select Delivery Type
+                </h2>
+                
+                {/* Pincode Check Section */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Check express Delivery Availability
+                  </h3>
+                  <div className="flex gap-3 mb-4">
+                    <div className="flex-1">
+                      <Label htmlFor="pincode" className="text-sm font-medium text-gray-700">
+                        Enter Pincode
+                      </Label>
+                      <Input
+                        id="pincode"
+                        type="text"
+                        placeholder="Enter 6-digit pincode"
+                        value={pincode}
+                        onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="mt-1"
+                        maxLength={6}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        onClick={handlePincodeCheck}
+                        disabled={checkingPincode || pincode.length !== 6}
+                        className="bg-[#C72920] hover:bg-[#A0221A] text-white"
+                      >
+                        {checkingPincode ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Checking...
+                          </>
+                        ) : (
+                          "Check"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {pincodeData && (
+                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Package className="w-5 h-5 text-green-600" />
+                        <span className="font-medium text-green-800">express Delivery Available!</span>
+                      </div>
+                      <div className="text-sm text-green-700 space-y-1">
+                        <p><strong>Location:</strong> {pincodeData.city}, {pincodeData.state}</p>
+                        <p><strong>Delivery Charges:</strong> ₹{pincodeData.delivery_charges}</p>
+                        <p><strong>Estimated Delivery:</strong> {pincodeData.estimated_delivery_days} days</p>
+                        <p><strong>COD Available:</strong> {pincodeData.cod_available ? "Yes" : "No"}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Delivery Type Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Choose Delivery Type
+                  </h3>
+                  
+                  {/* Standard Delivery */}
+                  <div 
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      deliveryType === 'Standard' 
+                        ? 'border-[#C72920] bg-red-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => handleDeliveryTypeSelect('Standard')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          deliveryType === 'Standard' 
+                            ? 'border-[#C72920] bg-[#C72920]' 
+                            : 'border-gray-300'
+                        }`}>
+                          {deliveryType === 'Standard' && (
+                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Standard Delivery</h4>
+                          <p className="text-sm text-gray-600">Regular delivery service</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">₹0</p>
+                        <p className="text-sm text-gray-600">5-7 days</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* express Delivery */}
+                  <div 
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      deliveryType === 'express' 
+                        ? 'border-[#C72920] bg-red-50' 
+                        : expressAvailable 
+                          ? 'border-gray-200 hover:border-gray-300' 
+                          : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
+                    }`}
+                    onClick={() => expressAvailable && handleDeliveryTypeSelect('express')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          deliveryType === 'express' 
+                            ? 'border-[#C72920] bg-[#C72920]' 
+                            : 'border-gray-300'
+                        }`}>
+                          {deliveryType === 'express' && (
+                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">express Delivery</h4>
+                          <p className="text-sm text-gray-600">
+                            {expressAvailable ? "Fast delivery service" : "Enter pincode to check availability"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">
+                          {expressAvailable ? `₹${pincodeData?.delivery_charges || 0}` : "N/A"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {expressAvailable ? `${pincodeData?.estimated_delivery_days || 0} days` : "Check pincode"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Continue Button */}
+                <div className="flex justify-end mt-8">
+                  <Button
+                    onClick={() => setCurrentStep(1)}
+                    className="bg-[#C72920] hover:bg-[#A0221A] text-white"
+                  >
+                    Continue to Address
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 1 && (
               <BillingAddressForm 
                 onSubmit={onSubmit}
                 onAddressSelect={setSelectedAddress}
@@ -274,7 +493,7 @@ export default function CheckoutPage() {
               />
             )}
             
-            {currentStep === 1 && (
+            {currentStep === 2 && (
               <div className="bg-white rounded-lg p-6 shadow-sm border">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Review Your Order
@@ -282,6 +501,42 @@ export default function CheckoutPage() {
                 
                 {/* Order Summary for Review */}
                 <div className="space-y-6">
+                  {/* Delivery Type */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Delivery Type
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{deliveryType} Delivery</p>
+                          <p className="text-sm text-gray-600">
+                            {deliveryType === 'express' 
+                              ? `Estimated delivery: ${pincodeData?.estimated_delivery_days || 0} days`
+                              : 'Estimated delivery: 5-7 days'
+                            }
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-gray-900">
+                            {deliveryType === 'express' 
+                              ? `₹${pincodeData?.delivery_charges || 0}`
+                              : '₹0'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => goToStep(0)}
+                      >
+                        Change Delivery Type
+                      </Button>
+                    </div>
+                  </div>
+
                   {/* Selected Address */}
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
@@ -298,14 +553,14 @@ export default function CheckoutPage() {
                         <p className="text-gray-600">
                           {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
                         </p>
-                                                 <Button
-                           variant="outline"
-                           size="sm"
-                           className="mt-2"
-                           onClick={() => goToStep(0)}
-                         >
-                           Change Address
-                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => goToStep(1)}
+                        >
+                          Change Address
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -382,7 +637,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {currentStep === 2 && (
+            {currentStep === 3 && (
               <div className="bg-white rounded-lg p-6 shadow-sm border">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Payment & Confirmation
@@ -579,7 +834,7 @@ export default function CheckoutPage() {
 
                 {/* Navigation Buttons */}
                 <div className="space-y-3">
-                  {(currentStep === 1 || currentStep === 2) && (
+                  {(currentStep === 1 || currentStep === 2 || currentStep === 3) && (
                     <Button
                       variant="outline"
                       className="w-full"

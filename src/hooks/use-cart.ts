@@ -10,7 +10,7 @@ import {
   clearCart,
   setCartLoading
 } from '@/store/slice/cart/cartSlice';
-import { addToCart, getCart, removeProductFromCart } from '@/service/user/cartService';
+import { addToCart, getCart, removeProductFromCart, increaseCartQuantity, decreaseCartQuantity } from '@/service/user/cartService';
 import { Cart } from '@/types/User/cart-Types';
 
 export const useCart = () => {
@@ -60,15 +60,43 @@ export const useCart = () => {
     }
   }, [dispatch, isAuthenticated, user?._id]);
 
-  const updateItemQuantity = useCallback(async (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
+  const increaseItemQuantity = useCallback(async (productId: string) => {
+    if (!isAuthenticated || !user?._id) {
+      throw new Error('User not authenticated');
+    }
 
-    // Optimistically update the UI
-    dispatch(updateCartItemQuantity({ itemId, quantity: newQuantity }));
+    try {
+      const response = await increaseCartQuantity(user._id, productId);
+      if (response.success && response.data) {
+        dispatch(setCartData(response.data));
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to increase item quantity');
+      }
+    } catch (err: any) {
+      console.error('Failed to increase item quantity:', err);
+      throw err;
+    }
+  }, [dispatch, isAuthenticated, user?._id]);
 
-    // TODO: Add API call to update quantity on server
-    // For now, we'll just update the local state
-  }, [dispatch]);
+  const decreaseItemQuantity = useCallback(async (productId: string) => {
+    if (!isAuthenticated || !user?._id) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const response = await decreaseCartQuantity(user._id, productId);
+      if (response.success && response.data) {
+        dispatch(setCartData(response.data));
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to decrease item quantity');
+      }
+    } catch (err: any) {
+      console.error('Failed to decrease item quantity:', err);
+      throw err;
+    }
+  }, [dispatch, isAuthenticated, user?._id]);
 
   const removeItemFromCart = useCallback(async (productId: string) => {
     if (!isAuthenticated || !user?._id) {
@@ -99,7 +127,8 @@ export const useCart = () => {
     itemCount,
     fetchCart,
     addItemToCart,
-    updateItemQuantity,
+    increaseItemQuantity,
+    decreaseItemQuantity,
     removeItemFromCart,
     clearCartData,
   };

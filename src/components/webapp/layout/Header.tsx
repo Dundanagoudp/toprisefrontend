@@ -24,6 +24,7 @@ import { CartSidebar } from "./CartSideBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useCart } from "@/hooks/use-cart";
 import { CartItem } from "@/types/User/cart-Types";
+import { useToast } from "@/components/ui/toast";
 
 import { searchRequest, searchSuccess, searchFailure } from "@/store/slice/search/searchSlice";
 import logo from "../../../../public/assets/logo.png";
@@ -68,10 +69,12 @@ export const Header = () => {
 
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const { showToast } = useToast();
   const {
     cartData: cart,
     fetchCart,
-    updateItemQuantity,
+    increaseItemQuantity,
+    decreaseItemQuantity,
     removeItemFromCart
   } = useCart();
 
@@ -131,9 +134,19 @@ const handleSearchSubmit = async () => {
     dispatch(toggleVehicleType());
   };
 
-  const handleQuantityChange = (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    updateItemQuantity(itemId, newQuantity);
+  const handleQuantityChange = async (productId: string, action: 'increase' | 'decrease') => {
+    try {
+      if (action === 'increase') {
+        await increaseItemQuantity(productId);
+        showToast("Quantity increased successfully", "success");
+      } else if (action === 'decrease') {
+        await decreaseItemQuantity(productId);
+        showToast("Quantity decreased successfully", "success");
+      }
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+      showToast("Failed to update quantity", "error");
+    }
   };
 
   const removeFromCart = (itemId: string) => {

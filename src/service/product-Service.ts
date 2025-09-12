@@ -724,3 +724,27 @@ export async function getProductsByCategory(
     throw error;
   }
 }
+
+// Assign dealers to a product
+export async function assignDealersToProduct(
+  productId: string,
+  dealerData: {
+    dealerData: Array<{
+      dealers_Ref: string;
+      quantity_per_dealer: number;
+      dealer_margin: number;
+      dealer_priority_override: number;
+    }>;
+  }
+): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.post(
+      `/category/products/v1/assign/dealerforProduct/${productId}`,
+      dealerData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to assign dealers to product:", error);
+    throw error;
+  }
+}

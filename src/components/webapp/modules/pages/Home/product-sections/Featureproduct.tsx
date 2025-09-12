@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { getProductsByPage } from "@/service/product-Service"
 import type { Product as ProductType } from "@/types/product-Types"
 import { DynamicButton } from "@/components/common/button"
@@ -22,6 +22,7 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
   const [loading, setLoading] = React.useState<boolean>(false)
   const [currentPage, setCurrentPage] = React.useState<number>(1)
   const [totalPages, setTotalPages] = React.useState<number>(1)
+  const [addingToCart, setAddingToCart] = React.useState<string | null>(null)
   const pageSize = 8
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || ""
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase])
@@ -77,8 +78,9 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
     if (!productId) return
     
     try {
+      setAddingToCart(productId)
       await addItemToCart(productId, 1)
-
+      showToast("Product added to cart successfully", "success")
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error")
@@ -87,6 +89,8 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
         showToast("Failed to add product to cart", "error")
         console.error("Error adding to cart:", error)
       }
+    } finally {
+      setAddingToCart(null)
     }
   }
 
@@ -187,13 +191,15 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
                   )}
                 </div>
 
-                <DynamicButton className="w-full  text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2"
-                text="Add"
-                icon={<ShoppingCart className="w-4 h-4" />}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (product?._id) handleSubmit(product._id)
-                }}
+                <DynamicButton 
+                  className="w-full text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  text={addingToCart === product?._id ? "Adding..." : "Add"}
+                  icon={addingToCart === product?._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (product?._id) handleSubmit(product._id)
+                  }}
+                  disabled={addingToCart === product?._id}
                 />
              
               </div>

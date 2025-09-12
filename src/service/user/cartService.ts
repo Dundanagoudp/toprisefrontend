@@ -59,3 +59,71 @@ export async function removeProductFromCart(data: any): Promise<any> {
     throw err;
   }
 }
+
+export async function increaseCartQuantity(userId: string, productId: string): Promise<CartResponse> {
+  try {
+    const response = await apiClient.put(`/orders/api/carts/update?action=increase`, {
+      userId,
+      productId
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to increase cart quantity:", error);
+    throw error;
+  }
+}
+
+export async function decreaseCartQuantity(userId: string, productId: string): Promise<CartResponse> {
+  try {
+    const response = await apiClient.put(`/orders/api/carts/update?action=decrease`, {
+      userId,
+      productId
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to decrease cart quantity:", error);
+    throw error;
+  }
+}
+
+// Check pincode availability
+export async function checkPincode(pincode: string): Promise<{
+  success: boolean;
+  message: string;
+  data: {
+    available: boolean;
+    pincode: string;
+    city: string;
+    state: string;
+    district: string;
+    area: string;
+    delivery_available: boolean;
+    delivery_charges: number;
+    estimated_delivery_days: number;
+    cod_available: boolean;
+    status: string;
+    message: string;
+  };
+}> {
+  try {
+    const response = await apiClient.get(`/category/api/pincodes/check/${pincode}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to check pincode:", error);
+    throw error;
+  }
+}
+
+// Update delivery type and charges
+export async function updateDeliveryType(cartId: string, deliveryType: string): Promise<CartResponse> {
+  try {
+    const response = await apiClient.put(`/orders/api/carts/updateDelivery`, {
+      cartId,
+      deliveryType
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update delivery type:", error);
+    throw error;
+  }
+}

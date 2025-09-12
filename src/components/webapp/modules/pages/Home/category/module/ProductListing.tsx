@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/use-cart';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/toast';
 import { ShoppingCart, Eye, Loader2 } from 'lucide-react';
 
 interface Product {
@@ -36,7 +36,7 @@ const ProductListing = ({
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const router = useRouter();
   const { addItemToCart } = useCart();
-  const { toast } = useToast();
+  const { showToast } = useToast();
 
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase]);
@@ -55,17 +55,15 @@ const ProductListing = ({
     try {
       setAddingToCart(productId);
       await addItemToCart(productId, 1);
-      toast({
-        title: "Added to Cart",
-        description: `${productName} has been added to your cart.`,
-        variant: "success",
-      });
+      showToast(`${productName} has been added to your cart.`, "success");
     } catch (error: any) {
-      toast({
-        title: "Failed to Add to Cart",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      if (error.message === 'User not authenticated') {
+        showToast("Please login to add items to cart", "error");
+        router.push("/login");
+      } else {
+        showToast("Failed to add product to cart", "error");
+        console.error("Error adding to cart:", error);
+      }
     } finally {
       setAddingToCart(null);
     }
