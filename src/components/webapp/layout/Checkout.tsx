@@ -45,6 +45,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
   const [currentStep, setCurrentStep] = useState(0); // 0: Delivery, 1: Address, 2: Review, 3: Pay
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   
   // Delivery type state
   const [deliveryType, setDeliveryType] = useState<'Standard' | 'express'>('Standard');
@@ -137,30 +138,39 @@ export default function CheckoutPage() {
 
   const userId = useAppSelector((state) => state.auth.user?._id);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!userId) return; // Don't fetch if userId is not available
-      
-      setIsLoading(true);
-      try {
-        const [userResponse] = await Promise.all([
-          getUserById(userId),
-        ]);
-        console.log("userResponse", userResponse);
-        setUser(userResponse.data);
-        // Set the first address as selected by default if available
-        if (userResponse.data?.address && userResponse.data.address.length > 0) {
-          setSelectedAddress(userResponse.data.address[0]);
-        }
-        // Cart data is now managed by Redux, so we don't need to fetch it here
-        await fetchCart();
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-        showToast("Failed to fetch data", "error");
-      } finally {
-        setIsLoading(false);
+  const fetchData = async () => {
+    if (!userId) {
+      console.log("No userId available, skipping data fetch");
+      return; // Don't fetch if userId is not available
+    }
+    
+    console.log("Fetching user and cart data for userId:", userId);
+    setIsLoading(true);
+    try {
+      const [userResponse] = await Promise.all([
+        getUserById(userId),
+      ]);
+      console.log("User response:", userResponse);
+      setUser(userResponse.data);
+      // Set the first address as selected by default if available
+      if (userResponse.data?.address && userResponse.data.address.length > 0) {
+        setSelectedAddress(userResponse.data.address[0]);
+        console.log("Auto-selected first address:", userResponse.data.address[0]);
+      } else {
+        console.log("No addresses found for user");
       }
-    };
+      // Cart data is now managed by Redux, so we don't need to fetch it here
+      await fetchCart();
+      console.log("Data fetch completed successfully");
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+      showToast("Failed to fetch data", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [userId, fetchCart]);
   const prepareOrderBody = (user: AppUser, cart: Cart) => {
@@ -202,14 +212,24 @@ export default function CheckoutPage() {
   };
 
   const handleProceed = async () => {
-    if (currentStep === 0) { // Address step
+    console.log("=== HANDLE PROCEED DEBUG ===");
+    console.log("Current step:", currentStep);
+    console.log("User:", user);
+    console.log("Cart:", cart);
+    console.log("Selected address:", selectedAddress);
+    console.log("Is placing order:", isPlacingOrder);
+    
+    if (currentStep === 0) { // Delivery step
+      // Move to address step
+      goToNextStep();
+    } else if (currentStep === 1) { // Address step
       if (!selectedAddress) {
         showToast("Please select an address for your order", "error");
         return;
       }
       // Move to review step
       goToNextStep();
-    } else if (currentStep === 1) { // Review step
+    } else if (currentStep === 2) { // Review step
       // Move to payment step
       goToNextStep();
     } else if (currentStep === 3) { // Payment step
@@ -219,25 +239,38 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = async () => {
+    console.log("=== HANDLE PLACE ORDER DEBUG ===");
+    console.log("User:", user);
+    console.log("Cart:", cart);
+    console.log("Selected address:", selectedAddress);
+    console.log("Is placing order:", isPlacingOrder);
+    
+    if (isPlacingOrder) {
+      console.log("Order placement already in progress, ignoring click");
+      return;
+    }
+    
     if (!user || !cart) {
+      console.log("Missing user or cart data");
       showToast("User or cart data is not available", "error");
       return;
     }
 
     if (!selectedAddress) {
+      console.log("No address selected");
       showToast("Please select an address for your order", "error");
       return;
     }
 
+    setIsPlacingOrder(true);
     const orderBody = prepareOrderBody(user, cart);
 
-
-    
     try {
       console.log("=== MAKING API CALL ===");
       console.log("Calling createOrders with body:", orderBody);
       
       const response = await createOrders(orderBody);
+      console.log("Order creation response:", response);
       
       setOrderId(response.data.orderId || response.data._id); 
       setIsOrderConfirmed(true);
@@ -252,15 +285,21 @@ export default function CheckoutPage() {
         router.push('/shop');
       }, 2000); // Wait 2 seconds to show the success message
     } catch (error: any) {
-
       console.error("Full Error Object:", error);
-
+      console.error("Error response:", error.response);
+      console.error("Error message:", error.message);
       
       if (error.response?.status === 403) {
         showToast("Access denied. Please check your login status.", "error");
+      } else if (error.response?.status === 400) {
+        showToast("Invalid order data. Please check your cart and try again.", "error");
+      } else if (error.response?.status === 500) {
+        showToast("Server error. Please try again later.", "error");
       } else {
-        showToast("Failed to create order", "error");
+        showToast(`Failed to create order: ${error.message || "Unknown error"}`, "error");
       }
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
   const removeItem = async (productId: string) => {
@@ -844,17 +883,68 @@ export default function CheckoutPage() {
                     </Button>
                   )}
                   
+                  {/* Debug Information */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
+                      <div>Step: {currentStep}</div>
+                      <div>User: {user ? '✓' : '✗'}</div>
+                      <div>Cart: {cart ? '✓' : '✗'}</div>
+                      <div>Address: {selectedAddress ? '✓' : '✗'}</div>
+                      <div>Placing: {isPlacingOrder ? '✓' : '✗'}</div>
+                    </div>
+                  )}
+                  
                   <Button
-                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                     onClick={handleProceed}
                     disabled={
-                      !user || !cart || !selectedAddress
+                      isPlacingOrder || 
+                      (currentStep === 1 && !selectedAddress) ||
+                      (currentStep === 3 && (!user || !cart || !selectedAddress))
                     }
                   >
-                    {currentStep === 0 ? "Proceed To Review" : 
-                     currentStep === 1 ? "Proceed To Payment" : 
-                     "Confirm & Place Order"}
+                    {isPlacingOrder ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Placing Order...
+                      </>
+                    ) : currentStep === 0 ? "Continue to Address" : 
+                       currentStep === 1 ? "Proceed To Review" : 
+                       currentStep === 2 ? "Proceed To Payment" :
+                       "Confirm & Place Order"}
                   </Button>
+                  
+                  {/* Show warning if button is disabled due to missing data */}
+                  {!isPlacingOrder && currentStep === 3 && (!user || !cart || !selectedAddress) && (
+                    <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                      {!user && <div>• User data not loaded</div>}
+                      {!cart && <div>• Cart data not loaded</div>}
+                      {!selectedAddress && <div>• No address selected</div>}
+                      <div className="mt-2 flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => {
+                            console.log("Retrying data fetch...");
+                            if (userId) {
+                              fetchData();
+                            }
+                          }}
+                        >
+                          Retry
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => window.location.reload()}
+                        >
+                          Refresh Page
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {selectedAddress && currentStep === 0 && (
