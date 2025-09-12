@@ -70,11 +70,6 @@ const data = {
       title:"Profile",
       url: "/dealer/dashboard/profile",
       icon: HiOutlineUser,
-    },
-    {
-      title: "Audit Logs",
-      url: "/dealer/dashboard/audit-logs",
-      icon: FileText,
     }
    
   ],

@@ -1,6 +1,7 @@
 import apiClient from "@/apiClient"
 import type { Dealer, CreateDealerRequest, ApiResponse, User, Category } from "@/types/dealer-types"
 import { SlaTypesResponse } from "@/types/sla-types"
+import { getAuthToken, getCookie } from "@/utils/auth"
 
 // Create a dealer
 export async function createDealer(data: CreateDealerRequest): Promise<ApiResponse<Dealer>> {
@@ -228,7 +229,7 @@ export async function removeAllowedCategories(dealerId: string, categories: stri
 // Assign employees to a dealer
 export async function assignEmployeesToDealer(
   dealerId: string,
-  payload: { employeeIds: string[]; assignmentNotes?: string }
+  payload: { employeeIds: string[]; assignmentNotes?: string; region?: string }
 ): Promise<ApiResponse<any>> {
   try {
     console.log("[assignEmployeesToDealer] dealerId:", dealerId)
@@ -277,5 +278,127 @@ export async function getAssignedEmployeesForDealer(
       error
     )
     throw error
+  }
+}
+
+// Get dealer ID from user ID using the internal endpoint
+export async function getDealerIdFromUserId(userId?: string): Promise<string> {
+  try {
+    let id = userId;
+    
+    // If userId is not provided, get it from token
+    if (!id) {
+      const token = getAuthToken();
+      if (token) {
+        try {
+          const payloadBase64 = token.split(".")[1];
+          if (payloadBase64) {
+            const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+            const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+            const payloadJson = atob(paddedBase64);
+            const payload = JSON.parse(payloadJson);
+            id = payload.id || payload.userId;
+          }
+        } catch (err) {
+          console.error("Failed to decode token for userId:", err);
+        }
+      }
+    }
+    
+    if (!id) {
+      throw new Error("User ID not found in token or parameter");
+    }
+    
+    console.log(`[getDealerIdFromUserId] Getting dealer ID for user ID: ${id}`);
+    
+    const response = await apiClient.get(`/users/api/users/internal/dealers/user/${id}`);
+    
+    if (response.data && response.data.success && response.data.data) {
+      let dealerId;
+      
+      // Handle both array and object response structures
+      if (Array.isArray(response.data.data) && response.data.data.length > 0) {
+        // Array structure: get the first dealer's _id
+        dealerId = response.data.data[0]._id;
+      } else if (response.data.data._id) {
+        // Object structure: get the _id directly
+        dealerId = response.data.data._id;
+      } else {
+        throw new Error("No dealer ID found in response");
+      }
+      
+      console.log(`[getDealerIdFromUserId] Successfully got dealer ID: ${dealerId}`);
+      return dealerId;
+    } else {
+      throw new Error("Invalid response from dealer ID endpoint or no dealers found");
+    }
+  } catch (error) {
+    console.error("Error getting dealer ID from user ID:", error);
+    throw error;
+  }
+}
+
+// Get dealer profile details by dealer ID
+export async function getDealerProfileDetails(dealerId?: string): Promise<Dealer> {
+  try {
+    let id = dealerId;
+    
+    // If dealerId is not provided, get it from dealer services using user ID
+    if (!id) {
+      try {
+        console.log(`[getDealerProfileDetails] Getting dealer ID from dealer services using user ID`);
+        id = await getDealerIdFromUserId();
+        console.log(`[getDealerProfileDetails] Successfully got dealer ID from dealer services: ${id}`);
+      } catch (dealerServiceError) {
+        console.log(`[getDealerProfileDetails] Failed to get dealer ID from dealer services, trying fallback methods`);
+        
+        // Fallback: try to get from cookie
+        id = getCookie("dealerId");
+        if (!id) {
+          // Fallback: try to extract from token
+          const token = getAuthToken();
+          if (token) {
+            try {
+              const payloadBase64 = token.split(".")[1];
+              if (payloadBase64) {
+                const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+                const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+                const payloadJson = atob(paddedBase64);
+                const payload = JSON.parse(payloadJson);
+                // Try dealerId, fallback to id
+                id = payload.dealerId || payload.id;
+              }
+            } catch (err) {
+              console.error("Failed to decode token for dealerId:", err);
+            }
+          }
+        }
+      }
+      
+      if (!id) {
+        throw new Error("Dealer ID not found in dealer services, cookie, or token");
+      }
+    }
+    
+    console.log(`[getDealerProfileDetails] Fetching dealer profile for dealer ID: ${id}`);
+    
+    // Get token for debugging
+    const token = getAuthToken();
+    console.log(`[getDealerProfileDetails] Auth token available:`, !!token);
+    if (token) {
+      console.log(`[getDealerProfileDetails] Token length:`, token.length);
+    }
+    
+    const response = await apiClient.get(`/users/api/users/dealer/${id}`);
+    
+    if (response.data && response.data.success && response.data.data) {
+      console.log(`[getDealerProfileDetails] Successfully fetched dealer profile for dealer ID: ${id}`);
+      return response.data.data;
+    } else {
+      throw new Error("Invalid response from dealer profile endpoint");
+    }
+  } catch (error) {
+    console.error("Error fetching dealer profile details:", error);
+    throw error;
   }
 }

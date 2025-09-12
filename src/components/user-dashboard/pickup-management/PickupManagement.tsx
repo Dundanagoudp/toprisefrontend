@@ -53,6 +53,7 @@ import {
   User,
   Phone,
   Mail,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/toast";
@@ -62,6 +63,7 @@ import {
   type PickupRequest,
   type PickupItem,
 } from "@/service/pickup-service";
+import { generatePickupListPDF, generateSinglePickupPDF } from "@/service/pdfService";
 
 export default function PickupManagement() {
   const router = useRouter();
@@ -78,6 +80,8 @@ export default function PickupManagement() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isPackedDialogOpen, setIsPackedDialogOpen] = useState(false);
   const [packingNotes, setPackingNotes] = useState("");
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingSinglePDF, setIsGeneratingSinglePDF] = useState(false);
 
   // Fetch pickup data
   const fetchPickupData = async () => {
@@ -213,6 +217,49 @@ export default function PickupManagement() {
     }
   };
 
+  // Handle PDF generation
+  const handleGeneratePDF = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      
+      const title = `Pickup List Report - ${new Date().toLocaleDateString()}`;
+      const filters = {
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+        searchTerm: searchTerm || undefined,
+      };
+      
+      await generatePickupListPDF(filteredPickups, {
+        title,
+        includeFilters: statusFilter !== 'all' || priorityFilter !== 'all' || searchTerm !== '',
+        filters
+      });
+      
+      showToast("PDF generated successfully", "success");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      showToast("Failed to generate PDF", "error");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  // Handle single pickup PDF generation
+  const handleGenerateSinglePickupPDF = async (pickup: PickupRequest) => {
+    try {
+      setIsGeneratingSinglePDF(true);
+      
+      await generateSinglePickupPDF(pickup);
+      
+      showToast("Pickup details PDF generated successfully", "success");
+    } catch (error) {
+      console.error("Error generating single pickup PDF:", error);
+      showToast("Failed to generate pickup details PDF", "error");
+    } finally {
+      setIsGeneratingSinglePDF(false);
+    }
+  };
+
   // Utility functions
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -294,6 +341,15 @@ export default function PickupManagement() {
           </p>
         </div>
         <div className="flex items-center space-x-3">
+          <Button 
+            onClick={handleGeneratePDF} 
+            variant="outline"
+            disabled={isGeneratingPDF || filteredPickups.length === 0}
+            className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isGeneratingPDF ? "Generating..." : "Download PDF"}
+          </Button>
           <Button onClick={fetchPickupData} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -531,7 +587,16 @@ export default function PickupManagement() {
                               </div>
                             </div>
                           )}
-                          <DialogFooter>
+                          <DialogFooter className="flex justify-between">
+                            <Button 
+                              variant="outline"
+                              onClick={() => handleGenerateSinglePickupPDF(selectedPickup)}
+                              disabled={isGeneratingSinglePDF}
+                              className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              {isGeneratingSinglePDF ? "Generating..." : "Download PDF"}
+                            </Button>
                             <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
                               Close
                             </Button>

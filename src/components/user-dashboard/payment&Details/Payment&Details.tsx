@@ -27,6 +27,7 @@ import useDebounce from "@/utils/useDebounce";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import { getPaymentDetails } from "@/service/payment-service";
 import { PaymentDetail, PaymentDetailsResponse, PaymentPagination } from "@/types/paymentDetails-Types";
+import PaymentStatsCards from "./PaymentStatsCards";
 
 // Using PaymentDetail interface from types file instead of local interface
 
@@ -223,6 +224,9 @@ export default function PaymentDetails() {
           <CardTitle className="text-[#000000] font-bold text-lg font-sans">
             <span>Payment & Details</span>
           </CardTitle>
+
+          {/* Payment Statistics Cards */}
+          <PaymentStatsCards className="mb-6" />
 
           {/* Search and Filters */}
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 gap-4 w-full">

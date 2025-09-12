@@ -92,8 +92,12 @@ export const Header = () => {
   };
 
   const handleSettings = () => {
-
-    router.push('/user/dashboard/setting');
+    if (isAuthenticated) {
+      router.push('/profile');
+    } else {
+      // For non-authenticated users, navigate to profile page or show login prompt
+      router.push('/login');
+    }
   };
   const handleSearch = async (query: string) => {
     const response = await smartSearch(query);
@@ -208,21 +212,33 @@ const handleSearchSubmit = async () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={handleSettings}
-                  className="cursor-pointer"
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer text-red-600 focus:text-red-600"
-                >
-                  <LogOutIcon className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
+                {isAuthenticated ? (
+                  <>
+                    <DropdownMenuItem
+                      onClick={handleSettings}
+                      className="cursor-pointer"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="cursor-pointer text-red-600 focus:text-red-600"
+                    >
+                      <LogOutIcon className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => router.push('/login')}
+                    className="cursor-pointer"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Please Login
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

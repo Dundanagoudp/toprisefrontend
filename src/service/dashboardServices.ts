@@ -1,5 +1,5 @@
 import apiClient from "@/apiClient";
-import { OrderStatsQuery, OrderStatsResponse, ProductStatsResponse, EmployeeStatsResponse, DealerStatsResponse, OrderSummaryPeriod, OrderSummaryResponse, UserCountsResponse } from "@/types/dashboard-Types";
+import { OrderStatsQuery, OrderStatsResponse, ProductStatsResponse, EmployeeStatsResponse, DealerStatsResponse, OrderSummaryPeriod, OrderSummaryResponse, UserCountsResponse, EnhancedOrderStatsQuery, EnhancedOrderStatsResponse } from "@/types/dashboard-Types";
 
 export async function fetchOrderStats(params: OrderStatsQuery): Promise<OrderStatsResponse> {
   const { startDate, endDate } = params;
@@ -89,6 +89,19 @@ export async function fetchUserCounts(): Promise<UserCountsResponse> {
       );
       return altResponse.data as UserCountsResponse;
     }
+    throw error;
+  }
+}
+
+export async function fetchEnhancedOrderStats(params: EnhancedOrderStatsQuery = {}): Promise<EnhancedOrderStatsResponse> {
+  try {
+    const response = await apiClient.get(
+      `/orders/api/orders/stats/filters`,
+      { params }
+    );
+    return response.data as EnhancedOrderStatsResponse;
+  } catch (error: any) {
+    console.error("Error fetching enhanced order stats:", error);
     throw error;
   }
 }

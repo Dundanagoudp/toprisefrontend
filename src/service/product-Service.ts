@@ -420,10 +420,20 @@ export async function getModels(): Promise<ProductResponse> {
 
 export async function getvarient(): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/subCategory/variants/`);
+    const response = await apiClient.get(`/category/api/variants`);
     return response.data;
   } catch (error) {
-    console.error("Failed to fetch categories:", error);
+    console.error("Failed to fetch variants:", error);
+    throw error;
+  }
+}
+
+export async function getSubcategories(): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/subcategory`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch subcategories:", error);
     throw error;
   }
 }
@@ -489,6 +499,37 @@ export async function getvarientByModel(id: string): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch varients:", error);
+    throw error;
+  }
+}
+
+// New API functions for the updated endpoints
+export async function getBrandsByType(typeId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/brands/brandByType/${typeId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch brands by type:", error);
+    throw error;
+  }
+}
+
+export async function getModelsByBrand(brandId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/model/brand/${brandId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch models by brand:", error);
+    throw error;
+  }
+}
+
+export async function getVariantsByModel(modelId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/variants/model/${modelId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch variants by model:", error);
     throw error;
   }
 }
@@ -630,7 +671,36 @@ export async function uploadBulkVariants(
   }
 }
 
+// Content Management Stats Functions
+export async function getContentStats(): Promise<{
+  categories: number;
+  subcategories: number;
+  brands: number;
+  models: number;
+  variants: number;
+}> {
+  try {
+    // Fetch all content types in parallel
+    const [categoriesRes, brandsRes, modelsRes, variantsRes, subcategoriesRes] = await Promise.all([
+      getCategories(),
+      getBrand(),
+      getModels(),
+      getvarient(),
+      getSubcategories()
+    ]);
 
+    return {
+      categories: categoriesRes.data?.length || 0,
+      subcategories: subcategoriesRes.data?.length || 0,
+      brands: brandsRes.data?.length || 0,
+      models: modelsRes.data?.length || 0,
+      variants: variantsRes.data?.length || 0,
+    };
+  } catch (error) {
+    console.error("Failed to fetch content stats:", error);
+    throw error;
+  }
+}
 
 export async function getProductsByCategory(
   categoryId: string,

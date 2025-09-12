@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Package, 
   ShoppingCart, 
@@ -18,7 +19,8 @@ import {
   DollarSign,
   BarChart3,
   Target,
-  TrendingDown
+  TrendingDown,
+  AlertTriangle
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { 
@@ -28,6 +30,7 @@ import {
   DealerOrderKPI,
   DealerAssignedCategory
 } from "@/service/dealer-dashboard-services"
+import DealerSLAViolations from "../sla-violations/DealerSLAViolations"
 
 // Stat Card Component
 const StatCard = ({ 
@@ -264,6 +267,21 @@ export default function DealerDashboard() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="overview" className="flex items-center space-x-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="sla-violations" className="flex items-center space-x-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span>SLA Violations</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
@@ -477,6 +495,12 @@ export default function DealerDashboard() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="sla-violations">
+            <DealerSLAViolations />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

@@ -8,6 +8,7 @@ import {
   DealerPickListApiResponse
 } from "@/types/dealerOrder-types";
 import { getCookie, getAuthToken } from "@/utils/auth";
+import { getDealerIdFromUserId } from "@/service/dealerServices";
 
 /**
  * Get orders by dealer ID
@@ -16,31 +17,41 @@ import { getCookie, getAuthToken } from "@/utils/auth";
  */
 export const getOrdersByDealerId = async (dealerId?: string): Promise<DealerOrder[]> => {
   try {
-    // If dealerId is not provided, try to get it from cookie
+    // If dealerId is not provided, get it from dealer services using user ID
     let id = dealerId;
     if (!id) {
-      id = getCookie("dealerId");
-      if (!id) {
-        // Try to extract from token
-        const token = getAuthToken();
-        if (token) {
-          try {
-            const payloadBase64 = token.split(".")[1];
-            if (payloadBase64) {
-              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
-              const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-              const payloadJson = atob(paddedBase64);
-              const payload = JSON.parse(payloadJson);
-              // Try dealerId, fallback to id
-              id = payload.dealerId || payload.id;
+      try {
+        console.log(`[getOrdersByDealerId] Getting dealer ID from dealer services using user ID`);
+        id = await getDealerIdFromUserId();
+        console.log(`[getOrdersByDealerId] Successfully got dealer ID from dealer services: ${id}`);
+      } catch (dealerServiceError) {
+        console.log(`[getOrdersByDealerId] Failed to get dealer ID from dealer services, trying fallback methods`);
+        
+        // Fallback: try to get from cookie
+        id = getCookie("dealerId");
+        if (!id) {
+          // Fallback: try to extract from token
+          const token = getAuthToken();
+          if (token) {
+            try {
+              const payloadBase64 = token.split(".")[1];
+              if (payloadBase64) {
+                const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+                const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+                const payloadJson = atob(paddedBase64);
+                const payload = JSON.parse(payloadJson);
+                // Try dealerId, fallback to id
+                id = payload.dealerId || payload.id;
+              }
+            } catch (err) {
+              console.error("Failed to decode token for dealerId:", err);
             }
-          } catch (err) {
-            console.error("Failed to decode token for dealerId:", err);
           }
         }
       }
+      
       if (!id) {
-        throw new Error("Dealer ID not found in cookie, argument, or token");
+        throw new Error("Dealer ID not found in dealer services, cookie, or token");
       }
     }
 

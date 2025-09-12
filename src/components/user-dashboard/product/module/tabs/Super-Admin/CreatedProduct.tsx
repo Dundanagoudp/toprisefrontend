@@ -121,22 +121,48 @@ export default function CreatedProduct({
           categoryFilter, 
           subCategoryFilter
         );
-        const data = res.data;
-
-        if (data?.products) {
-          setPaginatedProducts(data.products);
-          setTotalProducts(data.pagination.totalItems);
-          setTotalPages(data.pagination.totalPages);
+        
+        console.log("CreatedProduct: API response:", res);
+        
+        if (res && res.data) {
+          const data = res.data;
+          
+          // Handle products array
+          if (Array.isArray(data.products)) {
+            setPaginatedProducts(data.products);
+          } else {
+            console.warn("CreatedProduct: products is not an array:", data.products);
+            setPaginatedProducts([]);
+          }
+          
+          // Handle pagination data
+          if (data.pagination) {
+            setTotalProducts(data.pagination.totalItems || 0);
+            setTotalPages(data.pagination.totalPages || 0);
+          } else {
+            console.warn("CreatedProduct: pagination data missing:", data.pagination);
+            setTotalProducts(0);
+            setTotalPages(0);
+          }
+        } else {
+          console.warn("CreatedProduct: Invalid response structure:", res);
+          setPaginatedProducts([]);
+          setTotalProducts(0);
+          setTotalPages(0);
         }
       } catch (err) {
         console.error("Failed to fetch products:", err);
+        setPaginatedProducts([]);
+        setTotalProducts(0);
+        setTotalPages(0);
+        showToast("Failed to load products. Please try again.", "error");
       } finally {
         setLoadingProducts(false);
       }
     };
 
     fetchProducts();
-  }, [currentPage, searchQuery, categoryFilter, subCategoryFilter]);
+  }, [currentPage, searchQuery, categoryFilter, subCategoryFilter, showToast]);
 
   // Reset to first page when search or filters change
   useEffect(() => {
@@ -200,76 +226,67 @@ export default function CreatedProduct({
       <ChevronDown className="w-4 h-4 text-[#C72920]" />;
   };
 
-  // Filter products by search query and category
-  const filteredProducts = React.useMemo(() => {
-    if (!paginatedproducts) return [];
-    let products = paginatedproducts;
-
-    // Note: Search, category, and subcategory filtering are now handled by the API
-    // This memo now only handles sorting since filtering is done server-side
+  // Sort products based on sortField (server-side filtering is handled by API)
+  const sortedProducts = React.useMemo(() => {
+    if (!paginatedproducts || !Array.isArray(paginatedproducts)) return [];
+    
+    // If no sorting is applied, return products as-is
+    if (!sortField) return paginatedproducts;
 
     // Sort products based on sortField
-    if (sortField) {
-      products = [...products].sort((a: any, b: any) => {
-        let aValue: any;
-        let bValue: any;
-        
-        switch (sortField) {
-          case "product_name":
-            aValue = a.product_name?.toLowerCase() || "";
-            bValue = b.product_name?.toLowerCase() || "";
-            break;
-          case "mrp_with_gst":
-            aValue = Number(a.mrp_with_gst) || 0;
-            bValue = Number(b.mrp_with_gst) || 0;
-            break;
-          case "brand":
-            aValue = a.brand?.brand_name?.toLowerCase() || "";
-            bValue = b.brand?.brand_name?.toLowerCase() || "";
-            break;
-          case "product_type":
-            aValue = a.product_type?.toLowerCase() || "";
-            bValue = b.product_type?.toLowerCase() || "";
-            break;
-          case "category":
-            aValue = a.category?.category_name?.toLowerCase() || "";
-            bValue = b.category?.category_name?.toLowerCase() || "";
-            break;
-          case "sub_category":
-            aValue = a.sub_category?.subcategory_name?.toLowerCase() || "";
-            bValue = b.sub_category?.subcategory_name?.toLowerCase() || "";
-            break;
-          default:
-            return 0;
-        }
-        
-        if (sortDirection === "asc") {
-          return aValue.localeCompare ? aValue.localeCompare(bValue) : aValue - bValue;
-        } else {
-          return bValue.localeCompare ? bValue.localeCompare(aValue) : bValue - aValue;
-        }
-      });
-    }
+    return [...paginatedproducts].sort((a: any, b: any) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (sortField) {
+        case "product_name":
+          aValue = a.product_name?.toLowerCase() || "";
+          bValue = b.product_name?.toLowerCase() || "";
+          break;
+        case "mrp_with_gst":
+          aValue = Number(a.mrp_with_gst) || 0;
+          bValue = Number(b.mrp_with_gst) || 0;
+          break;
+        case "brand":
+          aValue = a.brand?.brand_name?.toLowerCase() || "";
+          bValue = b.brand?.brand_name?.toLowerCase() || "";
+          break;
+        case "product_type":
+          aValue = a.product_type?.toLowerCase() || "";
+          bValue = b.product_type?.toLowerCase() || "";
+          break;
+        case "category":
+          aValue = a.category?.category_name?.toLowerCase() || "";
+          bValue = b.category?.category_name?.toLowerCase() || "";
+          break;
+        case "sub_category":
+          aValue = a.sub_category?.subcategory_name?.toLowerCase() || "";
+          bValue = b.sub_category?.subcategory_name?.toLowerCase() || "";
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortDirection === "asc") {
+        return aValue.localeCompare ? aValue.localeCompare(bValue) : aValue - bValue;
+      } else {
+        return bValue.localeCompare ? bValue.localeCompare(aValue) : bValue - aValue;
+      }
+    });
+  }, [paginatedproducts, sortField, sortDirection]);
 
-    return products;
-  }, [
-    paginatedproducts,
-    sortField,
-    sortDirection,
-  ]);
-
-  // Clear selections when filtered products change (e.g., search query changes)
+  // Clear selections when sorted products change (e.g., search query changes)
   useEffect(() => {
     if (selectedProducts.length > 0) {
       const validSelections = selectedProducts.filter((id) =>
-        filteredProducts.some((product) => product._id === id)
+        sortedProducts.some((product) => product._id === id)
       );
       if (validSelections.length !== selectedProducts.length) {
         // Only dispatch to Redux store
         dispatch(fetchProductIdForBulkActionSuccess(validSelections));
       }
     }
-  }, [filteredProducts, selectedProducts, dispatch]);
+  }, [sortedProducts, selectedProducts, dispatch]);
 
   // Clear selections when component unmounts
   useEffect(() => {
@@ -290,13 +307,13 @@ export default function CreatedProduct({
   };
 
   const allSelected =
-    filteredProducts.length > 0 &&
-    filteredProducts.every((p: any) => selectedProducts.includes(p._id));
+    sortedProducts.length > 0 &&
+    sortedProducts.every((p: any) => selectedProducts.includes(p._id));
 
   const handleSelectAll = () => {
     const newSelectedProducts = allSelected
       ? []
-      : filteredProducts.map((p: any) => p._id);
+      : sortedProducts.map((p: any) => p._id);
     // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
@@ -386,7 +403,7 @@ export default function CreatedProduct({
   };
 
   // Empty state
-  if (!loadingProducts && (filteredProducts.length === 0)) {
+  if (!loadingProducts && (sortedProducts.length === 0)) {
     return <Emptydata />;
   }
 
@@ -509,7 +526,7 @@ export default function CreatedProduct({
                   </TableCell>
                 </TableRow>
               ))
-            : filteredProducts.map((product, index) => (
+            : sortedProducts.map((product, index) => (
                 <TableRow
                   key={product._id}
                   className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
@@ -656,77 +673,131 @@ export default function CreatedProduct({
         </TableBody>
       </Table>
       {/* Pagination - moved outside of table */}
-      {totalProducts > 0 && totalPages > 1 && (
+      {totalProducts > 0 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
           {/* Left: Showing X-Y of Z products */}
           <div className="text-sm text-gray-600 text-center sm:text-left">
-            {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
-              currentPage * itemsPerPage,
-              totalProducts
-            )} of ${totalProducts} products`}
+            {totalProducts > 0 ? (
+              `Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
+                currentPage * itemsPerPage,
+                totalProducts
+              )} of ${totalProducts} products`
+            ) : (
+              "No products found"
+            )}
           </div>
-          {/* Pagination Controls */}
-          <div className="flex justify-center sm:justify-end">
-            <Pagination>
-              <PaginationContent>
-                {/* Previous Button */}
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className={
-                      currentPage === 1
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                  />
-                </PaginationItem>
+          
+          {/* Pagination Controls - only show if more than 1 page */}
+          {totalPages > 1 && (
+            <div className="flex justify-center sm:justify-end">
+              <Pagination>
+                <PaginationContent>
+                  {/* Previous Button */}
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer hover:bg-gray-100"
+                      }
+                    />
+                  </PaginationItem>
 
-                {/* Numbered Page Buttons (max 3) */}
-                {(() => {
-                  let pages = [];
-                  if (totalPages <= 3) {
-                    // Case 1: Few pages, just show all
-                    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-                  } else if (currentPage <= 2) {
-                    // Case 2: Near the start
-                    pages = [1, 2, 3];
-                  } else if (currentPage >= totalPages - 1) {
-                    // Case 3: Near the end
-                    pages = [totalPages - 2, totalPages - 1, totalPages];
-                  } else {
-                    // Case 4: Middle pages
-                    pages = [currentPage - 1, currentPage, currentPage + 1];
-                  }
+                  {/* First page if not in range */}
+                  {currentPage > 3 && totalPages > 5 && (
+                    <>
+                      <PaginationItem>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(1)}
+                          className="cursor-pointer hover:bg-gray-100"
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                      {currentPage > 4 && (
+                        <PaginationItem>
+                          <span className="px-3 py-2 text-gray-500">...</span>
+                        </PaginationItem>
+                      )}
+                    </>
+                  )}
 
-                  return pages.map((pageNum) => (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        isActive={currentPage === pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className="cursor-pointer"
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ));
-                })()}
+                  {/* Numbered Page Buttons */}
+                  {(() => {
+                    let pages = [];
+                    const maxVisiblePages = 5;
+                    
+                    if (totalPages <= maxVisiblePages) {
+                      // Show all pages if total is small
+                      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                    } else {
+                      // Calculate range of pages to show
+                      let startPage = Math.max(1, currentPage - 2);
+                      let endPage = Math.min(totalPages, currentPage + 2);
+                      
+                      // Adjust if we're near the beginning or end
+                      if (currentPage <= 3) {
+                        endPage = Math.min(totalPages, 5);
+                      } else if (currentPage >= totalPages - 2) {
+                        startPage = Math.max(1, totalPages - 4);
+                      }
+                      
+                      pages = Array.from(
+                        { length: endPage - startPage + 1 },
+                        (_, i) => startPage + i
+                      );
+                    }
 
-                {/* Next Button */}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    className={
-                      currentPage === totalPages
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
+                    return pages.map((pageNum) => (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          isActive={currentPage === pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="cursor-pointer hover:bg-gray-100"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ));
+                  })()}
+
+                  {/* Last page if not in range */}
+                  {currentPage < totalPages - 2 && totalPages > 5 && (
+                    <>
+                      {currentPage < totalPages - 3 && (
+                        <PaginationItem>
+                          <span className="px-3 py-2 text-gray-500">...</span>
+                        </PaginationItem>
+                      )}
+                      <PaginationItem>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(totalPages)}
+                          className="cursor-pointer hover:bg-gray-100"
+                        >
+                          {totalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+
+                  {/* Next Button */}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer hover:bg-gray-100"
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
       )}
       {viewProductLoading && (

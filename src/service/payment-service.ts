@@ -1,4 +1,4 @@
-import { PaymentDetailsResponse, PaymentDetailByIdResponse } from "@/types/paymentDetails-Types";
+import { PaymentDetailsResponse, PaymentDetailByIdResponse, PaymentSummary } from "@/types/paymentDetails-Types";
 import apiClient from "@/apiClient";
 
 
@@ -20,5 +20,26 @@ export async function getPaymentDetailsById(id: string): Promise<PaymentDetailBy
     } catch (error) {
       console.log("error in payment service",error)
       throw error;
+    }
+  }
+
+export async function getPaymentStats(): Promise<{ success: boolean; data: PaymentSummary }> {
+    try {
+      const response = await apiClient.get(`orders/api/payments/stats`);
+      return response.data;
+    } catch (error) {
+      console.log("error in payment stats service", error);
+      // Return fallback data if API fails
+      return {
+        success: false,
+        data: {
+          total_payments: 0,
+          total_amount: 0,
+          successful_payments: 0,
+          failed_payments: 0,
+          pending_payments: 0,
+          refunded_payments: 0
+        }
+      };
     }
   }

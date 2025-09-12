@@ -1,16 +1,203 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useAppSelector } from "@/store/hooks"
+import { selectVehicleTypeId } from "@/store/slice/vehicle/vehicleSlice"
+import { 
+  getYearRange, 
+  getBrandsByType,
+  getModelsByBrand,
+  getVariantsByModel
+} from "@/service/product-Service"
+import { useToast } from "@/components/ui/toast"
+
+interface Model {
+  _id: string;
+  model_name: string;
+  brand_id: string;
+}
+
+interface Variant {
+  _id: string;
+  variant_name: string;
+  model_id: string;
+}
+
+interface Year {
+  _id: string;
+  year_name: string;
+}
+
+interface Brand {
+  _id: string;
+  brand_name: string;
+}
 
 export default function BannerSection() {
   const [offsetY, setOffsetY] = useState(0)
   const handleScroll = () => setOffsetY(window.pageYOffset)
+  
+  // Vehicle search state
+  const { showToast } = useToast()
+  const router = useRouter()
+  const typeId = useAppSelector(selectVehicleTypeId)
+  
+  // State for dropdown data
+  const [brands, setBrands] = useState<Brand[]>([])
+  const [models, setModels] = useState<Model[]>([])
+  const [variants, setVariants] = useState<Variant[]>([])
+  const [years, setYears] = useState<Year[]>([])
+  
+  // State for selected values
+  const [selectedBrand, setSelectedBrand] = useState<string>("")
+  const [selectedModel, setSelectedModel] = useState<string>("")
+  const [selectedVariant, setSelectedVariant] = useState<string>("")
+  const [selectedYear, setSelectedYear] = useState<string>("")
+  
+  // Number plate search
+  const [numberPlate, setNumberPlate] = useState<string>("")
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // Fetch initial data when typeId changes
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [brandsRes, yearsRes] = await Promise.all([
+          getBrandsByType(typeId),
+          getYearRange()
+        ])
+        
+        if (brandsRes.success && brandsRes.data) {
+          const brandsData = Array.isArray(brandsRes.data) ? brandsRes.data : brandsRes.data.products || []
+          setBrands(brandsData as Brand[])
+        }
+        
+        if (yearsRes.success && yearsRes.data) {
+          const yearsData = Array.isArray(yearsRes.data) ? yearsRes.data : yearsRes.data.products || []
+          setYears(yearsData as Year[])
+        }
+        
+        // Reset all selections when vehicle type changes
+        setSelectedBrand("")
+        setSelectedModel("")
+        setSelectedVariant("")
+        setModels([])
+        setVariants([])
+      } catch (error) {
+        console.error("Error fetching initial data:", error)
+        showToast("Failed to load initial data", "error")
+      }
+    }
+
+    if (typeId) {
+      fetchInitialData()
+    }
+  }, [typeId, showToast])
+
+  // Fetch models when brand changes
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!selectedBrand) {
+        setModels([])
+        setSelectedModel("")
+        setSelectedVariant("")
+        setVariants([])
+        return
+      }
+
+      try {
+        const modelsRes = await getModelsByBrand(selectedBrand)
+        
+        if (modelsRes.success && modelsRes.data) {
+          const modelsData = Array.isArray(modelsRes.data) ? modelsRes.data : modelsRes.data.products || []
+          setModels(modelsData as Model[])
+        } else {
+          setModels([])
+        }
+        
+        // Reset dependent selections
+        setSelectedModel("")
+        setSelectedVariant("")
+        setVariants([])
+      } catch (error) {
+        console.error("Error fetching models:", error)
+        showToast("Failed to load models", "error")
+        setModels([])
+      }
+    }
+
+    fetchModels()
+  }, [selectedBrand, showToast])
+
+  // Fetch variants when model changes
+  useEffect(() => {
+    const fetchVariants = async () => {
+      if (!selectedModel) {
+        setVariants([])
+        setSelectedVariant("")
+        return
+      }
+
+      try {
+        const variantsRes = await getVariantsByModel(selectedModel)
+        
+        if (variantsRes.success && variantsRes.data) {
+          const variantsData = Array.isArray(variantsRes.data) ? variantsRes.data : variantsRes.data.products || []
+          setVariants(variantsData as Variant[])
+        } else {
+          setVariants([])
+        }
+        
+        // Reset dependent selection
+        setSelectedVariant("")
+      } catch (error) {
+        console.error("Error fetching variants:", error)
+        showToast("Failed to load variants", "error")
+        setVariants([])
+      }
+    }
+
+    fetchVariants()
+  }, [selectedModel, showToast])
+
+  // Handle vehicle search
+  const handleVehicleSearch = () => {
+    if (!selectedBrand || !selectedModel) {
+      showToast("Please select at least Brand and Model", "error")
+      return
+    }
+
+    // Build search query
+    const searchParams = new URLSearchParams()
+    if (selectedBrand) searchParams.append("brand", selectedBrand)
+    if (selectedModel) searchParams.append("model", selectedModel)
+    if (selectedVariant) searchParams.append("variant", selectedVariant)
+    if (selectedYear) searchParams.append("year", selectedYear)
+    searchParams.append("vehicleTypeId", typeId)
+
+    router.push(`/shop/search-results/?${searchParams.toString()}`)
+  }
+
+  // Handle number plate search
+  const handleNumberPlateSearch = () => {
+    if (!numberPlate.trim()) {
+      showToast("Please enter a number plate", "error")
+      return
+    }
+
+    const searchParams = new URLSearchParams({
+      query: numberPlate.trim(),
+      vehicleTypeId: typeId,
+    })
+
+    router.push(`/shop/search-results/?${searchParams.toString()}`)
+  }
 
   return (
      <section className="relative min-h-screen w-full overflow-hidden">
@@ -48,40 +235,69 @@ export default function BannerSection() {
                 <h3 className="text-white font-semibold text-lg mb-4">Search by vehicle</h3>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <select className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors">
-                    <option className="bg-gray-800 text-white">Select Brand</option>
-                    <option className="bg-gray-800 text-white">Toyota</option>
-                    <option className="bg-gray-800 text-white">Honda</option>
-                    <option className="bg-gray-800 text-white">Ford</option>
-                    <option className="bg-gray-800 text-white">BMW</option>
+                  <select 
+                    value={selectedBrand}
+                    onChange={(e) => setSelectedBrand(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors"
+                  >
+                    <option value="" className="bg-gray-800 text-white">Select Brand</option>
+                    {brands.map((brand) => (
+                      <option key={brand._id} value={brand._id} className="bg-gray-800 text-white">
+                        {brand.brand_name}
+                      </option>
+                    ))}
                   </select>
 
-                  <select className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors">
-                    <option className="bg-gray-800 text-white">Select Model</option>
-                    <option className="bg-gray-800 text-white">Camry</option>
-                    <option className="bg-gray-800 text-white">Civic</option>
-                    <option className="bg-gray-800 text-white">Focus</option>
-                    <option className="bg-gray-800 text-white">3 Series</option>
+                  <select 
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    disabled={!selectedBrand}
+                    className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="" className="bg-gray-800 text-white">
+                      {selectedBrand ? "Select Model" : "Select Brand first"}
+                    </option>
+                    {models.map((model) => (
+                      <option key={model._id} value={model._id} className="bg-gray-800 text-white">
+                        {model.model_name}
+                      </option>
+                    ))}
                   </select>
 
-                  <select className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors">
-                    <option className="bg-gray-800 text-white">Select Year</option>
-                    <option className="bg-gray-800 text-white">2024</option>
-                    <option className="bg-gray-800 text-white">2023</option>
-                    <option className="bg-gray-800 text-white">2022</option>
-                    <option className="bg-gray-800 text-white">2021</option>
+                  <select 
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors"
+                  >
+                    <option value="" className="bg-gray-800 text-white">Select Year</option>
+                    {years.map((year) => (
+                      <option key={year._id} value={year._id} className="bg-gray-800 text-white">
+                        {year.year_name}
+                      </option>
+                    ))}
                   </select>
 
-                  <select className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors">
-                    <option className="bg-gray-800 text-white">Select Variant</option>
-                    <option className="bg-gray-800 text-white">Base</option>
-                    <option className="bg-gray-800 text-white">Sport</option>
-                    <option className="bg-gray-800 text-white">Premium</option>
-                    <option className="bg-gray-800 text-white">Luxury</option>
+                  <select 
+                    value={selectedVariant}
+                    onChange={(e) => setSelectedVariant(e.target.value)}
+                    disabled={!selectedModel}
+                    className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="" className="bg-gray-800 text-white">
+                      {selectedModel ? "Select Variant" : "Select Model first"}
+                    </option>
+                    {variants.map((variant) => (
+                      <option key={variant._id} value={variant._id} className="bg-gray-800 text-white">
+                        {variant.variant_name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                <button className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl">
+                <button 
+                  onClick={handleVehicleSearch}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
                   Search
                 </button>
               </div>
@@ -93,9 +309,19 @@ export default function BannerSection() {
                   <input
                     type="text"
                     placeholder="e.g., ABC123"
+                    value={numberPlate}
+                    onChange={(e) => setNumberPlate(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleNumberPlateSearch()
+                      }
+                    }}
                     className="flex-1 p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 placeholder-white/70 hover:bg-gray-600/80 transition-colors"
                   />
-                  <button className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl">
+                  <button 
+                    onClick={handleNumberPlateSearch}
+                    className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
                     Search
                   </button>
                 </div>

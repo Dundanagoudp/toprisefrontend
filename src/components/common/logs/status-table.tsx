@@ -22,6 +22,8 @@ import { useCallback, useEffect, useState } from "react";
 import useDebounce from "@/utils/useDebounce";
 import { uploadLogs } from "@/service/product-Service";
 import { useRouter } from "next/navigation";
+import { uploadLogStorage, type StoredUploadLog } from "@/service/uploadLogService";
+import { Download } from "lucide-react";
 
 const tableData = [
   {
@@ -101,7 +103,7 @@ export default function statusTable() {
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(
     null
   );
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<StoredUploadLog[]>([]);
 
   const auth = useAppSelector((state) => state.auth.user);
   const router = useRouter();
@@ -113,50 +115,109 @@ export default function statusTable() {
   const { debouncedCallback: debouncedSearch, cleanup: cleanupDebounce } =
     useDebounce(performSearch, 500);
 
-  useEffect(() => {
-    async function handleUploadLogs() {
-      try {
-        setLoading(true);
-        const response = await uploadLogs();
-        if (response && response.data) {
-          console.log("Logs fetched successfully:", response.data);
-          setUploadMessage(response.data);
-          setLogs(response.data.products || []);
-        } else {
-          console.error("Failed to fetch logs - no data received");
-          setLogs([]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch logs", error);
-        setLogs([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    handleUploadLogs();
-  }, []);
-
-  // Function to refresh logs
-  const refreshLogs = async () => {
+  // Load upload logs from local storage
+  const loadUploadLogs = useCallback(() => {
     try {
       setLoading(true);
-      const response = await uploadLogs();
-      if (response && response.data) {
-        console.log("Logs refreshed successfully:", response.data);
-        setUploadMessage(response.data);
-        setLogs(response.data.products || []);
-      } else {
-        console.error("Failed to refresh logs - no data received");
-        setLogs([]);
-      }
+      const storedLogs = uploadLogStorage.getAllLogsArray();
+      console.log("Upload logs loaded from storage:", storedLogs);
+      console.log("Number of logs found:", storedLogs.length);
+      storedLogs.forEach((log, index) => {
+        console.log(`Log ${index}:`, {
+          id: log.id,
+          sessionId: log.sessionId,
+          status: log.status,
+          hasLogData: !!log.logData,
+          logDataKeys: log.logData ? Object.keys(log.logData) : 'No logData'
+        });
+      });
+      setLogs(storedLogs);
     } catch (error) {
-      console.error("Failed to refresh logs", error);
+      console.error("Failed to load upload logs", error);
       setLogs([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUploadLogs();
+  }, [loadUploadLogs]);
+
+  // Function to refresh logs
+  const refreshLogs = useCallback(() => {
+    loadUploadLogs();
+  }, [loadUploadLogs]);
+
+  // Function to export logs as CSV
+  const exportLogsAsCSV = useCallback(() => {
+    try {
+      if (logs.length === 0) {
+        alert('No logs to export');
+        return;
+      }
+
+      // Create CSV headers
+      const headers = [
+        'Session ID',
+        'Upload Type',
+        'Status',
+        'Created By',
+        'Created At',
+        'Duration (s)',
+        'Total Rows',
+        'Inserted',
+        'Successful Products',
+        'Failed Products',
+        'Total Images',
+        'OK Images',
+        'Skip Images',
+        'Fail Images',
+        'Message'
+      ];
+
+      // Create CSV rows
+      const csvRows = logs.map(log => [
+        log.sessionId || '',
+        log.uploadType || '',
+        log.logData?.status || log.status || '',
+        log.createdBy || '',
+        new Date(log.createdAt).toLocaleString(),
+        log.logData?.durationSec || '',
+        log.logData?.totalRows || 0,
+        log.logData?.inserted || 0,
+        log.logData?.successLogs?.totalSuccessful || 0,
+        log.logData?.failureLogs?.totalFailed || 0,
+        log.logData?.imgSummary?.total || 0,
+        log.logData?.imgSummary?.ok || 0,
+        log.logData?.imgSummary?.skip || 0,
+        log.logData?.imgSummary?.fail || 0,
+        log.logData?.message || ''
+      ]);
+
+      // Combine headers and rows
+      const csvContent = [headers, ...csvRows]
+        .map(row => row.map(field => `"${field}"`).join(','))
+        .join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `upload_logs_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log('CSV export completed successfully');
+    } catch (error) {
+      console.error('Failed to export CSV:', error);
+      alert('Failed to export CSV. Please try again.');
+    }
+  }, [logs]);
+
 
   // Handle search input change
   const handleSearchChange = (value: string) => {
@@ -217,6 +278,13 @@ export default function statusTable() {
                   onClick={refreshLogs}
                   disabled={loading}
                 />
+                <DynamicButton 
+                  variant="outline" 
+                  text="Export CSV" 
+                  onClick={exportLogsAsCSV}
+                  disabled={loading || logs.length === 0}
+                  icon={<Download className="w-4 h-4 mr-2" />}
+                />
                 <DynamicButton variant="default" text="Done" onClick={() => router.push('/user/dashboard/product')} />
               </div>
             </div>
@@ -272,18 +340,25 @@ export default function statusTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row: any, index: number) => (
+                {rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      No upload logs found. Upload some products to see logs here.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  rows.map((log: StoredUploadLog, index: number) => (
                   <>
                     <TableRow
-                      key={row._id || index}
+                      key={log.id || index}
                       className={
-                        row.status === "Reject"
+                        log.status === "failed"
                           ? "bg-red-50 hover:bg-red-100"
                           : "bg-green-50 hover:bg-green-100"
                       }
                     >
                       <TableCell className="font-medium text-gray-900">
-                        {formatDate(row.sessionTime, {
+                        {formatDate(log.createdAt, {
                           includeTime: true,
                           timeFormat: "12h",
                         })}
@@ -291,84 +366,207 @@ export default function statusTable() {
                       <TableCell>
                         <Badge
                           variant={
-                            row.status === "Reject"
+                            log.status === "failed"
                               ? "destructive"
-                              : row.status === "Completed"
+                              : log.status === "completed"
                               ? "default"
-                              : "default"
+                              : "secondary"
                           }
                           className={
-                            row.status === "Reject"
+                            log.status === "failed"
                               ? "bg-red-100 text-red-800 hover:bg-red-200"
-                              : row.status === "Completed"
+                              : log.status === "completed"
                               ? "bg-green-100 text-green-800 hover:bg-green-200"
-                              : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
                           }
                         >
-                          {row.status}
+                          {log.logData?.status || log.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-gray-900">
-                        {row.no_of_products}
+                        {log.logData?.totalRows || 0}
                       </TableCell>
                       <TableCell className="text-gray-900">
-                        {row.total_products_successful}
+                        {log.logData?.successLogs?.totalSuccessful || 0}
                       </TableCell>
                       <TableCell className="text-gray-900">
-                        {row.total_products_failed}
+                        {log.logData?.failureLogs?.totalFailed || 0}
                       </TableCell>
                       <TableCell className="text-gray-900">
                         <DynamicButton
                           variant="outline"
                           text={
-                            expandedSessionId === (row._id || row.sessionId)
-                              ? "Hide Logs"
-                              : "View Logs"
+                            expandedSessionId === log.id
+                              ? "Hide Details"
+                              : "View Details"
                           }
                           onClick={() =>
                             setExpandedSessionId(
-                              expandedSessionId === (row._id || row.sessionId)
+                              expandedSessionId === log.id
                                 ? null
-                                : row._id || row.sessionId
+                                : log.id
                             )
                           }
                         />
                       </TableCell>
                     </TableRow>
-                    {expandedSessionId === (row._id || row.sessionId) && (
+                    {expandedSessionId === log.id && (
                       <TableRow>
                         <TableCell colSpan={6} className="bg-gray-50 p-0">
                           <div className="p-4">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="font-medium text-gray-700">Log ID</TableHead>
-                                  <TableHead className="font-medium text-gray-700">Product ID</TableHead>
-                                  <TableHead className="font-medium text-gray-700">Message</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {(row.logs && row.logs.length > 0) ? (
-                                  row.logs.map((log: any) => (
-                                    <TableRow key={log._id}>
-                                      <TableCell>{log._id}</TableCell>
-                                      <TableCell>{log.productId || '-'}</TableCell>
-                                      <TableCell>{log.message}</TableCell>
-                                    </TableRow>
-                                  ))
-                                ) : (
-                                  <TableRow>
-                                    <TableCell colSpan={3} className="text-center">No logs found.</TableCell>
-                                  </TableRow>
-                                )}
-                              </TableBody>
-                            </Table>
+                            <h4 className="font-semibold text-gray-900 mb-4">Upload Session Details</h4>
+                            
+                            {/* Session Info */}
+                            <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                              <div>
+                                <span className="font-medium text-gray-700">Session ID:</span>{" "}
+                                {log.sessionId}
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Upload Type:</span>{" "}
+                                {log.uploadType === 'bulk_upload' ? 'Bulk Upload' : 
+                                 log.uploadType === 'bulk_edit' ? 'Bulk Edit' : 
+                                 log.uploadType === 'dealer_upload' ? 'Dealer Upload' : 'Unknown'}
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Created By:</span>{" "}
+                                {log.createdBy}
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Duration:</span>{" "}
+                                {log.logData?.durationSec || 'N/A'}s
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Total Rows:</span>{" "}
+                                {log.logData?.totalRows || 0}
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Inserted:</span>{" "}
+                                {log.logData?.inserted || 0}
+                              </div>
+                            </div>
+
+                            {/* Image Summary */}
+                            {log.logData?.imgSummary && (
+                              <div className="mb-6">
+                                <h5 className="font-medium text-blue-700 mb-2">Image Summary</h5>
+                                <div className="grid grid-cols-4 gap-4 text-sm">
+                                  <div className="bg-blue-50 p-3 rounded">
+                                    <div className="font-medium text-blue-800">Total</div>
+                                    <div className="text-lg font-bold text-blue-900">{log.logData.imgSummary.total}</div>
+                                  </div>
+                                  <div className="bg-green-50 p-3 rounded">
+                                    <div className="font-medium text-green-800">OK</div>
+                                    <div className="text-lg font-bold text-green-900">{log.logData.imgSummary.ok}</div>
+                                  </div>
+                                  <div className="bg-yellow-50 p-3 rounded">
+                                    <div className="font-medium text-yellow-800">Skip</div>
+                                    <div className="text-lg font-bold text-yellow-900">{log.logData.imgSummary.skip}</div>
+                                  </div>
+                                  <div className="bg-red-50 p-3 rounded">
+                                    <div className="font-medium text-red-800">Fail</div>
+                                    <div className="text-lg font-bold text-red-900">{log.logData.imgSummary.fail}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Success Logs */}
+                            {log.logData?.successLogs?.totalSuccessful > 0 && (
+                              <div className="mb-6">
+                                <h5 className="font-medium text-green-700 mb-3">Successful Products ({log.logData?.successLogs?.totalSuccessful})</h5>
+                                <div className="overflow-x-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="font-medium text-gray-700">Product ID</TableHead>
+                                        <TableHead className="font-medium text-gray-700">SKU</TableHead>
+                                        <TableHead className="font-medium text-gray-700">Product Name</TableHead>
+                                        <TableHead className="font-medium text-gray-700">Status</TableHead>
+                                        <TableHead className="font-medium text-gray-700">QC Status</TableHead>
+                                        <TableHead className="font-medium text-gray-700">Images</TableHead>
+                                        <TableHead className="font-medium text-gray-700">Message</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {log.logData?.successLogs?.products?.map((product, idx) => (
+                                        <TableRow key={idx} className="bg-green-50">
+                                          <TableCell className="text-sm">{product.productId}</TableCell>
+                                          <TableCell className="text-sm font-medium">{product.sku}</TableCell>
+                                          <TableCell className="text-sm">{product.productName}</TableCell>
+                                          <TableCell>
+                                            <Badge className="bg-green-100 text-green-800">
+                                              {product.status}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Badge className="bg-blue-100 text-blue-800">
+                                              {product.qcStatus}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="text-sm">{product.images}</TableCell>
+                                          <TableCell className="text-sm">{product.message}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Failure Logs */}
+                            {log.logData?.failureLogs?.totalFailed > 0 && (
+                              <div className="mb-6">
+                                <h5 className="font-medium text-red-700 mb-3">Failed Products ({log.logData?.failureLogs?.totalFailed})</h5>
+                                <div className="overflow-x-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="font-medium text-gray-700">Product ID</TableHead>
+                                        <TableHead className="font-medium text-gray-700">SKU</TableHead>
+                                        <TableHead className="font-medium text-gray-700">Product Name</TableHead>
+                                        <TableHead className="font-medium text-gray-700">Status</TableHead>
+                                        <TableHead className="font-medium text-gray-700">Message</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {log.logData?.failureLogs?.products?.map((product, idx) => (
+                                        <TableRow key={idx} className="bg-red-50">
+                                          <TableCell className="text-sm">{product.productId}</TableCell>
+                                          <TableCell className="text-sm font-medium">{product.sku}</TableCell>
+                                          <TableCell className="text-sm">{product.productName}</TableCell>
+                                          <TableCell>
+                                            <Badge className="bg-red-100 text-red-800">
+                                              {product.status}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="text-sm text-red-600">{product.message}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Errors */}
+                            {log.logData?.errors && log.logData.errors.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-red-700 mb-2">Errors</h5>
+                                <ul className="list-disc list-inside text-sm text-red-600">
+                                  {log.logData.errors.map((error: string, idx: number) => (
+                                    <li key={idx}>{error}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
                     )}
                   </>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
             )}

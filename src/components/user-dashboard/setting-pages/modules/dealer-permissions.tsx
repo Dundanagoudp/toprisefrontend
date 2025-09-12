@@ -201,11 +201,11 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
     }
   }
 
-  const toggleDealerSelection = (dealerId: string) => {
+  const toggleDealerSelection = (userId: string) => {
     setSelectedDealers(prev => 
-      prev.includes(dealerId) 
-        ? prev.filter(id => id !== dealerId)
-        : [...prev, dealerId]
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
     )
   }
 
@@ -213,7 +213,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
     if (selectedDealers.length === dealers.length) {
       setSelectedDealers([])
     } else {
-      setSelectedDealers(dealers.map(dealer => dealer._id))
+      setSelectedDealers(dealers.map(dealer => dealer.user_id._id))
     }
   }
 
@@ -295,15 +295,15 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
               <div
                 key={dealer._id}
                 className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedDealers.includes(dealer._id)
+                  selectedDealers.includes(dealer.user_id._id)
                     ? "border-red-500 bg-red-50"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
-                onClick={() => toggleDealerSelection(dealer._id)}
+                onClick={() => toggleDealerSelection(dealer.user_id._id)}
               >
                 <Checkbox
-                  checked={selectedDealers.includes(dealer._id)}
-                  onCheckedChange={() => toggleDealerSelection(dealer._id)}
+                  checked={selectedDealers.includes(dealer.user_id._id)}
+                  onCheckedChange={() => toggleDealerSelection(dealer.user_id._id)}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{dealer.trade_name || dealer.legal_name}</p>

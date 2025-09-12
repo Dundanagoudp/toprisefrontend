@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronUp, Search as SearchIcon } from 'lucide-react';
 import { smartSearch } from '@/service/user/smartSearchService';
 import { Product, Brand } from '@/types/User/Search-Types';
+import { useAppSelector } from '@/store/hooks';
+import { selectVehicleType } from '@/store/slice/vehicle/vehicleSlice';
 
 // Model interface for API response
 interface Model {
@@ -59,6 +61,7 @@ const SearchResults = () => {
   const searchParams = useSearchParams();
   const query = searchParams.get('query'); // Support both 'searchQuery' and 'query'
   const vehicleTypeId = searchParams.get('vehicleTypeId');
+  const vehicleType = useAppSelector(selectVehicleType);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -335,8 +338,8 @@ const SearchResults = () => {
             <span className="hover:text-primary cursor-pointer transition-colors">Product List</span>
             <span>/</span>
             <span className="text-foreground">Search Results</span>
-            {vehicleTypeId && (
-              <span className="text-xs text-muted-foreground ml-2">Vehicle Type: {vehicleTypeId}</span>
+            {vehicleType && (
+              <span className="text-xs text-muted-foreground ml-2">Vehicle Type: {vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1)}</span>
             )}
           </div>
         </div>

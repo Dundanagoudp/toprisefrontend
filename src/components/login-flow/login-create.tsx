@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// import { registerUser } from "@/service/auth-service"; // Assuming we have a registerUser function
+import { registerUser } from "@/service/auth-service";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
@@ -16,28 +16,70 @@ export function UserSignUpForm({
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
 
+  // Helper function to handle phone number input - only allow digits
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    setPhoneNumber(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!name.trim()) {
+      showToast("Please enter your name", "error");
+      return;
+    }
+    
+    if (!email.trim()) {
+      showToast("Please enter your email", "error");
+      return;
+    }
+    
+    if (!phoneNumber.trim()) {
+      showToast("Please enter your phone number", "error");
+      return;
+    }
+    
+    // Phone number validation - exactly 10 digits
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      showToast("Please enter a valid 10-digit phone number", "error");
+      return;
+    }
+    
+    if (!password.trim()) {
+      showToast("Please enter a password", "error");
+      return;
+    }
+    
+    if (password.length < 6) {
+      showToast("Password must be at least 6 characters long", "error");
+      return;
+    }
+    
     if (password !== confirmPassword) {
       showToast("Passwords do not match", "error");
       return;
     }
+    
     setLoading(true);
     setError(null);
     try {
-      // const response = await registerUser({ name, email, password });
-      // if (response.data) {
-      //   showToast("Successfully registered", "success");
-      //   router.replace("/login"); // Redirect to login page after successful registration
-      // } else {
-      //   showToast("Registration failed", "error");
-      // }
+      const response = await registerUser({ name, email, password, phone_Number: phoneNumber, role: "User" });
+      if (response.success) {
+        showToast("Successfully registered! Please login to continue.", "success");
+        router.replace("/login"); // Redirect to login page after successful registration
+      } else {
+        showToast(response.message || "Registration failed", "error");
+      }
     } catch (err: any) {
       const message =
         err?.response?.data?.message || err.message || "Registration failed";
@@ -81,6 +123,18 @@ export function UserSignUpForm({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-3">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  placeholder="9876543210"
+                  required
+                  value={phoneNumber}
+                  onChange={handlePhoneNumberChange}
+                  maxLength={10}
                 />
               </div>
               <div className="grid gap-3">
