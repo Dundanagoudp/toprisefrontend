@@ -113,6 +113,13 @@ export default function CreatedProduct({
       setLoadingProducts(true);
       try {
         console.log("CreatedProduct: Fetching products with status:", "Created", "searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+        console.log("CreatedProduct: Search query details:", {
+          searchQuery,
+          searchQueryType: typeof searchQuery,
+          searchQueryLength: searchQuery?.length,
+          isSearchQueryEmpty: !searchQuery || searchQuery.trim() === "",
+          trimmedSearchQuery: searchQuery ? searchQuery.trim() : ""
+        });
         const res = await getProductsByPage(
           currentPage, 
           itemsPerPage, 

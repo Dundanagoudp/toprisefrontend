@@ -92,11 +92,20 @@ const getStatusColor = (status: string) => {
   const performSearch = useCallback((query: string) => {
     try {
       console.log("ProductManagement: performSearch called with query:", query);
+      console.log("ProductManagement: performSearch query details:", {
+        query,
+        queryType: typeof query,
+        queryLength: query?.length,
+        isQueryEmpty: !query || query.trim() === "",
+        trimmedQuery: query ? query.trim() : ""
+      });
       
       // Sanitize the search query
       const sanitizedQuery = query ? query.trim() : "";
       setSearchQuery(sanitizedQuery);
       setIsSearching(false);
+      
+      console.log("ProductManagement: performSearch - searchQuery set to:", sanitizedQuery);
     } catch (error) {
       console.error("Error in performSearch:", error);
       setSearchQuery("");
@@ -126,12 +135,21 @@ const getStatusColor = (status: string) => {
   const handleSearchChange = (value: string) => {
     try {
       console.log("ProductManagement: handleSearchChange called with value:", value);
+      console.log("ProductManagement: handleSearchChange value details:", {
+        value,
+        valueType: typeof value,
+        valueLength: value?.length,
+        isValueEmpty: !value || value.trim() === "",
+        trimmedValue: value ? value.trim() : ""
+      });
       
       // Sanitize input value
       const sanitizedValue = value || "";
       setSearchInput(sanitizedValue);
       setIsSearching(sanitizedValue.trim() !== "");
       debouncedSearch(sanitizedValue);
+      
+      console.log("ProductManagement: handleSearchChange - calling debouncedSearch with:", sanitizedValue);
     } catch (error) {
       console.error("Error in handleSearchChange:", error);
       setSearchInput("");
@@ -332,6 +350,22 @@ const handleBulkReject = useCallback(() => {
                 isLoading={isSearching}
                 placeholder="Search Spare parts..."
               />
+              {/* Temporary debug button - remove after testing */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  console.log("=== SEARCH DEBUG INFO ===");
+                  console.log("Current searchInput:", searchInput);
+                  console.log("Current searchQuery:", searchQuery);
+                  console.log("Current isSearching:", isSearching);
+                  console.log("Current activeTab:", activeTab);
+                  console.log("========================");
+                }}
+                className="ml-2"
+              >
+                Debug Search
+              </Button>
               {/* Filter Buttons */}
               <div className="flex gap-2 sm:gap-3">
                 <Popover>

@@ -113,6 +113,13 @@ export default function ApprovedProduct({
       setLoadingProducts(true);
       try {
         console.log("ApprovedProduct: Fetching products with status:", "Approved", "searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+        console.log("ApprovedProduct: Search query details:", {
+          searchQuery,
+          searchQueryType: typeof searchQuery,
+          searchQueryLength: searchQuery?.length,
+          isSearchQueryEmpty: !searchQuery || searchQuery.trim() === "",
+          trimmedSearchQuery: searchQuery ? searchQuery.trim() : ""
+        });
         const res = await getProductsByPage(
           currentPage,
           itemsPerPage,
@@ -121,11 +128,21 @@ export default function ApprovedProduct({
           categoryFilter,
           subCategoryFilter
         );
+        
         const data = res.data;
+        console.log("ApprovedProduct: API response received:", res);
+        console.log("ApprovedProduct: API response data:", data);
+        console.log("ApprovedProduct: Products in response:", data?.products);
+        console.log("ApprovedProduct: Number of products returned:", data?.products?.length);
+        
         if (data?.products) {
           setPaginatedProducts(data.products);
           setTotalProducts(data.pagination.totalItems);
           setTotalPages(data.pagination.totalPages);
+          console.log("ApprovedProduct: Products set successfully, count:", data.products.length);
+          console.log("ApprovedProduct: Pagination data:", data.pagination);
+          console.log("ApprovedProduct: Total items from API:", data.pagination.totalItems);
+          console.log("ApprovedProduct: Total pages from API:", data.pagination.totalPages);
         } else {
           console.error("Unexpected API response structure:", res.data);
         }
@@ -147,18 +164,28 @@ export default function ApprovedProduct({
   // Filter products by approved live status and search query
 
   const sortedProducts = React.useMemo(() => {
-    if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
+    console.log("ApprovedProduct: sortedProducts memo - paginatedProducts:", paginatedProducts);
+    console.log("ApprovedProduct: sortedProducts memo - paginatedProducts length:", paginatedProducts?.length);
+    console.log("ApprovedProduct: sortedProducts memo - isArray:", Array.isArray(paginatedProducts));
+    
+    if (!paginatedProducts || !Array.isArray(paginatedProducts)) {
+      console.log("ApprovedProduct: sortedProducts memo - returning empty array");
+      return [];
+    }
 
     // If no sorting is applied, return products as-is
-    if (!sortField) return paginatedProducts;
+    if (!sortField) {
+      console.log("ApprovedProduct: sortedProducts memo - no sorting, returning paginatedProducts:", paginatedProducts.length);
+      return paginatedProducts;
+    }
 
     let sorted = [...paginatedProducts];
 
     // Sort
-    if (sortField === "product_name") {
+    if (sortField === "manufacturer_part_name") {
       sorted.sort((a, b) => {
-        const nameA = a.product_name?.toLowerCase() || "";
-        const nameB = b.product_name?.toLowerCase() || "";
+        const nameA = a.manufacturer_part_name?.toLowerCase() || "";
+        const nameB = b.manufacturer_part_name?.toLowerCase() || "";
         if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
         if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
         return 0;
@@ -307,14 +334,16 @@ export default function ApprovedProduct({
     }
   };
   //sorting products by name
-  const handleSortByName = () => {
-    if (sortField === "product_name") {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField("product_name");
-      setSortDirection("asc");
-    }
-  };
+// name sorting
+const handleSortByName = () => {
+  if (sortField === "manufacturer_part_name") {
+    setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+  } else {
+    setSortField("manufacturer_part_name");
+    setSortDirection("asc");
+  }
+};
+
   // 1. Update the sort handler to support price
   const handleSortByPrice = () => {
     if (sortField === "mrp_with_gst") {
@@ -391,8 +420,12 @@ export default function ApprovedProduct({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {loadingProducts
-            ? // Show skeleton rows when loading
+          {(() => {
+            console.log("ApprovedProduct: Rendering products - sortedProducts:", sortedProducts);
+            console.log("ApprovedProduct: Rendering products - sortedProducts length:", sortedProducts?.length);
+            console.log("ApprovedProduct: Rendering products - loadingProducts:", loadingProducts);
+            return loadingProducts;
+          })() ? // Show skeleton rows when loading
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow
                   key={`skeleton-${index}`}
@@ -436,7 +469,9 @@ export default function ApprovedProduct({
                 </TableRow>
               ))
             : // Original content when not loading
-              sortedProducts.map((product: any, index: number) => (
+              sortedProducts.map((product: any, index: number) => {
+                console.log(`ApprovedProduct: Rendering product ${index}:`, product.product_name, product._id);
+                return (
                 <TableRow
                   key={product._id}
                   className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
@@ -596,7 +631,9 @@ export default function ApprovedProduct({
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })
+          }
         </TableBody>
       </Table>
       {/* Pagination - moved outside of table */}
@@ -608,6 +645,10 @@ export default function ApprovedProduct({
               currentPage * itemsPerPage,
               totalProducts
             )} of ${totalProducts} products`}
+            {/* Debug info */}
+            <div className="text-xs text-gray-400 mt-1">
+              Debug: currentPage={currentPage}, itemsPerPage={itemsPerPage}, totalProducts={totalProducts}
+            </div>
           </div>
           {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">

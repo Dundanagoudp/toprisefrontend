@@ -1,9 +1,16 @@
-import ProductClassificationCard from "@/components/user-dashboard/product/module/productDetails";
+import ProductInformation from '@/components/user-dashboard/products/ProductInformation'
+import React from 'react'
 
-export default function ProductDetailsPage() {
+interface PageProps {
+  params: {
+    id: string
+  }
+}
+
+export default function ProductDetailsPage({ params }: PageProps) {
   return (
     <div>
-      <ProductClassificationCard />
+      <ProductInformation productId={params.id} />
     </div>
-  );
+  )
 }

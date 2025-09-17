@@ -43,9 +43,19 @@ export async function getProductsByPage(page: number, limit: number, status?: st
     
     console.log("API URL for getProductsByPage:", url);
     console.log("Search parameters - searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+    console.log("Full search query details:", {
+      searchQuery,
+      searchQueryType: typeof searchQuery,
+      searchQueryLength: searchQuery?.length,
+      isSearchQueryEmpty: !searchQuery || searchQuery.trim() === "",
+      sanitizedQuery: searchQuery ? searchQuery.trim().replace(/[<>]/g, '') : ""
+    });
     
     const response = await apiClient.get(url);
     console.log("API response for getProductsByPage:", response.data);
+    console.log("API response pagination:", response.data?.data?.pagination);
+    console.log("API response totalItems:", response.data?.data?.pagination?.totalItems);
+    console.log("API response totalPages:", response.data?.data?.pagination?.totalPages);
     
     // Validate response structure
     if (!response.data) {
