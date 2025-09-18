@@ -312,6 +312,27 @@ export async function getBrand(): Promise<ProductResponse> {
     throw error;
   }
 }
+
+export async function getCategoriesByType(
+  typeId: string,
+  mainCategory?: boolean
+): Promise<ApiResponse<ProductCategory[]>> {
+  try {
+    const params: Record<string, string | boolean> = { type: typeId };
+
+    // only include main_category when caller supplies it
+    if (typeof mainCategory !== "undefined") {
+      params.main_category = mainCategory;
+    }
+
+    const response = await apiClient.get(`/category/api/category/application`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch categories by type:", error);
+    throw error;
+  }
+}
+
 export async function createCategory(data: FormData): Promise<any> {
   try {
     const response = await apiClient.post(`/category/api/category`, data, {
