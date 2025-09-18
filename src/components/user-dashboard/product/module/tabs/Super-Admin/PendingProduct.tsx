@@ -43,10 +43,12 @@ import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
+import Emptydata from "../../Emptydata";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
   switch (status) {
+    
     case "Approved":
       return "text-green-600 font-medium";
     case "Rejected":
@@ -60,12 +62,18 @@ const getStatusColor = (status: string) => {
 
 export default function PendingProduct({
   searchQuery,
+  selectedTab,
+  categoryFilter,
+  subCategoryFilter,
 }: {
   searchQuery: string;
+  selectedTab?: string;
+  categoryFilter?: string;
+  subCategoryFilter?: string;
 }) {
   const dispatch = useAppDispatch();
   const { showToast } = useGlobalToast();
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
   const [totalProducts, setTotalProducts] = useState<number>(0);
@@ -82,29 +90,54 @@ export default function PendingProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
+        console.log("PendingProduct: Fetching products with status:", "Pending");
         const response = await getProductsByPage(
           currentPage,
           itemsPerPage,
-          "Pending"
+          "Pending",
+          searchQuery,
+          categoryFilter,
+          subCategoryFilter
         );
-        if (response.data) {
-          setPaginatedProducts(response.data.products || []);
-          setTotalProducts(response.data.pagination?.totalItems || 0);
-          setTotalPages(response.data.pagination?.totalPages || 0);
+        
+        // Handle response safely
+        if (response && response.data) {
+          const products = Array.isArray(response.data.products) ? response.data.products : [];
+          const pagination = response.data.pagination || {};
+          
+          setPaginatedProducts(products);
+          setTotalProducts(pagination.totalItems || 0);
+          setTotalPages(pagination.totalPages || 0);
         } else {
-          console.error("Unexpected API response structure:", response.data);
-          showToast("Unexpected API response structure", "error");
+          console.error("Unexpected API response structure:", response);
+          setPaginatedProducts([]);
+          setTotalProducts(0);
+          setTotalPages(0);
+          showToast("No products found", "info");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to fetch products:", error);
-        showToast("Failed to fetch products", "error");
+        
+        // Set safe fallback values
+        setPaginatedProducts([]);
+        setTotalProducts(0);
+        setTotalPages(0);
+        
+        // Show appropriate error message
+        const errorMessage = error.message || "Failed to fetch products";
+        showToast(errorMessage, "error");
       } finally {
         setLoadingProducts(false);
       }
     };
 
     fetchProducts();
-  }, [currentPage, itemsPerPage, searchQuery]);
+  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter]);
+
+  // Reset to first page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, subCategoryFilter]);
 
   // Filter and sort products
   const filteredProducts = React.useMemo(() => {
@@ -112,18 +145,8 @@ export default function PendingProduct({
 
     let filtered = [...paginatedProducts];
 
-    // Filter by search query if provided
-    if (searchQuery?.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      filtered = filtered.filter(
-        (product) =>
-          product.manufacturer_part_name?.toLowerCase().includes(q) ||
-          product.category?.category_name?.toLowerCase().includes(q) ||
-          product.brand?.brand_name?.toLowerCase().includes(q) ||
-          product.sub_category?.subcategory_name?.toLowerCase().includes(q) ||
-          product.product_type?.toLowerCase().includes(q)
-      );
-    }
+    // Note: Search filtering is now handled by the API
+    // This memo now only handles sorting since filtering is done server-side
 
     // Sort if sort field is specified
     if (sortField) {
@@ -149,7 +172,7 @@ export default function PendingProduct({
     }
 
     return filtered;
-  }, [paginatedProducts, searchQuery, sortField, sortDirection]);
+  }, [paginatedProducts, sortField, sortDirection]);
 
   const handleSortByName = () => {
     if (sortField === "manufacturer_part_name") {
@@ -169,12 +192,17 @@ export default function PendingProduct({
     }
   };
 
+  // Empty state
+  if (!loadingProducts && (filteredProducts.length === 0)) {
+    return <Emptydata />;
+  }
+
   // Selection handlers
   const handleSelectOne = (id: string) => {
     const newSelectedProducts = selectedProducts.includes(id)
       ? selectedProducts.filter((pid) => pid !== id)
       : [...selectedProducts, id];
-    setSelectedProducts(newSelectedProducts);
+    // Only dispatch to Redux store
     dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
   };
 
@@ -226,7 +254,7 @@ export default function PendingProduct({
       const newSelectedProducts = selectedProducts.filter(
         (id) => !filteredProducts.some((product: any) => product._id === id)
       );
-      setSelectedProducts(newSelectedProducts);
+      // Only dispatch to Redux store
       dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
     } else {
       const filteredProductIds = filteredProducts.map(
@@ -235,7 +263,7 @@ export default function PendingProduct({
       const newSelectedProducts = Array.from(
         new Set([...selectedProducts, ...filteredProductIds])
       );
-      setSelectedProducts(newSelectedProducts);
+      // Only dispatch to Redux store
       dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
     }
   };

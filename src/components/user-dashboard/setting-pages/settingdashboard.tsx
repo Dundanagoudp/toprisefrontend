@@ -3,13 +3,17 @@
 import { useState } from "react"
 import { DeliveryChargeSettings } from "./modules/delivery-charge-settings"
 import PermissionAccess from "./modules/permission-access"
+import DealerPermissions from "./modules/dealer-permissions"
+import { PincodeManagement } from "./modules/pincode-management"
 
 export default function SettingPage() {
   const [activeSetting, setActiveSetting] = useState("Permission Access")
 
   const settingsNav = [
     { name: "Permission Access", id: "Permission Access" },
+    { name: "Dealer Permissions", id: "Dealer Permissions" },
     { name: "Delivery Charge", id: "Delivery Charge" },
+    { name: "Pincodes", id: "Pincodes" },
     { name: "Minimum Order Value", id: "Minimum Order Value" },
     { name: "Smtp", id: "Smtp" },
     { name: "Minimum Ticket", id: "Minimum Ticket" },
@@ -46,10 +50,12 @@ export default function SettingPage() {
         {/* <CHANGE> Better spacing and padding for main content area */}
         <div className="flex-1 p-4 lg:p-6">
           {activeSetting === "Permission Access" && <PermissionAccess />}
+          {activeSetting === "Dealer Permissions" && <DealerPermissions />}
           {activeSetting === "Delivery Charge" && <DeliveryChargeSettings />}
+          {activeSetting === "Pincodes" && <PincodeManagement />}
           
           {/* Placeholder for other settings */}
-          {activeSetting !== "Permission Access" && activeSetting !== "Delivery Charge" && (
+          {activeSetting !== "Permission Access" && activeSetting !== "Dealer Permissions" && activeSetting !== "Delivery Charge" && activeSetting !== "Pincodes" && (
             <div className="flex items-center justify-center h-48 text-gray-500 bg-gray-50 rounded-lg">
               <div className="text-center">
                 <div className="text-lg font-medium mb-2">Coming Soon</div>

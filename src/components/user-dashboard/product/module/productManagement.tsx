@@ -6,7 +6,7 @@ import useDebounce from "@/utils/useDebounce";
 import { useAppSelector } from "@/store/hooks";
 import DynamicButton from "@/components/common/button/button";
 import SearchInput from "@/components/common/search/SearchInput";
-import { Plus, Pencil, FileText, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, FileText, Clock, CheckCircle, AlertTriangle, FileBarChart } from "lucide-react";
 import uploadFile from "../../../../../public/assets/uploadFile.svg";
 import CreatedProduct from "./tabs/Super-Admin/CreatedProduct";
 import ApprovedProduct from "./tabs/Super-Admin/ApprovedProduct";
@@ -76,6 +76,7 @@ const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff", "Fulf
   const [selectedSubCategoryName, setSelectedSubCategoryName] = useState<string | null>(null);
 const getStatusColor = (status: string) => {
   switch (status) {
+
     case "Approved":
       return "text-green-600 font-medium";
     case "Rejected":
@@ -89,8 +90,18 @@ const getStatusColor = (status: string) => {
 
 
   const performSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-    setIsSearching(false);
+    try {
+      console.log("ProductManagement: performSearch called with query:", query);
+      
+      // Sanitize the search query
+      const sanitizedQuery = query ? query.trim() : "";
+      setSearchQuery(sanitizedQuery);
+      setIsSearching(false);
+    } catch (error) {
+      console.error("Error in performSearch:", error);
+      setSearchQuery("");
+      setIsSearching(false);
+    }
   }, []);
   useEffect(() => {
     const loadSubCategories = async () => {
@@ -111,11 +122,21 @@ const getStatusColor = (status: string) => {
    setUploadDealerBulkLoading(false);
   };
   const { debouncedCallback: debouncedSearch, cleanup: cleanupDebounce } =
-    useDebounce(performSearch, 500);
+    useDebounce(performSearch, 300);
   const handleSearchChange = (value: string) => {
-    setSearchInput(value);
-    setIsSearching(value.trim() !== "");
-    debouncedSearch(value);
+    try {
+      console.log("ProductManagement: handleSearchChange called with value:", value);
+      
+      // Sanitize input value
+      const sanitizedValue = value || "";
+      setSearchInput(sanitizedValue);
+      setIsSearching(sanitizedValue.trim() !== "");
+      debouncedSearch(sanitizedValue);
+    } catch (error) {
+      console.error("Error in handleSearchChange:", error);
+      setSearchInput("");
+      setIsSearching(false);
+    }
   };
   const handleDownload = async () => {
     try {
@@ -152,6 +173,11 @@ const getStatusColor = (status: string) => {
       setActiveTab("Created");
     }
   }, [showRequestsView]);
+
+  // Debug: Monitor searchQuery changes
+  useEffect(() => {
+    console.log("ProductManagement: searchQuery changed to:", searchQuery);
+  }, [searchQuery]);
 
   const handleUploadBulk = () => {
     setBulkMode("upload");
@@ -273,22 +299,21 @@ const handleBulkReject = useCallback(() => {
     const TabComponent = currentTabConfig.component;
     if (!TabComponent) return null;
     
+    console.log("ProductManagement: renderTabContent - searchQuery:", searchQuery, "activeTab:", activeTab);
+    
     if (showRequestsView && currentTabConfig.id === "Requests") {
       return <TabComponent searchQuery={searchQuery} />;
     }
     
-    if (currentTabConfig.id === "Created") {
-      return (
-        <TabComponent
-          searchQuery={searchQuery}
-          selectedTab={selectedTab}
-          categoryFilter={selectedCategoryName || undefined}
-          subCategoryFilter={selectedSubCategoryName || undefined}
-        />
-      );
-    }
-    return <TabComponent searchQuery={searchQuery} selectedTab={selectedTab} />;
-  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName, showRequestsView]);
+    return (
+      <TabComponent
+        searchQuery={searchQuery}
+        selectedTab={selectedTab}
+        categoryFilter={selectedCategoryName || undefined}
+        subCategoryFilter={selectedSubCategoryName || undefined}
+      />
+    );
+  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryName, selectedSubCategoryName, showRequestsView, activeTab]);
 
   return (
     <div className="w-full ">
@@ -415,6 +440,13 @@ const handleBulkReject = useCallback(() => {
                   customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
                   text="Export"
                   onClick={handleDownload}
+                />
+                <DynamicButton
+                  variant="outline"
+                  customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px]"
+                  text="Logs"
+                  onClick={() => route.push('/user/dashboard/product/Logs')}
+                  icon={<FileBarChart className="w-4 h-4 mr-2" />}
                 />
               </div>
             </div>

@@ -62,6 +62,7 @@ import { useEffect } from "react";
 import Image from "next/image";
 import { getProducts } from "@/service/product-Service";
 import slaViolationsService from "@/service/slaViolations-Service";
+import SLAViolationsDashboard from "@/components/user-dashboard/sla-violations/SLAViolationsDashboard";
 
 // Types for SLA Violations
 interface SLAViolation {
@@ -516,7 +517,7 @@ export default function SLAViolationsAndReporting() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-white border border-gray-200">
+        <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200">
           <TabsTrigger value="tabular" className="flex items-center gap-2">
             <Table className="h-4 w-4" />
             Tabular View
@@ -524,6 +525,10 @@ export default function SLAViolationsAndReporting() {
           <TabsTrigger value="statistical" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             Statistical View
+          </TabsTrigger>
+          <TabsTrigger value="sla-violations" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            SLA Violations
           </TabsTrigger>
         </TabsList>
 
@@ -878,6 +883,10 @@ export default function SLAViolationsAndReporting() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="sla-violations" className="space-y-6">
+          <SLAViolationsDashboard />
         </TabsContent>
       </Tabs>
 

@@ -159,3 +159,63 @@ export interface UserCountsResponse {
   message: string;
   data: UserCountsData;
 }
+
+// Enhanced Order Stats with Filters
+export interface OrderStatsSummary {
+  totalOrders: number;
+  totalRevenue: number;
+  avgOrderValue: number;
+}
+
+export interface OrderStatusBreakdown {
+  status: string;
+  count: number;
+  totalAmount: number;
+  avgOrderValue: number;
+  percentage: number;
+}
+
+export interface RecentOrder {
+  _id: string;
+  orderId: string;
+  status: string;
+  totalAmount: number;
+  customerName: string;
+  customerEmail: string;
+  orderDate: string;
+  paymentType: string;
+  orderType: string;
+  skuCount: number;
+  skuTracking: any;
+}
+
+export interface OrderStatsFilters {
+  today: boolean;
+  status: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  includeSkuLevelTracking: boolean;
+}
+
+export interface EnhancedOrderStatsData {
+  summary: OrderStatsSummary;
+  todayStats: OrderStatsSummary | null;
+  statusBreakdown: OrderStatusBreakdown[];
+  recentOrders: RecentOrder[];
+  filters: OrderStatsFilters;
+  generatedAt: string;
+}
+
+export interface EnhancedOrderStatsResponse {
+  success: boolean;
+  message: string;
+  data: EnhancedOrderStatsData;
+}
+
+export interface EnhancedOrderStatsQuery {
+  today?: boolean;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  includeSkuLevelTracking?: boolean;
+}

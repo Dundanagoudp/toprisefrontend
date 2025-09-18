@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   Bot,
   Box,
   Frame,
   GalleryVerticalEnd,
   LayoutDashboard,
-   LogOutIcon as LogOut,
-   LogOutIcon,
-   SettingsIcon,
-   FileText,
-   BarChart3,
-   Package,
-} from "lucide-react"
-import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import {LogOut as logoutAction } from "../store/slice/auth/authSlice"
-import { NavMain } from "@/components/nav-main"
-import { TeamSwitcher } from "@/components/team-switcher"
-import Cookies from "js-cookie"
+  LogOutIcon as LogOut,
+  LogOutIcon,
+  SettingsIcon,
+  FileText,
+  BarChart3,
+  Package,
+} from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { LogOut as logoutAction } from "../store/slice/auth/authSlice";
+import { NavMain } from "@/components/nav-main";
+import { TeamSwitcher } from "@/components/team-switcher";
+import Cookies from "js-cookie";
 
 import {
   Sidebar,
@@ -27,32 +27,94 @@ import {
   SidebarHeader,
   SidebarRail,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { usePathname, useRouter } from "next/navigation"
-import TicketIcon,{ BoxIcon ,DashboardIcon,userIcon} from "./ui/TicketIcon"
-import { title } from "process"
-
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { usePathname, useRouter } from "next/navigation";
+import TicketIcon, { BoxIcon, DashboardIcon, userIcon } from "./ui/TicketIcon";
+import { title } from "process";
 
 //fullFillmen admin and staff
 // Role-based sidebar visibility config for scalability
 const sidebarVisibilityConfig = {
-  'Fulfillment-Admin': {
-    hide: ["Dashboard", "Inventory Management", "SLA Violations & Reporting", "Content Management", "Ticket", "Settings", "Reports", "Requests"],
-    show: ["Product Management", "User Management", "Payment & Details", "Order Management", "Return Claims", "Audit Logs"],
+  "Fulfillment-Admin": {
+    hide: [
+      "Dashboard",
+      "SLA Violations",
+      "Content Management",
+      "Ticket",
+      "Settings",
+      "Reports",
+      "Requests",
+    ],
+    show: [
+      "Product Management",
+      "User Management",
+      "Payment & Details",
+      "Order Management",
+      "Return Claims",
+      "Audit Logs",
+    ],
   },
-  'Fulfillment-Staff': {
-    hide: ["User Management", "Inventory Management", "SLA Violations & Reporting", "Payment & Details", "Content Management", "Ticket", "Settings", "Audit Logs", "Reports", "Requests"],
-    show: ["Dashboard", "Product Management", "Order Management", "Return Claims", "Pickup"],
+  "Fulfillment-Staff": {
+    hide: [
+      "User Management",
+      "SLA Violations ",
+      "Payment & Details",
+      "Content Management",
+      "Ticket",
+      "Settings",
+      "Audit Logs",
+      "Reports",
+      "Requests",
+    ],
+    show: [
+      "Dashboard",
+      "Product Management",
+      "Order Management",
+      "Return Claims",
+      "Pickup",
+    ],
   },
-          'Inventory-Staff': {
-          hide: ["Dashboard", "User Management", "Inventory Management", "SLA Violations & Reporting", "Payment & Details", "Order Management", "Return Claims", "Pickup", "Content Management", "Ticket", "Settings", "Audit Logs", "Reports"],
-          show: ["Product Management", "Requests"],
-        },
-        'Inventory-Admin': {
-          hide: ["Dashboard", "User Management", "Inventory Management", "SLA Violations & Reporting", "Payment & Details", "Order Management", "Return Claims", "Pickup", "Ticket", "Settings", "Reports"],
-          show: ["Product Management", "Requests", "Dealer Management", "Content Management", "Audit Logs"],
-        },
+  "Inventory-Staff": {
+    hide: [
+      "Dashboard",
+      "User Management",
+      "Inventory Management",
+      "SLA Violations ",
+      "Payment & Details",
+      "Order Management",
+      "Return Claims",
+      "Pickup",
+      "Content Management",
+      "Ticket",
+      "Settings",
+      "Audit Logs",
+      "Reports",
+    ],
+    show: ["Product Management", "Requests"],
+  },
+  "Inventory-Admin": {
+    hide: [
+      "Dashboard",
+      "Inventory Management",
+      "SLA Violations ",
+      "Payment & Details",
+      "Order Management",
+      "Return Claims",
+      "Pickup",
+      "Ticket",
+      "Settings",
+      "Reports",
+    ],
+    show: [
+      "Product Management",
+      "Requests",
+      "Dealer Management",
+      "Content Management",
+      "Audit Logs",
+      "User Management",
+    ],
+  },
   // Add more roles here as needed
 };
 
@@ -87,11 +149,6 @@ const data = {
       icon: userIcon,
     },
     {
-      title: "Inventory Management",
-      url: "/user/dashboard/inventory",
-      icon: LayoutDashboard,
-    },
-    {
       title: "SLA Violations & Reporting",
       url: "/user/dashboard/PricingMarginMangement",
       icon: TicketIcon,
@@ -102,12 +159,12 @@ const data = {
       icon: TicketIcon,
     },
     {
-      title:"Order Management",
+      title: "Order Management",
       url: "/user/dashboard/order",
       icon: Bot,
     },
     {
-      title:"Return Claims",
+      title: "Return Claims",
       url: "/user/dashboard/returnclaims",
       icon: Box,
     },
@@ -116,7 +173,7 @@ const data = {
       url: "/user/dashboard/pickup",
       icon: Package,
     },
-       {
+    {
       title: "Content Management",
       url: "/user/dashboard/contentManagement",
       icon: BoxIcon,
@@ -145,14 +202,14 @@ const data = {
       title: "Requests",
       url: "/user/dashboard/requests",
       icon: FileText,
-    }
+    },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const auth = useAppSelector((state) => state.auth.user);
-  const router = useRouter()
-  const dispatch = useAppDispatch()
+  const router = useRouter();
+  const dispatch = useAppDispatch();
 
   const pathname = usePathname();
   const { state } = useSidebar();
@@ -161,16 +218,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { persistor } = require("@/store/store");
   const handleLogout = () => {
-  Cookies.remove('token');
-  Cookies.remove('role');
-  Cookies.remove('lastlogin');
-  localStorage.clear();
-  sessionStorage.clear();
-  dispatch(logoutAction());
-  persistor.purge(); 
-  router.replace('/admin/login');
-  window.location.reload();
-  }
+    Cookies.remove("token");
+    Cookies.remove("role");
+    Cookies.remove("lastlogin");
+    localStorage.clear();
+    sessionStorage.clear();
+    dispatch(logoutAction());
+    persistor.purge();
+    router.replace("/admin/login");
+    window.location.reload();
+  };
 
   // Removed debug logs
 
@@ -178,25 +235,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const role: string = auth.role;
   let navItems;
   if (sidebarVisibilityConfig[role as keyof typeof sidebarVisibilityConfig]) {
-    const { hide = [], show = [] } = sidebarVisibilityConfig[role as keyof typeof sidebarVisibilityConfig];
+    const { hide = [], show = [] } =
+      sidebarVisibilityConfig[role as keyof typeof sidebarVisibilityConfig];
     navItems = data.navMain
-      .filter(item => {
+      .filter((item) => {
         if (hide.includes(item.title)) return false;
         if (show.length > 0 && !show.includes(item.title)) return false;
         return true;
       })
-      .map(item => ({
+      .map((item) => ({
         ...item,
         isActive:
           pathname === item.url ||
-          (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
+          (item.url !== "/user/dashboard" &&
+            pathname.startsWith(item.url + "/")),
       }));
   } else {
-    navItems = data.navMain.map(item => ({
+    navItems = data.navMain.map((item) => ({
       ...item,
       isActive:
         pathname === item.url ||
-        (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/"))
+        (item.url !== "/user/dashboard" && pathname.startsWith(item.url + "/")),
     }));
   }
 
@@ -205,8 +264,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
-      <SidebarContent >
-        <NavMain items={navItems}  />
+      <SidebarContent>
+        <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter>
         <Button
@@ -220,5 +279,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

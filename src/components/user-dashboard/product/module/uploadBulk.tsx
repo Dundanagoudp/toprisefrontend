@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { FileUp, ImageUp, X } from "lucide-react";
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, useState, useEffect } from "react";
 import { uploadBulkProducts , editBulkProducts} from "@/service/product-Service";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import {
@@ -15,6 +15,7 @@ import {
 import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
 import { uploadDealerBulk } from "@/service/dealerServices";
+import { uploadLogStorage, createStoredUploadLog, type UploadLogResponse } from "@/service/uploadLogService";
 
 
 interface UploadBulkCardProps {
@@ -39,6 +40,13 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const csvInputRef = React.useRef<HTMLInputElement>(null);
     const allowedRoles = [ "Super-admin", "Inventory-Admin", "Inventory-Staff"];
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      resetState();
+    }
+  }, [isOpen]);
 // Handle file change for both image and CSV files
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fileType: string) => {
     const files = event.target.files;
@@ -55,7 +63,14 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
     setImageZipFile(null);
     setCsvFile(null);
     setIsUploading(false);
-  
+    setUploadMessage('');
+    // Clear file input values
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+    if (csvInputRef.current) {
+      csvInputRef.current.value = '';
+    }
   };
    const handleClose = () => {
     resetState();
@@ -78,6 +93,15 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
 
       setIsUploading(true);
       setUploadMessage('');
+
+      // Show initial loading message
+      if (mode === 'edit') {
+        setUploadMessage('🔄 Processing CSV file for bulk edit...');
+      } else if (mode === 'uploadDealer') {
+        setUploadMessage('🔄 Processing dealer CSV file...');
+      } else {
+        setUploadMessage('🔄 Processing files for bulk upload...');
+      }
 
       const formData = new FormData();
       if (mode === 'upload') {
@@ -102,44 +126,67 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
 
       try {
         let response;
+        
+        // Update loading message based on operation
         if (mode === 'edit') {
+          setUploadMessage('📝 Updating products from CSV...');
           response = await editBulkProducts(formData);
           showToast("Updated successfully", "success");
           console.log('Editing bulk upload with formData:');
         }
         else if (mode === 'uploadDealer') {
+          setUploadMessage('📤 Uploading dealer products from CSV...');
           response = await uploadDealerBulk(formData);
           showToast("Uploaded successfully", "success");
           console.log('Uploading dealer bulk upload with formData:');
         }
         else {
+          setUploadMessage('📤 Uploading products and images...');
           response = await uploadBulkProducts(formData);
           showToast("Uploaded successfully", "success");
           console.log('Uploading bulk upload with formData:');
         }
 
         if (response) {
-          setUploadMessage(response.message || (mode === 'edit' ? 'Files edited successfully!' : mode === 'uploadDealer' ? 'Dealer files uploaded successfully!' : 'Files uploaded successfully!'));
+          // Store the detailed upload log data
+          try {
+            console.log('API Response received:', response);
+            const uploadType = mode === 'edit' ? 'bulk_edit' : mode === 'uploadDealer' ? 'dealer_upload' : 'bulk_upload';
+            const storedLog = createStoredUploadLog(
+              response as UploadLogResponse,
+              uploadType,
+              auth?.email || 'Unknown User'
+            );
+            
+            uploadLogStorage.setLog(storedLog.id, storedLog);
+            console.log('Upload log stored successfully:', storedLog);
+          } catch (error) {
+            console.error('Failed to store upload log:', error);
+            console.error('Response that failed:', response);
+          }
+
+          setUploadMessage('✅ ' + (response.message || (mode === 'edit' ? 'Products updated successfully!' : mode === 'uploadDealer' ? 'Dealer products uploaded successfully!' : 'Products uploaded successfully!')));
           setImageZipFile(null);
           setCsvFile(null);
-          handleClose();
+          
+          // Small delay to show success message
+          setTimeout(() => {
+            handleClose();
             if (mode === 'uploadDealer') {
-            route.push(`/user/dashboard/product`);
+              route.push(`/user/dashboard/product`);
             } else {
-            route.push(`/user/dashboard/product/Logs`);
+              route.push(`/user/dashboard/product/Logs`);
             }
-          // const logsResponse = await getProductLogs();
-          // setLogs(logsResponse.data);
-          setIsLogOpen(true);
+          }, 1500);
          
         } else {
-          setUploadMessage((mode === 'edit' ? 'Edit failed. Please try again.' : mode === 'uploadDealer' ? 'Dealer  failed. Please try again.': 'Upload failed. Please try again.'));
+          setUploadMessage('❌ ' + (mode === 'edit' ? 'Edit failed. Please try again.' : mode === 'uploadDealer' ? 'Dealer upload failed. Please try again.': 'Upload failed. Please try again.'));
         }
       } catch (error: any) {
         console.error('Error uploading files:', error);
         showToast( 'An error occurred during upload. Please check the console.', "error");
         const message = error.response?.data?.message || error.message || 'An error occurred during upload. Please check the console.';
-        setUploadMessage(message);
+        setUploadMessage('❌ ' + message);
       } finally {
         setIsUploading(false);
       }
@@ -253,17 +300,22 @@ return (
           }
           onClick={handleUpload}
         >
-          {isUploading
-            ? (mode === 'edit'
+          {isUploading ? (
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              {mode === 'edit'
                 ? 'Editing...'
                 : mode === 'uploadDealer'
                   ? 'Uploading...'
-                  : 'Uploading...')
-            : (mode === 'edit'
-                ? 'Edit Bulk'
-                : mode === 'uploadDealer'
-                  ? 'Upload Dealer CSV'
-                  : 'Upload')}
+                  : 'Uploading...'}
+            </div>
+          ) : (
+            mode === 'edit'
+              ? 'Edit Bulk'
+              : mode === 'uploadDealer'
+                ? 'Upload Dealer CSV'
+                : 'Upload'
+          )}
         </Button>
       </DialogFooter>
     </DialogContent>

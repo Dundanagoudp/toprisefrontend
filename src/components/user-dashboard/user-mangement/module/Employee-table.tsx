@@ -27,6 +27,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAppSelector } from "@/store/hooks"
 import { useToast } from "@/components/ui/toast"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
+import AssignRegionDealerModal from "./assignpop/AssignRegionDealerModal"
+import ExportButton from "./ExportButton"
 
 interface EmployeeTableProps {
   search?: string;
@@ -58,6 +60,8 @@ export default function EmployeeTable({
   const [employees, setEmployees] = useState<Employee[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [assignModalOpen, setAssignModalOpen] = useState(false)
+  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([])
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
   const { showToast } = useToast();
@@ -98,6 +102,19 @@ export default function EmployeeTable({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle assign region and dealer
+  const handleAssignRegionDealer = (employee: Employee) => {
+    setSelectedEmployees([employee]);
+    setAssignModalOpen(true);
+  };
+
+  // Handle assignment success
+  const handleAssignmentSuccess = () => {
+    // Refresh the employee list
+    fetchEmployees();
+    setSelectedEmployees([]);
   };
 
   // Enhanced fetch function that uses different API endpoints based on filters
@@ -224,6 +241,22 @@ export default function EmployeeTable({
       employee.email?.toLowerCase().includes(searchLower) ||
       employee.mobile_number?.toLowerCase().includes(searchLower);
     
+    // For Fulfillment-Admin, only show fulfillment-staff employees
+    if (auth?.role === "Fulfillment-Admin") {
+      const employeeRole = employee.role || "User";
+      if (employeeRole.toLowerCase() !== "fulfillment-staff") {
+        return false;
+      }
+    }
+    
+    // For Inventory-Admin, only show inventory-staff employees
+    if (auth?.role === "Inventory-Admin") {
+      const employeeRole = employee.role || "User";
+      if (employeeRole.toLowerCase() !== "inventory-staff") {
+        return false;
+      }
+    }
+    
     // Handle role filtering - only filter if role is provided and not empty
     let matchesRole = true;
     if (role && role.trim() !== "") {
@@ -316,6 +349,16 @@ export default function EmployeeTable({
           </div>
         </div>
       )}
+      
+      {/* Export Button */}
+      <div className="mb-4 flex justify-end">
+        <ExportButton
+          data={filteredEmployees}
+          dataType="employees"
+          disabled={isLoading || filteredEmployees.length === 0}
+          className="bg-[#C72920] hover:bg-[#A0221C] text-white"
+        />
+      </div>
       
       <table className="w-full min-w-[800px]">
         <thead>
@@ -459,6 +502,14 @@ export default function EmployeeTable({
                           View Details
                         </DropdownMenuItem>
                       )}
+                      {auth?.role === "Fulfillment-Admin" && employee.role === "Fulfillment-Staff" && (
+                        <DropdownMenuItem 
+                          onClick={() => handleAssignRegionDealer(employee)}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          Assign Region & Dealer
+                        </DropdownMenuItem>
+                      )}
                       {canPerformAdminActions() && employee.role !== "User" && (
                         <DropdownMenuItem 
                           onClick={() => handleRevokeRole(employee._id, employee.First_name)}
@@ -504,6 +555,14 @@ export default function EmployeeTable({
           )}
         </div>
       </div>
+
+      {/* Assign Region & Dealer Modal */}
+      <AssignRegionDealerModal
+        open={assignModalOpen}
+        onClose={() => setAssignModalOpen(false)}
+        selectedEmployees={selectedEmployees}
+        onSuccess={handleAssignmentSuccess}
+      />
     </div>
   )
 }

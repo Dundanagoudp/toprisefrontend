@@ -772,7 +772,7 @@ export default function ProductRequests() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">Standard</Badge>
+                      {getPriorityBadge(request.priority || 'medium')}
                     </TableCell>
                     <TableCell>{getStatusBadge(request.live_status || request.Qc_status || 'pending')}</TableCell>
                     <TableCell>

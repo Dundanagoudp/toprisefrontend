@@ -23,7 +23,12 @@ export async function getCart(id: string): Promise<CartResponse> {
 
 export async function addAddress(id: string, data: any): Promise<any> {
   try {
-    const response = await apiClient.put(`/users/api/users/updateAddress/${id}`, data);
+    const response = await apiClient.put(`/users/api/users/updateAddress/${id}`, data, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        'Content-Type': 'application/json'
+      }
+    });
     return response.data;
   } catch (error) {
     console.error("Failed to update address:", error);

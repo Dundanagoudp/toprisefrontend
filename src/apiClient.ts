@@ -44,6 +44,22 @@ apiClient.interceptors.request.use(
       });
     }
     
+    // Debug authentication for dealer profile API calls
+    if (config.url?.includes('/users/api/users/dealer/') && !config.url?.includes('/dealers/')) {
+      console.log("=== API CLIENT DEBUG (Dealer Profile API) ===");
+      console.log("Token from cookies:", token);
+      console.log("All cookies:", document.cookie);
+      console.log("Request URL:", config.url);
+      console.log("Request Method:", config.method);
+      console.log("Current Headers:", config.headers);
+      console.log("Cookie details:", {
+        token: token,
+        tokenLength: token?.length,
+        hasToken: !!token,
+        allCookies: document.cookie
+      });
+    }
+    
 
     
     if (token) {
@@ -54,6 +70,9 @@ apiClient.interceptors.request.use(
       if (config.url?.includes('/users/api/users/employee/')) {
         console.log("Authorization header set for employee API:", config.headers.Authorization);
       }
+      if (config.url?.includes('/users/api/users/dealer/') && !config.url?.includes('/dealers/')) {
+        console.log("Authorization header set for dealer profile API:", config.headers.Authorization);
+      }
 
     } else {
       if (config.url?.includes('/orders/api/orders/create')) {
@@ -61,6 +80,9 @@ apiClient.interceptors.request.use(
       }
       if (config.url?.includes('/users/api/users/employee/')) {
         console.log("⚠️ NO TOKEN FOUND for employee API - This will likely cause a 403 error");
+      }
+      if (config.url?.includes('/users/api/users/dealer/') && !config.url?.includes('/dealers/')) {
+        console.log("⚠️ NO TOKEN FOUND for dealer profile API - This will likely cause a 403 error");
       }
 
     }
@@ -83,6 +105,11 @@ apiClient.interceptors.request.use(
     
     if (config.url?.includes('/users/api/users/employee/')) {
       console.log("Final request config for employee API:", config);
+      console.log("========================================");
+    }
+    
+    if (config.url?.includes('/users/api/users/dealer/') && !config.url?.includes('/dealers/')) {
+      console.log("Final request config for dealer profile API:", config);
       console.log("========================================");
     }
     

@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 // Custom components and hooks
 import useDebounce from "@/utils/useDebounce"
+import { filterProductsBySearch } from "@/utils/searchUtils"
 import SearchInput from "@/components/common/search/SearchInput"
 import DynamicButton from "@/components/common/button/button"
 import DataTable from "@/components/common/table/DataTable"
@@ -262,40 +263,45 @@ export default function DealerAssignTable() {
       setLoadingProducts(true);
       setLoadingPermission(true);
       try {
-        // Get dealerId using the same logic as getProductsByDealerId
+        // Get dealerId and userId using the same logic as getProductsByDealerId
         let dealerId = undefined;
+        let userId = undefined;
         try {
           const { getCookie, getAuthToken } = await import("@/utils/auth");
           dealerId = getCookie("dealerId");
-          if (!dealerId) {
-            const token = getAuthToken();
-            if (token) {
-              const payloadBase64 = token.split(".")[1];
-              if (payloadBase64) {
-                const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
-                const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-                const payloadJson = atob(paddedBase64);
-                const payload = JSON.parse(payloadJson);
-                dealerId = payload.dealerId || payload.id;
-              }
+          const token = getAuthToken();
+          if (token) {
+            const payloadBase64 = token.split(".")[1];
+            if (payloadBase64) {
+              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+              const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+              const payloadJson = atob(paddedBase64);
+              const payload = JSON.parse(payloadJson);
+              dealerId = dealerId || payload.dealerId || payload.id;
+              userId = payload.id || payload.userId; // Get the actual user ID for permission check
             }
           }
         } catch (err) {
-          console.error("Failed to get dealerId for permission check:", err);
+          console.error("Failed to get dealerId/userId for permission check:", err);
         }
         if (!dealerId) {
           throw new Error("Dealer ID not found in cookie, argument, or token");
         }
-        // Fetch permissions
-        const permissionRes = await checkDealerProductPermission(dealerId);
+        if (!userId) {
+          throw new Error("User ID not found in token for permission check");
+        }
+        // Fetch permissions using userId (not dealerId)
+        console.log("Checking permissions for userId:", userId, "dealerId:", dealerId);
+        const permissionRes = await checkDealerProductPermission(userId);
+        console.log("Permission response:", permissionRes);
         setPermission(permissionRes);
-        // Fetch products
+        // Fetch products using dealerId
         const fetchedProducts = await getProductsByDealerId(dealerId);
         setProducts(fetchedProducts);
       } catch (error: any) {
         console.error("Failed to fetch products or permissions:", error);
-        if (typeof error?.message === 'string' && error.message.includes('Dealer ID not found')) {
-          showToast("Dealer ID missing. Please log out and log in again to refresh your session.", "error");
+        if (typeof error?.message === 'string' && error.message.includes('ID not found')) {
+          showToast("Session expired. Please log out and log in again to refresh your session.", "error");
         } else {
           showToast("Failed to load products or permissions.", "error");
         }
@@ -314,11 +320,11 @@ export default function DealerAssignTable() {
 
     // Filter by tab
     if (selectedTab === "Active") {
-      currentProducts = currentProducts.filter((product) => product.live_status === "Active")
+      currentProducts = currentProducts.filter((product) => product.status === "Active")
     } else if (selectedTab === "Disable") {
-      currentProducts = currentProducts.filter((product) => product.live_status === "Disable")
+      currentProducts = currentProducts.filter((product) => product.status === "Disable")
     } else if (selectedTab === "Pending") {
-      currentProducts = currentProducts.filter((product) => product.live_status === "Pending")
+      currentProducts = currentProducts.filter((product) => product.status === "Pending")
     } else if (selectedTab === "Approved") {
       currentProducts = currentProducts.filter((product) => product.live_status === "Approved")
     } else if (selectedTab === "Rejected") {
@@ -342,15 +348,7 @@ export default function DealerAssignTable() {
 
     // Filter by search query
     if (searchQuery.trim() !== "") {
-      const q = searchQuery.trim().toLowerCase()
-      currentProducts = currentProducts.filter(
-        (product) =>
-          product.product_name?.toLowerCase().includes(q) ||
-          product.category?.category_name?.toLowerCase().includes(q) ||
-          product.sub_category?.subcategory_name?.toLowerCase().includes(q) ||
-          product.brand?.brand_name?.toLowerCase().includes(q) ||
-          product.product_type?.toLowerCase().includes(q),
-      )
+      currentProducts = filterProductsBySearch(currentProducts, searchQuery);
     }
 
     // Sort products
@@ -464,7 +462,7 @@ export default function DealerAssignTable() {
 
   const handleViewProduct = (id: string) => {
     setViewProductLoading(id)
-    router.push(`/dealer/dashboard/product/productdetails/${id}`)
+    router.push(`/dealer/dashboard/product/product-details/${id}`)
     setTimeout(() => setViewProductLoading(null), 1000)
   }
 

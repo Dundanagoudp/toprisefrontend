@@ -1,4 +1,5 @@
-import { useState } from "react";
+"use client";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +9,18 @@ import { DataField } from "./DataField";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/use-toast";
-import { 
-  User, 
-  ShoppingBag, 
-  Heart, 
-  MapPin, 
-  Building2, 
-  Phone, 
-  Mail, 
+import { useToast } from "@/components/ui/toast";
+import { useAppSelector } from "@/store/hooks";
+import { getUserProfile, UserProfile } from "@/service/user/userService";
+import { getUserOrders, Order as UserOrder } from "@/service/user/orderService";
+import {
+  User,
+  ShoppingBag,
+  Heart,
+  MapPin,
+  Building2,
+  Phone,
+  Mail,
   Calendar,
   Package,
   CreditCard,
@@ -24,7 +28,10 @@ import {
   Plus,
   Edit2,
   Save,
-  X
+  X,
+  Loader2,
+  ExternalLink,
+  Star
 } from "lucide-react";
 
 interface Address {
@@ -51,94 +58,143 @@ interface Order {
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const { showToast } = useToast();
+  const userId = useAppSelector((state) => state.auth.user?._id);
+  
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!userId) return;
+      
+      try {
+        setLoading(true);
+        const response = await getUserProfile(userId);
+        if (response.success && response.data) {
+          setUserProfile(response.data);
+          // Update profile form data with fetched data
+          setProfileData({
+            firstName: response.data.name?.split(' ')[0] || "",
+            lastName: response.data.name?.split(' ').slice(1).join(' ') || "",
+            email: response.data.email || "",
+            phone: response.data.phone || "",
+            dob: "",
+            gender: "male",
+            language: "english",
+            role: response.data.role || "",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+        showToast("Failed to load profile data", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [userId, showToast]);
+
+  // Fetch user orders when orders tab is active
+  useEffect(() => {
+    const fetchUserOrders = async () => {
+      if (!userId || activeTab !== "orders") return;
+      
+      try {
+        setOrdersLoading(true);
+        const response = await getUserOrders(userId);
+        if (response.success && response.data) {
+          setUserOrders(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user orders:", error);
+        showToast("Failed to load orders", "error");
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    fetchUserOrders();
+  }, [userId, activeTab, showToast]);
   
   // Profile form state
   const [profileData, setProfileData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+91 65238 23587",
-    dob: "1990-01-15",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    dob: "",
     gender: "male",
-    language: "english"
+    language: "english",
+    role: ""
   });
 
-  // Company/GST state
-  const [companyData, setCompanyData] = useState({
-    companyName: "Tech Solutions Pvt Ltd",
-    gstNumber: "29ABCDE1234F1Z5",
-    panNumber: "ABCDE1234F",
-    address: "123 Business Park, Bangalore"
-  });
-
-  // Addresses state
-  const [addresses, setAddresses] = useState<Address[]>([
-    {
-      id: "1",
-      type: "home",
-      name: "John Doe",
-      street: "123 Main Street, Apartment 4B",
-      city: "Mumbai",
-      state: "Maharashtra",
-      pincode: "400001",
-      phone: "+91 98765 43210",
-      isDefault: true
-    },
-    {
-      id: "2",
-      type: "work",
-      name: "John Doe",
-      street: "456 Business Park, Tower A",
-      city: "Bangalore",
-      state: "Karnataka",
-      pincode: "560001",
-      phone: "+91 98765 43211",
-      isDefault: false
-    }
-  ]);
-
-  // Orders state
-  const [orders] = useState<Order[]>([
-    {
-      id: "1",
-      orderNumber: "ORD-2024-001",
-      date: "2024-01-15",
-      status: "delivered",
-      total: 2499,
-      items: 3
-    },
-    {
-      id: "2",
-      orderNumber: "ORD-2024-002",
-      date: "2024-01-20",
-      status: "shipped",
-      total: 1299,
-      items: 1
-    },
-    {
-      id: "3",
-      orderNumber: "ORD-2024-003",
-      date: "2024-01-25",
-      status: "processing",
-      total: 4999,
-      items: 5
-    }
-  ]);
-
-  const handleSaveProfile = () => {
-    setIsEditing(false);
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been successfully updated.",
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
+  // Helper function to format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount);
+  };
+
+  // Helper function to get status badge color
+  const getStatusBadgeColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800';
+      case 'assigned':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+        return 'bg-gray-100 text-gray-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Addresses state - will be populated from user profile
+  const [addresses, setAddresses] = useState<Address[]>([]);
+
+  // Update addresses when user profile is loaded
+  useEffect(() => {
+    if (userProfile?.address) {
+      const formattedAddresses: Address[] = userProfile.address.map((addr, index) => ({
+        id: addr._id || index.toString(),
+        type: addr.nick_name?.toLowerCase() as "home" | "work" | "other" || "other",
+        name: userProfile.name || "",
+        street: addr.street || "",
+        city: addr.city || "",
+        state: addr.state || "",
+        pincode: addr.pincode || "",
+        phone: userProfile.phone || "",
+        isDefault: index === 0
+      }));
+      setAddresses(formattedAddresses);
+    }
+  }, [userProfile]);
+
+  const handleSaveProfile = () => {
+    setIsEditing(false);
+    showToast("Profile Updated", "success");
+  };
+
   const handleDeleteAccount = () => {
-    toast({
-      title: "Action Required",
-      description: "Please contact support to delete your account.",
-      variant: "destructive"
-    });
+    showToast("Please contact support to delete your account.", "warning");
   };
 
   const getStatusColor = (status: string) => {
@@ -206,19 +262,22 @@ export default function ProfilePage() {
               <MapPin className="mr-2 h-4 w-4" />
               Addresses
             </TabsTrigger>
-            <TabsTrigger value="company" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground">
-              <Building2 className="mr-2 h-4 w-4" />
-              Company/GST
-            </TabsTrigger>
           </TabsList>
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProfileSection
-                title="Personal Details"
-                description="Your personal information and contact details"
-              >
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="ml-2">Loading profile...</span>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ProfileSection
+                  title="Personal Details"
+                  description="Your personal information and contact details"
+                >
                 <div className="space-y-4">
                   {isEditing ? (
                     <>
@@ -323,9 +382,9 @@ export default function ProfilePage() {
                   )}
                 </div>
               </ProfileSection>
-            </div>
+                </div>
 
-            <ProfileSection
+                <ProfileSection
               title="Account Settings"
               description="Manage your account preferences and security"
             >
@@ -349,6 +408,8 @@ export default function ProfilePage() {
                 </div>
               </div>
             </ProfileSection>
+              </>
+            )}
           </TabsContent>
 
           {/* Orders Tab */}
@@ -357,31 +418,56 @@ export default function ProfilePage() {
               title="Order History"
               description="View and track all your orders"
             >
-              <div className="space-y-4">
-                {orders.map((order) => (
-                  <div key={order.id} className="p-4 rounded-lg border border-border/50 hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Package className="h-6 w-6 text-primary" />
+              {ordersLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <span className="ml-2">Loading orders...</span>
+                </div>
+              ) : userOrders.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No orders found</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userOrders.map((order) => (
+                    <div key={order._id} className="p-4 rounded-lg border border-border/50 hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Package className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{order.orderId}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(order.orderDate)} • {order.skus.length} items
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground">{order.orderNumber}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(order.date).toLocaleDateString()} • {order.items} items
-                          </p>
+                        <div className="text-right">
+                          <p className="font-semibold text-foreground">{formatCurrency(order.order_Amount)}</p>
+                          <Badge className={getStatusBadgeColor(order.status)}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">₹{order.total}</p>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>Payment: {order.paymentType}</span>
+                          {order.order_track_info?.borzo_tracking_url && (
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={order.order_track_info.borzo_tracking_url} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                Track Order
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </ProfileSection>
           </TabsContent>
 
@@ -446,26 +532,6 @@ export default function ProfilePage() {
             </div>
           </TabsContent>
 
-          {/* Company/GST Tab */}
-          <TabsContent value="company" className="space-y-6 mt-6">
-            <ProfileSection
-              title="Company Information"
-              description="Manage your business details and tax information"
-            >
-              <div className="space-y-4">
-                <DataField label="Company Name" value={companyData.companyName} />
-                <DataField label="GST Number" value={companyData.gstNumber} />
-                <DataField label="PAN Number" value={companyData.panNumber} />
-                <DataField label="Registered Address" value={companyData.address} />
-                <div className="pt-4">
-                  <Button variant="outline">
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    Edit Company Details
-                  </Button>
-                </div>
-              </div>
-            </ProfileSection>
-          </TabsContent>
         </Tabs>
       </div>
     </div>

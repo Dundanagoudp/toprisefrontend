@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { FileUp, ImageUp, X } from "lucide-react";
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, useState, useEffect } from "react";
 import { 
   uploadBulkCategories,
   uploadBulkSubCategories,
@@ -46,6 +46,13 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const csvInputRef = React.useRef<HTMLInputElement>(null);
     const allowedRoles = [ "Super-admin", "Inventory-Admin"];
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      resetState();
+    }
+  }, [isOpen]);
 // Handle file change for both image and CSV files
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fileType: string) => {
     const files = event.target.files;
@@ -62,7 +69,14 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
     setImageZipFile(null);
     setCsvFile(null);
     setIsUploading(false);
-  
+    setUploadMessage('');
+    // Clear file input values
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+    if (csvInputRef.current) {
+      csvInputRef.current.value = '';
+    }
   };
    const handleClose = () => {
     resetState();
@@ -85,6 +99,15 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
 
       setIsUploading(true);
       setUploadMessage('');
+
+      // Show initial loading message
+      if (mode === 'edit') {
+        setUploadMessage('🔄 Processing CSV file for bulk edit...');
+      } else if (mode === 'uploadDealer') {
+        setUploadMessage('🔄 Processing dealer CSV file...');
+      } else {
+        setUploadMessage(`🔄 Processing ${contentType} files for bulk upload...`);
+      }
 
       const formData = new FormData();
       if (mode === 'upload') {

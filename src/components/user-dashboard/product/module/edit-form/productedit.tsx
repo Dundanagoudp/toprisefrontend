@@ -31,6 +31,7 @@ import {
   editProduct,
   getProductById,
 } from "@/service/product-Service";
+import { getDealersByCategory } from "@/service/dealerServices";
 import { useParams } from "next/navigation";
 import { Product } from "@/types/product-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
@@ -133,6 +134,8 @@ export default function ProductEdit() {
   const [apiError, setApiError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+  const [availableDealers, setAvailableDealers] = useState<any[]>([]);
+  const [loadingDealers, setLoadingDealers] = useState(false);
   const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
 
@@ -147,6 +150,30 @@ export default function ProductEdit() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
   });
+
+  // Function to fetch dealers by category
+  const fetchDealersByCategory = async (categoryId: string) => {
+    if (!categoryId) {
+      setAvailableDealers([]);
+      return;
+    }
+    
+    try {
+      setLoadingDealers(true);
+      const response = await getDealersByCategory(categoryId);
+      
+      if (response.success && response.data && Array.isArray(response.data)) {
+        setAvailableDealers(response.data);
+      } else {
+        setAvailableDealers([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dealers by category:", error);
+      setAvailableDealers([]);
+    } finally {
+      setLoadingDealers(false);
+    }
+  };
   // Handle image file input change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -296,6 +323,16 @@ export default function ProductEdit() {
     
     fetchProducts();
   }, [id.id]);
+
+  // Watch for category changes and fetch dealers
+  useEffect(() => {
+    const categoryId = watch("category");
+    if (categoryId) {
+      fetchDealersByCategory(categoryId);
+    } else {
+      setAvailableDealers([]);
+    }
+  }, [watch("category")]);
 
   // Populate form with fetched product data
   useEffect(() => {
@@ -1438,14 +1475,29 @@ export default function ProductEdit() {
             {/* Available Dealers */}
             <div className="space-y-2">
               <Label htmlFor="availableDealers" className="text-sm font-medium">
-                Available Dealers
+                Available Dealers {availableDealers.length > 0 && `(${availableDealers.length} found)`}
               </Label>
-              <Input
-                id="availableDealers"
-                placeholder="Enter Available Dealers"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("availableDealers")}
-              />
+              <Select
+                value={watch("availableDealers") || ""}
+                onValueChange={(value) => setValue("availableDealers", value)}
+              >
+                <SelectTrigger className="bg-gray-50 border-gray-200 rounded-[8px] p-4">
+                  <SelectValue placeholder={loadingDealers ? "Loading dealers..." : "Select a dealer"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDealers.length > 0 ? (
+                    availableDealers.map((dealer) => (
+                      <SelectItem key={dealer._id} value={dealer._id}>
+                        {dealer.legal_name} ({dealer.trade_name})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-dealers" disabled>
+                      {loadingDealers ? "Loading..." : "No dealers available for this category"}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
               {errors.availableDealers && (
                 <span className="text-red-500 text-sm">
                   {errors.availableDealers.message}

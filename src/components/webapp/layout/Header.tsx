@@ -62,11 +62,8 @@ export const Header = () => {
   };
 
   const handleSettings = () => {
-    router.push('');
-  };
 
-  const handleLogin = () => {
-    router.push('/login');
+    router.push('/user/dashboard/setting');
   };
 
   const handleSignup = () => {
@@ -250,29 +247,21 @@ export const Header = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                {isAuthenticated ? (
-                  <>
-                    <DropdownMenuItem onClick={handleSettings} className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleLogout}
-                      className="cursor-pointer text-red-600 focus:text-red-600"
-                    >
-                      <LogOutIcon className="mr-2 h-4 w-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem onClick={handleLogin} className="cursor-pointer">
-                      Login/SignUp
-                    </DropdownMenuItem>
-                
-                  </>
-                )}
+                <DropdownMenuItem
+                  onClick={handleSettings}
+                  className="cursor-pointer"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer text-red-600 focus:text-red-600"
+                >
+                  <LogOutIcon className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

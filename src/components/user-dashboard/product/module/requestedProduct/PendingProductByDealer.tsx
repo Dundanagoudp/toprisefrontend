@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { filterProductsBySearch } from "@/utils/searchUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchProductsWithLiveStatus,
@@ -119,15 +120,7 @@ export default function PendingProductByDealer({
 
     // Filter by search query if provided
     if (searchQuery?.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      filtered = filtered.filter(
-        (product) =>
-          product.manufacturer_part_name?.toLowerCase().includes(q) ||
-          product.category?.category_name?.toLowerCase().includes(q) ||
-          product.brand?.brand_name?.toLowerCase().includes(q) ||
-          product.sub_category?.subcategory_name?.toLowerCase().includes(q) ||
-          product.product_type?.toLowerCase().includes(q)
-      );
+      filtered = filterProductsBySearch(filtered, searchQuery);
     }
 
     // Sort if sort field is specified
