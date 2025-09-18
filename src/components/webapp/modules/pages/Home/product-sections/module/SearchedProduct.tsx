@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import { ChevronDown, ChevronUp, Search as SearchIcon } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { smartSearch } from '@/service/user/smartSearchService';
 import { Product, Brand } from '@/types/User/Search-Types';
 import { useAppSelector } from '@/store/hooks';
@@ -51,10 +51,7 @@ interface Variant {
 
 
 
-interface FilterSection {
-  title: string;
-  isOpen: boolean;
-}
+
 
 const SearchResults = () => {
   const router = useRouter();
@@ -73,7 +70,7 @@ const SearchResults = () => {
   const [brandData, setBrandData] = useState<Brand[]>([]);
   const [modelData, setModelData] = useState<Model[]>([]);
   const [variantData, setVariantData] = useState<Variant[]>([]);
-  const [searchValue, setSearchValue] = useState<string>('');
+
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     vehicle: true,
     price: false,
@@ -85,7 +82,14 @@ const SearchResults = () => {
     sortBy: '',
     subCategories: [] as string[],
   });
-
+  const noVehicleResults =
+    Boolean(vehicleTypeId) &&
+    !loading &&
+    products.length === 0 &&
+    !isBrand &&
+    !isModel &&
+    !isVariant &&
+    !isProduct;
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = apiBase.replace(/\/api$/, "");
 
@@ -333,9 +337,12 @@ const SearchResults = () => {
       <div className="border-b border-border bg-card">
         <div className="max-w-screen-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="hover:text-primary cursor-pointer transition-colors">Home</span>
-            <span>/</span>
-            <span className="hover:text-primary cursor-pointer transition-colors">Product List</span>
+            <span
+              className="hover:text-primary cursor-pointer transition-colors"
+              onClick={() => router.push('/')}
+            >
+              Home
+            </span>
             <span>/</span>
             <span className="text-foreground">Search Results</span>
             {vehicleType && (
@@ -504,6 +511,11 @@ const SearchResults = () => {
             {/* Brand Display - grid of all brands */}
             {isBrand && brandData.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {brandData.length} Brand{brandData.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {brandData.map((brand) => (
                     <div
@@ -530,6 +542,11 @@ const SearchResults = () => {
             {/* Model Display - grid of all models */}
             {isModel && modelData.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {modelData.length} Model{modelData.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <ModelListing
                   models={modelData}
                   onModelSelect={handleModelClick}
@@ -540,6 +557,11 @@ const SearchResults = () => {
             {/* Variant Display - grid of all variants */}
             {isVariant && variantData.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {variantData.length} Variant{variantData.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <VariantListing
                   variants={variantData}
                   models={modelData.length > 0 ? modelData[0] : null}
@@ -551,16 +573,72 @@ const SearchResults = () => {
             {/* Product Display - grid of all products */}
             {isProduct && products.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {products.length} Product{products.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <ProductListing
                   products={products}
                   onProductSelect={handleProductClick}
                 />
               </div>
             )}
+            {/* No results messages */}
+            {noVehicleResults && (
+              <div className="mb-6">
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                  <p className="text-sm font-medium text-yellow-800">
+                    No products found for the selected vehicle.
+                  </p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Try removing the vehicle filter or search with a different query.
+                  </p>
+                </div>
+              </div>
+            )}
 
+            {/* No products found when is_product is true but products array is empty */}
+            {!loading && isProduct && products.length === 0 && (
+              <div className="mb-6">
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                  <p className="text-sm font-medium text-yellow-800">
+                    No products found for the selected vehicle.
+                  </p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Try removing the vehicle filter or search with a different query.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* General no results message */}
+            {!loading &&
+              !isBrand &&
+              !isModel &&
+              !isVariant &&
+              !isProduct &&
+              products.length === 0 &&
+              !noVehicleResults && (
+                <div className="mb-6">
+                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-md text-center">
+                    <p className="text-lg font-medium text-gray-800 mb-2">
+                      No results found for "{query}"
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Try adjusting your search terms or filters to find what you're looking for.
+                    </p>
+                  </div>
+                </div>
+              )}
             {/* Products Grid - only show when not in product listing mode */}
-            {!isProduct && (
+            {!isProduct && products.length > 0 && (
               <>
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {products.length} Product{products.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {displayedProducts.map((product) => (
                     <div

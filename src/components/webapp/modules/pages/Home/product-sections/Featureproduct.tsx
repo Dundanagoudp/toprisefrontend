@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Zap } from "lucide-react"
 import { getProductsByPage } from "@/service/product-Service"
 import type { Product as ProductType } from "@/types/product-Types"
 import { DynamicButton } from "@/components/common/button"
@@ -30,7 +30,7 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
     if (/^https?:\/\//i.test(path)) return path
     return `${filesOrigin}${path.startsWith("/") ? "" : "/"}${path}`
   }, [filesOrigin])
-  
+
   const router = useRouter()
   const { showToast } = useToast()
   const { addItemToCart } = useCart()
@@ -75,13 +75,31 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
 
   const handleSubmit = async (productId: string) => {
     if (!productId) return
-    
+
     try {
       await addItemToCart(productId, 1)
 
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error")
+        router.push("/login")
+      } else {
+        showToast("Failed to add product to cart", "error")
+        console.error("Error adding to cart:", error)
+      }
+    }
+  }
+
+  const handleBuyNow = async (productId: string) => {
+    if (!productId) return
+
+    try {
+      await addItemToCart(productId, 1)
+      showToast("Product added to cart", "success")
+      router.push("/cart")
+    } catch (error: any) {
+      if (error.message === 'User not authenticated') {
+        showToast("Please login to buy this product", "error")
         router.push("/login")
       } else {
         showToast("Failed to add product to cart", "error")
@@ -131,6 +149,7 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
           const originalPrice = product?.mrp_with_gst ?? price
           const discount = computeDiscount(originalPrice, price)
           const key = product?._id ?? idx
+          const isOutOfStock = product?.out_of_stock || product?.no_of_stock <= 0
 
           return (
             <div
@@ -153,13 +172,18 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
                 <img
                   src={imageSrc}
                   alt={name}
-                  className="w-full h-48 object-contain"
+                  className={`w-full h-48 object-contain ${isOutOfStock ? 'opacity-50' : ''}`}
                   onClick={product?._id ? (e) => {
                     e.stopPropagation()
                     handleProductClick(product._id)
                   } : undefined}
                 />
-                {discount > 0 && (
+                {isOutOfStock && (
+                  <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-medium">
+                    Out of Stock
+                  </div>
+                )}
+                {!isOutOfStock && discount > 0 && (
                   <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-sm font-medium">
                     {discount}%
                   </div>
@@ -187,15 +211,36 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
                   )}
                 </div>
 
-                <DynamicButton className="w-full  text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2"
-                text="Add"
-                icon={<ShoppingCart className="w-4 h-4" />}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (product?._id) handleSubmit(product._id)
-                }}
-                />
-             
+                {isOutOfStock ? (
+                  <DynamicButton
+                    className="w-full py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 bg-gray-400 text-gray-600 cursor-not-allowed"
+                    text="Out of Stock"
+                    icon={<ShoppingCart className="w-4 h-4" />}
+                    disabled={true}
+                  />
+                ) : (
+                  <div className="flex gap-2">
+                    <DynamicButton
+                      className="flex-1 py-2 px-3 rounded font-medium transition-colors flex items-center justify-center gap-1 text-white"
+                      text="Add"
+                      icon={<ShoppingCart className="w-4 h-4" />}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (product?._id) handleSubmit(product._id)
+                      }}
+                    />
+                    <DynamicButton
+                      className="flex-1 py-2 px-3 rounded font-medium transition-colors flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white"
+                      text="Buy"
+                      icon={<Zap className="w-4 h-4" />}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (product?._id) handleBuyNow(product._id)
+                      }}
+                    />
+                  </div>
+                )}
+
               </div>
             </div>
           )

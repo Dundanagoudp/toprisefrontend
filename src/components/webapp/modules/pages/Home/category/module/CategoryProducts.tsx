@@ -231,8 +231,6 @@ const ProductListing = () => {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span className="hover:text-primary cursor-pointer transition-colors">Home</span>
             <span>/</span>
-            <span className="hover:text-primary cursor-pointer transition-colors">Product List</span>
-            <span>/</span>
             <span className="text-foreground">{categoryName}</span>
           </div>
         </div>

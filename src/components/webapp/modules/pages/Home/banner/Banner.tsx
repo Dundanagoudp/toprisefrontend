@@ -167,22 +167,28 @@ export default function BannerSection() {
   }, [selectedModel, showToast])
 
   // Handle vehicle search
-  const handleVehicleSearch = () => {
-    if (!selectedBrand || !selectedModel) {
-      showToast("Please select at least Brand and Model", "error")
-      return
-    }
-
-    // Build search query
-    const searchParams = new URLSearchParams()
-    if (selectedBrand) searchParams.append("brand", selectedBrand)
-    if (selectedModel) searchParams.append("model", selectedModel)
-    if (selectedVariant) searchParams.append("variant", selectedVariant)
-    if (selectedYear) searchParams.append("year", selectedYear)
-    searchParams.append("vehicleTypeId", typeId)
-
-    router.push(`/shop/search-results/?${searchParams.toString()}`)
+const handleVehicleSearch = () => {
+  if (!selectedBrand || !selectedModel) {
+    showToast("Please select at least Brand and Model", "error");
+    return;
   }
+
+  // Resolve human-readable names from selected ids (fallback to id if name not found)
+  const brandName = brands.find(b => b._id === selectedBrand)?.brand_name || selectedBrand;
+  const modelName = models.find(m => m._id === selectedModel)?.model_name || selectedModel;
+  const variantName = variants.find(v => v._id === selectedVariant)?.variant_name || selectedVariant;
+  const yearName = years.find(y => y._id === selectedYear)?.year_name || selectedYear;
+
+  // Build a single query string (same shape as your working example)
+  const queryParts = [brandName, modelName, variantName, yearName].filter(Boolean);
+  const queryStr = queryParts.join(' ').trim();
+
+  const searchParams = new URLSearchParams();
+  if (queryStr) searchParams.append('query', queryStr);
+  if (typeId) searchParams.append('vehicleTypeId', typeId);
+
+  router.push(`/shop/search-results/?${searchParams.toString()}`);
+};
 
   // Handle number plate search
   const handleNumberPlateSearch = () => {

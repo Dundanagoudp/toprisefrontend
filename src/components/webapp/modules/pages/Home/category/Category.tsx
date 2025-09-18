@@ -2,13 +2,16 @@
 import { Button } from "@/components/ui/button"
 import React from "react"
 import { useRouter } from "next/navigation"
-import { getCategories } from "@/service/product-Service"
+import { getCategories, getCategoriesByType } from "@/service/product-Service"
 import type { Category as ProductCategory } from "@/types/product-Types"
+import { useAppSelector } from "@/store/hooks"
+import { selectVehicleTypeId } from "@/store/slice/vehicle/vehicleSlice"
 
 export default function CategorySection() {
   const router = useRouter()
   const [categories, setCategories] = React.useState<ProductCategory[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
+  const typeId = useAppSelector(selectVehicleTypeId)
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || ""
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase])
   const buildImageUrl = React.useCallback((path?: string) => {
@@ -27,7 +30,10 @@ export default function CategorySection() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const res = await getCategories()
+        console.log("Type ID:", typeId)
+        // Fetch only main categories for the selected vehicle type
+        const res = await getCategoriesByType(typeId, true)
+        console.log("Categories by type:", res)
        
         const items = (res?.data ?? []) as ProductCategory[]
         setCategories(items)
@@ -37,8 +43,10 @@ export default function CategorySection() {
         setLoading(false)
       }
     }
-    fetchData()
-  }, [])
+    if (typeId) {
+      fetchData()
+    }
+  }, [typeId])
 
   return (
     <section className="py-12 px-4 bg-white">

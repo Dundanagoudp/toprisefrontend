@@ -63,7 +63,7 @@ export const Header = () => {
 
   const handleSettings = () => {
 
-    router.push('/user/dashboard/setting');
+    router.push('profile');
   };
 
   const handleSignup = () => {
@@ -115,17 +115,17 @@ export const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-  <a href="/" className="flex items-center group">
-     <Image
-       src={LogoNoname}
-       alt="Toprise logo"
-       className="h-16 sm:h-20 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
-     />
-      <span className="ml-0 text-2xl sm:text-3xl font-extrabold text-[#1C1C1C] select-none leading-none tracking-tight bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-gray-700 group-hover:to-gray-900">
-       Toprise
-    </span>
-  </a>
-</div>
+            <a href="/" className="flex items-center group">
+              <Image
+                src={LogoNoname}
+                alt="Toprise logo"
+                className="h-16 sm:h-20 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
+              />
+              <span className="ml-0 text-2xl sm:text-3xl font-extrabold text-[#1C1C1C] select-none leading-none tracking-tight bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-gray-700 group-hover:to-gray-900">
+                Toprise
+              </span>
+            </a>
+          </div>
 
 
           {/* Center Search Bar */}
@@ -218,7 +218,7 @@ export const Header = () => {
                       >
                         Contact Us
                       </NavigationMenuLink>
-                      
+
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
