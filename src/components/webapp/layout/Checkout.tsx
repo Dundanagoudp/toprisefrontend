@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   addAddress,
   createOrders,
@@ -29,6 +30,7 @@ import { StepProgressBar } from "@/components/common/StepProgressBar";
 import type { Step } from "@/components/common/StepProgressBar";
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { cartData: cart, fetchCart } = useCart();
   const { showToast } = useGlobalToast();
   const dispatch = useAppDispatch();
@@ -107,7 +109,7 @@ export default function CheckoutPage() {
       orderId: `ORD${Math.floor(Math.random() * 100000)}`,
       orderType: "Online",
       orderSource: "Web",
-      order_Amount: cart.total_mrp_with_gst?.toFixed(2) || "0.00",
+      order_Amount: (Math.round(cart.total_mrp || 0)).toString(),
       skus: cart.items.map((item) => ({
         sku: item.sku || "",
         quantity: item.quantity,
@@ -183,6 +185,9 @@ export default function CheckoutPage() {
       dispatch(clearCart());
 
       showToast("Order created successfully", "success");
+
+      // Redirect to home page after successful order placement
+      router.push("/");
     } catch (error: any) {
 
       console.error("Full Error Object:", error);
@@ -403,7 +408,7 @@ export default function CheckoutPage() {
                         <div>
                           <p className="font-medium text-gray-900">Cash on Delivery (COD)</p>
                           <p className="text-sm text-gray-600">
-                            Pay ₹{cart?.total_mrp_with_gst?.toFixed(2) || "0.00"} when your order is delivered
+                            Pay ₹{Math.round(cart?.total_mrp || 0)} when your order is delivered
                           </p>
                         </div>
                       </div>
@@ -417,23 +422,8 @@ export default function CheckoutPage() {
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Items ({cart?.items?.length ?? 0}):</span>
-                        <span className="font-medium">₹{cart?.total_mrp?.toFixed(2) || "0.00"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">GST & Taxes:</span>
-                        <span className="font-medium">₹{cart?.total_mrp_gst_amount?.toFixed(2) || "0.00"}</span>
-                      </div>
-                      {cart?.deliveryCharge && cart.deliveryCharge > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Delivery Charges:</span>
-                          <span className="font-medium">₹{cart.deliveryCharge.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <hr className="border-gray-300" />
-                      <div className="flex justify-between text-lg font-semibold">
-                        <span>Total Amount:</span>
-                        <span className="text-green-600">₹{cart?.total_mrp_with_gst?.toFixed(2) || "0.00"}</span>
+                        <span className="text-gray-600">Subtotal ({cart?.items?.length ?? 0} items):</span>
+                        <span className="font-medium">₹{Math.round(cart?.total_mrp || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -529,51 +519,8 @@ export default function CheckoutPage() {
                 {/* Order Summary */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">
-                      Subtotal ({cart?.items?.length ?? 0} items):
-                    </span>
-                    <span className="font-medium">
-                      ₹{cart?.total_mrp?.toFixed(2) || "0.00"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">GST + Tax:</span>
-                    <span className="font-medium">
-                      ₹{cart?.total_mrp_gst_amount?.toFixed(2) || "0.00"}
-                    </span>
-                  </div>
-
-                  {cart?.deliveryCharge && cart.deliveryCharge > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Delivery:</span>
-                      <span className="font-medium">
-                        ₹{cart.deliveryCharge.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-
-                  {cart?.handlingCharge && cart.handlingCharge > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Handling:</span>
-                      <span className="font-medium">
-                        ₹{cart.handlingCharge.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-
-                  <hr className="border-gray-200" />
-
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-semibold text-lg">Total</div>
-                      <div className="text-xs text-gray-500">
-                        (includes ₹
-                        {cart?.total_mrp_gst_amount?.toFixed(2) || "0.00"} GST)
-                      </div>
-                    </div>
-                    <span className="text-xl font-bold text-gray-900">
-                      ₹{cart?.total_mrp_with_gst?.toFixed(2) || "0.00"}
-                    </span>
+                    <span className="text-gray-600">Subtotal ({cart?.items?.length ?? 0} items):</span>
+                    <span className="font-medium">₹{Math.round(cart?.total_mrp || 0)}</span>
                   </div>
                 </div>
 

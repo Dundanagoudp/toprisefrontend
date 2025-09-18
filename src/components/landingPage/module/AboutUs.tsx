@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import DynamicButton from "@/components/common/button/button";
+import ContactDialog from "./popup/contactus";
 import { easeInOut } from "framer-motion";
 
 interface AboutSectionProps {
@@ -11,6 +13,7 @@ interface AboutSectionProps {
   imageSrc: string;
   imageAlt: string;
   imagePosition: "left" | "right";
+  showImage?: boolean;
 }
 
 function AboutSection({
@@ -19,6 +22,7 @@ function AboutSection({
   imageSrc,
   imageAlt,
   imagePosition,
+  showImage = true,
 }: AboutSectionProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.2 });
@@ -88,14 +92,14 @@ function AboutSection({
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
       variants={containerVariants}
-      className={`grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mb-16 ${
-        imagePosition === "left" ? "lg:grid-flow-col-dense" : ""
+      className={`grid grid-cols-1 ${showImage ? "lg:grid-cols-2" : ""} gap-8 items-center mb-16 ${
+        imagePosition === "left" && showImage ? "lg:grid-flow-col-dense" : ""
       }`}
     >
       {/* Text Content with Parallax */}
       <motion.div
         className={`space-y-4 ${
-          imagePosition === "left" ? "lg:col-start-2" : ""
+          imagePosition === "left" && showImage ? "lg:col-start-2" : ""
         }`}
         style={{ y: textY }}
         variants={textVariants}
@@ -119,29 +123,31 @@ function AboutSection({
       </motion.div>
 
       {/* Image with Enhanced Parallax */}
-      <motion.div
-        className={`${imagePosition === "left" ? "lg:col-start-1" : ""}`}
-        variants={imageVariants}
-      >
+      {showImage && (
         <motion.div
-          className="relative aspect-[4/3] rounded-lg overflow-hidden shadow-lg"
-          style={{ y: imageY }}
-          whileHover={{
-            scale: 1.02,
-            rotateY: imagePosition === "left" ? 5 : -5,
-            transition: { duration: 0.3 },
-          }}
+          className={`${imagePosition === "left" ? "lg:col-start-1" : ""}`}
+          variants={imageVariants}
         >
-          <motion.div style={{ scale: imageScale }} className="w-full h-full">
-            <Image
-              src={imageSrc || "/placeholder.svg"}
-              alt={imageAlt}
-              fill
-              className="object-cover"
-            />
+          <motion.div
+            className="relative aspect-[4/3] rounded-lg overflow-hidden shadow-lg"
+            style={{ y: imageY }}
+            whileHover={{
+              scale: 1.02,
+              rotateY: imagePosition === "left" ? 5 : -5,
+              transition: { duration: 0.3 },
+            }}
+          >
+            <motion.div style={{ scale: imageScale }} className="w-full h-full">
+              <Image
+                src={imageSrc}
+                alt={imageAlt}
+                fill
+                className="object-cover"
+              />
+            </motion.div>
           </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -150,6 +156,7 @@ export default function AboutUs() {
   const sectionRef = useRef(null);
   const headerRef = useRef(null);
   const isHeaderInView = useInView(headerRef, { once: true, amount: 0.3 });
+  const [contactUsOpen, setContactUsOpen] = useState(false);
 
   // Header parallax
   const { scrollYProgress: headerScrollProgress } = useScroll({
@@ -163,7 +170,7 @@ export default function AboutUs() {
     {
       title: "What We Do",
       content:
-        "Smart Product Discovery: We make it easy for dealers and retailers to find exact-fit parts using advanced filters based on vehicle make, model and variant eliminating guesswork. Our intuitive search system ensures precision and saves valuable time.\n\nVerified Sourcing Network: Our platform hosts a curated network of trusted manufacturers and distributors, ensuring quality, competitive pricing, and consistent supply. Every partner is thoroughly vetted to maintain our high standards.\n\nReal-Time Inventory & Fulfilment: With live inventory visibility, multi-location stocking, and intelligent order routing, Toprise ensures swift order fulfilment and reduced downtime. Our system optimizes delivery routes for maximum efficiency.\n\nDealer-Centric Technology: We empower our partners with mobile-first tools to manage orders, returns, claims, and logistics seamlessly, all from a unified dashboard. Everything you need is at your fingertips.",
+        "Toprise makes it easy for dealers and retailers to find exact-fit parts through advanced filters by vehicle make, model, and variant—eliminating guesswork. We operate a curated, verified network of manufacturers and distributors to ensure quality, competitive pricing, and consistent supply. With real-time inventory visibility, multi-location stocking, and intelligent order routing, we enable swift fulfilment and reduced downtime. Our dealer-centric, mobile-first tools let partners manage orders, returns, claims, and logistics seamlessly from a unified dashboard.",
       imageSrc: "/assets/Engineers.jpg",
       imageAlt: "Team collaboration",
       imagePosition: "right" as const,
@@ -171,7 +178,7 @@ export default function AboutUs() {
     {
       title: "Why Toprise?",
       content:
-        "Fast Fulfilment: Integrated logistics and real-time inventory mapping across regions.\n\nPrecise Fitment Matching: Reduce returns and increase satisfaction with exact-fit assurance.\n\nParts for Every Need: From consumables to premium assemblies, we cover the entire spectrum of 2-wheeler and 4-wheeler spare parts.\n\nMulti-Channel Access: Order via mobile app, website, WhatsApp, or direct call, we’re built for the way dealers work.\n\nEasy Returns & Claims: Transparent workflows and verified inspection at pickup for hassle-free returns.",
+        "Choose Toprise for fast fulfilment powered by integrated logistics and live inventory mapping across regions. Our precise fitment matching reduces returns and increases satisfaction. We cover the full spectrum of two-wheeler and four-wheeler parts—from consumables to premium assemblies—accessible via mobile app, website, WhatsApp, or direct call, built for the way dealers work. Returns and claims are straightforward with transparent workflows and verified inspections at pickup.",
       imageSrc: "/assets/Gear.jpg",
       imageAlt: "Workplace environment",
       imagePosition: "left" as const,
@@ -187,7 +194,7 @@ export default function AboutUs() {
     {
       title: "Who We Serve",
       content:
-        "Distributors & Dealers looking for better reach, digitization, and streamlined inventory movement.\n\nRetailers & Workshops seeking accurate, timely part deliveries.\n\nManufacturers & OEMs aiming for deeper visibility and channel control.",
+        "We serve distributors and dealers seeking broader reach, digitization, and streamlined inventory movement; retailers and workshops that need accurate, on-time deliveries; and manufacturers and OEMs looking for deeper visibility and control across their channels.",
       imageSrc: "/assets/Car-Accessories.webp",
       imageAlt: "Mission and vision",
       imagePosition: "left" as const,
@@ -230,7 +237,7 @@ export default function AboutUs() {
           variants={headerVariants}
         >
           <motion.h2
-            className="text-[#C72920] text-4xl font-bold font-sans mb-4"
+            className="text-[#C72920] text-5xl md:text-6xl font-bold font-sans mb-4"
             variants={headerItemVariants}
           >
             About Us
@@ -244,7 +251,7 @@ export default function AboutUs() {
             parts are discovered, ordered, and fulfilled across India.
           </motion.h1>
           <motion.p
-            className="text-gray-600 leading-relaxed text-base md:text-lg w-full"
+            className="text-gray-600 leading-relaxed text-lg md:text-xl w-full"
             variants={headerItemVariants}
           >
             Founded with a vision to simplify and digitize the spare parts
@@ -266,12 +273,13 @@ export default function AboutUs() {
               imageSrc={section.imageSrc}
               imageAlt={section.imageAlt}
               imagePosition={section.imagePosition}
+              showImage={index < 2}
             />
           ))}
         </div>
         <motion.div className="text-center">
           <motion.p
-            className="text-gray-600 leading-relaxed text-base md:text-lg w-full"
+            className="text-gray-600 leading-relaxed text-lg md:text-xl w-full"
             variants={headerItemVariants}
           >
             <strong>Join the Toprise Network</strong>
@@ -279,8 +287,20 @@ export default function AboutUs() {
             Whether you're a parts manufacturer, distributor, or dealer: let’s
             scale together.
           </motion.p>
+          <div className="mt-6 flex justify-center">
+            <DynamicButton
+              variant="default"
+              className="bg-[#C72920] text-white px-6 py-3 text-base font-semibold"
+              text="Contact us"
+              onClick={() => setContactUsOpen(true)}
+            />
+          </div>
         </motion.div>
       </div>
+      <ContactDialog
+        open={contactUsOpen}
+        onClose={() => setContactUsOpen(false)}
+      />
     </section>
   );
 }
