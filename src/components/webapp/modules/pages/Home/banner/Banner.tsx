@@ -212,6 +212,8 @@ export default function BannerSection() {
         />
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-black/60" />
+        {/* Top gradient to blend with white navbar */}
+        <div className="absolute inset-x-0 top-0 h-24 md:h-28 bg-gradient-to-b from-white/45 to-transparent pointer-events-none" />
       </div>
 
       {/* Content Grid */}
@@ -220,10 +222,10 @@ export default function BannerSection() {
           {/* Left Side - Text Content */}
           <div className="text-white space-y-6">
             <h1 className="font-sans font-bold text-white text-4xl md:text-5xl lg:text-6xl leading-tight">
-              Find the Perfect Spare Part for Your Vehicle - Fast and Easy
+              Get Genuine Spare Parts of your Vehicle – Quick Shopping & Rapid Delivery
             </h1>
             <p className="font-sans text-white/90 text-lg md:text-xl">
-              Search thousands of parts for bikes and cars by model, series, year, and type.
+            Seach thousands of parts for bikes, scooters and cars – Get it delivered pan India (Same day in NCR)
             </p>
           </div>
 
@@ -324,6 +326,21 @@ export default function BannerSection() {
                   >
                     Search
                   </button>
+                </div>
+              </div>
+
+              {/* App Download CTA */}
+              <div className="pt-4 border-t border-white/20">
+                <div className="flex justify-center lg:justify-end">
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.toprise"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Download the TopRise app from Google Play"
+                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Download App
+                  </a>
                 </div>
               </div>
             </div>

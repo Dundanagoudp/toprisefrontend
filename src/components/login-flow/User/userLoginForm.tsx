@@ -79,7 +79,7 @@ export function UserLoginForm({
 
       // Handle regular user login
       if (role === "User") {
-        router.replace("/shop");
+        router.replace("/");
         showToast("Successfully Login", "success");
       } else {
         // Handle other non-admin roles if needed

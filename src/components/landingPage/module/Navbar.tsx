@@ -74,7 +74,7 @@ return (
               href="/"
               className="ml-2 font-bold text-lg sm:text-xl flex cursor-pointer"
             >
-              <Image src={logo} alt="Logo" className="hover:opacity-80 transition-opacity" />
+              <Image src={logo} alt="Logo" className="h-12 sm:h-14 w-auto hover:opacity-80 transition-opacity" />
             </a>
           </NavigationMenuItem>
 
@@ -97,7 +97,7 @@ return (
                       className="cursor-pointer"
                       onClick={() => setIsOpen(false)}
                     >
-                      <Image src={logo} alt="Logo" width={40} height={40} className="hover:opacity-80 transition-opacity" />
+                      <Image src={logo} alt="Logo" width={56} height={56} className="hover:opacity-80 transition-opacity" />
                     </a>
                   </SheetTitle>
                 </SheetHeader>
