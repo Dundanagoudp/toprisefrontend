@@ -1,9 +1,10 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 import { ChevronDown, ChevronUp, Search as SearchIcon } from 'lucide-react';
-import { smartSearch } from '@/service/user/smartSearchService';
+import { smartSearch, smartSearchWithCategory } from '@/service/user/smartSearchService';
 import { Product, Brand } from '@/types/User/Search-Types';
 import { useAppSelector } from '@/store/hooks';
 import { selectVehicleType } from '@/store/slice/vehicle/vehicleSlice';
@@ -60,6 +61,8 @@ const SearchResults = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('query'); // Support both 'searchQuery' and 'query'
+  const category = searchParams.get('category');
+  const categoryName = searchParams.get('categoryName');
   const vehicleTypeId = searchParams.get('vehicleTypeId');
   const vehicleType = useAppSelector(selectVehicleType);
   const [products, setProducts] = useState<Product[]>([]);
@@ -70,10 +73,11 @@ const SearchResults = () => {
   const [isModel, setIsModel] = useState<boolean>(false);
   const [isVariant, setIsVariant] = useState<boolean>(false);
   const [isProduct, setIsProduct] = useState<boolean>(false);
+  const [isCategory, setIsCategory] = useState<boolean>(false);
   const [brandData, setBrandData] = useState<Brand[]>([]);
   const [modelData, setModelData] = useState<Model[]>([]);
   const [variantData, setVariantData] = useState<Variant[]>([]);
-  const [searchValue, setSearchValue] = useState<string>('');
+  const [searchValue, setSearchValue] = useState<string>(query || categoryName || '');
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     vehicle: true,
     price: false,
@@ -89,14 +93,89 @@ const SearchResults = () => {
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = apiBase.replace(/\/api$/, "");
 
+  // Update search value when component mounts
+  useEffect(() => {
+    if (query) {
+      setSearchValue(query);
+    } else if (categoryName) {
+      setSearchValue(categoryName);
+      setIsCategory(true);
+    }
+    console.log('Search params:', { query, category, categoryName, vehicleTypeId });
+  }, [query, category, categoryName, vehicleTypeId]);
+
+  // Handle category-based search - fetch brands within category
+  useEffect(() => {
+    if (category && !query) {
+      const fetchCategoryBrands = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          // Use smartSearch to get brands for the category
+          const response = await smartSearch(categoryName || '', vehicleTypeId || undefined);
+          console.log('Category search response:', response);
+          
+          // Validate response structure
+          if (!response || typeof response !== 'object') {
+            throw new Error('Invalid response format from category search');
+          }
+
+          // Set category flag and extract brand data
+          setIsCategory(true);
+          setIsBrand(false);
+          setIsModel(false);
+          setIsVariant(false);
+          setIsProduct(false);
+
+          // Extract brand data if available
+          let brands: Brand[] = [];
+          const apiResponse = response as any;
+          if (apiResponse.results?.brand) {
+            brands = [apiResponse.results.brand];
+          } else if (apiResponse.results && Array.isArray(apiResponse.results) && apiResponse.results.length > 0) {
+            brands = apiResponse.results;
+          } else if (apiResponse.brands && Array.isArray(apiResponse.brands)) {
+            brands = apiResponse.brands;
+          }
+          setBrandData(brands);
+
+          // Clear other data
+          setModelData([]);
+          setVariantData([]);
+          setProducts([]);
+
+        } catch (err) {
+          console.error("Category search error:", err);
+          setError("Failed to load brands for this category");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchCategoryBrands();
+    }
+  }, [category, categoryName, vehicleTypeId, query]);
+
   // Handle brand click - update search query and trigger new search
   const handleBrandClick = async (brandName: string) => {
-    const newQuery = `${query} ${brandName}`.trim();
+    let newQuery: string;
+    
+    if (categoryName) {
+      // If we're in category mode, combine category and brand
+      newQuery = `${categoryName} ${brandName}`.trim();
+    } else {
+      // If we're in regular search mode, combine existing query with brand
+      newQuery = `${query} ${brandName}`.trim();
+    }
+    
     console.log('Brand clicked:', brandName, 'New query:', newQuery);
 
     // Update URL with new query
     const newSearchParams = new URLSearchParams(searchParams.toString());
     newSearchParams.set('query', newQuery);
+    // Remove category parameters since we're now doing a query search
+    newSearchParams.delete('category');
+    newSearchParams.delete('categoryName');
     router.push(`?${newSearchParams.toString()}`);
   };
 
@@ -116,10 +195,69 @@ const SearchResults = () => {
     const newQuery = `${query} ${variantName}`.trim();
     console.log('Variant clicked:', variantName, 'New query:', newQuery);
 
-    // Update URL with new query
-    const newSearchParams = new URLSearchParams(searchParams.toString());
-    newSearchParams.set('query', newQuery);
-    router.push(`?${newSearchParams.toString()}`);
+    // If we have a category context, use the category-specific API
+    if (category && categoryName) {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Use the new API with category parameter
+        const response = await smartSearchWithCategory(newQuery, categoryName);
+        console.log('Variant search with category response:', response);
+        
+        // Validate response structure
+        if (!response || typeof response !== 'object') {
+          throw new Error('Invalid response format from variant search with category');
+        }
+
+        // Set product flag and extract product data
+        setIsCategory(false);
+        setIsBrand(false);
+        setIsModel(false);
+        setIsVariant(false);
+        setIsProduct(true);
+
+        // Extract products from response
+        let extractedProducts: Product[] = [];
+        const apiResponse = response as any;
+        
+        if (apiResponse.results?.products && Array.isArray(apiResponse.results.products)) {
+          extractedProducts = apiResponse.results.products;
+          console.log('Variant products found in response.results.products:', extractedProducts.length, 'products');
+        } else if (apiResponse.products && Array.isArray(apiResponse.products)) {
+          extractedProducts = apiResponse.products;
+          console.log('Variant products found in response.products:', extractedProducts.length, 'products');
+        } else if (apiResponse.data?.products && Array.isArray(apiResponse.data.products)) {
+          extractedProducts = apiResponse.data.products;
+          console.log('Variant products found in response.data.products:', extractedProducts.length, 'products');
+        } else {
+          console.log('No products found for variant with category');
+        }
+
+        setProducts(extractedProducts);
+
+        // Clear other data
+        setBrandData([]);
+        setModelData([]);
+        setVariantData([]);
+
+        // Update URL with new query
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.set('query', newQuery);
+        router.push(`?${newSearchParams.toString()}`);
+
+      } catch (err) {
+        console.error("Variant search with category error:", err);
+        setError("Failed to load products for this variant");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Regular search flow
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.set('query', newQuery);
+      router.push(`?${newSearchParams.toString()}`);
+    }
   };
 
   // Handle product click - update search query and trigger new search
@@ -142,6 +280,11 @@ const SearchResults = () => {
           // Send both query and vehicleTypeId to smartSearch
           const response = await smartSearch(query, vehicleTypeId || undefined);
           console.log('smartSearch response:', response);
+          
+          // Validate response structure
+          if (!response || typeof response !== 'object') {
+            throw new Error('Invalid response format from smartSearch');
+          }
 
           // Check is_brand, is_model, is_variant, and is_product flags
           const brandFlag = response.is_brand || false;
@@ -241,7 +384,7 @@ const SearchResults = () => {
       };
       fetchSearchResults();
     }
-  }, [query]);
+  }, [query, vehicleTypeId]);
 
   // Log rendering decision
   useEffect(() => {
@@ -333,13 +476,32 @@ const SearchResults = () => {
       <div className="border-b border-border bg-card">
         <div className="max-w-screen-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="hover:text-primary cursor-pointer transition-colors">Home</span>
+            <Link 
+              href="/" 
+              className="hover:text-primary cursor-pointer transition-colors"
+            >
+              Home
+            </Link>
             <span>/</span>
-            <span className="hover:text-primary cursor-pointer transition-colors">Product List</span>
+            <Link 
+              href="/shop" 
+              className="hover:text-primary cursor-pointer transition-colors"
+            >
+              Shop
+            </Link>
             <span>/</span>
-            <span className="text-foreground">Search Results</span>
+            <span className="text-foreground">
+              {isCategory && categoryName 
+                ? `Category: ${categoryName}` 
+                : query 
+                  ? `Search: ${query}` 
+                  : 'Search Results'
+              }
+            </span>
             {vehicleType && (
-              <span className="text-xs text-muted-foreground ml-2">Vehicle Type: {vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1)}</span>
+              <span className="text-xs text-muted-foreground ml-2">
+                Vehicle Type: {vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1)}
+              </span>
             )}
           </div>
         </div>
@@ -483,7 +645,12 @@ const SearchResults = () => {
           <main className="flex-1">
             {/* Page Header */}
             <div className="mb-6 flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-foreground mb-4">Search Results for "{query}"</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-4">
+                {isCategory && categoryName 
+                  ? `Brands in "${categoryName}" Category` 
+                  : `Search Results for "${query}"`
+                }
+              </h1>
 
               {/* Search Bar */}
               {/* <div className="relative max-w-md ml-4">
@@ -502,7 +669,7 @@ const SearchResults = () => {
               </div> */}
             </div>
             {/* Brand Display - grid of all brands */}
-            {isBrand && brandData.length > 0 && (
+            {(isBrand || isCategory) && brandData.length > 0 && (
               <div className="mb-6">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {brandData.map((brand) => (
@@ -523,6 +690,22 @@ const SearchResults = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* No brands found message */}
+            {(isBrand || isCategory) && brandData.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <div className="text-gray-500 text-lg mb-4">
+                  <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No Brands Found</h3>
+                  <p className="text-gray-500">
+                    {isCategory && categoryName 
+                      ? `No brands are available in the "${categoryName}" category at the moment.`
+                      : "No brands match your search criteria. Try adjusting your search terms."
+                    }
+                  </p>
                 </div>
               </div>
             )}
@@ -558,11 +741,13 @@ const SearchResults = () => {
               </div>
             )}
 
+
             {/* Products Grid - only show when not in product listing mode */}
             {!isProduct && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {displayedProducts.map((product) => (
+                {displayedProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {displayedProducts.map((product) => (
                     <div
                       key={product._id}
                       className="bg-card rounded-lg border border-border p-4 hover:shadow-lg transition-shadow cursor-pointer group"
@@ -584,9 +769,20 @@ const SearchResults = () => {
                       </div>
                     </div>
                   ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-gray-500 text-lg mb-4">
+                      <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-xl font-semibold text-gray-700 mb-2">No Products Found</h3>
+                      <p className="text-gray-500">
+                        No products match your search criteria. Try adjusting your search terms.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Load More */}
-                {hasMoreProducts && (
+                {hasMoreProducts && displayedProducts.length > 0 && (
                   <div className="flex justify-center mt-8">
                     <button
                       onClick={handleLoadMore}

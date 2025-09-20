@@ -19,7 +19,13 @@ export default function CategorySection() {
 
   const handleCategoryClick = (category: ProductCategory) => {
     if (category._id) {
-      router.push(`/shop/category/${category._id}`)
+      // Navigate to search page with category parameter
+      const params = new URLSearchParams({
+        category: category._id,
+        categoryName: category.category_name
+      });
+      
+      router.push(`/shop/search/?${params.toString()}`);
     }
   }
 

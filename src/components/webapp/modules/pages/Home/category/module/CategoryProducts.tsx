@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Search, Grid, List, ShoppingCart, Eye, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import SearchInput from '@/components/common/search/SearchInput';
 import { getCategories, getProducts, getProductsByCategory, getSubCategories } from '@/service/product-Service';
 import { useCart } from '@/hooks/use-cart';
@@ -227,11 +228,21 @@ const ProductListing = () => {
       <div className="border-b border-border bg-card">
         <div className="max-w-screen-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="hover:text-primary cursor-pointer transition-colors">Home</span>
+            <Link 
+              href="/" 
+              className="hover:text-primary cursor-pointer transition-colors"
+            >
+              Home
+            </Link>
             <span>/</span>
-            <span className="hover:text-primary cursor-pointer transition-colors">Product List</span>
+            <Link 
+              href="/shop" 
+              className="hover:text-primary cursor-pointer transition-colors"
+            >
+              Shop
+            </Link>
             <span>/</span>
-            <span className="text-foreground">{categoryName}</span>
+            <span className="text-foreground">Category: {categoryName}</span>
           </div>
         </div>
       </div>

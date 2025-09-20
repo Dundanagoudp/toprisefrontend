@@ -11,6 +11,7 @@ import {
   getModelsByBrand,
   getVariantsByModel
 } from "@/service/product-Service"
+import { getVehicleInfo } from "@/service/vehicle-info-service"
 import { useToast } from "@/components/ui/toast"
 
 interface Model {
@@ -58,6 +59,7 @@ export default function BannerSection() {
   
   // Number plate search
   const [numberPlate, setNumberPlate] = useState<string>("")
+  const [isVehicleSearchLoading, setIsVehicleSearchLoading] = useState<boolean>(false)
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll)
@@ -181,22 +183,47 @@ export default function BannerSection() {
     if (selectedYear) searchParams.append("year", selectedYear)
     searchParams.append("vehicleTypeId", typeId)
 
-    router.push(`/shop/search-results/?${searchParams.toString()}`)
+    router.push(`/shop/search/?${searchParams.toString()}`)
   }
 
   // Handle number plate search
-  const handleNumberPlateSearch = () => {
+  const handleNumberPlateSearch = async () => {
     if (!numberPlate.trim()) {
       showToast("Please enter a number plate", "error")
       return
     }
 
-    const searchParams = new URLSearchParams({
-      query: numberPlate.trim(),
-      vehicleTypeId: typeId,
-    })
+    setIsVehicleSearchLoading(true)
+    
+    try {
+      // Call vehicle info API
+      const vehicleInfo = await getVehicleInfo(numberPlate.trim())
+      
+      if (vehicleInfo.success && vehicleInfo.data) {
+        const { apiData, dbMatches } = vehicleInfo.data
+        
+        // Build search query using vehicle details
+        const searchQuery = `${dbMatches.brand.brand_name} ${dbMatches.model.model_name} ${dbMatches.variant.variant_name}`.trim()
+        
+        const searchParams = new URLSearchParams({
+          query: searchQuery,
+          vehicleTypeId: typeId,
+        })
 
-    router.push(`/shop/search-results/?${searchParams.toString()}`)
+        // Show success message with vehicle details
+        showToast(`Found: ${apiData.description}`, "success")
+        
+        // Navigate to search results
+        router.push(`/shop/search/?${searchParams.toString()}`)
+      } else {
+        showToast("Vehicle not found. Please check the registration number.", "error")
+      }
+    } catch (error) {
+      console.error("Vehicle search error:", error)
+      showToast("Failed to search vehicle. Please try again.", "error")
+    } finally {
+      setIsVehicleSearchLoading(false)
+    }
   }
 
   return (
@@ -220,8 +247,7 @@ export default function BannerSection() {
           {/* Left Side - Text Content */}
           <div className="text-white space-y-6">
             <h1 className="font-sans font-bold text-white text-4xl md:text-5xl lg:text-6xl leading-tight">
-              Find the Perfect Spare Part for Your Vehicle - Fast and Easy
-            </h1>
+            Get Genuine Spare Parts of your Vehicle – Quick Shopping & Rapid Delivery            </h1>
             <p className="font-sans text-white/90 text-lg md:text-xl">
               Search thousands of parts for bikes and cars by model, series, year, and type.
             </p>
@@ -296,7 +322,12 @@ export default function BannerSection() {
 
                 <button 
                   onClick={handleVehicleSearch}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                  disabled={!selectedBrand || !selectedModel}
+                  className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg ${
+                    selectedBrand && selectedModel
+                      ? 'bg-red-600 hover:bg-red-700 text-white hover:shadow-xl cursor-pointer'
+                      : 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-60'
+                  }`}
                 >
                   Search
                 </button>
@@ -320,9 +351,13 @@ export default function BannerSection() {
                   />
                   <button 
                     onClick={handleNumberPlateSearch}
-                    className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                    disabled={isVehicleSearchLoading}
+                    className={`${isVehicleSearchLoading 
+                      ? 'bg-gray-500 cursor-not-allowed' 
+                      : 'bg-red-600 hover:bg-red-700'
+                    } text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl`}
                   >
-                    Search
+                    {isVehicleSearchLoading ? 'Searching...' : 'Search'}
                   </button>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -30,7 +31,9 @@ export function DynamicBreadcrumb({ customLabels = {} }: { customLabels?: Record
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem className="hidden md:block">
-          <BreadcrumbLink href="/user/dashboard">Dashboard</BreadcrumbLink>
+          <BreadcrumbLink asChild>
+            <Link href="/user/dashboard">Dashboard</Link>
+          </BreadcrumbLink>
         </BreadcrumbItem>
         {items.length > 1 && <BreadcrumbSeparator className="hidden md:block" />}
         {items.slice(1).map((item, idx) => (
@@ -39,7 +42,9 @@ export function DynamicBreadcrumb({ customLabels = {} }: { customLabels?: Record
               {idx === items.length - 2 ? (
                 <BreadcrumbPage>{item.label}</BreadcrumbPage>
               ) : (
-                <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+                <BreadcrumbLink asChild>
+                  <Link href={item.href}>{item.label}</Link>
+                </BreadcrumbLink>
               )}
             </BreadcrumbItem>
             {idx < items.length - 2 && <BreadcrumbSeparator className="hidden md:block" />}

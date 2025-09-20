@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DynamicButton from "@/components/common/button/button";
 
@@ -14,6 +15,8 @@ export default function OrderConfirmationDialog({
   onClose,
   orderId
 }: OrderConfirmationDialogProps) {
+  const router = useRouter();
+
   // Close dialog after 5 seconds automatically (optional)
   useEffect(() => {
     if (open) {
@@ -23,6 +26,13 @@ export default function OrderConfirmationDialog({
       return () => clearTimeout(timer);
     }
   }, [open, onClose]);
+
+  const handleViewOrderDetails = () => {
+    if (orderId) {
+      router.push(`/shop/order/${orderId}`);
+      onClose();
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -62,7 +72,15 @@ export default function OrderConfirmationDialog({
             You will receive an email confirmation shortly.
           </p>
         </div>
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-3">
+          {orderId && (
+            <DynamicButton 
+              variant="outline" 
+              onClick={handleViewOrderDetails}
+            >
+              View Order Details
+            </DynamicButton>
+          )}
           <DynamicButton onClick={onClose}>
             Continue Shopping
           </DynamicButton>
