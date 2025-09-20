@@ -13,6 +13,7 @@ import {
   FileText,
   BarChart3,
   Package,
+  BookOpen,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { LogOut as logoutAction } from "../store/slice/auth/authSlice";
@@ -48,6 +49,7 @@ const sidebarVisibilityConfig = {
     ],
     show: [
       "Product Management",
+      "Catalogues",
       "User Management",
       "Payment & Details",
       "Order Management",
@@ -70,6 +72,7 @@ const sidebarVisibilityConfig = {
     show: [
       "Dashboard",
       "Product Management",
+      "Catalogues",
       "Order Management",
       "Return Claims",
       "Pickup",
@@ -91,7 +94,7 @@ const sidebarVisibilityConfig = {
       "Audit Logs",
       "Reports",
     ],
-    show: ["Product Management", "Requests"],
+    show: ["Product Management", "Catalogues", "Requests"],
   },
   "Inventory-Admin": {
     hide: [
@@ -108,6 +111,7 @@ const sidebarVisibilityConfig = {
     ],
     show: [
       "Product Management",
+      "Catalogues",
       "Requests",
       "Dealer Management",
       "Content Management",
@@ -142,6 +146,11 @@ const data = {
       title: "Product Management",
       url: "/user/dashboard/product",
       icon: BoxIcon,
+    },
+    {
+      title: "Catalogues",
+      url: "/user/dashboard/catalogues",
+      icon: BookOpen,
     },
     {
       title: "User Management",

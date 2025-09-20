@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import DynamicButton from "@/components/common/button/button";
 import { Button } from "@/components/ui/button";
 import { CartItem } from "@/types/User/cart-Types";
@@ -17,7 +17,7 @@ interface CartSidebarProps {
   cart: any;
   cartOpen: boolean;
   setCartOpen: (open: boolean) => void;
-  handleQuantityChange: (itemId: string, newQuantity: number) => void;
+  handleQuantityChange: (productId: string, action: 'increase' | 'decrease') => void;
   removeFromCart: (itemId: string) => void;
   calculateTotal: () => number;
 }
@@ -31,10 +31,26 @@ export const CartSidebar = ({
   calculateTotal,
 }: CartSidebarProps) => {
   const router = useRouter();
+  const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
 
   const handleCheckout = () => {
     setCartOpen(false);
     router.push('/shop/checkout');
+  };
+
+  const handleQuantityUpdate = async (productId: string, action: 'increase' | 'decrease') => {
+    setUpdatingQuantities(prev => new Set(prev).add(productId));
+    try {
+      await handleQuantityChange(productId, action);
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+    } finally {
+      setUpdatingQuantities(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
   };
 
   return (
@@ -83,18 +99,28 @@ export const CartSidebar = ({
                           variant="outline"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
+                          disabled={updatingQuantities.has(item.productId)}
+                          onClick={() => handleQuantityUpdate(item.productId, 'decrease')}
                         >
-                          <Minus className="h-4 w-4" />
+                          {updatingQuantities.has(item.productId) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Minus className="h-4 w-4" />
+                          )}
                         </Button>
                         <span className="w-8 text-center">{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => handleQuantityChange(item._id, item.quantity + 1)}
+                          disabled={updatingQuantities.has(item.productId)}
+                          onClick={() => handleQuantityUpdate(item.productId, 'increase')}
                         >
-                          <Plus className="h-4 w-4" />
+                          {updatingQuantities.has(item.productId) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Plus className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                       

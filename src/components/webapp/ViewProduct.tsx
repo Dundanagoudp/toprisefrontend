@@ -1,5 +1,5 @@
 'use client'
-import { Search, ShoppingCart, Star, Heart, Share2, Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, ShoppingCart, Star, Heart, Share2, Minus, Plus, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,6 +16,7 @@ import {
 import React, { useState, useEffect } from 'react';
 import { getProductById, getProductsByPage } from "@/service/product-Service"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import type { Product as ProductType, Product } from "@/types/product-Types"
 import { useCart } from "@/hooks/use-cart"
 import { useToast } from "@/components/ui/toast"
@@ -33,11 +34,12 @@ export default function ProductPage() {
   const [currentPage, setCurrentPage] = React.useState<number>(1)
   const [totalPages, setTotalPages] = React.useState<number>(1)
   const pageSize = 8
-  // Featured products state (separate from main product)
-  const [featuredProducts, setFeaturedProducts] = useState<ProductType[]>([]);
-  const [featuredCurrentPage, setFeaturedCurrentPage] = useState<number>(1);
-  const [featuredLoading, setFeaturedLoading] = useState(false);
-  const featuredPageSize = 8
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
+  // Recommended products state
+  const [recommendedProducts, setRecommendedProducts] = useState<ProductType[]>([]);
+  const [recommendedLoading, setRecommendedLoading] = useState(false);
+  const [addingRecommendedToCart, setAddingRecommendedToCart] = useState<string | null>(null);
   const userId = useAppSelector((state) => state.auth.user?._id);
   const id = useParams<{ id: string }>();
   const { addItemToCart } = useCart();
@@ -83,26 +85,102 @@ export default function ProductPage() {
     }
     fetchData()
   }, [currentPage])
+
+  // Fetch recommended products when product is loaded
+  useEffect(() => {
+    if (product) {
+      fetchRecommendedProducts();
+    }
+  }, [product])
   const handleProductClick = (productId: string) => {
     router.push(`/shop/product/${productId}`)
   }
 
-  // Separate useEffect for featured products
-  useEffect(() => {
-    const fetchFeaturedProducts = async () => {
-      setFeaturedLoading(true)
-      try {
-        const res = await getProductsByPage(featuredCurrentPage, featuredPageSize, "Approved")
-        const items = (res?.data?.products ?? []) as ProductType[]
-        setFeaturedProducts(items)
-      } catch (e) {
-        setFeaturedProducts([])
-      } finally {
-        setFeaturedLoading(false)
+  // Fetch recommended products based on current product's brand, model, and variant IDs
+  const fetchRecommendedProducts = async () => {
+    if (!product) return;
+    
+    console.log("Fetching recommended products for:", product.product_name);
+    console.log("Product brand ID:", product.brand?._id);
+    console.log("Product model ID:", product.model?._id);
+    console.log("Product variant IDs:", product.variant?.map(v => v._id));
+    
+    setRecommendedLoading(true);
+    try {
+      // Build search query based on brand, model, and variant IDs
+      const searchTerms = [];
+      
+      if (product.brand?._id) {
+        searchTerms.push(product.brand._id);
       }
+      
+      if (product.model?._id) {
+        searchTerms.push(product.model._id);
+      }
+      
+      if (product.variant && product.variant.length > 0) {
+        product.variant.forEach(v => {
+          if (v._id) {
+            searchTerms.push(v._id);
+          }
+        });
+      }
+      
+      const searchQuery = searchTerms.join(' ');
+      console.log("Search terms (IDs):", searchTerms);
+      console.log("Search query:", searchQuery);
+      
+      if (searchQuery.trim()) {
+        const response = await getProductsByPage(1, 8, "Approved", searchQuery);
+        const products = (response?.data?.products ?? []) as ProductType[];
+        console.log("API response products:", products.length);
+        console.log("All products:", products);
+        
+        // Filter out the current product and only show in-stock products
+        const filteredProducts = products.filter(p => 
+          p._id !== product._id && 
+          !p.out_of_stock && 
+          p.no_of_stock > 0
+        );
+        
+        console.log("Filtered products:", filteredProducts.length);
+        console.log("Filtered products:", filteredProducts);
+        
+        setRecommendedProducts(filteredProducts.slice(0, 4)); // Show max 4 products
+      } else {
+        console.log("No search query, setting empty recommended products");
+        setRecommendedProducts([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch recommended products:", error);
+      setRecommendedProducts([]);
+    } finally {
+      setRecommendedLoading(false);
     }
-    fetchFeaturedProducts()
-  }, [featuredCurrentPage])
+  };
+
+  const handleBuyNow = async () => {
+    if (!product?._id) return;
+    
+    try {
+      setBuyingNow(true);
+      await addItemToCart(product._id, quantity);
+      showToast("Product added to cart successfully", "success");
+      // Navigate to checkout page
+      router.push('/shop/checkout');
+    } catch (error: any) {
+      if (error.message === 'User not authenticated') {
+        showToast("Please login to buy products", "error");
+        router.push("/login");
+      } else {
+        showToast("Failed to add product to cart", "error");
+        console.error("Error adding to cart:", error);
+      }
+    } finally {
+      setBuyingNow(false);
+    }
+  };
+
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
@@ -159,15 +237,19 @@ export default function ProductPage() {
     if (!product?._id) return;
 
     try {
+      setAddingToCart(true);
       await addItemToCart(product._id, quantity);
       showToast("Product added to cart successfully", "success");
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error");
+        router.push("/login");
       } else {
         showToast("Failed to add product to cart", "error");
         console.error("Error adding to cart:", error);
       }
+    } finally {
+      setAddingToCart(false);
     }
   };
 
@@ -201,6 +283,29 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Breadcrumb */}
+      <div className="border-b border-border bg-card">
+        <div className="max-w-screen-2xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link 
+              href="/" 
+              className="hover:text-primary cursor-pointer transition-colors"
+            >
+              Home
+            </Link>
+            <span>/</span>
+            <Link 
+              href="/shop" 
+              className="hover:text-primary cursor-pointer transition-colors"
+            >
+              Shop
+            </Link>
+            <span>/</span>
+            <span className="text-foreground">Product: {product.product_name}</span>
+          </div>
+        </div>
+      </div>
+      
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb Navigation */}
         <div className="mb-6">
@@ -259,6 +364,49 @@ export default function ProductPage() {
             <div>
               <p className="text-sm text-muted-foreground mb-2">{product.brand?.brand_name || 'Brand'}</p>
               <h1 className="text-3xl font-bold mb-2">{product.product_name}</h1>
+              
+              {/* Part Number and Vehicle Details */}
+              <div className="mb-4 space-y-2">
+                {product.manufacturer_part_name && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Part Number:</span>
+                    <span className="text-sm font-semibold text-foreground">{product.manufacturer_part_name}</span>
+                  </div>
+                )}
+                
+                {/* Vehicle Details */}
+                <div className="flex flex-wrap gap-4 text-sm">
+                  {product.brand?.brand_name && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Brand:</span>
+                      <span className="font-medium">{product.brand.brand_name}</span>
+                    </div>
+                  )}
+                  {product.model?.model_name && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Model:</span>
+                      <span className="font-medium">{product.model.model_name}</span>
+                    </div>
+                  )}
+                  {product.variant && product.variant.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Variant:</span>
+                      <span className="font-medium">
+                        {product.variant.map(v => v.variant_name).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">(4.5) Reviews</span>
+              </div>
             </div>
 
             <div className="border-b pb-6">
@@ -331,17 +479,26 @@ export default function ProductPage() {
                 className="flex-1 bg-red-600 hover:bg-red-700"
                 size="lg"
                 onClick={handleAddToCart}
-                disabled={product.out_of_stock}
+                disabled={product.out_of_stock || addingToCart}
               >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Add to Cart
+                {addingToCart ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                )}
+                {addingToCart ? "Adding..." : "Add to Cart"}
               </Button>
-              <Button
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                size="lg"
-                disabled={product.out_of_stock}
+              <Button 
+                variant="secondary" 
+                size="lg" 
+                className="flex-1 text-white" 
+                disabled={product.out_of_stock || buyingNow}
+                onClick={handleBuyNow}
               >
-                Buy Now
+                {buyingNow ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                {buyingNow ? "Processing..." : "Buy Now"}
               </Button>
               <Button variant="outline" size="lg" className="px-4">
                 <Heart className="w-5 h-5" />
@@ -397,7 +554,7 @@ export default function ProductPage() {
                 </div>
               )}
 
-              <div>
+              {/* <div>
                 <h3 className="font-semibold mb-2">Delivery Options</h3>
                 <div className="space-y-2 text-sm">
                   <p className="text-muted-foreground">Enter pincode to check delivery date</p>
@@ -412,48 +569,48 @@ export default function ProductPage() {
                   <p className="text-green-600">✓ Free Delivery on orders above ₹500</p>
                   <p className="text-muted-foreground">✓ Easy 30 days return & exchange</p>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Delivery Details Section */}
-            <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+            {/* <div className="bg-muted/30 rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm">📍</span>
                 <span className="text-sm font-medium">Deliver to</span>
               </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground block">Address</label>
-                  <div className="mt-1 p-2 bg-background rounded border text-sm">
-                    {user?.address?.[0]?.street || "No address found"}
-                  </div>
+                             <div className="flex gap-4">
+                 <div className="flex-1">
+                   <label className="text-xs text-muted-foreground block">Address</label>
+                   <div className="mt-1 p-2 bg-background rounded border text-sm">
+                     {user?.address?.[0]?.street || "No address found"}
+                   </div>
+                 </div>
+                 <div className="flex-1">
+                   <label className="text-xs text-muted-foreground block">City</label>
+                   <div className="mt-1 p-2 bg-background rounded border text-sm">
+                     {user?.address?.[0]?.city || "No city found"}
+                   </div>
+                 </div>
+                 <div className="flex-1">
+                   <label className="text-xs text-muted-foreground block">State</label>
+                   <div className="mt-1 p-2 bg-background rounded border text-sm">
+                     {user?.address?.[0]?.state || "No state found"}
+                   </div>
+                 </div>
+                 <div className="flex-1">
+                   <label className="text-xs text-muted-foreground block">Pin Code</label>
+                   <div className="mt-1 p-2 bg-background rounded border text-sm">
+                     {user?.address?.[0]?.pincode || "No pincode found"}
+                   </div>
+                 </div>
+               </div>
+                              <div className="flex gap-2">
+                  <input type="checkbox" className="mt-0.5" />
+                  <label className="text-xs text-muted-foreground">
+                    {user?.address?.[0] ? `${user.address[0].addressLine1}, ${user.address[0].city}, ${user.address[0].state} - ${user.address[0].pinCode}` : "No address found"}
+                  </label>
                 </div>
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground block">City</label>
-                  <div className="mt-1 p-2 bg-background rounded border text-sm">
-                    {user?.address?.[0]?.city || "No city found"}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground block">State</label>
-                  <div className="mt-1 p-2 bg-background rounded border text-sm">
-                    {user?.address?.[0]?.state || "No state found"}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground block">Pin Code</label>
-                  <div className="mt-1 p-2 bg-background rounded border text-sm">
-                    {user?.address?.[0]?.pincode || "No pincode found"}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <input type="checkbox" className="mt-0.5" />
-                <label className="text-xs text-muted-foreground">
-                  {user?.address?.[0] ? `${user.address[0].addressLine1}, ${user.address[0].city}, ${user.address[0].state} - ${user.address[0].pinCode}` : "No address found"}
-                </label>
-              </div>
-            </div>
+            </div> */}
 
             {/* Features and Specification */}
             <div className="space-y-4">
@@ -476,120 +633,114 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* Featured Product List */}
+        {/* Recommended Products Section */}
         <div className="mt-16 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Featured Product List</h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setFeaturedCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={featuredCurrentPage <= 1}
-                className="p-2 rounded-md bg-red-600 text-white disabled:opacity-50 disabled:bg-red-400 hover:bg-red-700 transition-colors"
-                aria-label="Previous products"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-sm text-gray-600">
-                {featuredCurrentPage} / {Math.ceil(featuredProducts.length / 4) || 1}
-              </span>
-              <button
-                onClick={() => setFeaturedCurrentPage((p) => Math.min(Math.ceil(featuredProducts.length / 4), p + 1))}
-                disabled={featuredCurrentPage >= Math.ceil(featuredProducts.length / 4)}
-                className="p-2 rounded-md bg-red-600 text-white disabled:opacity-50 disabled:bg-red-400 hover:bg-red-700 transition-colors"
-                aria-label="Next products"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Recommended Products</h2>
+            <p className="text-muted-foreground">
+              Products compatible with {product.brand?.brand_name} {product.model?.model_name}
+            </p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {featuredProducts.slice((featuredCurrentPage - 1) * 4, featuredCurrentPage * 4).map((product) => {
-              const imageSrc = buildImageUrl(product?.images?.[0])
-              const name = product?.product_name || "Product"
-              const brand = product?.brand?.brand_name || ""
-              const price = product?.selling_price ?? 0
-              const originalPrice = product?.mrp_with_gst ?? price
-              const discount = computeDiscount(originalPrice, price)
-              const inStock = !product?.out_of_stock && product?.no_of_stock > 0
-
-              return (
-                <div
-                  key={product._id}
-                  className="border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => handleProductClick(product._id)}
-                >
-                  <div className="relative">
-                    <div className="aspect-square bg-muted rounded-md mb-4 overflow-hidden">
-                      <img
-                        src={imageSrc}
-                        alt={name}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    {inStock ? (
-                      <Badge className="absolute top-2 left-2 bg-green-600 text-white">In Stock</Badge>
-                    ) : (
-                      <Badge className="absolute top-2 left-2 bg-red-600 text-white">Out of Stock</Badge>
-                    )}
-                    <button className="absolute top-2 right-2 p-1.5 bg-background rounded-full border hover:bg-muted">
-                      <Heart className="w-4 h-4" />
-                    </button>
-                    {discount > 0 && (
-                      <div className="absolute top-2 right-12 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
-                        {discount}%
+          
+          {recommendedLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+            </div>
+          ) : recommendedProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {recommendedProducts.map((recommendedProduct) => {
+                const imageSrc = buildImageUrl(recommendedProduct?.images?.[0])
+                const name = recommendedProduct?.product_name || "Product"
+                const brand = recommendedProduct?.brand?.brand_name || ""
+                const price = recommendedProduct?.selling_price ?? 0
+                const originalPrice = recommendedProduct?.mrp_with_gst ?? price
+                const discount = computeDiscount(originalPrice, price)
+                
+                return (
+                  <div key={recommendedProduct._id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleProductClick(recommendedProduct._id)}>
+                    <div className="relative">
+                      <div className="aspect-square bg-muted rounded-md mb-4 overflow-hidden">
+                        <img 
+                          src={imageSrc} 
+                          alt={name}
+                          className="w-full h-full object-contain"
+                        />
                       </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-sm">{name}</h3>
-                    <p className="text-xs text-muted-foreground">{brand}</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-bold text-lg">₹{Number(price).toFixed(2)}</span>
-                      {originalPrice && originalPrice !== price && (
-                        <span className="text-sm text-muted-foreground line-through">₹{Number(originalPrice).toFixed(2)}</span>
+                      <Badge className="absolute top-2 left-2 bg-green-600">In Stock</Badge>
+                      <button className="absolute top-2 right-2 p-1.5 bg-background rounded-full border hover:bg-muted">
+                        <Heart className="w-4 h-4" />
+                      </button>
+                      {discount > 0 && (
+                        <div className="absolute top-2 right-12 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+                          {discount}%
+                        </div>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1"
-                        variant="outline"
-                        disabled={!inStock}
-                        onClick={async () => {
-                          try {
-                            await addItemToCart(product._id, 1);
-                            showToast("Product added to cart successfully", "success");
-                          } catch (error: any) {
-                            if (error.message === 'User not authenticated') {
-                              showToast("Please login to add items to cart", "error");
-                              router.push("/login");
-                            } else {
-                              showToast("Failed to add product to cart", "error");
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-sm line-clamp-2">{name}</h3>
+                      <p className="text-xs text-muted-foreground">{brand}</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-bold text-lg">₹{Number(price).toFixed(2)}</span>
+                        {originalPrice && originalPrice !== price && (
+                          <span className="text-sm text-muted-foreground line-through">₹{Number(originalPrice).toFixed(2)}</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          className="flex-1" 
+                          variant="outline"
+                          size="sm"
+                          disabled={addingRecommendedToCart === recommendedProduct._id}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              setAddingRecommendedToCart(recommendedProduct._id);
+                              await addItemToCart(recommendedProduct._id, 1);
+                              showToast("Product added to cart successfully", "success");
+                            } catch (error: any) {
+                              if (error.message === 'User not authenticated') {
+                                showToast("Please login to add items to cart", "error");
+                                router.push("/login");
+                              } else {
+                                showToast("Failed to add product to cart", "error");
+                              }
+                            } finally {
+                              setAddingRecommendedToCart(null);
                             }
-                          }
-                        }}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Add
-                      </Button>
-                      <Button
-                        className="flex-1 text-white"
-                        variant={inStock ? "destructive" : "secondary"}
-                        disabled={!inStock}
-                        onClick={() => handleProductClick(product._id)}
-                      >
-                        Buy
-                      </Button>
+                          }}
+                        >
+                          {addingRecommendedToCart === recommendedProduct._id ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                          )}
+                          {addingRecommendedToCart === recommendedProduct._id ? "Adding..." : "Add"}
+                        </Button>
+                        <Button 
+                          className="flex-1" 
+                          variant="destructive"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProductClick(recommendedProduct._id);
+                          }}
+                        >
+                          View
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-
-
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No recommended products found for this vehicle.</p>
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+
+       </div>
+     </div>
   )
 }

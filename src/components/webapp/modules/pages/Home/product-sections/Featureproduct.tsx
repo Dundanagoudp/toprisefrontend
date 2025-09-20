@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Zap } from "lucide-react"
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { getProductsByPage } from "@/service/product-Service"
 import type { Product as ProductType } from "@/types/product-Types"
 import { DynamicButton } from "@/components/common/button"
@@ -8,20 +8,12 @@ import { useCart } from "@/hooks/use-cart"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 
-interface FeaturedProductsProps {
-  filters?: {
-    brand?: string;
-    model?: string;
-    variant?: string;
-    year?: string;
-  };
-}
-
-export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps) {
+export default function FeaturedProducts() {
   const [products, setProducts] = React.useState<ProductType[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
   const [currentPage, setCurrentPage] = React.useState<number>(1)
   const [totalPages, setTotalPages] = React.useState<number>(1)
+  const [addingToCart, setAddingToCart] = React.useState<string | null>(null)
   const pageSize = 8
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || ""
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase])
@@ -37,27 +29,11 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
   const handleProductClick = (productId: string) => {
     router.push(`/shop/product/${productId}`)
   }
-  // Reset to first page when filters change
-  React.useEffect(() => {
-    setCurrentPage(1)
-  }, [filters])
-
   React.useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // Build search query from filters
-        let searchQuery = ""
-        if (filters.brand || filters.model || filters.variant || filters.year) {
-          const filterParts = []
-          if (filters.brand) filterParts.push(`brand:${filters.brand}`)
-          if (filters.model) filterParts.push(`model:${filters.model}`)
-          if (filters.variant) filterParts.push(`variant:${filters.variant}`)
-          if (filters.year) filterParts.push(`year:${filters.year}`)
-          searchQuery = filterParts.join(" ")
-        }
-
-        const res = await getProductsByPage(currentPage, pageSize, "Approved", searchQuery)
+        const res = await getProductsByPage(currentPage, pageSize, "Approved", "")
         console.log("productid ", res?.data?.products?.[0]?._id)
         const items = (res?.data?.products ?? []) as ProductType[]
         setProducts(items)
@@ -71,14 +47,15 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
       }
     }
     fetchData()
-  }, [currentPage, filters])
+  }, [currentPage])
 
   const handleSubmit = async (productId: string) => {
     if (!productId) return
 
     try {
+      setAddingToCart(productId)
       await addItemToCart(productId, 1)
-
+      showToast("Product added to cart successfully", "success")
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error")
@@ -87,6 +64,8 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
         showToast("Failed to add product to cart", "error")
         console.error("Error adding to cart:", error)
       }
+    } finally {
+      setAddingToCart(null)
     }
   }
 
@@ -211,36 +190,17 @@ export default function FeaturedProducts({ filters = {} }: FeaturedProductsProps
                   )}
                 </div>
 
-                {isOutOfStock ? (
-                  <DynamicButton
-                    className="w-full py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 bg-gray-400 text-gray-600 cursor-not-allowed"
-                    text="Out of Stock"
-                    icon={<ShoppingCart className="w-4 h-4" />}
-                    disabled={true}
-                  />
-                ) : (
-                  <div className="flex gap-2">
-                    <DynamicButton
-                      className="flex-1 py-2 px-3 rounded font-medium transition-colors flex items-center justify-center gap-1 text-white"
-                      text="Add"
-                      icon={<ShoppingCart className="w-4 h-4" />}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (product?._id) handleSubmit(product._id)
-                      }}
-                    />
-                    <DynamicButton
-                      className="flex-1 py-2 px-3 rounded font-medium transition-colors flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white"
-                      text="Buy"
-                      icon={<Zap className="w-4 h-4" />}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (product?._id) handleBuyNow(product._id)
-                      }}
-                    />
-                  </div>
-                )}
-
+                <DynamicButton 
+                  className="w-full text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  text={addingToCart === product?._id ? "Adding..." : "Add"}
+                  icon={addingToCart === product?._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (product?._id) handleSubmit(product._id)
+                  }}
+                  disabled={addingToCart === product?._id}
+                />
+             
               </div>
             </div>
           )

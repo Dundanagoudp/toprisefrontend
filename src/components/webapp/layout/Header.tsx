@@ -23,7 +23,10 @@ import { CartSidebar } from "./CartSideBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useCart } from "@/hooks/use-cart";
 import { CartItem } from "@/types/User/cart-Types";
-import LogoNoname from "../../../../public/assets/LogoNoname.png";
+import { useToast } from "@/components/ui/toast";
+
+import { searchRequest, searchSuccess, searchFailure } from "@/store/slice/search/searchSlice";
+import LogoNoname from "../../../../public/assets/logo.png";
 import Image from "next/image";
 import { LogOut } from "@/store/slice/auth/authSlice";
 import SearchInput from "@/components/common/search/SearchInput";
@@ -37,12 +40,14 @@ export const Header = () => {
   const typeId = useAppSelector(selectVehicleTypeId);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const router = useRouter();
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const { showToast } = useToast();
   const {
     cartData: cart,
     fetchCart,
-    updateItemQuantity,
+    increaseItemQuantity,
+    decreaseItemQuantity,
     removeItemFromCart
   } = useCart();
 
@@ -74,18 +79,20 @@ export const Header = () => {
     setSearchValue(value);
   };
 
-  const handleSearchSubmit = async () => {
-    if (!searchValue.trim()) return;
-    try {
-      const params = new URLSearchParams({
-        query: searchValue.trim(),
-        vehicleTypeId: typeId,
-      });
-      router.push(`/shop/search-results/?${params.toString()}`);
-    } catch (error) {
-      console.error("Failed to execute search:", error);
-    }
-  };
+const handleSearchSubmit = async () => {
+  if (!searchValue.trim()) return;
+
+  try {
+    const params = new URLSearchParams({
+      query: searchValue.trim(),
+      vehicleTypeId: typeId,
+    });
+
+    router.push(`/shop/search/?${params.toString()}`);
+  } catch (error) {
+    console.error("Failed to execute search:", error);
+  }
+};
 
   const handleSearchClear = () => {
     setSearchValue("");
@@ -95,9 +102,19 @@ export const Header = () => {
     dispatch(toggleVehicleType());
   };
 
-  const handleQuantityChange = (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    updateItemQuantity(itemId, newQuantity);
+  const handleQuantityChange = async (productId: string, action: 'increase' | 'decrease') => {
+    try {
+      if (action === 'increase') {
+        await increaseItemQuantity(productId);
+        showToast("Quantity increased successfully", "success");
+      } else if (action === 'decrease') {
+        await decreaseItemQuantity(productId);
+        showToast("Quantity decreased successfully", "success");
+      }
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+      showToast("Failed to update quantity", "error");
+    }
   };
 
   const removeFromCart = (itemId: string) => {

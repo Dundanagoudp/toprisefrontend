@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { useAppSelector } from "@/store/hooks";
-import { getUserProfile, UserProfile } from "@/service/user/userService";
+import { getUserProfile, UserProfile, updateUserProfile, UpdateProfileRequest, UserAddress, UserBankDetails, UserVehicleDetails, updateUserAddress, UpdateAddressRequest, editUserAddress, EditAddressRequest } from "@/service/user/userService";
 import { getUserOrders, Order as UserOrder } from "@/service/user/orderService";
 import {
   User,
@@ -62,7 +63,19 @@ export default function ProfilePage() {
   const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [updatingAddress, setUpdatingAddress] = useState(false);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [editingAddressIndex, setEditingAddressIndex] = useState<number | null>(null);
+  const [newAddress, setNewAddress] = useState<UserAddress>({
+    nick_name: "",
+    street: "",
+    city: "",
+    pincode: "",
+    state: ""
+  });
   const { showToast } = useToast();
+  const router = useRouter();
   const userId = useAppSelector((state) => state.auth.user?._id);
   
   // Fetch user profile data
@@ -77,14 +90,18 @@ export default function ProfilePage() {
           setUserProfile(response.data);
           // Update profile form data with fetched data
           setProfileData({
-            firstName: response.data.name?.split(' ')[0] || "",
-            lastName: response.data.name?.split(' ').slice(1).join(' ') || "",
             email: response.data.email || "",
-            phone: response.data.phone || "",
-            dob: "",
-            gender: "male",
-            language: "english",
-            role: response.data.role || "",
+            username: response.data.username || "",
+            phone_Number: response.data.phone_Number || "",
+            bank_details: response.data.bank_details || {
+              account_number: "",
+              ifsc_code: "",
+              account_type: "",
+              bank_account_holder_name: "",
+              bank_name: ""
+            } as UserBankDetails,
+            address: response.data.address || [],
+            vehicle_details: response.data.vehicle_details || []
           });
         }
       } catch (error) {
@@ -120,16 +137,20 @@ export default function ProfilePage() {
     fetchUserOrders();
   }, [userId, activeTab, showToast]);
   
-  // Profile form state
+  // Profile form state - updated to match user model
   const [profileData, setProfileData] = useState({
-    firstName: "",
-    lastName: "",
     email: "",
-    phone: "",
-    dob: "",
-    gender: "male",
-    language: "english",
-    role: ""
+    username: "",
+    phone_Number: "",
+    bank_details: {
+      account_number: "",
+      ifsc_code: "",
+      account_type: "",
+      bank_account_holder_name: "",
+      bank_name: ""
+    } as UserBankDetails,
+    address: [] as UserAddress[],
+    vehicle_details: [] as UserVehicleDetails[]
   });
 
   // Helper function to format date
@@ -174,27 +195,288 @@ export default function ProfilePage() {
   useEffect(() => {
     if (userProfile?.address) {
       const formattedAddresses: Address[] = userProfile.address.map((addr, index) => ({
-        id: addr._id || index.toString(),
+        id: addr.index?.toString() || index.toString(),
         type: addr.nick_name?.toLowerCase() as "home" | "work" | "other" || "other",
-        name: userProfile.name || "",
+        name: userProfile.username || "",
         street: addr.street || "",
         city: addr.city || "",
         state: addr.state || "",
         pincode: addr.pincode || "",
-        phone: userProfile.phone || "",
+        phone: userProfile.phone_Number || "",
         isDefault: index === 0
       }));
       setAddresses(formattedAddresses);
     }
   }, [userProfile]);
 
-  const handleSaveProfile = () => {
-    setIsEditing(false);
-    showToast("Profile Updated", "success");
+  const handleSaveProfile = async () => {
+    if (!userId) {
+      showToast("User ID not found", "error");
+      return;
+    }
+
+    try {
+      setUpdatingProfile(true);
+      
+      // Prepare the update data - only include fields that have changed
+      const updateData: UpdateProfileRequest = {};
+      
+      // Add email if it's different from current profile
+      if (profileData.email && profileData.email !== userProfile?.email) {
+        updateData.email = profileData.email;
+      }
+      
+      // Add username if it's different from current profile
+      if (profileData.username && profileData.username !== userProfile?.username) {
+        updateData.username = profileData.username;
+      }
+      
+      // Add phone if it's different from current profile
+      if (profileData.phone_Number && profileData.phone_Number !== userProfile?.phone_Number) {
+        updateData.phone_Number = profileData.phone_Number;
+      }
+      
+      // Add bank details if they exist
+      if (profileData.bank_details && Object.values(profileData.bank_details).some(value => value)) {
+        updateData.bank_details = profileData.bank_details;
+      }
+      
+      // Add address if it exists
+      if (profileData.address && profileData.address.length > 0) {
+        updateData.address = profileData.address;
+      }
+      
+      // Add vehicle details if they exist
+      if (profileData.vehicle_details && profileData.vehicle_details.length > 0) {
+        updateData.vehicle_details = profileData.vehicle_details;
+      }
+
+      // Only make API call if there are changes
+      if (Object.keys(updateData).length === 0) {
+        showToast("No changes to save", "warning");
+        setIsEditing(false);
+        return;
+      }
+
+      const response = await updateUserProfile(userId, updateData);
+      
+      if (response.success) {
+        showToast("Profile updated successfully", "success");
+        setIsEditing(false);
+        
+        // Refresh the profile data
+        const updatedProfile = await getUserProfile(userId);
+        if (updatedProfile.success && updatedProfile.data) {
+          setUserProfile(updatedProfile.data);
+          // Update the form data with the new values
+          setProfileData({
+            email: updatedProfile.data.email || "",
+            username: updatedProfile.data.username || "",
+            phone_Number: updatedProfile.data.phone_Number || "",
+            bank_details: updatedProfile.data.bank_details || {
+              account_number: "",
+              ifsc_code: "",
+              account_type: "",
+              bank_account_holder_name: "",
+              bank_name: ""
+            } as UserBankDetails,
+            address: updatedProfile.data.address || [],
+            vehicle_details: updatedProfile.data.vehicle_details || []
+          });
+        }
+      } else {
+        showToast(response.message || "Failed to update profile", "error");
+      }
+    } catch (error: any) {
+      console.error("Failed to update profile:", error);
+      showToast(error.message || "Failed to update profile", "error");
+    } finally {
+      setUpdatingProfile(false);
+    }
   };
 
   const handleDeleteAccount = () => {
     showToast("Please contact support to delete your account.", "warning");
+  };
+
+  // Address management functions
+  const handleAddAddress = () => {
+    console.log("Add address clicked, current states:", { isAddingAddress, editingAddressIndex });
+    setIsAddingAddress(true);
+    setNewAddress({
+      nick_name: "",
+      street: "",
+      city: "",
+      pincode: "",
+      state: ""
+    });
+  };
+
+  // Debug effect to track state changes
+  useEffect(() => {
+    console.log("Address states changed:", { isAddingAddress, editingAddressIndex, activeTab });
+  }, [isAddingAddress, editingAddressIndex, activeTab]);
+
+  const handleCancelAddAddress = () => {
+    setIsAddingAddress(false);
+    setEditingAddressIndex(null);
+    setNewAddress({
+      nick_name: "",
+      street: "",
+      city: "",
+      pincode: "",
+      state: ""
+    });
+  };
+
+  const handleEditAddress = (addressIndex: number) => {
+    const address = profileData.address?.[addressIndex];
+    if (address) {
+      setEditingAddressIndex(addressIndex);
+      setNewAddress({
+        nick_name: address.nick_name || "",
+        street: address.street || "",
+        city: address.city || "",
+        pincode: address.pincode || "",
+        state: address.state || ""
+      });
+    }
+  };
+
+  const handleCancelEditAddress = () => {
+    setEditingAddressIndex(null);
+    setNewAddress({
+      nick_name: "",
+      street: "",
+      city: "",
+      pincode: "",
+      state: ""
+    });
+  };
+
+  const handleSaveAddress = async () => {
+    if (!userId) {
+      showToast("User ID not found", "error");
+      return;
+    }
+
+    // Validate required fields
+    if (!newAddress.nick_name || !newAddress.street || !newAddress.city || !newAddress.pincode || !newAddress.state) {
+      showToast("Please fill in all required address fields", "error");
+      return;
+    }
+
+    try {
+      setUpdatingAddress(true);
+      
+      if (editingAddressIndex !== null) {
+        // Editing existing address - use edit endpoint
+        const editData: EditAddressRequest = {
+          index: editingAddressIndex,
+          updatedAddress: newAddress
+        };
+
+        const response = await editUserAddress(userId, editData);
+        
+        if (response.success) {
+          showToast("Address updated successfully", "success");
+          setEditingAddressIndex(null);
+          
+          // Refresh the profile data
+          const updatedProfile = await getUserProfile(userId);
+          if (updatedProfile.success && updatedProfile.data) {
+            setUserProfile(updatedProfile.data);
+            setProfileData(prev => ({
+              ...prev,
+              address: updatedProfile.data.address || []
+            }));
+          }
+        } else {
+          showToast(response.message || "Failed to update address", "error");
+        }
+      } else {
+        // Adding new address - use add endpoint
+        const updatedAddressList = [...(profileData.address || []), newAddress];
+        
+        const addressData: UpdateAddressRequest = {
+          address: updatedAddressList
+        };
+
+        const response = await updateUserAddress(userId, addressData);
+        
+        if (response.success) {
+          showToast("Address added successfully", "success");
+          setIsAddingAddress(false);
+          
+          // Update the profile data with new address
+          setProfileData(prev => ({
+            ...prev,
+            address: updatedAddressList
+          }));
+          
+          // Refresh the profile data
+          const updatedProfile = await getUserProfile(userId);
+          if (updatedProfile.success && updatedProfile.data) {
+            setUserProfile(updatedProfile.data);
+          }
+        } else {
+          showToast(response.message || "Failed to add address", "error");
+        }
+      }
+    } catch (error: any) {
+      console.error("Error saving address:", error);
+      const action = editingAddressIndex !== null ? "update" : "add";
+      showToast(error.message || `Failed to ${action} address`, "error");
+    } finally {
+      setUpdatingAddress(false);
+    }
+  };
+
+  const handleDeleteAddress = async (addressIndex: number) => {
+    if (!userId) {
+      showToast("User ID not found", "error");
+      return;
+    }
+
+    try {
+      setUpdatingAddress(true);
+      
+      // Remove the address at the specified index
+      const updatedAddressList = profileData.address?.filter((_, index) => index !== addressIndex) || [];
+      
+      const addressData: UpdateAddressRequest = {
+        address: updatedAddressList
+      };
+
+      const response = await updateUserAddress(userId, addressData);
+      
+      if (response.success) {
+        showToast("Address deleted successfully", "success");
+        
+        // Update the profile data
+        setProfileData(prev => ({
+          ...prev,
+          address: updatedAddressList
+        }));
+        
+        // Refresh the profile data
+        const updatedProfile = await getUserProfile(userId);
+        if (updatedProfile.success && updatedProfile.data) {
+          setUserProfile(updatedProfile.data);
+        }
+      } else {
+        showToast(response.message || "Failed to delete address", "error");
+      }
+    } catch (error: any) {
+      console.error("Error deleting address:", error);
+      showToast(error.message || "Failed to delete address", "error");
+    } finally {
+      setUpdatingAddress(false);
+    }
+  };
+
+  const handleViewOrderDetails = (orderId: string) => {
+    router.push(`/shop/order/${orderId}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -208,6 +490,9 @@ export default function ProfilePage() {
     }
   };
 
+  // Debug logging
+  console.log("ProfilePage render - activeTab:", activeTab, "isEditing:", isEditing);
+
   return (
     <div className="min-h-screen bg-gradient-background">
       {/* Header */}
@@ -220,24 +505,28 @@ export default function ProfilePage() {
                 Manage your account settings and preferences
               </p>
             </div>
-            {activeTab === "profile" && (
-              <Button
-                onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
-                className="bg-gradient-primary hover:opacity-90"
-              >
-                {isEditing ? (
-                  <>
+            {/* Test button - always visible */}
+            <Button
+              onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
+              disabled={updatingProfile}
+            >
+              {isEditing ? (
+                <>
+                  {updatingProfile ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
-                ) : (
-                  <>
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    Edit Profile
-                  </>
-                )}
-              </Button>
-            )}
+                  )}
+                  {updatingProfile ? "Saving..." : "Save Changes"}
+                </>
+              ) : (
+                <>
+                  <Edit2 className="mr-2 h-4 w-4" />
+                  Edit Profile
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
@@ -245,20 +534,20 @@ export default function ProfilePage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-card border border-border/50 p-1 h-auto flex-wrap">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground">
+          <TabsList className="bg-gray-100 border border-gray-300 p-1 h-auto flex-wrap">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700">
               <User className="mr-2 h-4 w-4" />
               My Profile
             </TabsTrigger>
-            <TabsTrigger value="orders" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="orders" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700">
               <ShoppingBag className="mr-2 h-4 w-4" />
               My Orders
             </TabsTrigger>
-            <TabsTrigger value="wishlists" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="wishlists" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700">
               <Heart className="mr-2 h-4 w-4" />
               My Wishlists
             </TabsTrigger>
-            <TabsTrigger value="addresses" className="data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="addresses" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700">
               <MapPin className="mr-2 h-4 w-4" />
               Addresses
             </TabsTrigger>
@@ -281,24 +570,6 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   {isEditing ? (
                     <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input
-                            id="firstName"
-                            value={profileData.firstName}
-                            onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input
-                            id="lastName"
-                            value={profileData.lastName}
-                            onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
-                          />
-                        </div>
-                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input
@@ -309,76 +580,121 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="dob">Date of Birth</Label>
+                        <Label htmlFor="username">Username</Label>
                         <Input
-                          id="dob"
-                          type="date"
-                          value={profileData.dob}
-                          onChange={(e) => setProfileData({...profileData, dob: e.target.value})}
+                          id="username"
+                          type="text"
+                          value={profileData.username}
+                          onChange={(e) => setProfileData({...profileData, username: e.target.value})}
+                          placeholder="Enter your username"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="gender">Gender</Label>
-                        <Select value={profileData.gender} onValueChange={(value) => setProfileData({...profileData, gender: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="phone_Number">Phone Number</Label>
+                        <Input
+                          id="phone_Number"
+                          type="tel"
+                          value={profileData.phone_Number}
+                          onChange={(e) => setProfileData({...profileData, phone_Number: e.target.value})}
+                          placeholder="Enter your phone number"
+                        />
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <DataField label="First Name" value={profileData.firstName} />
-                        <DataField label="Last Name" value={profileData.lastName} />
-                      </div>
-                      <DataField label="Email" value={profileData.email} />
-                      <DataField label="Date of Birth" value={new Date(profileData.dob).toLocaleDateString()} />
-                      <DataField label="Gender" value={profileData.gender.charAt(0).toUpperCase() + profileData.gender.slice(1)} />
+                      <DataField label="Email" value={profileData.email || "Not set"} />
+                      <DataField label="Username" value={profileData.username || "Not set"} />
+                      <DataField label="Phone Number" value={profileData.phone_Number || "Not set"} />
                     </>
                   )}
                 </div>
               </ProfileSection>
 
               <ProfileSection
-                title="Phone Number"
-                description="Manage your phone number for account security"
+                title="Bank Details"
+                description="Manage your banking information for payments and refunds"
               >
                 <div className="space-y-4">
                   {isEditing ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <div className="flex gap-2">
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="account_number">Account Number</Label>
+                          <Input
+                            id="account_number"
+                            value={profileData.bank_details.account_number}
+                            onChange={(e) => setProfileData({
+                              ...profileData, 
+                              bank_details: {...profileData.bank_details, account_number: e.target.value}
+                            })}
+                            placeholder="Enter account number"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ifsc_code">IFSC Code</Label>
+                          <Input
+                            id="ifsc_code"
+                            value={profileData.bank_details.ifsc_code}
+                            onChange={(e) => setProfileData({
+                              ...profileData, 
+                              bank_details: {...profileData.bank_details, ifsc_code: e.target.value}
+                            })}
+                            placeholder="Enter IFSC code"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bank_name">Bank Name</Label>
                         <Input
-                          id="phone"
-                          type="tel"
-                          value={profileData.phone}
-                          onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                          className="flex-1"
+                          id="bank_name"
+                          value={profileData.bank_details.bank_name}
+                          onChange={(e) => setProfileData({
+                            ...profileData, 
+                            bank_details: {...profileData.bank_details, bank_name: e.target.value}
+                          })}
+                          placeholder="Enter bank name"
                         />
-                        <Button variant="outline" size="sm">
-                          Verify
-                        </Button>
                       </div>
-                    </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bank_account_holder_name">Account Holder Name</Label>
+                        <Input
+                          id="bank_account_holder_name"
+                          value={profileData.bank_details.bank_account_holder_name}
+                          onChange={(e) => setProfileData({
+                            ...profileData, 
+                            bank_details: {...profileData.bank_details, bank_account_holder_name: e.target.value}
+                          })}
+                          placeholder="Enter account holder name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="account_type">Account Type</Label>
+                        <Select 
+                          value={profileData.bank_details.account_type} 
+                          onValueChange={(value) => setProfileData({
+                            ...profileData, 
+                            bank_details: {...profileData.bank_details, account_type: value}
+                          })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select account type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="savings">Savings</SelectItem>
+                            <SelectItem value="current">Current</SelectItem>
+                            <SelectItem value="salary">Salary</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Phone className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{profileData.phone}</p>
-                          <p className="text-sm text-muted-foreground">Primary phone</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-success/10 text-success border-success/20">Verified</Badge>
-                    </div>
+                    <>
+                      <DataField label="Account Number" value={profileData.bank_details.account_number || "Not set"} />
+                      <DataField label="IFSC Code" value={profileData.bank_details.ifsc_code || "Not set"} />
+                      <DataField label="Bank Name" value={profileData.bank_details.bank_name || "Not set"} />
+                      <DataField label="Account Holder Name" value={profileData.bank_details.bank_account_holder_name || "Not set"} />
+                      <DataField label="Account Type" value={profileData.bank_details.account_type || "Not set"} />
+                    </>
                   )}
                 </div>
               </ProfileSection>
@@ -454,14 +770,23 @@ export default function ProfilePage() {
                       <div className="mt-3 pt-3 border-t">
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <span>Payment: {order.paymentType}</span>
-                          {order.order_track_info?.borzo_tracking_url && (
-                            <Button variant="outline" size="sm" asChild>
-                              <a href={order.order_track_info.borzo_tracking_url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-4 w-4 mr-1" />
-                                Track Order
-                              </a>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleViewOrderDetails(order._id)}
+                            >
+                              View Details
                             </Button>
-                          )}
+                            {order.order_track_info?.borzo_tracking_url && (
+                              <Button variant="outline" size="sm" asChild>
+                                <a href={order.order_track_info.borzo_tracking_url} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="h-4 w-4 mr-1" />
+                                  Track Order
+                                </a>
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -489,46 +814,152 @@ export default function ProfilePage() {
           <TabsContent value="addresses" className="space-y-6 mt-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-foreground">Saved Addresses</h2>
-              <Button className="bg-gradient-primary">
+              <Button 
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg" 
+                onClick={handleAddAddress}
+                disabled={isAddingAddress || editingAddressIndex !== null}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add New Address
               </Button>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {addresses.map((address) => (
-                <ProfileSection
-                  key={address.id}
-                  title={address.type.charAt(0).toUpperCase() + address.type.slice(1)}
-                  className="relative"
-                >
-                  {address.isDefault && (
-                    <Badge className="absolute top-4 right-4 bg-success/10 text-success border-success/20">
-                      Default
-                    </Badge>
-                  )}
-                  <div className="space-y-3">
-                    <p className="font-medium text-foreground">{address.name}</p>
-                    <p className="text-sm text-muted-foreground">{address.street}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {address.city}, {address.state} - {address.pincode}
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Phone className="h-3 w-3" />
-                      {address.phone}
-                    </p>
-                    <div className="flex gap-2 pt-2">
-                      <Button variant="outline" size="sm">
-                        <Edit2 className="mr-2 h-3 w-3" />
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
-                        <Trash2 className="mr-2 h-3 w-3" />
-                        Delete
-                      </Button>
+
+            {/* Add/Edit Address Form */}
+            {(isAddingAddress || editingAddressIndex !== null) && (
+              <ProfileSection
+                title={editingAddressIndex !== null ? "Edit Address" : "Add New Address"}
+                description={editingAddressIndex !== null ? "Update the details for your address" : "Enter the details for your new address"}
+              >
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nick_name">Address Nickname *</Label>
+                      <Input
+                        id="nick_name"
+                        value={newAddress.nick_name}
+                        onChange={(e) => setNewAddress({...newAddress, nick_name: e.target.value})}
+                        placeholder="e.g., Home, Office, etc."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pincode">Pincode *</Label>
+                      <Input
+                        id="pincode"
+                        value={newAddress.pincode}
+                        onChange={(e) => setNewAddress({...newAddress, pincode: e.target.value})}
+                        placeholder="Enter pincode"
+                      />
                     </div>
                   </div>
-                </ProfileSection>
-              ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="street">Street Address *</Label>
+                    <Input
+                      id="street"
+                      value={newAddress.street}
+                      onChange={(e) => setNewAddress({...newAddress, street: e.target.value})}
+                      placeholder="Enter street address"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City *</Label>
+                      <Input
+                        id="city"
+                        value={newAddress.city}
+                        onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
+                        placeholder="Enter city"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State *</Label>
+                      <Input
+                        id="state"
+                        value={newAddress.state}
+                        onChange={(e) => setNewAddress({...newAddress, state: e.target.value})}
+                        placeholder="Enter state"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button 
+                      onClick={handleSaveAddress}
+                      disabled={updatingAddress}
+                      className="bg-gradient-primary"
+                    >
+                      {updatingAddress ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          {editingAddressIndex !== null ? "Update Address" : "Save Address"}
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={editingAddressIndex !== null ? handleCancelEditAddress : handleCancelAddAddress}
+                      disabled={updatingAddress}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </ProfileSection>
+            )}
+
+            {/* Existing Addresses */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {profileData.address && profileData.address.length > 0 ? (
+                profileData.address.map((address, index) => (
+                  <ProfileSection
+                    key={index}
+                    title={address.nick_name || `Address ${index + 1}`}
+                    className="relative"
+                  >
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">{address.street}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {address.city}, {address.state} - {address.pincode}
+                      </p>
+                      <div className="flex gap-2 pt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditAddress(index)}
+                          disabled={updatingAddress || editingAddressIndex !== null}
+                        >
+                          <Edit2 className="mr-2 h-3 w-3" />
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteAddress(index)}
+                          disabled={updatingAddress || editingAddressIndex !== null}
+                        >
+                          {updatingAddress ? (
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="mr-2 h-3 w-3" />
+                          )}
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </ProfileSection>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-12">
+                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No addresses saved yet</p>
+                  <p className="text-sm text-muted-foreground mt-2">Add your first address to get started</p>
+                </div>
+              )}
             </div>
           </TabsContent>
 

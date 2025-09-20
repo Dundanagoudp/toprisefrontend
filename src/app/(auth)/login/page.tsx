@@ -7,6 +7,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm md:max-w-3xl">
         <UserLoginForm />
       </div>
+      {/* reCAPTCHA container for Firebase phone authentication */}
+      <div id="recaptcha-container"></div>
     </div>
   )
 }

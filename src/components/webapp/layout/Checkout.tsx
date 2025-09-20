@@ -7,8 +7,11 @@ import {
   User,
   Search,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -16,6 +19,8 @@ import {
   createOrders,
   getCart,
   removeProductFromCart,
+  checkPincode,
+  updateDeliveryType,
 } from "@/service/user/cartService";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { clearCart } from "@/store/slice/cart/cartSlice";
@@ -39,11 +44,20 @@ export default function CheckoutPage() {
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
-  const [currentStep, setCurrentStep] = useState(0); // 0: Address, 1: Review, 2: Pay
+  const [currentStep, setCurrentStep] = useState(0); // 0: Delivery, 1: Address, 2: Review, 3: Pay
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  
+  // Delivery type state
+  const [deliveryType, setDeliveryType] = useState<'Standard' | 'express'>('Standard');
+  const [pincode, setPincode] = useState('');
+  const [pincodeData, setPincodeData] = useState<any>(null);
+  const [checkingPincode, setCheckingPincode] = useState(false);
+  const [expressAvailable, setExpressAvailable] = useState(false);
 
   // Define checkout steps
   const checkoutSteps: Step[] = [
-    { id: "address", label: "Address", icon: Package },
+    { id: "delivery", label: "Delivery", icon: Package },
+    { id: "address", label: "Address", icon: User },
     { id: "review", label: "Review", icon: FileText },
     { id: "pay", label: "Pay", icon: CreditCard },
   ];
@@ -76,30 +90,87 @@ export default function CheckoutPage() {
     }
   };
 
-  const userId = useAppSelector((state) => state.auth.user._id);
+  // Handle pincode checking
+  const handlePincodeCheck = async () => {
+    if (!pincode || pincode.length !== 6) {
+      showToast("Please enter a valid 6-digit pincode", "error");
+      return;
+    }
+
+    setCheckingPincode(true);
+    try {
+      const response = await checkPincode(pincode);
+      if (response.success && response.data.delivery_available) {
+        setPincodeData(response.data);
+        setExpressAvailable(true);
+        showToast(`express delivery available! Delivery charges: ₹${response.data.delivery_charges}`, "success");
+      } else {
+        setExpressAvailable(false);
+        setPincodeData(null);
+        showToast("express delivery not available for this pincode", "error");
+      }
+    } catch (error) {
+      console.error("Failed to check pincode:", error);
+      showToast("Failed to check pincode availability", "error");
+      setExpressAvailable(false);
+      setPincodeData(null);
+    } finally {
+      setCheckingPincode(false);
+    }
+  };
+
+  // Handle delivery type selection
+  const handleDeliveryTypeSelect = async (type: 'Standard' | 'express') => {
+    setDeliveryType(type);
+    
+    // Update delivery type in cart if we have a cart ID
+    if (cart?._id) {
+      try {
+        await updateDeliveryType(cart._id, type);
+        await fetchCart(); // Refresh cart data
+        showToast(`Delivery type updated to ${type}`, "success");
+      } catch (error) {
+        console.error("Failed to update delivery type:", error);
+        showToast("Failed to update delivery type", "error");
+      }
+    }
+  };
+
+  const userId = useAppSelector((state) => state.auth.user?._id);
+
+  const fetchData = async () => {
+    if (!userId) {
+      console.log("No userId available, skipping data fetch");
+      return; // Don't fetch if userId is not available
+    }
+    
+    console.log("Fetching user and cart data for userId:", userId);
+    setIsLoading(true);
+    try {
+      const [userResponse] = await Promise.all([
+        getUserById(userId),
+      ]);
+      console.log("User response:", userResponse);
+      setUser(userResponse.data);
+      // Set the first address as selected by default if available
+      if (userResponse.data?.address && userResponse.data.address.length > 0) {
+        setSelectedAddress(userResponse.data.address[0]);
+        console.log("Auto-selected first address:", userResponse.data.address[0]);
+      } else {
+        console.log("No addresses found for user");
+      }
+      // Cart data is now managed by Redux, so we don't need to fetch it here
+      await fetchCart();
+      console.log("Data fetch completed successfully");
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+      showToast("Failed to fetch data", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [userResponse] = await Promise.all([
-          getUserById(userId),
-        ]);
-        console.log("userResponse", userResponse);
-        setUser(userResponse.data);
-        // Set the first address as selected by default if available
-        if (userResponse.data?.address && userResponse.data.address.length > 0) {
-          setSelectedAddress(userResponse.data.address[0]);
-        }
-        // Cart data is now managed by Redux, so we don't need to fetch it here
-        await fetchCart();
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-        showToast("Failed to fetch data", "error");
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchData();
   }, [userId, fetchCart]);
   const prepareOrderBody = (user: AppUser, cart: Cart) => {
@@ -141,42 +212,65 @@ export default function CheckoutPage() {
   };
 
   const handleProceed = async () => {
-    if (currentStep === 0) { // Address step
+    console.log("=== HANDLE PROCEED DEBUG ===");
+    console.log("Current step:", currentStep);
+    console.log("User:", user);
+    console.log("Cart:", cart);
+    console.log("Selected address:", selectedAddress);
+    console.log("Is placing order:", isPlacingOrder);
+    
+    if (currentStep === 0) { // Delivery step
+      // Move to address step
+      goToNextStep();
+    } else if (currentStep === 1) { // Address step
       if (!selectedAddress) {
         showToast("Please select an address for your order", "error");
         return;
       }
       // Move to review step
       goToNextStep();
-    } else if (currentStep === 1) { // Review step
+    } else if (currentStep === 2) { // Review step
       // Move to payment step
       goToNextStep();
-    } else if (currentStep === 2) { // Payment step
+    } else if (currentStep === 3) { // Payment step
       // Place the order
       await handlePlaceOrder();
     }
   };
 
   const handlePlaceOrder = async () => {
+    console.log("=== HANDLE PLACE ORDER DEBUG ===");
+    console.log("User:", user);
+    console.log("Cart:", cart);
+    console.log("Selected address:", selectedAddress);
+    console.log("Is placing order:", isPlacingOrder);
+    
+    if (isPlacingOrder) {
+      console.log("Order placement already in progress, ignoring click");
+      return;
+    }
+    
     if (!user || !cart) {
+      console.log("Missing user or cart data");
       showToast("User or cart data is not available", "error");
       return;
     }
 
     if (!selectedAddress) {
+      console.log("No address selected");
       showToast("Please select an address for your order", "error");
       return;
     }
 
+    setIsPlacingOrder(true);
     const orderBody = prepareOrderBody(user, cart);
 
-
-    
     try {
       console.log("=== MAKING API CALL ===");
       console.log("Calling createOrders with body:", orderBody);
       
       const response = await createOrders(orderBody);
+      console.log("Order creation response:", response);
       
       setOrderId(response.data.orderId || response.data._id); 
       setIsOrderConfirmed(true);
@@ -185,19 +279,27 @@ export default function CheckoutPage() {
       dispatch(clearCart());
 
       showToast("Order created successfully", "success");
-
-      // Redirect to home page after successful order placement
-      router.push("/");
+      
+      // Navigate to shop page after successful order placement
+      setTimeout(() => {
+        router.push('/shop');
+      }, 2000); // Wait 2 seconds to show the success message
     } catch (error: any) {
-
       console.error("Full Error Object:", error);
-
+      console.error("Error response:", error.response);
+      console.error("Error message:", error.message);
       
       if (error.response?.status === 403) {
         showToast("Access denied. Please check your login status.", "error");
+      } else if (error.response?.status === 400) {
+        showToast("Invalid order data. Please check your cart and try again.", "error");
+      } else if (error.response?.status === 500) {
+        showToast("Server error. Please try again later.", "error");
       } else {
-        showToast("Failed to create order", "error");
+        showToast(`Failed to create order: ${error.message || "Unknown error"}`, "error");
       }
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
   const removeItem = async (productId: string) => {
@@ -270,6 +372,157 @@ export default function CheckoutPage() {
           {/* Left Column - Step Content */}
           <div className="lg:col-span-2">
             {currentStep === 0 && (
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Select Delivery Type
+                </h2>
+                
+                {/* Pincode Check Section */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Check express Delivery Availability
+                  </h3>
+                  <div className="flex gap-3 mb-4">
+                    <div className="flex-1">
+                      <Label htmlFor="pincode" className="text-sm font-medium text-gray-700">
+                        Enter Pincode
+                      </Label>
+                      <Input
+                        id="pincode"
+                        type="text"
+                        placeholder="Enter 6-digit pincode"
+                        value={pincode}
+                        onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="mt-1"
+                        maxLength={6}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        onClick={handlePincodeCheck}
+                        disabled={checkingPincode || pincode.length !== 6}
+                        className="bg-[#C72920] hover:bg-[#A0221A] text-white"
+                      >
+                        {checkingPincode ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Checking...
+                          </>
+                        ) : (
+                          "Check"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {pincodeData && (
+                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Package className="w-5 h-5 text-green-600" />
+                        <span className="font-medium text-green-800">express Delivery Available!</span>
+                      </div>
+                      <div className="text-sm text-green-700 space-y-1">
+                        <p><strong>Location:</strong> {pincodeData.city}, {pincodeData.state}</p>
+                        <p><strong>Delivery Charges:</strong> ₹{pincodeData.delivery_charges}</p>
+                        <p><strong>Estimated Delivery:</strong> {pincodeData.estimated_delivery_days} days</p>
+                        <p><strong>COD Available:</strong> {pincodeData.cod_available ? "Yes" : "No"}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Delivery Type Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Choose Delivery Type
+                  </h3>
+                  
+                  {/* Standard Delivery */}
+                  <div 
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      deliveryType === 'Standard' 
+                        ? 'border-[#C72920] bg-red-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => handleDeliveryTypeSelect('Standard')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          deliveryType === 'Standard' 
+                            ? 'border-[#C72920] bg-[#C72920]' 
+                            : 'border-gray-300'
+                        }`}>
+                          {deliveryType === 'Standard' && (
+                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Standard Delivery</h4>
+                          <p className="text-sm text-gray-600">Regular delivery service</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">₹0</p>
+                        <p className="text-sm text-gray-600">5-7 days</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* express Delivery */}
+                  <div 
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      deliveryType === 'express' 
+                        ? 'border-[#C72920] bg-red-50' 
+                        : expressAvailable 
+                          ? 'border-gray-200 hover:border-gray-300' 
+                          : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
+                    }`}
+                    onClick={() => expressAvailable && handleDeliveryTypeSelect('express')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          deliveryType === 'express' 
+                            ? 'border-[#C72920] bg-[#C72920]' 
+                            : 'border-gray-300'
+                        }`}>
+                          {deliveryType === 'express' && (
+                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">express Delivery</h4>
+                          <p className="text-sm text-gray-600">
+                            {expressAvailable ? "Fast delivery service" : "Enter pincode to check availability"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">
+                          {expressAvailable ? `₹${pincodeData?.delivery_charges || 0}` : "N/A"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {expressAvailable ? `${pincodeData?.estimated_delivery_days || 0} days` : "Check pincode"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Continue Button */}
+                <div className="flex justify-end mt-8">
+                  <Button
+                    onClick={() => setCurrentStep(1)}
+                    className="bg-[#C72920] hover:bg-[#A0221A] text-white"
+                  >
+                    Continue to Address
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 1 && (
               <BillingAddressForm 
                 onSubmit={onSubmit}
                 onAddressSelect={setSelectedAddress}
@@ -279,7 +532,7 @@ export default function CheckoutPage() {
               />
             )}
             
-            {currentStep === 1 && (
+            {currentStep === 2 && (
               <div className="bg-white rounded-lg p-6 shadow-sm border">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Review Your Order
@@ -287,6 +540,42 @@ export default function CheckoutPage() {
                 
                 {/* Order Summary for Review */}
                 <div className="space-y-6">
+                  {/* Delivery Type */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Delivery Type
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{deliveryType} Delivery</p>
+                          <p className="text-sm text-gray-600">
+                            {deliveryType === 'express' 
+                              ? `Estimated delivery: ${pincodeData?.estimated_delivery_days || 0} days`
+                              : 'Estimated delivery: 5-7 days'
+                            }
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-gray-900">
+                            {deliveryType === 'express' 
+                              ? `₹${pincodeData?.delivery_charges || 0}`
+                              : '₹0'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => goToStep(0)}
+                      >
+                        Change Delivery Type
+                      </Button>
+                    </div>
+                  </div>
+
                   {/* Selected Address */}
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
@@ -303,14 +592,14 @@ export default function CheckoutPage() {
                         <p className="text-gray-600">
                           {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
                         </p>
-                                                 <Button
-                           variant="outline"
-                           size="sm"
-                           className="mt-2"
-                           onClick={() => goToStep(0)}
-                         >
-                           Change Address
-                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => goToStep(1)}
+                        >
+                          Change Address
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -387,7 +676,7 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {currentStep === 2 && (
+            {currentStep === 3 && (
               <div className="bg-white rounded-lg p-6 shadow-sm border">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Payment & Confirmation
@@ -526,7 +815,7 @@ export default function CheckoutPage() {
 
                 {/* Navigation Buttons */}
                 <div className="space-y-3">
-                  {(currentStep === 1 || currentStep === 2) && (
+                  {(currentStep === 1 || currentStep === 2 || currentStep === 3) && (
                     <Button
                       variant="outline"
                       className="w-full"
@@ -536,17 +825,68 @@ export default function CheckoutPage() {
                     </Button>
                   )}
                   
+                  {/* Debug Information */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
+                      <div>Step: {currentStep}</div>
+                      <div>User: {user ? '✓' : '✗'}</div>
+                      <div>Cart: {cart ? '✓' : '✗'}</div>
+                      <div>Address: {selectedAddress ? '✓' : '✗'}</div>
+                      <div>Placing: {isPlacingOrder ? '✓' : '✗'}</div>
+                    </div>
+                  )}
+                  
                   <Button
-                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                     onClick={handleProceed}
                     disabled={
-                      !user || !cart || !selectedAddress
+                      isPlacingOrder || 
+                      (currentStep === 1 && !selectedAddress) ||
+                      (currentStep === 3 && (!user || !cart || !selectedAddress))
                     }
                   >
-                    {currentStep === 0 ? "Proceed To Review" : 
-                     currentStep === 1 ? "Proceed To Payment" : 
-                     "Confirm & Place Order"}
+                    {isPlacingOrder ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Placing Order...
+                      </>
+                    ) : currentStep === 0 ? "Continue to Address" : 
+                       currentStep === 1 ? "Proceed To Review" : 
+                       currentStep === 2 ? "Proceed To Payment" :
+                       "Confirm & Place Order"}
                   </Button>
+                  
+                  {/* Show warning if button is disabled due to missing data */}
+                  {!isPlacingOrder && currentStep === 3 && (!user || !cart || !selectedAddress) && (
+                    <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                      {!user && <div>• User data not loaded</div>}
+                      {!cart && <div>• Cart data not loaded</div>}
+                      {!selectedAddress && <div>• No address selected</div>}
+                      <div className="mt-2 flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => {
+                            console.log("Retrying data fetch...");
+                            if (userId) {
+                              fetchData();
+                            }
+                          }}
+                        >
+                          Retry
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => window.location.reload()}
+                        >
+                          Refresh Page
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {selectedAddress && currentStep === 0 && (

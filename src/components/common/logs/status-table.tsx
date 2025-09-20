@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -25,72 +26,6 @@ import { useRouter } from "next/navigation";
 import { uploadLogStorage, type StoredUploadLog } from "@/service/uploadLogService";
 import { Download } from "lucide-react";
 
-const tableData = [
-  {
-    timeDate: "05 Jan 2025 / 11:00PM",
-    status: "Reject",
-    nameOfProduct: "Braking System",
-    productId: "PD2345",
-    skuCode: "TOP-BRK-000453",
-    hsnCode: "87083000",
-  },
-  {
-    timeDate: "05 Jan 2025 / 11:00PM",
-    status: "Reject",
-    nameOfProduct: "Braking System",
-    productId: "PD2345",
-    skuCode: "TOP-BRK-000453",
-    hsnCode: "87083000",
-  },
-  {
-    timeDate: "05 Jan 2025 / 11:00PM",
-    status: "Reject",
-    nameOfProduct: "Braking System",
-    productId: "PD2345",
-    skuCode: "TOP-BRK-000453",
-    hsnCode: "87083000",
-  },
-  {
-    timeDate: "05 Jan 2025 / 11:00PM",
-    status: "Created",
-    nameOfProduct: "Braking System",
-    productId: "PD2345",
-    skuCode: "TOP-BRK-000453",
-    hsnCode: "87083000",
-  },
-  {
-    timeDate: "05 Jan 2025 / 11:00PM",
-    status: "Created",
-    nameOfProduct: "Braking System",
-    productId: "PD2345",
-    skuCode: "TOP-BRK-000453",
-    hsnCode: "87083000",
-  },
-  {
-    timeDate: "05 Jan 2025 / 11:00PM",
-    status: "Created",
-    nameOfProduct: "Braking System",
-    productId: "PD2345",
-    skuCode: "TOP-BRK-000453",
-    hsnCode: "87083000",
-  },
-  {
-    timeDate: "05 Jan 2025 / 11:00PM",
-    status: "Created",
-    nameOfProduct: "Braking System",
-    productId: "PD2345",
-    skuCode: "TOP-BRK-000453",
-    hsnCode: "87083000",
-  },
-  {
-    timeDate: "05 Jan 2025 / 11:00PM",
-    status: "Created",
-    nameOfProduct: "Braking System",
-    productId: "PD2345",
-    skuCode: "TOP-BRK-000453",
-    hsnCode: "87083000",
-  },
-];
 // Format date as 'DD MMM YYYY / hh:mmA' (e.g., 05 Jan 2025 / 11:00PM)
 import formatDate from "@/utils/formateDate";
 
@@ -232,12 +167,8 @@ export default function statusTable() {
     setSearchQuery("");
     setIsSearching(false);
   };
-  // Use logs data if available, otherwise fallback to uploadMessage, then tableData
-  const rows = logs && logs.length > 0 
-    ? logs 
-    : (uploadMessage && uploadMessage.products && uploadMessage.products.length > 0 
-      ? uploadMessage.products 
-      : tableData);
+  // Use logs data if available, otherwise use empty array
+  const rows = logs && logs.length > 0 ? logs : [];
 
   // Calculate totals
   const uploadedCount = rows.filter(
@@ -348,9 +279,8 @@ export default function statusTable() {
                   </TableRow>
                 ) : (
                   rows.map((log: StoredUploadLog, index: number) => (
-                  <>
+                  <React.Fragment key={log.id || index}>
                     <TableRow
-                      key={log.id || index}
                       className={
                         log.status === "failed"
                           ? "bg-red-50 hover:bg-red-100"
@@ -491,21 +421,21 @@ export default function statusTable() {
                                     <TableBody>
                                       {log.logData?.successLogs?.products?.map((product, idx) => (
                                         <TableRow key={idx} className="bg-green-50">
-                                          <TableCell className="text-sm">{product.productId}</TableCell>
-                                          <TableCell className="text-sm font-medium">{product.sku}</TableCell>
-                                          <TableCell className="text-sm">{product.productName}</TableCell>
+                                          <TableCell className="text-sm">{String(product.productId || '')}</TableCell>
+                                          <TableCell className="text-sm font-medium">{String(product.sku || '')}</TableCell>
+                                          <TableCell className="text-sm">{String(product.productName || '')}</TableCell>
                                           <TableCell>
                                             <Badge className="bg-green-100 text-green-800">
-                                              {product.status}
+                                              {String(product.status || '')}
                                             </Badge>
                                           </TableCell>
                                           <TableCell>
                                             <Badge className="bg-blue-100 text-blue-800">
-                                              {product.qcStatus}
+                                              {String(product.qcStatus || '')}
                                             </Badge>
                                           </TableCell>
-                                          <TableCell className="text-sm">{product.images}</TableCell>
-                                          <TableCell className="text-sm">{product.message}</TableCell>
+                                          <TableCell className="text-sm">{typeof product.images === 'number' ? product.images : String(product.images || 0)}</TableCell>
+                                          <TableCell className="text-sm">{String(product.message || '')}</TableCell>
                                         </TableRow>
                                       ))}
                                     </TableBody>
@@ -532,15 +462,15 @@ export default function statusTable() {
                                     <TableBody>
                                       {log.logData?.failureLogs?.products?.map((product, idx) => (
                                         <TableRow key={idx} className="bg-red-50">
-                                          <TableCell className="text-sm">{product.productId}</TableCell>
-                                          <TableCell className="text-sm font-medium">{product.sku}</TableCell>
-                                          <TableCell className="text-sm">{product.productName}</TableCell>
+                                          <TableCell className="text-sm">{String(product.productId || '')}</TableCell>
+                                          <TableCell className="text-sm font-medium">{String(product.sku || '')}</TableCell>
+                                          <TableCell className="text-sm">{String(product.productName || '')}</TableCell>
                                           <TableCell>
                                             <Badge className="bg-red-100 text-red-800">
-                                              {product.status}
+                                              {String(product.status || '')}
                                             </Badge>
                                           </TableCell>
-                                          <TableCell className="text-sm text-red-600">{product.message}</TableCell>
+                                          <TableCell className="text-sm text-red-600">{String(product.message || '')}</TableCell>
                                         </TableRow>
                                       ))}
                                     </TableBody>
@@ -564,7 +494,7 @@ export default function statusTable() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </React.Fragment>
                   ))
                 )}
               </TableBody>

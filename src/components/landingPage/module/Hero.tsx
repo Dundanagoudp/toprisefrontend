@@ -39,8 +39,7 @@ export default function HeroSection() {
               Coming Soon
             </h1> */}
             <p className="font-sans font-bold text-[#ffffff] text-[48px]">
-              Find the Perfect Spare Part for Your Vehicle - Fast and Easy
-            </p>
+            Get Genuine Spare Parts of your Vehicle – Quick Shopping & Rapid Delivery            </p>
           </div>
 
           {/* Right Side - Image Placeholder with subtle counter-parallax */}

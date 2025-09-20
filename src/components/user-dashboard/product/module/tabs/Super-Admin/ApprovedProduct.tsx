@@ -45,6 +45,11 @@ import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/produc
 import { useRouter } from "next/navigation";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import Emptydata from "../../Emptydata";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { getAllDealers } from "@/service/dealerServices";
+import { assignDealersToProduct } from "@/service/product-Service";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -89,12 +94,32 @@ export default function ApprovedProduct({
   const [totalPages, setTotalPages] = useState(0);
   const itemsPerPage = 10;
 
+  // Dealer assignment modal state
+  const [isDealerModalOpen, setIsDealerModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [dealers, setDealers] = useState<any[]>([]);
+  const [loadingDealers, setLoadingDealers] = useState(false);
+  const [dealerAssignments, setDealerAssignments] = useState<Array<{
+    dealers_Ref: string;
+    quantity_per_dealer: number;
+    dealer_margin: number;
+    dealer_priority_override: number;
+  }>>([]);
+  const [assigningDealers, setAssigningDealers] = useState(false);
+
   // Fetch products on component mount
   useEffect(() => {
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
         console.log("ApprovedProduct: Fetching products with status:", "Approved", "searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+        console.log("ApprovedProduct: Search query details:", {
+          searchQuery,
+          searchQueryType: typeof searchQuery,
+          searchQueryLength: searchQuery?.length,
+          isSearchQueryEmpty: !searchQuery || searchQuery.trim() === "",
+          trimmedSearchQuery: searchQuery ? searchQuery.trim() : ""
+        });
         const res = await getProductsByPage(
           currentPage,
           itemsPerPage,
@@ -103,11 +128,21 @@ export default function ApprovedProduct({
           categoryFilter,
           subCategoryFilter
         );
+        
         const data = res.data;
+        console.log("ApprovedProduct: API response received:", res);
+        console.log("ApprovedProduct: API response data:", data);
+        console.log("ApprovedProduct: Products in response:", data?.products);
+        console.log("ApprovedProduct: Number of products returned:", data?.products?.length);
+        
         if (data?.products) {
           setPaginatedProducts(data.products);
           setTotalProducts(data.pagination.totalItems);
           setTotalPages(data.pagination.totalPages);
+          console.log("ApprovedProduct: Products set successfully, count:", data.products.length);
+          console.log("ApprovedProduct: Pagination data:", data.pagination);
+          console.log("ApprovedProduct: Total items from API:", data.pagination.totalItems);
+          console.log("ApprovedProduct: Total pages from API:", data.pagination.totalPages);
         } else {
           console.error("Unexpected API response structure:", res.data);
         }
@@ -129,18 +164,28 @@ export default function ApprovedProduct({
   // Filter products by approved live status and search query
 
   const sortedProducts = React.useMemo(() => {
-    if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
+    console.log("ApprovedProduct: sortedProducts memo - paginatedProducts:", paginatedProducts);
+    console.log("ApprovedProduct: sortedProducts memo - paginatedProducts length:", paginatedProducts?.length);
+    console.log("ApprovedProduct: sortedProducts memo - isArray:", Array.isArray(paginatedProducts));
+    
+    if (!paginatedProducts || !Array.isArray(paginatedProducts)) {
+      console.log("ApprovedProduct: sortedProducts memo - returning empty array");
+      return [];
+    }
 
     // If no sorting is applied, return products as-is
-    if (!sortField) return paginatedProducts;
+    if (!sortField) {
+      console.log("ApprovedProduct: sortedProducts memo - no sorting, returning paginatedProducts:", paginatedProducts.length);
+      return paginatedProducts;
+    }
 
     let sorted = [...paginatedProducts];
 
     // Sort
-    if (sortField === "product_name") {
+    if (sortField === "manufacturer_part_name") {
       sorted.sort((a, b) => {
-        const nameA = a.product_name?.toLowerCase() || "";
-        const nameB = b.product_name?.toLowerCase() || "";
+        const nameA = a.manufacturer_part_name?.toLowerCase() || "";
+        const nameB = b.manufacturer_part_name?.toLowerCase() || "";
         if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
         if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
         return 0;
@@ -199,6 +244,75 @@ export default function ApprovedProduct({
     }
   };
 
+  // Dealer assignment handlers
+  const handleAssignDealers = async (productId: string) => {
+    setSelectedProductId(productId);
+    setIsDealerModalOpen(true);
+    setLoadingDealers(true);
+    
+    try {
+      const response = await getAllDealers();
+      if (response.success && response.data) {
+        setDealers(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dealers:", error);
+      showToast("Failed to fetch dealers", "error");
+    } finally {
+      setLoadingDealers(false);
+    }
+  };
+
+  const handleDealerToggle = (dealerId: string) => {
+    setDealerAssignments(prev => {
+      const existingIndex = prev.findIndex(assignment => assignment.dealers_Ref === dealerId);
+      
+      if (existingIndex >= 0) {
+        // Remove dealer if already assigned
+        return prev.filter(assignment => assignment.dealers_Ref !== dealerId);
+      } else {
+        // Add dealer with default values
+        return [...prev, {
+          dealers_Ref: dealerId,
+          quantity_per_dealer: 10,
+          dealer_margin: 20,
+          dealer_priority_override: 10
+        }];
+      }
+    });
+  };
+
+  const updateDealerAssignment = (dealerId: string, field: string, value: number) => {
+    setDealerAssignments(prev => 
+      prev.map(assignment => 
+        assignment.dealers_Ref === dealerId 
+          ? { ...assignment, [field]: value }
+          : assignment
+      )
+    );
+  };
+
+  const handleAssignDealersToProduct = async () => {
+    if (dealerAssignments.length === 0) {
+      showToast("Please select at least one dealer", "error");
+      return;
+    }
+
+    setAssigningDealers(true);
+    try {
+      await assignDealersToProduct(selectedProductId, { dealerData: dealerAssignments });
+      showToast("Dealers assigned successfully", "success");
+      setIsDealerModalOpen(false);
+      setDealerAssignments([]);
+      setSelectedProductId("");
+    } catch (error) {
+      console.error("Failed to assign dealers:", error);
+      showToast("Failed to assign dealers", "error");
+    } finally {
+      setAssigningDealers(false);
+    }
+  };
+
   const handleStatusChange = async (productId: string, newStatus: string) => {
     try {
       if (newStatus === "Active") {
@@ -220,14 +334,16 @@ export default function ApprovedProduct({
     }
   };
   //sorting products by name
-  const handleSortByName = () => {
-    if (sortField === "product_name") {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField("product_name");
-      setSortDirection("asc");
-    }
-  };
+// name sorting
+const handleSortByName = () => {
+  if (sortField === "manufacturer_part_name") {
+    setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+  } else {
+    setSortField("manufacturer_part_name");
+    setSortDirection("asc");
+  }
+};
+
   // 1. Update the sort handler to support price
   const handleSortByPrice = () => {
     if (sortField === "mrp_with_gst") {
@@ -304,8 +420,12 @@ export default function ApprovedProduct({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {loadingProducts
-            ? // Show skeleton rows when loading
+          {(() => {
+            console.log("ApprovedProduct: Rendering products - sortedProducts:", sortedProducts);
+            console.log("ApprovedProduct: Rendering products - sortedProducts length:", sortedProducts?.length);
+            console.log("ApprovedProduct: Rendering products - loadingProducts:", loadingProducts);
+            return loadingProducts;
+          })() ? // Show skeleton rows when loading
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow
                   key={`skeleton-${index}`}
@@ -349,7 +469,9 @@ export default function ApprovedProduct({
                 </TableRow>
               ))
             : // Original content when not loading
-              sortedProducts.map((product: any, index: number) => (
+              sortedProducts.map((product: any, index: number) => {
+                console.log(`ApprovedProduct: Rendering product ${index}:`, product.product_name, product._id);
+                return (
                 <TableRow
                   key={product._id}
                   className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
@@ -487,6 +609,12 @@ export default function ApprovedProduct({
                         >
                           View Details
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleAssignDealers(product._id)}
+                        >
+                          Assign Dealers
+                        </DropdownMenuItem>
                         {/* <DropdownMenuItem
                           className="cursor-pointer"
                           onClick={() => handleViewProduct(product._id)}
@@ -503,7 +631,9 @@ export default function ApprovedProduct({
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })
+          }
         </TableBody>
       </Table>
       {/* Pagination - moved outside of table */}
@@ -515,6 +645,10 @@ export default function ApprovedProduct({
               currentPage * itemsPerPage,
               totalProducts
             )} of ${totalProducts} products`}
+            {/* Debug info */}
+            <div className="text-xs text-gray-400 mt-1">
+              Debug: currentPage={currentPage}, itemsPerPage={itemsPerPage}, totalProducts={totalProducts}
+            </div>
           </div>
           {/* Pagination Controls */}
           <div className="flex justify-center sm:justify-end">
@@ -590,6 +724,129 @@ export default function ApprovedProduct({
           </div>
         </div>
       )}
+
+      {/* Dealer Assignment Modal */}
+      <Dialog open={isDealerModalOpen} onOpenChange={setIsDealerModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Assign Dealers to Product</DialogTitle>
+          </DialogHeader>
+          
+          {loadingDealers ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-[#C72920] mr-2" />
+              <span>Loading dealers...</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Dealers grouped by category */}
+              {dealers.length > 0 ? (
+                <div className="space-y-6">
+                  {dealers.map((dealer) => {
+                    const isAssigned = dealerAssignments.some(assignment => assignment.dealers_Ref === dealer._id);
+                    const assignment = dealerAssignments.find(assignment => assignment.dealers_Ref === dealer._id);
+                    
+                    return (
+                      <div key={dealer._id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              checked={isAssigned}
+                              onCheckedChange={() => handleDealerToggle(dealer._id)}
+                            />
+                            <div>
+                              <h3 className="font-medium text-gray-900">{dealer.trade_name}</h3>
+                              <p className="text-sm text-gray-500">{dealer.legal_name}</p>
+                              <p className="text-xs text-gray-400">Categories: {dealer.categories_allowed?.join(", ") || "N/A"}</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {isAssigned && assignment && (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <Label htmlFor={`quantity-${dealer._id}`} className="text-sm font-medium">
+                                Quantity per Dealer
+                              </Label>
+                              <Input
+                                id={`quantity-${dealer._id}`}
+                                type="number"
+                                min="1"
+                                value={assignment.quantity_per_dealer}
+                                onChange={(e) => updateDealerAssignment(dealer._id, "quantity_per_dealer", parseInt(e.target.value) || 0)}
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`margin-${dealer._id}`} className="text-sm font-medium">
+                                Dealer Margin (%)
+                              </Label>
+                              <Input
+                                id={`margin-${dealer._id}`}
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={assignment.dealer_margin}
+                                onChange={(e) => updateDealerAssignment(dealer._id, "dealer_margin", parseInt(e.target.value) || 0)}
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`priority-${dealer._id}`} className="text-sm font-medium">
+                                Priority Override
+                              </Label>
+                              <Input
+                                id={`priority-${dealer._id}`}
+                                type="number"
+                                min="1"
+                                value={assignment.dealer_priority_override}
+                                onChange={(e) => updateDealerAssignment(dealer._id, "dealer_priority_override", parseInt(e.target.value) || 0)}
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No dealers available
+                </div>
+              )}
+              
+              {/* Action buttons */}
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsDealerModalOpen(false);
+                    setDealerAssignments([]);
+                    setSelectedProductId("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAssignDealersToProduct}
+                  disabled={assigningDealers || dealerAssignments.length === 0}
+                  className="bg-[#C72920] hover:bg-[#A0221A]"
+                >
+                  {assigningDealers ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Assigning...
+                    </>
+                  ) : (
+                    `Assign ${dealerAssignments.length} Dealer${dealerAssignments.length !== 1 ? 's' : ''}`
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

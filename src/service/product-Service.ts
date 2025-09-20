@@ -43,9 +43,19 @@ export async function getProductsByPage(page: number, limit: number, status?: st
     
     console.log("API URL for getProductsByPage:", url);
     console.log("Search parameters - searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+    console.log("Full search query details:", {
+      searchQuery,
+      searchQueryType: typeof searchQuery,
+      searchQueryLength: searchQuery?.length,
+      isSearchQueryEmpty: !searchQuery || searchQuery.trim() === "",
+      sanitizedQuery: searchQuery ? searchQuery.trim().replace(/[<>]/g, '') : ""
+    });
     
     const response = await apiClient.get(url);
     console.log("API response for getProductsByPage:", response.data);
+    console.log("API response pagination:", response.data?.data?.pagination);
+    console.log("API response totalItems:", response.data?.data?.pagination?.totalItems);
+    console.log("API response totalPages:", response.data?.data?.pagination?.totalPages);
     
     // Validate response structure
     if (!response.data) {
@@ -742,6 +752,30 @@ export async function getProductsByCategory(
     return response.data;
   } catch (error) {
     console.error("Failed to fetch category products:", error);
+    throw error;
+  }
+}
+
+// Assign dealers to a product
+export async function assignDealersToProduct(
+  productId: string,
+  dealerData: {
+    dealerData: Array<{
+      dealers_Ref: string;
+      quantity_per_dealer: number;
+      dealer_margin: number;
+      dealer_priority_override: number;
+    }>;
+  }
+): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.post(
+      `/category/products/v1/assign/dealerforProduct/${productId}`,
+      dealerData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to assign dealers to product:", error);
     throw error;
   }
 }
