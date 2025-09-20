@@ -141,27 +141,7 @@ export const CartSidebar = ({
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
-                    <span>₹{cart.total_mrp?.toFixed(2)}</span>
-                  </div>
-                   <div className="flex justify-between text-sm">
-                    <span>GST+Tax:</span>
-                    <span>+ ₹{cart.total_mrp_gst_amount?.toFixed(2)}</span>
-                  </div>
-                  {cart.deliveryCharge > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span>Delivery:</span>
-                      <span>₹{cart.deliveryCharge.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {cart.handlingCharge > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span>Handling:</span>
-                      <span>₹{cart.handlingCharge.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-semibold text-lg border-t border-gray-200 pt-2">
-                    <span>Total:</span>
-                    <span>₹{cart.total_mrp_with_gst?.toFixed(2) || calculateTotal().toFixed(2)}</span>
+                    <span>₹{Math.round(cart.total_mrp || 0)}</span>
                   </div>
                 </div>
                 

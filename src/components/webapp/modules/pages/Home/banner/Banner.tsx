@@ -169,22 +169,28 @@ export default function BannerSection() {
   }, [selectedModel, showToast])
 
   // Handle vehicle search
-  const handleVehicleSearch = () => {
-    if (!selectedBrand || !selectedModel) {
-      showToast("Please select at least Brand and Model", "error")
-      return
-    }
-
-    // Build search query
-    const searchParams = new URLSearchParams()
-    if (selectedBrand) searchParams.append("brand", selectedBrand)
-    if (selectedModel) searchParams.append("model", selectedModel)
-    if (selectedVariant) searchParams.append("variant", selectedVariant)
-    if (selectedYear) searchParams.append("year", selectedYear)
-    searchParams.append("vehicleTypeId", typeId)
-
-    router.push(`/shop/search/?${searchParams.toString()}`)
+const handleVehicleSearch = () => {
+  if (!selectedBrand || !selectedModel) {
+    showToast("Please select at least Brand and Model", "error");
+    return;
   }
+
+  // Resolve human-readable names from selected ids (fallback to id if name not found)
+  const brandName = brands.find(b => b._id === selectedBrand)?.brand_name || selectedBrand;
+  const modelName = models.find(m => m._id === selectedModel)?.model_name || selectedModel;
+  const variantName = variants.find(v => v._id === selectedVariant)?.variant_name || selectedVariant;
+  const yearName = years.find(y => y._id === selectedYear)?.year_name || selectedYear;
+
+  // Build a single query string (same shape as your working example)
+  const queryParts = [brandName, modelName, variantName, yearName].filter(Boolean);
+  const queryStr = queryParts.join(' ').trim();
+
+  const searchParams = new URLSearchParams();
+  if (queryStr) searchParams.append('query', queryStr);
+  if (typeId) searchParams.append('vehicleTypeId', typeId);
+
+  router.push(`/shop/search/?${searchParams.toString()}`);
+};
 
   // Handle number plate search
   const handleNumberPlateSearch = async () => {
@@ -239,6 +245,8 @@ export default function BannerSection() {
         />
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-black/60" />
+        {/* Top gradient to blend with white navbar */}
+        <div className="absolute inset-x-0 top-0 h-24 md:h-28 bg-gradient-to-b from-white/45 to-transparent pointer-events-none" />
       </div>
 
       {/* Content Grid */}
@@ -249,7 +257,7 @@ export default function BannerSection() {
             <h1 className="font-sans font-bold text-white text-4xl md:text-5xl lg:text-6xl leading-tight">
             Get Genuine Spare Parts of your Vehicle – Quick Shopping & Rapid Delivery            </h1>
             <p className="font-sans text-white/90 text-lg md:text-xl">
-              Search thousands of parts for bikes and cars by model, series, year, and type.
+            Seach thousands of parts for bikes, scooters and cars – Get it delivered pan India (Same day in NCR)
             </p>
           </div>
 
@@ -359,6 +367,21 @@ export default function BannerSection() {
                   >
                     {isVehicleSearchLoading ? 'Searching...' : 'Search'}
                   </button>
+                </div>
+              </div>
+
+              {/* App Download CTA */}
+              <div className="pt-4 border-t border-white/20">
+                <div className="flex justify-center lg:justify-end">
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.toprise"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Download the TopRise app from Google Play"
+                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Download App
+                  </a>
                 </div>
               </div>
             </div>

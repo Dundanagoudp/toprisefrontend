@@ -5,6 +5,14 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import React, { useState, useEffect } from 'react';
 import { getProductById, getProductsByPage } from "@/service/product-Service"
 import { useParams, useRouter } from "next/navigation"
@@ -12,7 +20,7 @@ import Link from "next/link"
 import type { Product as ProductType, Product } from "@/types/product-Types"
 import { useCart } from "@/hooks/use-cart"
 import { useToast } from "@/components/ui/toast"
-import { getUserById } from "@/service/user/userService"
+import { getUserProfile } from "@/service/user/userService"
 import { useAppSelector } from "@/store/hooks"
 import type { AppUser } from "@/types/user-types"
 
@@ -49,7 +57,7 @@ export default function ProductPage() {
     const fetchUserById = async () => {
       if (!userId) return;
       try {
-        const response = await getUserById(userId);
+        const response = await getUserProfile(userId);
         console.log("user", response);
         setUser(response.data);
       } catch (error) {
@@ -58,7 +66,7 @@ export default function ProductPage() {
     };
     fetchUserById();
   }, [userId]);
-useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
@@ -182,10 +190,10 @@ useEffect(() => {
         const data = response.data;
         console.log("getProducts API response:", response);
         console.log("data", data);
-        
+
         // Handle different response structures like other components
         let prod: Product | null = null;
-        
+
         // Check if data has products array (ProductResponse structure)
         if (data.products && Array.isArray(data.products) && data.products.length > 0) {
           prod = data.products[0];
@@ -208,18 +216,18 @@ useEffect(() => {
         ) {
           prod = data as unknown as Product;
         }
-        
+
         setProduct(prod);
         console.log("Parsed product:", prod);
       } catch (error) {
         console.error("getProducts API error:", error);
       }
-       finally {
+      finally {
         setLoading(false);
       }
 
     };
-    
+
     if (id.id) {
       fetchProducts();
     }
@@ -227,7 +235,7 @@ useEffect(() => {
 
   const handleAddToCart = async () => {
     if (!product?._id) return;
-    
+
     try {
       setAddingToCart(true);
       await addItemToCart(product._id, quantity);
@@ -299,26 +307,51 @@ useEffect(() => {
       </div>
       
       <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-6">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              {product?.category && (
+                <>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href={`/shop/category/${product.category._id}`}>
+                      {product.category.category_name}
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </>
+              )}
+              <BreadcrumbItem>
+                <BreadcrumbPage>{product?.product_name || 'Product'}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+
         <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {/* Product Images Section */}
           <div className="space-y-4">
             <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-              <img 
-                src={mainImage} 
-                alt={product.product_name} 
+              <img
+                src={mainImage}
+                alt={product.product_name}
                 className="w-full h-full object-contain"
               />
             </div>
             <div className="grid grid-cols-4 gap-2">
               {images.slice(0, 4).map((image, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className={`aspect-square bg-muted rounded-md overflow-hidden cursor-pointer hover:opacity-80 transition-opacity ${selectedImage === i ? 'ring-2 ring-red-600' : ''}`}
                   onClick={() => setSelectedImage(i)}
                 >
-                  <img 
-                    src={buildImageUrl(image)} 
-                    alt={`${product.product_name} ${i + 1}`} 
+                  <img
+                    src={buildImageUrl(image)}
+                    alt={`${product.product_name} ${i + 1}`}
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -421,7 +454,7 @@ useEffect(() => {
                 <p className="font-semibold mb-3">Quantity</p>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center border rounded-md">
-                    <button 
+                    <button
                       className="p-2 hover:bg-muted transition-colors disabled:opacity-50"
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
                       disabled={quantity <= 1}
@@ -429,7 +462,7 @@ useEffect(() => {
                       <Minus className="w-4 h-4" />
                     </button>
                     <span className="px-4 py-2 min-w-[50px] text-center">{quantity}</span>
-                    <button 
+                    <button
                       className="p-2 hover:bg-muted transition-colors disabled:opacity-50"
                       onClick={() => setQuantity(quantity + 1)}
                       disabled={product.out_of_stock || quantity >= product.no_of_stock}
@@ -442,8 +475,8 @@ useEffect(() => {
             </div>
 
             <div className="flex gap-4 pt-4">
-              <Button 
-                className="flex-1 bg-red-600 hover:bg-red-700" 
+              <Button
+                className="flex-1 bg-red-600 hover:bg-red-700"
                 size="lg"
                 onClick={handleAddToCart}
                 disabled={product.out_of_stock || addingToCart}
@@ -526,9 +559,9 @@ useEffect(() => {
                 <div className="space-y-2 text-sm">
                   <p className="text-muted-foreground">Enter pincode to check delivery date</p>
                   <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Enter Pincode" 
+                    <input
+                      type="text"
+                      placeholder="Enter Pincode"
                       className="px-3 py-2 border rounded-md flex-1 max-w-xs"
                     />
                     <Button variant="outline">Check</Button>

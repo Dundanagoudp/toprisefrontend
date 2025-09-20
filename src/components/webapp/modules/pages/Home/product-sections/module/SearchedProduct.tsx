@@ -52,10 +52,7 @@ interface Variant {
 
 
 
-interface FilterSection {
-  title: string;
-  isOpen: boolean;
-}
+
 
 const SearchResults = () => {
   const router = useRouter();
@@ -89,7 +86,14 @@ const SearchResults = () => {
     sortBy: '',
     subCategories: [] as string[],
   });
-
+  const noVehicleResults =
+    Boolean(vehicleTypeId) &&
+    !loading &&
+    products.length === 0 &&
+    !isBrand &&
+    !isModel &&
+    !isVariant &&
+    !isProduct;
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = apiBase.replace(/\/api$/, "");
 
@@ -671,6 +675,11 @@ const SearchResults = () => {
             {/* Brand Display - grid of all brands */}
             {(isBrand || isCategory) && brandData.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {brandData.length} Brand{brandData.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {brandData.map((brand) => (
                     <div
@@ -713,6 +722,11 @@ const SearchResults = () => {
             {/* Model Display - grid of all models */}
             {isModel && modelData.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {modelData.length} Model{modelData.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <ModelListing
                   models={modelData}
                   onModelSelect={handleModelClick}
@@ -723,6 +737,11 @@ const SearchResults = () => {
             {/* Variant Display - grid of all variants */}
             {isVariant && variantData.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {variantData.length} Variant{variantData.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <VariantListing
                   variants={variantData}
                   models={modelData.length > 0 ? modelData[0] : null}
@@ -734,6 +753,11 @@ const SearchResults = () => {
             {/* Product Display - grid of all products */}
             {isProduct && products.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {products.length} Product{products.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
                 <ProductListing
                   products={products}
                   onProductSelect={handleProductClick}
@@ -743,7 +767,7 @@ const SearchResults = () => {
 
 
             {/* Products Grid - only show when not in product listing mode */}
-            {!isProduct && (
+            {!isProduct && products.length > 0 && (
               <>
                 {displayedProducts.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
