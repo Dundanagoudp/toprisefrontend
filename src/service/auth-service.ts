@@ -63,3 +63,17 @@ export const checkEmailVerification = async (): Promise<boolean> => {
   await auth.currentUser.reload();
   return auth.currentUser.emailVerified;
 };
+export const checkUserExists = async (phone_Number: string): Promise<boolean> => {
+  try {
+    const response = await apiClient.post("/users/api/users/check-user", {
+      phone_Number,
+    }, {
+      withCredentials: true,
+    });
+
+    return response.data.data.exists;
+  } catch (error: any) {
+    console.error("Check user exists failed:", error);
+    throw error;
+  }
+};
