@@ -1,5 +1,12 @@
 import apiClient from "@/apiClient";
+import { auth } from "@/lib/firebase";
 import { LoginResponse, LoginRequest } from "@/types/authentication-Types";
+import { 
+  createUserWithEmailAndPassword, 
+  sendEmailVerification, 
+  signInWithEmailAndPassword,
+  User
+} from "firebase/auth";
 
 export interface RegisterRequest {
   name: string;
@@ -37,3 +44,22 @@ export async function registerUser(data: RegisterRequest): Promise<RegisterRespo
     throw error;
   }
 }
+export const registerUserWithEmail = async (email: string, password: string): Promise<User> => {
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
+
+  // Step 2: Send verification email
+  if (user) {
+    await sendEmailVerification(user, {
+      url: `${window.location.origin}/auth/verify`, // callback page in your app
+      handleCodeInApp: true,
+    });
+  }
+
+  return user;
+};
+export const checkEmailVerification = async (): Promise<boolean> => {
+  if (!auth.currentUser) return false;
+  await auth.currentUser.reload();
+  return auth.currentUser.emailVerified;
+};
