@@ -7,12 +7,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProfileSection } from "./ProfileSection";
 import { DataField } from "./DataField";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { useAppSelector } from "@/store/hooks";
-import { getUserProfile, UserProfile, updateUserProfile, UpdateProfileRequest, UserAddress, UserBankDetails, UserVehicleDetails, updateUserAddress, UpdateAddressRequest, editUserAddress, EditAddressRequest } from "@/service/user/userService";
+import {
+  getUserProfile,
+  UserProfile,
+  updateUserProfile,
+  UpdateProfileRequest,
+  UserAddress,
+  UserBankDetails,
+  UserVehicleDetails,
+  updateUserAddress,
+  UpdateAddressRequest,
+  editUserAddress,
+  EditAddressRequest,
+} from "@/service/user/userService";
 import { getUserOrders, Order as UserOrder } from "@/service/user/orderService";
 import {
   User,
@@ -32,7 +50,7 @@ import {
   X,
   Loader2,
   ExternalLink,
-  Star
+  Star,
 } from "lucide-react";
 
 interface Address {
@@ -66,23 +84,25 @@ export default function ProfilePage() {
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updatingAddress, setUpdatingAddress] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
-  const [editingAddressIndex, setEditingAddressIndex] = useState<number | null>(null);
+  const [editingAddressIndex, setEditingAddressIndex] = useState<number | null>(
+    null
+  );
   const [newAddress, setNewAddress] = useState<UserAddress>({
     nick_name: "",
     street: "",
     city: "",
     pincode: "",
-    state: ""
+    state: "",
   });
   const { showToast } = useToast();
   const router = useRouter();
   const userId = useAppSelector((state) => state.auth.user?._id);
-  
+
   // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!userId) return;
-      
+
       try {
         setLoading(true);
         const response = await getUserProfile(userId);
@@ -93,15 +113,17 @@ export default function ProfilePage() {
             email: response.data.email || "",
             username: response.data.username || "",
             phone_Number: response.data.phone_Number || "",
-            bank_details: response.data.bank_details || {
-              account_number: "",
-              ifsc_code: "",
-              account_type: "",
-              bank_account_holder_name: "",
-              bank_name: ""
-            } as UserBankDetails,
+            bank_details:
+              response.data.bank_details ||
+              ({
+                account_number: "",
+                ifsc_code: "",
+                account_type: "",
+                bank_account_holder_name: "",
+                bank_name: "",
+              } as UserBankDetails),
             address: response.data.address || [],
-            vehicle_details: response.data.vehicle_details || []
+            vehicle_details: response.data.vehicle_details || [],
           });
         }
       } catch (error) {
@@ -119,7 +141,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserOrders = async () => {
       if (!userId || activeTab !== "orders") return;
-      
+
       try {
         setOrdersLoading(true);
         const response = await getUserOrders(userId);
@@ -136,7 +158,7 @@ export default function ProfilePage() {
 
     fetchUserOrders();
   }, [userId, activeTab, showToast]);
-  
+
   // Profile form state - updated to match user model
   const [profileData, setProfileData] = useState({
     email: "",
@@ -147,44 +169,44 @@ export default function ProfilePage() {
       ifsc_code: "",
       account_type: "",
       bank_account_holder_name: "",
-      bank_name: ""
+      bank_name: "",
     } as UserBankDetails,
     address: [] as UserAddress[],
-    vehicle_details: [] as UserVehicleDetails[]
+    vehicle_details: [] as UserVehicleDetails[],
   });
 
   // Helper function to format date
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   // Helper function to format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
     }).format(amount);
   };
 
   // Helper function to get status badge color
   const getStatusBadgeColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800';
-      case 'assigned':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'pending':
-        return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
+      case "delivered":
+        return "bg-green-100 text-green-800";
+      case "confirmed":
+        return "bg-blue-100 text-blue-800";
+      case "assigned":
+        return "bg-yellow-100 text-yellow-800";
+      case "pending":
+        return "bg-gray-100 text-gray-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -194,17 +216,21 @@ export default function ProfilePage() {
   // Update addresses when user profile is loaded
   useEffect(() => {
     if (userProfile?.address) {
-      const formattedAddresses: Address[] = userProfile.address.map((addr, index) => ({
-        id: addr.index?.toString() || index.toString(),
-        type: addr.nick_name?.toLowerCase() as "home" | "work" | "other" || "other",
-        name: userProfile.username || "",
-        street: addr.street || "",
-        city: addr.city || "",
-        state: addr.state || "",
-        pincode: addr.pincode || "",
-        phone: userProfile.phone_Number || "",
-        isDefault: index === 0
-      }));
+      const formattedAddresses: Address[] = userProfile.address.map(
+        (addr, index) => ({
+          id: addr.index?.toString() || index.toString(),
+          type:
+            (addr.nick_name?.toLowerCase() as "home" | "work" | "other") ||
+            "other",
+          name: userProfile.username || "",
+          street: addr.street || "",
+          city: addr.city || "",
+          state: addr.state || "",
+          pincode: addr.pincode || "",
+          phone: userProfile.phone_Number || "",
+          isDefault: index === 0,
+        })
+      );
       setAddresses(formattedAddresses);
     }
   }, [userProfile]);
@@ -217,37 +243,49 @@ export default function ProfilePage() {
 
     try {
       setUpdatingProfile(true);
-      
+
       // Prepare the update data - only include fields that have changed
       const updateData: UpdateProfileRequest = {};
-      
+
       // Add email if it's different from current profile
       if (profileData.email && profileData.email !== userProfile?.email) {
         updateData.email = profileData.email;
       }
-      
+
       // Add username if it's different from current profile
-      if (profileData.username && profileData.username !== userProfile?.username) {
+      if (
+        profileData.username &&
+        profileData.username !== userProfile?.username
+      ) {
         updateData.username = profileData.username;
       }
-      
+
       // Add phone if it's different from current profile
-      if (profileData.phone_Number && profileData.phone_Number !== userProfile?.phone_Number) {
+      if (
+        profileData.phone_Number &&
+        profileData.phone_Number !== userProfile?.phone_Number
+      ) {
         updateData.phone_Number = profileData.phone_Number;
       }
-      
+
       // Add bank details if they exist
-      if (profileData.bank_details && Object.values(profileData.bank_details).some(value => value)) {
+      if (
+        profileData.bank_details &&
+        Object.values(profileData.bank_details).some((value) => value)
+      ) {
         updateData.bank_details = profileData.bank_details;
       }
-      
+
       // Add address if it exists
       if (profileData.address && profileData.address.length > 0) {
         updateData.address = profileData.address;
       }
-      
+
       // Add vehicle details if they exist
-      if (profileData.vehicle_details && profileData.vehicle_details.length > 0) {
+      if (
+        profileData.vehicle_details &&
+        profileData.vehicle_details.length > 0
+      ) {
         updateData.vehicle_details = profileData.vehicle_details;
       }
 
@@ -259,11 +297,11 @@ export default function ProfilePage() {
       }
 
       const response = await updateUserProfile(userId, updateData);
-      
+
       if (response.success) {
         showToast("Profile updated successfully", "success");
         setIsEditing(false);
-        
+
         // Refresh the profile data
         const updatedProfile = await getUserProfile(userId);
         if (updatedProfile.success && updatedProfile.data) {
@@ -273,15 +311,17 @@ export default function ProfilePage() {
             email: updatedProfile.data.email || "",
             username: updatedProfile.data.username || "",
             phone_Number: updatedProfile.data.phone_Number || "",
-            bank_details: updatedProfile.data.bank_details || {
-              account_number: "",
-              ifsc_code: "",
-              account_type: "",
-              bank_account_holder_name: "",
-              bank_name: ""
-            } as UserBankDetails,
+            bank_details:
+              updatedProfile.data.bank_details ||
+              ({
+                account_number: "",
+                ifsc_code: "",
+                account_type: "",
+                bank_account_holder_name: "",
+                bank_name: "",
+              } as UserBankDetails),
             address: updatedProfile.data.address || [],
-            vehicle_details: updatedProfile.data.vehicle_details || []
+            vehicle_details: updatedProfile.data.vehicle_details || [],
           });
         }
       } else {
@@ -301,20 +341,27 @@ export default function ProfilePage() {
 
   // Address management functions
   const handleAddAddress = () => {
-    console.log("Add address clicked, current states:", { isAddingAddress, editingAddressIndex });
+    console.log("Add address clicked, current states:", {
+      isAddingAddress,
+      editingAddressIndex,
+    });
     setIsAddingAddress(true);
     setNewAddress({
       nick_name: "",
       street: "",
       city: "",
       pincode: "",
-      state: ""
+      state: "",
     });
   };
 
   // Debug effect to track state changes
   useEffect(() => {
-    console.log("Address states changed:", { isAddingAddress, editingAddressIndex, activeTab });
+    console.log("Address states changed:", {
+      isAddingAddress,
+      editingAddressIndex,
+      activeTab,
+    });
   }, [isAddingAddress, editingAddressIndex, activeTab]);
 
   const handleCancelAddAddress = () => {
@@ -325,7 +372,7 @@ export default function ProfilePage() {
       street: "",
       city: "",
       pincode: "",
-      state: ""
+      state: "",
     });
   };
 
@@ -338,7 +385,7 @@ export default function ProfilePage() {
         street: address.street || "",
         city: address.city || "",
         pincode: address.pincode || "",
-        state: address.state || ""
+        state: address.state || "",
       });
     }
   };
@@ -350,7 +397,7 @@ export default function ProfilePage() {
       street: "",
       city: "",
       pincode: "",
-      state: ""
+      state: "",
     });
   };
 
@@ -361,34 +408,40 @@ export default function ProfilePage() {
     }
 
     // Validate required fields
-    if (!newAddress.nick_name || !newAddress.street || !newAddress.city || !newAddress.pincode || !newAddress.state) {
+    if (
+      !newAddress.nick_name ||
+      !newAddress.street ||
+      !newAddress.city ||
+      !newAddress.pincode ||
+      !newAddress.state
+    ) {
       showToast("Please fill in all required address fields", "error");
       return;
     }
 
     try {
       setUpdatingAddress(true);
-      
+
       if (editingAddressIndex !== null) {
         // Editing existing address - use edit endpoint
         const editData: EditAddressRequest = {
           index: editingAddressIndex,
-          updatedAddress: newAddress
+          updatedAddress: newAddress,
         };
 
         const response = await editUserAddress(userId, editData);
-        
+
         if (response.success) {
           showToast("Address updated successfully", "success");
           setEditingAddressIndex(null);
-          
+
           // Refresh the profile data
           const updatedProfile = await getUserProfile(userId);
           if (updatedProfile.success && updatedProfile.data) {
             setUserProfile(updatedProfile.data);
-            setProfileData(prev => ({
+            setProfileData((prev) => ({
               ...prev,
-              address: updatedProfile.data.address || []
+              address: updatedProfile.data.address || [],
             }));
           }
         } else {
@@ -397,23 +450,23 @@ export default function ProfilePage() {
       } else {
         // Adding new address - use add endpoint
         const updatedAddressList = [...(profileData.address || []), newAddress];
-        
+
         const addressData: UpdateAddressRequest = {
-          address: updatedAddressList
+          address: updatedAddressList,
         };
 
         const response = await updateUserAddress(userId, addressData);
-        
+
         if (response.success) {
           showToast("Address added successfully", "success");
           setIsAddingAddress(false);
-          
+
           // Update the profile data with new address
-          setProfileData(prev => ({
+          setProfileData((prev) => ({
             ...prev,
-            address: updatedAddressList
+            address: updatedAddressList,
           }));
-          
+
           // Refresh the profile data
           const updatedProfile = await getUserProfile(userId);
           if (updatedProfile.success && updatedProfile.data) {
@@ -440,25 +493,26 @@ export default function ProfilePage() {
 
     try {
       setUpdatingAddress(true);
-      
+
       // Remove the address at the specified index
-      const updatedAddressList = profileData.address?.filter((_, index) => index !== addressIndex) || [];
-      
+      const updatedAddressList =
+        profileData.address?.filter((_, index) => index !== addressIndex) || [];
+
       const addressData: UpdateAddressRequest = {
-        address: updatedAddressList
+        address: updatedAddressList,
       };
 
       const response = await updateUserAddress(userId, addressData);
-      
+
       if (response.success) {
         showToast("Address deleted successfully", "success");
-        
+
         // Update the profile data
-        setProfileData(prev => ({
+        setProfileData((prev) => ({
           ...prev,
-          address: updatedAddressList
+          address: updatedAddressList,
         }));
-        
+
         // Refresh the profile data
         const updatedProfile = await getUserProfile(userId);
         if (updatedProfile.success && updatedProfile.data) {
@@ -481,17 +535,28 @@ export default function ProfilePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "delivered": return "bg-success/10 text-success border-success/20";
-      case "shipped": return "bg-primary/10 text-primary border-primary/20";
-      case "processing": return "bg-warning/10 text-warning border-warning/20";
-      case "pending": return "bg-muted text-muted-foreground border-muted";
-      case "cancelled": return "bg-destructive/10 text-destructive border-destructive/20";
-      default: return "bg-muted text-muted-foreground border-muted";
+      case "delivered":
+        return "bg-success/10 text-success border-success/20";
+      case "shipped":
+        return "bg-primary/10 text-primary border-primary/20";
+      case "processing":
+        return "bg-warning/10 text-warning border-warning/20";
+      case "pending":
+        return "bg-muted text-muted-foreground border-muted";
+      case "cancelled":
+        return "bg-destructive/10 text-destructive border-destructive/20";
+      default:
+        return "bg-muted text-muted-foreground border-muted";
     }
   };
 
   // Debug logging
-  console.log("ProfilePage render - activeTab:", activeTab, "isEditing:", isEditing);
+  console.log(
+    "ProfilePage render - activeTab:",
+    activeTab,
+    "isEditing:",
+    isEditing
+  );
 
   return (
     <div className="min-h-screen bg-gradient-background">
@@ -507,7 +572,9 @@ export default function ProfilePage() {
             </div>
             {/* Test button - always visible */}
             <Button
-              onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
+              onClick={() =>
+                isEditing ? handleSaveProfile() : setIsEditing(true)
+              }
               className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
               disabled={updatingProfile}
             >
@@ -533,21 +600,37 @@ export default function ProfilePage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
           <TabsList className="bg-gray-100 border border-gray-300 p-1 h-auto flex-wrap">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700">
+            <TabsTrigger
+              value="profile"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+            >
               <User className="mr-2 h-4 w-4" />
               My Profile
             </TabsTrigger>
-            <TabsTrigger value="orders" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700">
+            <TabsTrigger
+              value="orders"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+            >
               <ShoppingBag className="mr-2 h-4 w-4" />
               My Orders
             </TabsTrigger>
-            <TabsTrigger value="wishlists" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700">
+            <TabsTrigger
+              value="wishlists"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+            >
               <Heart className="mr-2 h-4 w-4" />
               My Wishlists
             </TabsTrigger>
-            <TabsTrigger value="addresses" className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700">
+            <TabsTrigger
+              value="addresses"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+            >
               <MapPin className="mr-2 h-4 w-4" />
               Addresses
             </TabsTrigger>
@@ -564,166 +647,260 @@ export default function ProfilePage() {
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <ProfileSection
-                  title="Personal Details"
-                  description="Your personal information and contact details"
-                >
-                <div className="space-y-4">
-                  {isEditing ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={profileData.email}
-                          onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                          id="username"
-                          type="text"
-                          value={profileData.username}
-                          onChange={(e) => setProfileData({...profileData, username: e.target.value})}
-                          placeholder="Enter your username"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone_Number">Phone Number</Label>
-                        <Input
-                          id="phone_Number"
-                          type="tel"
-                          value={profileData.phone_Number}
-                          onChange={(e) => setProfileData({...profileData, phone_Number: e.target.value})}
-                          placeholder="Enter your phone number"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <DataField label="Email" value={profileData.email || "Not set"} />
-                      <DataField label="Username" value={profileData.username || "Not set"} />
-                      <DataField label="Phone Number" value={profileData.phone_Number || "Not set"} />
-                    </>
-                  )}
-                </div>
-              </ProfileSection>
+                    title="Personal Details"
+                    description="Your personal information and contact details"
+                  >
+                    <div className="space-y-4">
+                      {isEditing ? (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={profileData.email}
+                              onChange={(e) =>
+                                setProfileData({
+                                  ...profileData,
+                                  email: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="username">Username</Label>
+                            <Input
+                              id="username"
+                              type="text"
+                              value={profileData.username}
+                              onChange={(e) =>
+                                setProfileData({
+                                  ...profileData,
+                                  username: e.target.value,
+                                })
+                              }
+                              placeholder="Enter your username"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="phone_Number">Phone Number</Label>
+                            <Input
+                              id="phone_Number"
+                              type="tel"
+                              value={profileData.phone_Number}
+                              onChange={(e) =>
+                                setProfileData({
+                                  ...profileData,
+                                  phone_Number: e.target.value,
+                                })
+                              }
+                              placeholder="Enter your phone number"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <DataField
+                            label="Email"
+                            value={profileData.email || "Not set"}
+                          />
+                          <DataField
+                            label="Username"
+                            value={profileData.username || "Not set"}
+                          />
+                          <DataField
+                            label="Phone Number"
+                            value={profileData.phone_Number || "Not set"}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </ProfileSection>
 
-              <ProfileSection
-                title="Bank Details"
-                description="Manage your banking information for payments and refunds"
-              >
-                <div className="space-y-4">
-                  {isEditing ? (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="account_number">Account Number</Label>
-                          <Input
-                            id="account_number"
-                            value={profileData.bank_details.account_number}
-                            onChange={(e) => setProfileData({
-                              ...profileData, 
-                              bank_details: {...profileData.bank_details, account_number: e.target.value}
-                            })}
-                            placeholder="Enter account number"
+                  <ProfileSection
+                    title="Bank Details"
+                    description="Manage your banking information for payments and refunds"
+                  >
+                    <div className="space-y-4">
+                      {isEditing ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="account_number">
+                                Account Number
+                              </Label>
+                              <Input
+                                id="account_number"
+                                value={profileData.bank_details.account_number}
+                                onChange={(e) =>
+                                  setProfileData({
+                                    ...profileData,
+                                    bank_details: {
+                                      ...profileData.bank_details,
+                                      account_number: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="Enter account number"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="ifsc_code">IFSC Code</Label>
+                              <Input
+                                id="ifsc_code"
+                                value={profileData.bank_details.ifsc_code}
+                                onChange={(e) =>
+                                  setProfileData({
+                                    ...profileData,
+                                    bank_details: {
+                                      ...profileData.bank_details,
+                                      ifsc_code: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="Enter IFSC code"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bank_name">Bank Name</Label>
+                            <Input
+                              id="bank_name"
+                              value={profileData.bank_details.bank_name}
+                              onChange={(e) =>
+                                setProfileData({
+                                  ...profileData,
+                                  bank_details: {
+                                    ...profileData.bank_details,
+                                    bank_name: e.target.value,
+                                  },
+                                })
+                              }
+                              placeholder="Enter bank name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bank_account_holder_name">
+                              Account Holder Name
+                            </Label>
+                            <Input
+                              id="bank_account_holder_name"
+                              value={
+                                profileData.bank_details
+                                  .bank_account_holder_name
+                              }
+                              onChange={(e) =>
+                                setProfileData({
+                                  ...profileData,
+                                  bank_details: {
+                                    ...profileData.bank_details,
+                                    bank_account_holder_name: e.target.value,
+                                  },
+                                })
+                              }
+                              placeholder="Enter account holder name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="account_type">Account Type</Label>
+                            <Select
+                              value={profileData.bank_details.account_type}
+                              onValueChange={(value) =>
+                                setProfileData({
+                                  ...profileData,
+                                  bank_details: {
+                                    ...profileData.bank_details,
+                                    account_type: value,
+                                  },
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select account type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="savings">Savings</SelectItem>
+                                <SelectItem value="current">Current</SelectItem>
+                                <SelectItem value="salary">Salary</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <DataField
+                            label="Account Number"
+                            value={
+                              profileData.bank_details.account_number ||
+                              "Not set"
+                            }
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="ifsc_code">IFSC Code</Label>
-                          <Input
-                            id="ifsc_code"
-                            value={profileData.bank_details.ifsc_code}
-                            onChange={(e) => setProfileData({
-                              ...profileData, 
-                              bank_details: {...profileData.bank_details, ifsc_code: e.target.value}
-                            })}
-                            placeholder="Enter IFSC code"
+                          <DataField
+                            label="IFSC Code"
+                            value={
+                              profileData.bank_details.ifsc_code || "Not set"
+                            }
                           />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bank_name">Bank Name</Label>
-                        <Input
-                          id="bank_name"
-                          value={profileData.bank_details.bank_name}
-                          onChange={(e) => setProfileData({
-                            ...profileData, 
-                            bank_details: {...profileData.bank_details, bank_name: e.target.value}
-                          })}
-                          placeholder="Enter bank name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bank_account_holder_name">Account Holder Name</Label>
-                        <Input
-                          id="bank_account_holder_name"
-                          value={profileData.bank_details.bank_account_holder_name}
-                          onChange={(e) => setProfileData({
-                            ...profileData, 
-                            bank_details: {...profileData.bank_details, bank_account_holder_name: e.target.value}
-                          })}
-                          placeholder="Enter account holder name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="account_type">Account Type</Label>
-                        <Select 
-                          value={profileData.bank_details.account_type} 
-                          onValueChange={(value) => setProfileData({
-                            ...profileData, 
-                            bank_details: {...profileData.bank_details, account_type: value}
-                          })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select account type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="savings">Savings</SelectItem>
-                            <SelectItem value="current">Current</SelectItem>
-                            <SelectItem value="salary">Salary</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <DataField label="Account Number" value={profileData.bank_details.account_number || "Not set"} />
-                      <DataField label="IFSC Code" value={profileData.bank_details.ifsc_code || "Not set"} />
-                      <DataField label="Bank Name" value={profileData.bank_details.bank_name || "Not set"} />
-                      <DataField label="Account Holder Name" value={profileData.bank_details.bank_account_holder_name || "Not set"} />
-                      <DataField label="Account Type" value={profileData.bank_details.account_type || "Not set"} />
-                    </>
-                  )}
-                </div>
-              </ProfileSection>
+                          <DataField
+                            label="Bank Name"
+                            value={
+                              profileData.bank_details.bank_name || "Not set"
+                            }
+                          />
+                          <DataField
+                            label="Account Holder Name"
+                            value={
+                              profileData.bank_details
+                                .bank_account_holder_name || "Not set"
+                            }
+                          />
+                          <DataField
+                            label="Account Type"
+                            value={
+                              profileData.bank_details.account_type || "Not set"
+                            }
+                          />
+                        </>
+                      )}
+                    </div>
+                  </ProfileSection>
                 </div>
 
                 <ProfileSection
-              title="Account Settings"
-              description="Manage your account preferences and security"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
-                  <div>
-                    <p className="font-medium text-foreground">Change Password</p>
-                    <p className="text-sm text-muted-foreground">Update your password regularly for security</p>
+                  title="Account Settings"
+                  description="Manage your account preferences and security"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
+                      <div>
+                        <p className="font-medium text-foreground">
+                          Change Password
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Update your password regularly for security
+                        </p>
+                      </div>
+                      <Button variant="outline">Change</Button>
+                    </div>
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+                      <div>
+                        <p className="font-medium text-destructive">
+                          Delete Account
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Permanently delete your account and all data
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteAccount}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                  <Button variant="outline">Change</Button>
-                </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-                  <div>
-                    <p className="font-medium text-destructive">Delete Account</p>
-                    <p className="text-sm text-muted-foreground">Permanently delete your account and all data</p>
-                  </div>
-                  <Button variant="destructive" onClick={handleDeleteAccount}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </ProfileSection>
+                </ProfileSection>
               </>
             )}
           </TabsContent>
@@ -747,23 +924,32 @@ export default function ProfilePage() {
               ) : (
                 <div className="space-y-4">
                   {userOrders.map((order) => (
-                    <div key={order._id} className="p-4 rounded-lg border border-border/50 hover:shadow-md transition-all">
+                    <div
+                      key={order._id}
+                      className="p-4 rounded-lg border border-border/50 hover:shadow-md transition-all"
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Package className="h-6 w-6 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">{order.orderId}</p>
+                            <p className="font-medium text-foreground">
+                              {order.orderId}
+                            </p>
                             <p className="text-sm text-muted-foreground">
-                              {formatDate(order.orderDate)} • {order.skus.length} items
+                              {formatDate(order.orderDate)} •{" "}
+                              {order.skus.length} items
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-foreground">{formatCurrency(order.order_Amount)}</p>
+                          <p className="font-semibold text-foreground">
+                            {formatCurrency(order.order_Amount)}
+                          </p>
                           <Badge className={getStatusBadgeColor(order.status)}>
-                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            {order.status.charAt(0).toUpperCase() +
+                              order.status.slice(1)}
                           </Badge>
                         </div>
                       </div>
@@ -771,8 +957,8 @@ export default function ProfilePage() {
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <span>Payment: {order.paymentType}</span>
                           <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleViewOrderDetails(order._id)}
                             >
@@ -780,7 +966,13 @@ export default function ProfilePage() {
                             </Button>
                             {order.order_track_info?.borzo_tracking_url && (
                               <Button variant="outline" size="sm" asChild>
-                                <a href={order.order_track_info.borzo_tracking_url} target="_blank" rel="noopener noreferrer">
+                                <a
+                                  href={
+                                    order.order_track_info.borzo_tracking_url
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
                                   <ExternalLink className="h-4 w-4 mr-1" />
                                   Track Order
                                 </a>
@@ -804,8 +996,12 @@ export default function ProfilePage() {
             >
               <div className="text-center py-12">
                 <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No items in your wishlist</p>
-                <Button className="mt-4 bg-gradient-primary">Browse Products</Button>
+                <p className="text-muted-foreground">
+                  No items in your wishlist
+                </p>
+                <Button className="mt-4 bg-gradient-primary">
+                  Browse Products
+                </Button>
               </div>
             </ProfileSection>
           </TabsContent>
@@ -813,9 +1009,11 @@ export default function ProfilePage() {
           {/* Addresses Tab */}
           <TabsContent value="addresses" className="space-y-6 mt-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Saved Addresses</h2>
-              <Button 
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg" 
+              <h2 className="text-lg font-semibold text-foreground">
+                Saved Addresses
+              </h2>
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
                 onClick={handleAddAddress}
                 disabled={isAddingAddress || editingAddressIndex !== null}
               >
@@ -827,8 +1025,16 @@ export default function ProfilePage() {
             {/* Add/Edit Address Form */}
             {(isAddingAddress || editingAddressIndex !== null) && (
               <ProfileSection
-                title={editingAddressIndex !== null ? "Edit Address" : "Add New Address"}
-                description={editingAddressIndex !== null ? "Update the details for your address" : "Enter the details for your new address"}
+                title={
+                  editingAddressIndex !== null
+                    ? "Edit Address"
+                    : "Add New Address"
+                }
+                description={
+                  editingAddressIndex !== null
+                    ? "Update the details for your address"
+                    : "Enter the details for your new address"
+                }
               >
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -837,7 +1043,12 @@ export default function ProfilePage() {
                       <Input
                         id="nick_name"
                         value={newAddress.nick_name}
-                        onChange={(e) => setNewAddress({...newAddress, nick_name: e.target.value})}
+                        onChange={(e) =>
+                          setNewAddress({
+                            ...newAddress,
+                            nick_name: e.target.value,
+                          })
+                        }
                         placeholder="e.g., Home, Office, etc."
                       />
                     </div>
@@ -846,7 +1057,12 @@ export default function ProfilePage() {
                       <Input
                         id="pincode"
                         value={newAddress.pincode}
-                        onChange={(e) => setNewAddress({...newAddress, pincode: e.target.value})}
+                        onChange={(e) =>
+                          setNewAddress({
+                            ...newAddress,
+                            pincode: e.target.value,
+                          })
+                        }
                         placeholder="Enter pincode"
                       />
                     </div>
@@ -856,7 +1072,9 @@ export default function ProfilePage() {
                     <Input
                       id="street"
                       value={newAddress.street}
-                      onChange={(e) => setNewAddress({...newAddress, street: e.target.value})}
+                      onChange={(e) =>
+                        setNewAddress({ ...newAddress, street: e.target.value })
+                      }
                       placeholder="Enter street address"
                     />
                   </div>
@@ -866,7 +1084,9 @@ export default function ProfilePage() {
                       <Input
                         id="city"
                         value={newAddress.city}
-                        onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
+                        onChange={(e) =>
+                          setNewAddress({ ...newAddress, city: e.target.value })
+                        }
                         placeholder="Enter city"
                       />
                     </div>
@@ -875,16 +1095,21 @@ export default function ProfilePage() {
                       <Input
                         id="state"
                         value={newAddress.state}
-                        onChange={(e) => setNewAddress({...newAddress, state: e.target.value})}
+                        onChange={(e) =>
+                          setNewAddress({
+                            ...newAddress,
+                            state: e.target.value,
+                          })
+                        }
                         placeholder="Enter state"
                       />
                     </div>
                   </div>
                   <div className="flex gap-2 pt-4">
-                    <Button 
+                    <Button
                       onClick={handleSaveAddress}
                       disabled={updatingAddress}
-                      className="bg-gradient-primary"
+                      className="bg-gradient-to-r from-[#c72920] to-[#e5665f] text-white hover:opacity-90"
                     >
                       {updatingAddress ? (
                         <>
@@ -894,13 +1119,20 @@ export default function ProfilePage() {
                       ) : (
                         <>
                           <Save className="mr-2 h-4 w-4" />
-                          {editingAddressIndex !== null ? "Update Address" : "Save Address"}
+                          {editingAddressIndex !== null
+                            ? "Update Address"
+                            : "Save Address"}
                         </>
                       )}
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={editingAddressIndex !== null ? handleCancelEditAddress : handleCancelAddAddress}
+
+                    <Button
+                      variant="outline"
+                      onClick={
+                        editingAddressIndex !== null
+                          ? handleCancelEditAddress
+                          : handleCancelAddAddress
+                      }
                       disabled={updatingAddress}
                     >
                       <X className="mr-2 h-4 w-4" />
@@ -921,26 +1153,32 @@ export default function ProfilePage() {
                     className="relative"
                   >
                     <div className="space-y-3">
-                      <p className="text-sm text-muted-foreground">{address.street}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {address.street}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {address.city}, {address.state} - {address.pincode}
                       </p>
                       <div className="flex gap-2 pt-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleEditAddress(index)}
-                          disabled={updatingAddress || editingAddressIndex !== null}
+                          disabled={
+                            updatingAddress || editingAddressIndex !== null
+                          }
                         >
                           <Edit2 className="mr-2 h-3 w-3" />
                           Edit
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="text-destructive hover:bg-destructive/10"
                           onClick={() => handleDeleteAddress(index)}
-                          disabled={updatingAddress || editingAddressIndex !== null}
+                          disabled={
+                            updatingAddress || editingAddressIndex !== null
+                          }
                         >
                           {updatingAddress ? (
                             <Loader2 className="mr-2 h-3 w-3 animate-spin" />
@@ -956,13 +1194,16 @@ export default function ProfilePage() {
               ) : (
                 <div className="col-span-2 text-center py-12">
                   <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No addresses saved yet</p>
-                  <p className="text-sm text-muted-foreground mt-2">Add your first address to get started</p>
+                  <p className="text-muted-foreground">
+                    No addresses saved yet
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Add your first address to get started
+                  </p>
                 </div>
               )}
             </div>
           </TabsContent>
-
         </Tabs>
       </div>
     </div>
