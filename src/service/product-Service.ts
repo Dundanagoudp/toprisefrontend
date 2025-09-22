@@ -13,59 +13,81 @@ export async function getProducts(): Promise<ProductResponse> {
   }
 }
 
-export async function getProductsByPage(page: number, limit: number, status?: string, searchQuery?: string, categoryFilter?: string, subCategoryFilter?: string): Promise<ProductResponse> {
+export async function getProductsByPage(
+  page: number,
+  limit: number,
+  status?: string,
+  searchQuery?: string,
+  categoryFilter?: string,
+  subCategoryFilter?: string
+): Promise<ProductResponse> {
   try {
     // Validate input parameters
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
-    
+
     let url = `/category/products/v1/get-all-products/pagination?page=${page}&limit=${limit}`;
-    
+
     if (status && status.trim() !== "") {
       url += `&status=${encodeURIComponent(status.trim())}`;
     }
-    
+
     if (searchQuery && searchQuery.trim() !== "") {
       // Sanitize search query to prevent potential issues
-      const sanitizedQuery = searchQuery.trim().replace(/[<>]/g, '');
+      const sanitizedQuery = searchQuery.trim().replace(/[<>]/g, "");
       if (sanitizedQuery.length > 0) {
         url += `&search=${encodeURIComponent(sanitizedQuery)}`;
       }
     }
-    
+
     if (categoryFilter && categoryFilter.trim() !== "") {
       url += `&category=${encodeURIComponent(categoryFilter.trim())}`;
     }
-    
+
     if (subCategoryFilter && subCategoryFilter.trim() !== "") {
       url += `&subCategory=${encodeURIComponent(subCategoryFilter.trim())}`;
     }
-    
+
     console.log("API URL for getProductsByPage:", url);
-    console.log("Search parameters - searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+    console.log(
+      "Search parameters - searchQuery:",
+      searchQuery,
+      "categoryFilter:",
+      categoryFilter,
+      "subCategoryFilter:",
+      subCategoryFilter
+    );
     console.log("Full search query details:", {
       searchQuery,
       searchQueryType: typeof searchQuery,
       searchQueryLength: searchQuery?.length,
       isSearchQueryEmpty: !searchQuery || searchQuery.trim() === "",
-      sanitizedQuery: searchQuery ? searchQuery.trim().replace(/[<>]/g, '') : ""
+      sanitizedQuery: searchQuery
+        ? searchQuery.trim().replace(/[<>]/g, "")
+        : "",
     });
-    
+
     const response = await apiClient.get(url);
     console.log("API response for getProductsByPage:", response.data);
     console.log("API response pagination:", response.data?.data?.pagination);
-    console.log("API response totalItems:", response.data?.data?.pagination?.totalItems);
-    console.log("API response totalPages:", response.data?.data?.pagination?.totalPages);
-    
+    console.log(
+      "API response totalItems:",
+      response.data?.data?.pagination?.totalItems
+    );
+    console.log(
+      "API response totalPages:",
+      response.data?.data?.pagination?.totalPages
+    );
+
     // Validate response structure
     if (!response.data) {
       throw new Error("Invalid API response: No data received");
     }
-    
+
     return response.data;
   } catch (error: any) {
     console.error("Failed to fetch products:", error);
-    
+
     // Return a safe fallback response structure
     const fallbackResponse: ProductResponse = {
       success: false,
@@ -78,45 +100,56 @@ export async function getProductsByPage(page: number, limit: number, status?: st
           totalItems: 0,
           itemsPerPage: limit,
           hasNextPage: false,
-          hasPreviousPage: page > 1
-        }
-      }
+          hasPreviousPage: page > 1,
+        },
+      },
     };
-    
+
     // If it's a network error or server error, return fallback
-    if (error.code === 'NETWORK_ERROR' || error.response?.status >= 500) {
+    if (error.code === "NETWORK_ERROR" || error.response?.status >= 500) {
       return fallbackResponse;
     }
-    
+
     // For other errors, still throw to let the component handle it
     throw error;
   }
 }
 
 //get products by dealer added
-export async function getDealerProductsByPage(page: number, limit: number, status?: string): Promise<ProductResponse> {
+export async function getDealerProductsByPage(
+  page: number,
+  limit: number,
+  status?: string
+): Promise<ProductResponse> {
   try {
     // Get dealer ID from token
     const { getAuthToken } = await import("@/utils/auth");
     const token = getAuthToken();
     let dealerId = null;
-    
+
     console.log("[getDealerProductsByPage] Starting dealer ID extraction...");
-    
+
     if (token) {
       try {
         const payloadBase64 = token.split(".")[1];
         if (payloadBase64) {
           const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
-          const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+          const paddedBase64 = base64.padEnd(
+            base64.length + ((4 - (base64.length % 4)) % 4),
+            "="
+          );
           const payloadJson = atob(paddedBase64);
           const payload = JSON.parse(payloadJson);
-          
+
           console.log("[getDealerProductsByPage] Token payload:", payload);
-          
+
           // Try dealerId, fallback to id
           dealerId = payload.dealerId || payload.id;
-          console.log(`[getDealerProductsByPage] Extracted dealer ID: ${dealerId} (from ${payload.dealerId ? 'dealerId' : 'id'})`);
+          console.log(
+            `[getDealerProductsByPage] Extracted dealer ID: ${dealerId} (from ${
+              payload.dealerId ? "dealerId" : "id"
+            })`
+          );
         }
       } catch (err) {
         console.error("Failed to decode token for dealerId:", err);
@@ -124,7 +157,7 @@ export async function getDealerProductsByPage(page: number, limit: number, statu
     } else {
       console.error("[getDealerProductsByPage] No authentication token found");
     }
-    
+
     if (!dealerId) {
       throw new Error("Dealer ID not found in token");
     }
@@ -133,12 +166,16 @@ export async function getDealerProductsByPage(page: number, limit: number, statu
     if (status) {
       url += `&status=${status}`;
     }
-    
-    console.log(`[getDealerProductsByPage] Fetching products for dealer ID: ${dealerId}`);
+
+    console.log(
+      `[getDealerProductsByPage] Fetching products for dealer ID: ${dealerId}`
+    );
     console.log(`[getDealerProductsByPage] API URL: ${url}`);
-    
+
     const response = await apiClient.get(url);
-    console.log(`[getDealerProductsByPage] Successfully fetched products for dealer ${dealerId}`);
+    console.log(
+      `[getDealerProductsByPage] Successfully fetched products for dealer ${dealerId}`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to fetch products:", error);
@@ -161,8 +198,7 @@ export async function uploadBulkProducts(
     throw error;
   }
 }
-export async function exportCSV(
-): Promise<any> {
+export async function exportCSV(): Promise<any> {
   try {
     const response = await apiClient.get(`/category/products/v1/export`);
     return response.data;
@@ -220,10 +256,9 @@ export async function deactivateProduct(
     throw error;
   }
 }
-export async function approveBulkProducts
-  (
-    data: string | any
-  ): Promise<ProductResponse> {
+export async function approveBulkProducts(
+  data: string | any
+): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
       `/category/products/v1/bulk/approve`,
@@ -235,10 +270,9 @@ export async function approveBulkProducts
     throw error;
   }
 }
-export async function deactivateBulkProducts
-  (
-    data: string | any
-  ): Promise<ProductResponse> {
+export async function deactivateBulkProducts(
+  data: string | any
+): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
       `/category/products/v1/deactivateProduct/bulk`,
@@ -250,10 +284,9 @@ export async function deactivateBulkProducts
     throw error;
   }
 }
-export async function rejectBulkProducts
-  (
-    data: string | any
-  ): Promise<ProductResponse> {
+export async function rejectBulkProducts(
+  data: string | any
+): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
       `/category/products/v1/bulk/reject`,
@@ -267,7 +300,10 @@ export async function rejectBulkProducts
 }
 
 // New endpoints for product approval requests
-export async function getPendingProducts(page?: number, limit?: number): Promise<ProductResponse> {
+export async function getPendingProducts(
+  page?: number,
+  limit?: number
+): Promise<ProductResponse> {
   try {
     let url = `/category/products/v1/pending`;
     if (page && limit) {
@@ -281,9 +317,13 @@ export async function getPendingProducts(page?: number, limit?: number): Promise
   }
 }
 
-export async function approveSingleProduct(productId: string): Promise<ProductResponse> {
+export async function approveSingleProduct(
+  productId: string
+): Promise<ProductResponse> {
   try {
-    const response = await apiClient.patch(`/category/products/v1/approve/${productId}`);
+    const response = await apiClient.patch(
+      `/category/products/v1/approve/${productId}`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to approve product:", error);
@@ -291,10 +331,16 @@ export async function approveSingleProduct(productId: string): Promise<ProductRe
   }
 }
 
-export async function rejectSingleProduct(productId: string, rejectionReason?: string): Promise<ProductResponse> {
+export async function rejectSingleProduct(
+  productId: string,
+  rejectionReason?: string
+): Promise<ProductResponse> {
   try {
     const data = rejectionReason ? { rejectionReason } : {};
-    const response = await apiClient.patch(`/category/products/v1/reject/${productId}`, data);
+    const response = await apiClient.patch(
+      `/category/products/v1/reject/${productId}`,
+      data
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to reject product:", error);
@@ -335,7 +381,9 @@ export async function getCategoriesByType(
       params.main_category = mainCategory;
     }
 
-    const response = await apiClient.get(`/category/api/category/application`, { params });
+    const response = await apiClient.get(`/category/api/category/application`, {
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error("Failed to fetch categories by type:", error);
@@ -349,26 +397,28 @@ export async function createCategory(data: FormData): Promise<any> {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    })
-    return response.data
-  }
-  catch (err: any) {
+    });
+    return response.data;
+  } catch (err: any) {
     console.error("Failed to create category:", err);
-    throw err
+    throw err;
   }
 }
 export async function createSubCategory(data: FormData): Promise<any> {
   try {
-    const response = await apiClient.post(`/subCategory/api/subCategory`, data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    })
-    return response.data
-  }
-  catch (err: any) {
+    const response = await apiClient.post(
+      `/subCategory/api/subCategory`,
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (err: any) {
     console.error("Failed to create category:", err);
-    throw err
+    throw err;
   }
 }
 
@@ -378,12 +428,11 @@ export async function createModel(data: FormData): Promise<any> {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    })
-    return response.data
-  }
-  catch (err: any) {
+    });
+    return response.data;
+  } catch (err: any) {
     console.error("Failed to create category:", err);
-    throw err
+    throw err;
   }
 }
 export async function createBrand(data: FormData): Promise<any> {
@@ -392,26 +441,24 @@ export async function createBrand(data: FormData): Promise<any> {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    })
-    return response.data
-  }
-  catch (err: any) {
+    });
+    return response.data;
+  } catch (err: any) {
     console.error("Failed to create category:", err);
-    throw err
+    throw err;
   }
 }
 export async function createVariant(data: FormData): Promise<any> {
   try {
     const response = await apiClient.post(`/subCategory/variants/`, data, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    })
-    return response.data
-  }
-  catch (err: any) {
+    });
+    return response.data;
+  } catch (err: any) {
     console.error("Failed to create category:", err);
-    throw err
+    throw err;
   }
 }
 
@@ -419,14 +466,13 @@ export async function createVariants(data: FormData): Promise<ProductResponse> {
   try {
     const response = await apiClient.post(`/subCategory/variants/`, data, {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    })
-    return response.data
-  }
-  catch (err: any) {
+    });
+    return response.data;
+  } catch (err: any) {
     console.error("Failed to create category:", err);
-    throw err
+    throw err;
   }
 }
 
@@ -492,7 +538,6 @@ export async function getProductById(
   }
 }
 
-
 export async function getBrandByType(id: string): Promise<ProductResponse> {
   try {
     const response = await apiClient.get(
@@ -535,9 +580,13 @@ export async function getvarientByModel(id: string): Promise<ProductResponse> {
 }
 
 // New API functions for the updated endpoints
-export async function getBrandsByType(typeId: string): Promise<ProductResponse> {
+export async function getBrandsByType(
+  typeId: string
+): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/category/api/brands/brandByType/${typeId}`);
+    const response = await apiClient.get(
+      `/category/api/brands/brandByType/${typeId}`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to fetch brands by type:", error);
@@ -545,9 +594,13 @@ export async function getBrandsByType(typeId: string): Promise<ProductResponse> 
   }
 }
 
-export async function getModelsByBrand(brandId: string): Promise<ProductResponse> {
+export async function getModelsByBrand(
+  brandId: string
+): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/category/api/model/brand/${brandId}`);
+    const response = await apiClient.get(
+      `/category/api/model/brand/${brandId}`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to fetch models by brand:", error);
@@ -555,7 +608,9 @@ export async function getModelsByBrand(brandId: string): Promise<ProductResponse
   }
 }
 
-export async function getVariantsByModel(modelId: string): Promise<ProductResponse> {
+export async function getVariantsByModel(
+  modelId: string
+): Promise<ProductResponse> {
   try {
     const response = await apiClient.get(`/category/variants/model/${modelId}`);
     return response.data;
@@ -573,7 +628,6 @@ export async function editProduct(
     const response = await apiClient.put(
       `/category/products/v1/updateProduct/${productId}`,
       data
-
     );
     return response.data;
   } catch (error) {
@@ -582,7 +636,9 @@ export async function editProduct(
   }
 }
 
-export async function addProduct(productData: FormData | any): Promise<ProductResponse> {
+export async function addProduct(
+  productData: FormData | any
+): Promise<ProductResponse> {
   try {
     const response = await apiClient.post(
       `/category/products/v1/createProduct`,
@@ -617,11 +673,15 @@ export async function editBulkProducts(
   formData: FormData
 ): Promise<ProductResponse> {
   try {
-    const response = await apiClient.put(`/category/products/v1/bulk-edit`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const response = await apiClient.put(
+      `/category/products/v1/bulk-edit`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk products:", error);
@@ -629,11 +689,11 @@ export async function editBulkProducts(
   }
 }
 
-
-export async function uploadLogs(
-): Promise<ProductResponse> {
+export async function uploadLogs(): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/category/products/v1/get-all-productLogs`);
+    const response = await apiClient.get(
+      `/category/products/v1/get-all-productLogs`
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to upload logs:", error);
@@ -646,7 +706,10 @@ export async function uploadBulkCategories(
   formData: FormData
 ): Promise<ProductResponse> {
   try {
-    const response = await apiClient.post(`/category/api/category/bulk-upload/categories`, formData);
+    const response = await apiClient.post(
+      `/category/api/category/bulk-upload/categories`,
+      formData
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk categories:", error);
@@ -658,7 +721,10 @@ export async function uploadBulkSubCategories(
   formData: FormData
 ): Promise<ProductResponse> {
   try {
-    const response = await apiClient.post(`/category/api/subCategory/bulk-upload/subcategories`, formData);
+    const response = await apiClient.post(
+      `/category/api/subCategory/bulk-upload/subcategories`,
+      formData
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk subcategories:", error);
@@ -670,7 +736,10 @@ export async function uploadBulkBrands(
   formData: FormData
 ): Promise<ProductResponse> {
   try {
-    const response = await apiClient.post(`/category/api/brands/bulk-upload/brands`, formData);
+    const response = await apiClient.post(
+      `/category/api/brands/bulk-upload/brands`,
+      formData
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk brands:", error);
@@ -682,7 +751,10 @@ export async function uploadBulkModels(
   formData: FormData
 ): Promise<ProductResponse> {
   try {
-    const response = await apiClient.post(`/category/api/model/bulk-upload/models`, formData);
+    const response = await apiClient.post(
+      `/category/api/model/bulk-upload/models`,
+      formData
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk models:", error);
@@ -694,7 +766,10 @@ export async function uploadBulkVariants(
   formData: FormData
 ): Promise<ProductResponse> {
   try {
-    const response = await apiClient.post(`/category/variants/bulk-upload/varients`, formData);
+    const response = await apiClient.post(
+      `/category/variants/bulk-upload/varients`,
+      formData
+    );
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk variants:", error);
@@ -712,20 +787,21 @@ export async function getContentStats(): Promise<{
 }> {
   try {
     // Fetch all content types in parallel
-    const [categoriesRes, brandsRes, modelsRes, variantsRes, subcategoriesRes] = await Promise.all([
-      getCategories(),
-      getBrand(),
-      getModels(),
-      getvarient(),
-      getSubcategories()
-    ]);
+    const [categoriesRes, brandsRes, modelsRes, variantsRes, subcategoriesRes] =
+      await Promise.all([
+        getCategories(),
+        getBrand(),
+        getModels(),
+        getvarient(),
+        getSubcategories(),
+      ]);
 
     return {
       categories: categoriesRes.data?.length || 0,
-      subcategories: subcategoriesRes.data?.length || 0,
-      brands: brandsRes.data?.length || 0,
-      models: modelsRes.data?.length || 0,
-      variants: variantsRes.data?.length || 0,
+      subcategories: subcategoriesRes.data?.products.length || 0,
+      brands: brandsRes.data?.products.length || 0,
+      models: modelsRes.data?.products.length || 0,
+      variants: variantsRes.data?.products.length || 0,
     };
   } catch (error) {
     console.error("Failed to fetch content stats:", error);
