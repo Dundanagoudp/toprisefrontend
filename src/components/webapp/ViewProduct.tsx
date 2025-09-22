@@ -399,14 +399,14 @@ export default function ProductPage() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 mb-4">
+              {/* <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
                 <span className="text-sm text-muted-foreground">(4.5) Reviews</span>
-              </div>
+              </div> */}
             </div>
 
             <div className="border-b pb-6">

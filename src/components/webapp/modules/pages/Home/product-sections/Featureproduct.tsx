@@ -170,38 +170,66 @@ export default function FeaturedProducts() {
               </div>
 
               <div className="p-4">
-                <h3
-                  className="font-semibold text-gray-900 mb-1"
-                  onClick={product?._id ? (e) => {
-                    e.stopPropagation()
-                    handleProductClick(product._id)
-                  } : undefined}
-                >{name}</h3>
-                {vehicle ? (
-                  <p className="text-sm text-gray-600 mb-3">{vehicle}</p>
-                ) : (
-                  <div className="h-5 mb-3" />
-                )}
+  <h3
+    className="font-semibold text-gray-900 mb-1"
+    onClick={product?._id ? (e) => {
+      e.stopPropagation()
+      handleProductClick(product._id)
+    } : undefined}
+  >
+    {name}
+  </h3>
+  {vehicle ? (
+    <p className="text-sm text-gray-600 mb-3">{vehicle}</p>
+  ) : (
+    <div className="h-5 mb-3" />
+  )}
 
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-lg font-bold text-gray-900">₹{Number(price).toFixed(2)}</span>
-                  {originalPrice && originalPrice !== price && (
-                    <span className="text-sm text-gray-500 line-through">₹{Number(originalPrice).toFixed(2)}</span>
-                  )}
-                </div>
+  <div className="flex items-center gap-2 mb-4">
+    <span className="text-lg font-bold text-gray-900">₹{Number(price).toFixed(2)}</span>
+    {originalPrice && originalPrice !== price && (
+      <span className="text-sm text-gray-500 line-through">
+        ₹{Number(originalPrice).toFixed(2)}
+      </span>
+    )}
+  </div>
 
-                <DynamicButton 
-                  className="w-full text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  text={addingToCart === product?._id ? "Adding..." : "Add"}
-                  icon={addingToCart === product?._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (product?._id) handleSubmit(product._id)
-                  }}
-                  disabled={addingToCart === product?._id}
-                />
-             
-              </div>
+  {/* Conditional buttons */}
+  {isOutOfStock ? (
+    <button
+      disabled
+      className="w-full bg-gray-400 text-white py-2 px-4 rounded font-medium cursor-not-allowed"
+    >
+      Out of Stock
+    </button>
+  ) : (
+    <div className="flex gap-2">
+      <DynamicButton
+        className="flex-1 bg-red-600 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        text={addingToCart === product?._id ? "Adding..." : "Add to Cart"}
+        icon={
+          addingToCart === product?._id
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <ShoppingCart className="w-4 h-4" />
+        }
+        onClick={(e) => {
+          e.stopPropagation()
+          if (product?._id) handleSubmit(product._id)
+        }}
+        disabled={addingToCart === product?._id}
+      />
+
+      <DynamicButton
+        className="flex-1 bg-green-600 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 hover:bg-green-700"
+        text="Buy Now"
+        onClick={(e) => {
+          e.stopPropagation()
+          if (product?._id) handleBuyNow(product._id)
+        }}
+      />
+    </div>
+  )}
+</div>
             </div>
           )
         })}
