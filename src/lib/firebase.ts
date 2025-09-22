@@ -1,18 +1,18 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { firebaseConfig } from './firebaseConfig';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCwNik4xmNLgKkwzMuPAGExlcUH_zViTaM",
-  authDomain: "toprise-c2515.firebaseapp.com",
-  projectId: "toprise-c2515",
-  storageBucket: "toprise-c2515.firebasestorage.app",
-  messagingSenderId: "627943781783",
-  appId: "1:627943781783:web:dbf2547274fd3a223f00d2",
-};
+// Initialize Firebase (avoid duplicate initialization in Next.js hot reload)
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase Authentication and get a reference to the service
+// Initialize Firebase services
+export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
+export const functions = getFunctions(app);
+export const callable = (name: string) => httpsCallable(functions, name);
+
 export default app;

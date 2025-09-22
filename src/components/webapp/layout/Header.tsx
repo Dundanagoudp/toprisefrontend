@@ -18,14 +18,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { User, Settings, LogOut as LogOutIcon } from "lucide-react";
+import { User, Settings, LogOut as LogOutIcon, Menu, X } from "lucide-react";
 import { CartSidebar } from "./CartSideBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useCart } from "@/hooks/use-cart";
 import { CartItem } from "@/types/User/cart-Types";
 import { useToast } from "@/components/ui/toast";
-
-import { searchRequest, searchSuccess, searchFailure } from "@/store/slice/search/searchSlice";
 import LogoNoname from "../../../../public/assets/logo.png";
 import Image from "next/image";
 import { LogOut } from "@/store/slice/auth/authSlice";
@@ -39,6 +37,7 @@ export const Header = () => {
   const vehicleType = useAppSelector(selectVehicleType);
   const typeId = useAppSelector(selectVehicleTypeId);
   const [cartOpen, setCartOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -79,20 +78,20 @@ export const Header = () => {
     setSearchValue(value);
   };
 
-const handleSearchSubmit = async () => {
-  if (!searchValue.trim()) return;
+  const handleSearchSubmit = async () => {
+    if (!searchValue.trim()) return;
 
-  try {
-    const params = new URLSearchParams({
-      query: searchValue.trim(),
-      vehicleTypeId: typeId,
-    });
+    try {
+      const params = new URLSearchParams({
+        query: searchValue.trim(),
+        vehicleTypeId: typeId,
+      });
 
-    router.push(`/shop/search/?${params.toString()}`);
-  } catch (error) {
-    console.error("Failed to execute search:", error);
-  }
-};
+      router.push(`/shop/search/?${params.toString()}`);
+    } catch (error) {
+      console.error("Failed to execute search:", error);
+    }
+  };
 
   const handleSearchClear = () => {
     setSearchValue("");
@@ -129,24 +128,23 @@ const handleSearchSubmit = async () => {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
             <a href="/" className="flex items-center group">
               <Image
                 src={LogoNoname}
                 alt="Toprise logo"
-                className="h-16 sm:h-20 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
+                className="h-12 lg:h-16 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
               />
-              <span className="ml-0 text-2xl sm:text-3xl font-extrabold text-[#1C1C1C] select-none leading-none tracking-tight bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-gray-700 group-hover:to-gray-900">
+              <span className="ml-0 text-xl lg:text-3xl font-extrabold text-[#1C1C1C] select-none leading-none tracking-tight bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-gray-700 group-hover:to-gray-900">
                 Toprise
               </span>
             </a>
           </div>
 
-
-          {/* Center Search Bar */}
-          <div className="flex-grow flex justify-center">
+          {/* Desktop Search Bar */}
+          <div className="hidden lg:flex flex-grow justify-center">
             <div className="w-full max-w-md">
               <SearchInput
                 value={searchValue}
@@ -158,8 +156,8 @@ const handleSearchSubmit = async () => {
             </div>
           </div>
 
-          {/* Right Side - Vehicle Toggle, Navigation Menu, Cart, Profile */}
-          <div className="flex items-center space-x-4">
+          {/* Desktop Right Side */}
+          <div className="hidden lg:flex items-center space-x-4">
             {/* Vehicle Type Toggle */}
             <div className="flex items-center space-x-2">
               <Label htmlFor="mode-toggle" className="text-sm text-gray-700">
@@ -175,7 +173,7 @@ const handleSearchSubmit = async () => {
               </Label>
             </div>
 
-            {/* Navigation Menu Moved to the Right */}
+            {/* Navigation Menu */}
             <NavigationMenu>
               <NavigationMenuList className="flex space-x-6">
                 <NavigationMenuItem>
@@ -235,11 +233,9 @@ const handleSearchSubmit = async () => {
                       >
                         Contact Us
                       </NavigationMenuLink>
-
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
-                {/* Account link intentionally hidden */}
               </NavigationMenuList>
             </NavigationMenu>
 
@@ -252,7 +248,8 @@ const handleSearchSubmit = async () => {
               removeFromCart={removeFromCart}
               calculateTotal={calculateTotal}
             />
-            {/* Auth State: Show Logout if authenticated, else Login/SignUp */}
+
+            {/* Auth State */}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -293,7 +290,161 @@ const handleSearchSubmit = async () => {
               </Button>
             )}
           </div>
+
+          {/* Mobile Right Side */}
+          <div className="flex lg:hidden items-center space-x-2">
+            <CartSidebar
+              cart={cart}
+              cartOpen={cartOpen}
+              setCartOpen={setCartOpen}
+              handleQuantityChange={handleQuantityChange}
+              removeFromCart={removeFromCart}
+              calculateTotal={calculateTotal}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Search Bar */}
+        <div className="lg:hidden pb-4">
+          <SearchInput
+            value={searchValue}
+            onChange={handleSearchChange}
+            onClear={handleSearchClear}
+            onSubmit={handleSearchSubmit}
+            placeholder="Search products..."
+          />
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-gray-200 py-4">
+            {/* Vehicle Type Toggle */}
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <Label htmlFor="mobile-mode-toggle" className="text-sm text-gray-700">
+                Car
+              </Label>
+              <Switch
+                id="mobile-mode-toggle"
+                checked={vehicleType === "bike"}
+                onCheckedChange={handleToggle}
+              />
+              <Label htmlFor="mobile-mode-toggle" className="text-sm text-gray-700">
+                Bike/Scooter
+              </Label>
+            </div>
+
+            {/* Mobile Navigation Links */}
+            <div className="space-y-2">
+              <div className="px-4 py-2">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Services</h3>
+                <div className="space-y-1 ml-4">
+                  <a
+                    href="/services/upload-parts"
+                    className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Upload Required Parts List
+                  </a>
+                  <a
+                    href="/services/upcoming"
+                    className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Upcoming Services
+                  </a>
+                </div>
+              </div>
+
+              <div className="px-4 py-2">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Resources</h3>
+                <div className="space-y-1 ml-4">
+                  <a
+                    href="/PrivacyPolicy"
+                    className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Privacy Policy
+                  </a>
+                  <a
+                    href="/ShippingAndReturnPolicy"
+                    className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Shipping Policy
+                  </a>
+                  <a
+                    href="/TermsAndConditions"
+                    className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Terms & Conditions
+                  </a>
+                  <a
+                    href="/aboutus"
+                    className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    About Us
+                  </a>
+                  <a
+                    href="/contact"
+                    className="block py-2 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Contact Us
+                  </a>
+                </div>
+              </div>
+
+              {/* Mobile Auth */}
+              <div className="px-4 py-2 border-t border-gray-200">
+                {isAuthenticated ? (
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        handleSettings();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full py-2 text-sm text-gray-700 hover:text-gray-900"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full py-2 text-sm text-red-600 hover:text-red-700"
+                    >
+                      <LogOutIcon className="mr-2 h-4 w-4" />
+                      Logout
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      handleSignup();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    Login / SignUp
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

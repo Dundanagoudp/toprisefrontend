@@ -8,6 +8,8 @@ import { registerUser } from "@/service/auth-service";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
+import { createUserWithEmailAndPassword, sendEmailVerification,   User } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export function UserSignUpForm({
   className,
@@ -31,63 +33,106 @@ export function UserSignUpForm({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    
-    // Basic validation
+  
+    // Basic validation (keeps your existing checks)
     if (!name.trim()) {
       showToast("Please enter your name", "error");
       return;
     }
-    
+  
     if (!email.trim()) {
       showToast("Please enter your email", "error");
       return;
     }
-    
+  
     if (!phoneNumber.trim()) {
       showToast("Please enter your phone number", "error");
       return;
     }
-    
+  
     // Phone number validation - exactly 10 digits
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
       showToast("Please enter a valid 10-digit phone number", "error");
       return;
     }
-    
+  
     if (!password.trim()) {
       showToast("Please enter a password", "error");
       return;
     }
-    
+  
     if (password.length < 6) {
       showToast("Password must be at least 6 characters long", "error");
       return;
     }
-    
+  
     if (password !== confirmPassword) {
       showToast("Passwords do not match", "error");
       return;
     }
-    
+  
     setLoading(true);
     setError(null);
+  
     try {
-      const response = await registerUser({ name, email, password, phone_Number: phoneNumber, role: "User" });
-      if (response.success) {
-        showToast("Successfully registered! Please login to continue.", "success");
-        router.replace("/login"); // Redirect to login page after successful registration
-      } else {
-        showToast(response.message || "Registration failed", "error");
+      // 1) Create the user in Firebase Auth (email will be unverified initially)
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user: User | null = userCredential?.user ?? null;
+  
+      if (!user) {
+        throw new Error("Failed to create user");
       }
+  
+     
+      const actionCodeSettings = {
+        url: `${window.location.origin}/signup/verify-email?email=${encodeURIComponent(email)}`,
+        handleCodeInApp: true,
+      };
+  
+      await sendEmailVerification(user, actionCodeSettings);
+  
+      // 3) Save pending signup details in sessionStorage until user verifies email.
+      // DO NOT save plaintext sensitive data in long-term storage. This is temporary.
+      const pending = { name, email, phone_Number: phoneNumber, role: "User" };
+      try {
+        sessionStorage.setItem("pendingSignup", JSON.stringify(pending));
+      } catch (err) {
+        // ignore sessionStorage errors (e.g. privacy mode)
+      }
+  
+      // 4) Sign out the user here so they can't use the unverified session (optional but recommended)
+      // This prevents the newly created unverified user from remaining signed in.
+      try {
+        await auth.signOut();
+      } catch (signOutErr) {
+        /* non-fatal */
+      }
+  
+      showToast("Verification link sent to your email. Please verify before logging in.", "success");
+      router.replace("/signup/verify-pending"); // route user to a "check your mail" page
+  
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err.message || "Registration failed";
-      showToast(`${message}`, "error");
+      console.error("Registration error:", err);
+      // firebase auth errors often include `code` like "auth/email-already-in-use"
+      const code: string = err?.code || "";
+      let message = err?.message || "Registration failed. Please try again.";
+  
+      if (code.includes("email-already-in-use")) {
+        message = "This email is already in use. Try logging in or resetting password.";
+      } else if (code.includes("invalid-email")) {
+        message = "Please provide a valid email address.";
+      } else if (code.includes("weak-password")) {
+        message = "Password is too weak. Please choose a stronger password.";
+      }
+  
+      setError(message);
+      showToast(message, "error");
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
