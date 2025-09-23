@@ -293,6 +293,21 @@ export const Header = () => {
 
           {/* Mobile Right Side */}
           <div className="flex lg:hidden items-center space-x-2">
+            {/* Vehicle Type Toggle */}
+            <div className="flex items-center space-x-1">
+              <Label htmlFor="mobile-header-mode-toggle" className="text-xs text-gray-700">
+                Car
+              </Label>
+              <Switch
+                id="mobile-header-mode-toggle"
+                checked={vehicleType === "bike"}
+                onCheckedChange={handleToggle}
+                className="scale-75"
+              />
+              <Label htmlFor="mobile-header-mode-toggle" className="text-xs text-gray-700">
+                Bike
+              </Label>
+            </div>
             <CartSidebar
               cart={cart}
               cartOpen={cartOpen}
@@ -326,20 +341,6 @@ export const Header = () => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-200 py-4">
-            {/* Vehicle Type Toggle */}
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Label htmlFor="mobile-mode-toggle" className="text-sm text-gray-700">
-                Car
-              </Label>
-              <Switch
-                id="mobile-mode-toggle"
-                checked={vehicleType === "bike"}
-                onCheckedChange={handleToggle}
-              />
-              <Label htmlFor="mobile-mode-toggle" className="text-sm text-gray-700">
-                Bike/Scooter
-              </Label>
-            </div>
 
             {/* Mobile Navigation Links */}
             <div className="space-y-2">

@@ -1,16 +1,18 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import React from "react"
+import React, { useRef } from "react"
 import { useRouter } from "next/navigation"
 import { getCategories, getCategoriesByType } from "@/service/product-Service"
 import type { Category as ProductCategory } from "@/types/product-Types"
 import { useAppSelector } from "@/store/hooks"
 import { selectVehicleTypeId } from "@/store/slice/vehicle/vehicleSlice"
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function CategorySection() {
   const router = useRouter()
   const [categories, setCategories] = React.useState<ProductCategory[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const typeId = useAppSelector(selectVehicleTypeId)
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || ""
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase])
@@ -27,10 +29,22 @@ export default function CategorySection() {
         category: category._id,
         categoryName: category.category_name
       });
-      
+
       router.push(`/shop/search/?${params.toString()}`);
     }
   }
+
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+    }
+  };
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -59,25 +73,48 @@ export default function CategorySection() {
       <div className="max-w-screen-2xl mx-auto">
         <h2 className="text-3xl font-bold text-gray-900 mb-8">Shop by Categories</h2>
 
-        <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
-          {(loading ? Array.from({ length: 5 }) : categories).map((category: any, idx: number) => (
-            <div
-              key={category?._id ?? idx}
-              className="flex-shrink-0 bg-white rounded-lg border border-gray-200 p-8 hover:shadow-lg transition-shadow cursor-pointer min-w-[240px] min-h-[240px] text-center flex flex-col items-center justify-center"
-              onClick={() => category?._id && handleCategoryClick(category)}
-            >
-              <div className="mb-4 flex justify-center">
-                <img
-                  src={buildImageUrl(category?.category_image)}
-                  alt={category?.category_name || "Category"}
-                  className="w-24 h-24 object-contain"
-                />
+        <div className="relative">
+          {/* Left Arrow - Hidden on mobile, visible on desktop */}
+          <button
+            onClick={scrollLeft}
+            className="hidden md:flex absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow hover:bg-gray-50"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="h-5 w-5 text-gray-600" />
+          </button>
+
+          {/* Right Arrow - Hidden on mobile, visible on desktop */}
+          <button
+            onClick={scrollRight}
+            className="hidden md:flex absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow hover:bg-gray-50"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="h-5 w-5 text-gray-600" />
+          </button>
+
+          <div
+            ref={scrollRef}
+            className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide md:scroll-smooth"
+          >
+            {(loading ? Array.from({ length: 5 }) : categories).map((category: any, idx: number) => (
+              <div
+                key={category?._id ?? idx}
+                className="flex-shrink-0 bg-white rounded-lg border border-gray-200 p-8 hover:shadow-lg transition-shadow cursor-pointer min-w-[240px] min-h-[240px] text-center flex flex-col items-center justify-center"
+                onClick={() => category?._id && handleCategoryClick(category)}
+              >
+                <div className="mb-4 flex justify-center">
+                  <img
+                    src={buildImageUrl(category?.category_image)}
+                    alt={category?.category_name || "Category"}
+                    className="w-24 h-24 object-contain"
+                  />
+                </div>
+                <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                  {category?.category_name || "\u00A0"}
+                </h3>
               </div>
-              <h3 className="font-semibold text-gray-900 text-sm leading-tight">
-                {category?.category_name || "\u00A0"}
-              </h3>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 

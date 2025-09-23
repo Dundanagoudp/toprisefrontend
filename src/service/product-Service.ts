@@ -1,5 +1,6 @@
 import { ProductResponse, SubCategoryResponse } from "@/types/product-Types";
 import { ApiResponse } from "@/types/apiReponses-Types";
+import { BrandsApiResponse } from "@/types/catalogue-types";
 import type { Category as ProductCategory } from "@/types/product-Types";
 import apiClient from "@/apiClient";
 
@@ -582,7 +583,7 @@ export async function getvarientByModel(id: string): Promise<ProductResponse> {
 // New API functions for the updated endpoints
 export async function getBrandsByType(
   typeId: string
-): Promise<ProductResponse> {
+): Promise<BrandsApiResponse> {
   try {
     const response = await apiClient.get(
       `/category/api/brands/brandByType/${typeId}`
@@ -853,5 +854,31 @@ export async function assignDealersToProduct(
   } catch (error) {
     console.error("Failed to assign dealers to product:", error);
     throw error;
+  }
+}
+
+export async function getPopularVehicles(
+  vehicle_type: string
+): Promise<ApiResponse<any>> {
+  try {
+    const params: Record<string, string> = { vehicle_type };
+    const response = await apiClient.get(`/category/api/popularVehicle`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch popular vehicles:", error);
+    throw error;
+  }
+}
+export async function getRandomBanners(vehicleTypeId: string): Promise<ApiResponse<any>> {
+  try {
+    const res = await apiClient.get(
+      `/category/api/banner/get/randomBanners?vehicle_type=${vehicleTypeId}`
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Failed to fetch random banners:", err);
+    throw err;
   }
 }

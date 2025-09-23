@@ -5,8 +5,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useAppSelector } from "@/store/hooks"
 import { selectVehicleTypeId } from "@/store/slice/vehicle/vehicleSlice"
-import { 
-  getYearRange, 
+import {
   getBrandsByType,
   getModelsByBrand,
   getVariantsByModel
@@ -26,10 +25,6 @@ interface Variant {
   model_id: string;
 }
 
-interface Year {
-  _id: string;
-  year_name: string;
-}
 
 interface Brand {
   _id: string;
@@ -49,13 +44,11 @@ export default function BannerSection() {
   const [brands, setBrands] = useState<Brand[]>([])
   const [models, setModels] = useState<Model[]>([])
   const [variants, setVariants] = useState<Variant[]>([])
-  const [years, setYears] = useState<Year[]>([])
   
   // State for selected values
   const [selectedBrand, setSelectedBrand] = useState<string>("")
   const [selectedModel, setSelectedModel] = useState<string>("")
   const [selectedVariant, setSelectedVariant] = useState<string>("")
-  const [selectedYear, setSelectedYear] = useState<string>("")
   
   // Number plate search
   const [numberPlate, setNumberPlate] = useState<string>("")
@@ -70,19 +63,13 @@ export default function BannerSection() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [brandsRes, yearsRes] = await Promise.all([
-          getBrandsByType(typeId),
-          getYearRange()
+        const [brandsRes] = await Promise.all([
+          getBrandsByType(typeId)
         ])
         
         if (brandsRes.success && brandsRes.data) {
-          const brandsData = Array.isArray(brandsRes.data) ? brandsRes.data : brandsRes.data.products || []
-          setBrands(brandsData as Brand[])
-        }
-        
-        if (yearsRes.success && yearsRes.data) {
-          const yearsData = Array.isArray(yearsRes.data) ? yearsRes.data : yearsRes.data.products || []
-          setYears(yearsData as Year[])
+          const brandsData = Array.isArray(brandsRes.data) ? brandsRes.data : brandsRes.data || []
+          setBrands(brandsData as unknown as Brand[])
         }
         
         // Reset all selections when vehicle type changes
@@ -179,10 +166,9 @@ const handleVehicleSearch = () => {
   const brandName = brands.find(b => b._id === selectedBrand)?.brand_name || selectedBrand;
   const modelName = models.find(m => m._id === selectedModel)?.model_name || selectedModel;
   const variantName = variants.find(v => v._id === selectedVariant)?.variant_name || selectedVariant;
-  const yearName = years.find(y => y._id === selectedYear)?.year_name || selectedYear;
 
   // Build a single query string (same shape as your working example)
-  const queryParts = [brandName, modelName, variantName, yearName].filter(Boolean);
+  const queryParts = [brandName, modelName, variantName].filter(Boolean);
   const queryStr = queryParts.join(' ').trim();
 
   const searchParams = new URLSearchParams();
@@ -298,18 +284,6 @@ const handleVehicleSearch = () => {
                     ))}
                   </select>
 
-                  <select 
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                    className="w-full p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 hover:bg-gray-600/80 transition-colors"
-                  >
-                    <option value="" className="bg-gray-800 text-white">Select Year</option>
-                    {years.map((year) => (
-                      <option key={year._id} value={year._id} className="bg-gray-800 text-white">
-                        {year.year_name}
-                      </option>
-                    ))}
-                  </select>
 
                   <select 
                     value={selectedVariant}
@@ -344,7 +318,7 @@ const handleVehicleSearch = () => {
               {/* Number Plate Search */}
               <div className="space-y-4 pt-4 border-t border-white/20">
                 <h3 className="text-white font-semibold">Search by number plate</h3>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 md:flex-row">
                   <input
                     type="text"
                     placeholder="e.g., ABC123"
@@ -357,13 +331,13 @@ const handleVehicleSearch = () => {
                     }}
                     className="flex-1 p-3 rounded-lg bg-gray-700/80 backdrop-blur-sm text-white border border-gray-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/50 placeholder-white/70 hover:bg-gray-600/80 transition-colors"
                   />
-                  <button 
+                  <button
                     onClick={handleNumberPlateSearch}
                     disabled={isVehicleSearchLoading}
-                    className={`${isVehicleSearchLoading 
-                      ? 'bg-gray-500 cursor-not-allowed' 
+                    className={`${isVehicleSearchLoading
+                      ? 'bg-gray-500 cursor-not-allowed'
                       : 'bg-red-600 hover:bg-red-700'
-                    } text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl`}
+                    } text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl w-full md:w-auto`}
                   >
                     {isVehicleSearchLoading ? 'Searching...' : 'Search'}
                   </button>
