@@ -67,7 +67,7 @@ export const Header = () => {
 
   const handleSettings = () => {
 
-    router.push('profile');
+    router.push('/profile');
   };
 
   const handleSignup = () => {
@@ -221,14 +221,14 @@ export const Header = () => {
                       >
                         Terms & Conditions
                       </NavigationMenuLink>
-                      <NavigationMenuLink
+                      {/* <NavigationMenuLink
                         href="/aboutus"
                         className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                       >
                         About Us
-                      </NavigationMenuLink>
+                      </NavigationMenuLink> */}
                       <NavigationMenuLink
-                        href="/contact"
+                        href="/contactus"
                         className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                       >
                         Contact Us
@@ -267,7 +267,7 @@ export const Header = () => {
                     className="cursor-pointer"
                   >
                     <Settings className="mr-2 h-4 w-4" />
-                    Settings
+                    My Profile
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

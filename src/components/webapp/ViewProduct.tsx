@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import React, { useState, useEffect } from 'react';
 import { getProductById, getProductsByPage } from "@/service/product-Service"
+import { addWishlistByUser, getWishlistByUser, removeWishlistByUser } from "@/service/user/orderService"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import type { Product as ProductType, Product } from "@/types/product-Types"
@@ -36,6 +37,8 @@ export default function ProductPage() {
   const pageSize = 8
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
+  const [addingToWishlist, setAddingToWishlist] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
   // Recommended products state
   const [recommendedProducts, setRecommendedProducts] = useState<ProductType[]>([]);
   const [recommendedLoading, setRecommendedLoading] = useState(false);
@@ -92,6 +95,46 @@ export default function ProductPage() {
       fetchRecommendedProducts();
     }
   }, [product])
+
+  // Check if product is in wishlist when both userId and product are available
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (!userId || !product?._id) return;
+
+      try {
+        const response = await getWishlistByUser(userId);
+        if (response.success && response.data) {
+          // Handle different response structures like in ProfilePage
+          let wishlistItems: any[] = [];
+          if (Array.isArray(response.data)) {
+            wishlistItems = response.data;
+          } else if (response.data && typeof response.data === 'object') {
+            if (Array.isArray(response.data.items)) {
+              wishlistItems = response.data.items;
+            } else if (Array.isArray(response.data.products)) {
+              wishlistItems = response.data.products;
+            } else if (Array.isArray(response.data.wishlist)) {
+              wishlistItems = response.data.wishlist;
+            } else if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+              wishlistItems = [response.data];
+            }
+          }
+
+          // Check if current product is in wishlist
+          const isProductInWishlist = wishlistItems.some((item: any) => {
+            const productData = item.productDetails || item;
+            return productData._id === product._id || productData.productId === product._id;
+          });
+
+          setIsInWishlist(isProductInWishlist);
+        }
+      } catch (error) {
+        console.error("Failed to check wishlist status:", error);
+      }
+    };
+
+    checkWishlistStatus();
+  }, [userId, product?._id]);
   const handleProductClick = (productId: string) => {
     router.push(`/shop/product/${productId}`)
   }
@@ -100,10 +143,10 @@ export default function ProductPage() {
   const fetchRecommendedProducts = async () => {
     if (!product) return;
     
-    console.log("Fetching recommended products for:", product.product_name);
-    console.log("Product brand ID:", product.brand?._id);
-    console.log("Product model ID:", product.model?._id);
-    console.log("Product variant IDs:", product.variant?.map(v => v._id));
+    // console.log("Fetching recommended products for:", product.product_name);
+    // console.log("Product brand ID:", product.brand?._id);
+    // console.log("Product model ID:", product.model?._id);
+    // console.log("Product variant IDs:", product.variant?.map(v => v._id));
     
     setRecommendedLoading(true);
     try {
@@ -143,8 +186,8 @@ export default function ProductPage() {
           p.no_of_stock > 0
         );
         
-        console.log("Filtered products:", filteredProducts.length);
-        console.log("Filtered products:", filteredProducts);
+        // console.log("Filtered products:", filteredProducts.length);
+        // console.log("Filtered products:", filteredProducts);
         
         setRecommendedProducts(filteredProducts.slice(0, 4)); // Show max 4 products
       } else {
@@ -165,7 +208,7 @@ export default function ProductPage() {
     try {
       setBuyingNow(true);
       await addItemToCart(product._id, quantity);
-      showToast("Product added to cart successfully", "success");
+      // showToast("Product added to cart successfully", "success");
       // Navigate to checkout page
       router.push('/shop/checkout');
     } catch (error: any) {
@@ -239,7 +282,7 @@ export default function ProductPage() {
     try {
       setAddingToCart(true);
       await addItemToCart(product._id, quantity);
-      showToast("Product added to cart successfully", "success");
+      // showToast("Product added to cart successfully", "success");
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error");
@@ -250,6 +293,41 @@ export default function ProductPage() {
       }
     } finally {
       setAddingToCart(false);
+    }
+  };
+
+  const handleAddToWishlist = async () => {
+    if (!product?._id || !userId) {
+      if (!userId) {
+        showToast("Please login to add items to wishlist", "error");
+        router.push("/login");
+      }
+      return;
+    }
+
+    try {
+      setAddingToWishlist(true);
+      const wishlistData = {
+        userId: userId,
+        productId: product._id
+      };
+
+      if (isInWishlist) {
+        // Remove from wishlist
+        await removeWishlistByUser(wishlistData);
+        setIsInWishlist(false);
+        // showToast("Product removed from wishlist", "success");
+      } else {
+        // Add to wishlist
+        await addWishlistByUser(wishlistData);
+        setIsInWishlist(true);
+        // showToast("Product added to wishlist successfully", "success");
+      }
+    } catch (error: any) {
+      console.error("Error updating wishlist:", error);
+      // showToast("Failed to update wishlist", "error");
+    } finally {
+      setAddingToWishlist(false);
     }
   };
 
@@ -284,7 +362,7 @@ export default function ProductPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Breadcrumb */}
-      <div className="border-b border-border bg-card">
+      {/* <div className="border-b border-border bg-card">
         <div className="max-w-screen-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link 
@@ -304,7 +382,7 @@ export default function ProductPage() {
             <span className="text-foreground">Product: {product.product_name}</span>
           </div>
         </div>
-      </div>
+      </div> */}
       
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb Navigation */}
@@ -500,8 +578,20 @@ export default function ProductPage() {
                 ) : null}
                 {buyingNow ? "Processing..." : "Buy Now"}
               </Button>
-              <Button variant="outline" size="lg" className="px-4">
-                <Heart className="w-5 h-5" />
+              <Button
+                variant="outline"
+                size="lg"
+                className="px-4"
+                onClick={handleAddToWishlist}
+                disabled={addingToWishlist || !userId}
+              >
+                {addingToWishlist ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Heart
+                    className={`w-5 h-5 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-red-500'}`}
+                  />
+                )}
               </Button>
             </div>
 

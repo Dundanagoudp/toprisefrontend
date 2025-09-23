@@ -15,7 +15,7 @@ export default function Footer() {
   };
 
   const footerLinks = [
-    { label: "Contact us", onClick: handleContactUsClick },
+    { label: "Contact us", href: "/contactus" },
   
     { label: "Terms & Conditions", href: "/TermsAndConditions" },
     { label: "Privacy Policy", href: "/PrivacyPolicy" },

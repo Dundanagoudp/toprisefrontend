@@ -1,4 +1,5 @@
 import apiClient from "@/apiClient";
+import { ApiResponse } from "@/types/apiReponses-Types";
 
 export interface OrderSKU {
   _id: string;
@@ -188,3 +189,55 @@ export async function getUserOrders(userId: string): Promise<UserOrdersResponse>
     throw error;
   }
 }
+
+export async function getWishlistByUser(userId: string): Promise<ApiResponse<any>> {
+  try {
+    const res = await apiClient.get(
+      `/orders/api/wishlist/byUser/${userId}`
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Failed to fetch wishlist:", err);
+    throw err;
+  }
+}
+export async function removeWishlistByUser(data: { userId: string; productId: string }): Promise<ApiResponse<any>> {
+  try {
+    const res = await apiClient.post(
+      `/orders/api/wishlist/remove/`,
+      data
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Failed to remove from wishlist:", err);
+    throw err;
+  }
+}
+export async function addWishlistByUser(data: { userId: string; productId: string }): Promise<ApiResponse<any>> {
+  try {
+    const res = await apiClient.post(
+      `/orders/api/wishlist/`,
+      data
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Failed to add to wishlist:", err);
+    throw err;
+  }
+}
+export async function moveToCart(data: { userId: string; productId: string }): Promise<ApiResponse<any>> {
+  try {
+    const res = await apiClient.put(
+      `/orders/api/wishlist/`,
+      data
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Failed to move item to cart:", err);
+    throw err;
+  }
+}
+
+
+
+
