@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-import { ChevronDown, ChevronUp, Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon } from 'lucide-react';
 import { smartSearch, smartSearchWithCategory } from '@/service/user/smartSearchService';
 import { Product, Brand } from '@/types/User/Search-Types';
 import { useAppSelector } from '@/store/hooks';
@@ -75,17 +75,6 @@ const SearchResults = () => {
   const [modelData, setModelData] = useState<Model[]>([]);
   const [variantData, setVariantData] = useState<Variant[]>([]);
   const [searchValue, setSearchValue] = useState<string>(query || categoryName || '');
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    vehicle: true,
-    price: false,
-    sortBy: false,
-    subCategories: true,
-  });
-  const [selectedFilters, setSelectedFilters] = useState({
-    priceRange: '',
-    sortBy: '',
-    subCategories: [] as string[],
-  });
   const noVehicleResults =
     Boolean(vehicleTypeId) &&
     !loading &&
@@ -414,47 +403,7 @@ const SearchResults = () => {
     }
   }, [isProduct]);
 
-  const toggleSection = (section: string) => {
-    setOpenSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
 
-  const subCategories = [
-    'Air Conditioning',
-    'Belt & Chain Drive',
-    'Body Parts',
-    'Brake System',
-    'Bike Accessories',
-    'Bike Care',
-    'Clutch System',
-    'Cooling System',
-    'Electrical',
-    'Exhaust System',
-    'Fasteners',
-    'Filters',
-    'Fuel System',
-    'Gasket & Seals',
-    'Hybrid & Electric Drive',
-    'Interiors Comfort & Safety',
-    'Lighting',
-    'Oils & Fluids',
-    'Service Kit',
-    'Suspension',
-    'Transmission',
-    'Wheels & Tyre',
-    'Windscreen Cleaning System'
-  ];
-
-  const handleSubCategoryToggle = (category: string) => {
-    setSelectedFilters(prev => ({
-      ...prev,
-      subCategories: prev.subCategories.includes(category)
-        ? prev.subCategories.filter(c => c !== category)
-        : [...prev.subCategories, category]
-    }));
-  };
 
   const handleLoadMore = () => {
     setDisplayLimit(prev => prev + 10);
@@ -480,18 +429,11 @@ const SearchResults = () => {
       <div className="border-b border-border bg-card">
         <div className="max-w-screen-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className="hover:text-primary cursor-pointer transition-colors"
             >
               Home
-            </Link>
-            <span>/</span>
-            <Link 
-              href="/shop" 
-              className="hover:text-primary cursor-pointer transition-colors"
-            >
-              Shop
             </Link>
             <span>/</span>
             <span className="text-foreground">
@@ -512,141 +454,9 @@ const SearchResults = () => {
       </div>
       {/* Main Content */}
       <div className="max-w-screen-2xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Sidebar Filters */}
-          <aside className="w-64 flex-shrink-0">
-            <div className="bg-card rounded-lg border border-border p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-foreground">Filter</h2>
-                <button className="text-sm text-destructive hover:underline">
-                  Reset
-                </button>
-              </div>
-              {/* Vehicle Section */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleSection('vehicle')}
-                  className="flex items-center justify-between w-full text-left mb-3"
-                >
-                  <h3 className="font-medium text-foreground">Vehicle</h3>
-                  {openSections.vehicle ? (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </button>
-                {openSections.vehicle && (
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Choose Brand Model"
-                      className="w-full px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
-                    />
-                  </div>
-                )}
-              </div>
-              {/* Price Section */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleSection('price')}
-                  className="flex items-center justify-between w-full text-left mb-3"
-                >
-                  <h3 className="font-medium text-foreground">Price</h3>
-                  {openSections.price ? (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </button>
-                {openSections.price && (
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="rounded border-input"
-                        onChange={() => setSelectedFilters(prev => ({ ...prev, priceRange: 'high-to-low' }))}
-                      />
-                      High to Low Price
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="rounded border-input"
-                        onChange={() => setSelectedFilters(prev => ({ ...prev, priceRange: 'low-to-high' }))}
-                      />
-                      Low to High Price
-                    </label>
-                  </div>
-                )}
-              </div>
-              {/* Sort By Section */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleSection('sortBy')}
-                  className="flex items-center justify-between w-full text-left mb-3"
-                >
-                  <h3 className="font-medium text-foreground">Sort By</h3>
-                  {openSections.sortBy ? (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </button>
-                {openSections.sortBy && (
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="rounded border-input"
-                      />
-                      OEM
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="rounded border-input"
-                      />
-                      After Market Product
-                    </label>
-                  </div>
-                )}
-              </div>
-              {/* Sub Categories */}
-              <div>
-                <button
-                  onClick={() => toggleSection('subCategories')}
-                  className="flex items-center justify-between w-full text-left mb-3"
-                >
-                  <h3 className="font-medium text-foreground">Sub Categories</h3>
-                  {openSections.subCategories ? (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </button>
-                {openSections.subCategories && (
-                  <div className="space-y-1 max-h-64 overflow-y-auto">
-                    {subCategories.map((category) => (
-                      <label
-                        key={category}
-                        className="flex items-center gap-2 text-sm text-foreground cursor-pointer py-1 hover:bg-muted px-2 rounded transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          className="rounded border-input"
-                          checked={selectedFilters.subCategories.includes(category)}
-                          onChange={() => handleSubCategoryToggle(category)}
-                        />
-                        {category}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </aside>
+        <div className="w-full">
           {/* Product Grid */}
-          <main className="flex-1">
+          <main>
             {/* Page Header */}
             <div className="mb-6 flex items-center justify-between">
               <h1 className="text-2xl font-bold text-foreground mb-4">
@@ -734,8 +544,8 @@ const SearchResults = () => {
               </div>
             )}
 
-            {/* Variant Display - grid of all variants */}
-            {isVariant && variantData.length > 0 && (
+            {/* Variant Display - grid of all variants or direct products */}
+            {isVariant && variantData.length > 0 && products.length === 0 && (
               <div className="mb-6">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-foreground">
@@ -747,6 +557,52 @@ const SearchResults = () => {
                   models={modelData.length > 0 ? modelData[0] : null}
                   onVariantSelect={handleVariantClick}
                 />
+              </div>
+            )}
+
+            {/* Direct Product Display for variants that have products */}
+            {isVariant && products.length > 0 && (
+              <div className="mb-6">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {products.length} Product{products.length !== 1 ? 's' : ''} Found
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {displayedProducts.map((product) => (
+                    <div
+                      key={product._id}
+                      className="bg-card rounded-lg border border-border p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+                    >
+                      <div className="aspect-square bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
+                        <img
+                          src={buildImageUrl(product.images?.[0])}
+                          alt={product.product_name || "Product"}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <h3 className="font-medium text-foreground text-sm mb-2 line-clamp-2">
+                        {product.product_name}
+                      </h3>
+                      <div className="flex items-center justify-between">
+                        <span className="text-primary font-semibold">
+                          Rs {product.selling_price?.toLocaleString() || 0}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Load More */}
+                {hasMoreProducts && displayedProducts.length > 0 && (
+                  <div className="flex justify-center mt-8">
+                    <button
+                      onClick={handleLoadMore}
+                      className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      Load More Products ({products.length - displayLimit} remaining)
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

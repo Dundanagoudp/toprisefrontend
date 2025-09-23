@@ -1,20 +1,42 @@
 "use client"
 import React from "react"
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
-import { getProductsByPage } from "@/service/product-Service"
-import type { Product as ProductType } from "@/types/product-Types"
+import { Heart, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight } from "lucide-react"
+import { getPopularVehicles } from "@/service/product-Service"
 import { DynamicButton } from "@/components/common/button"
-import { useCart } from "@/hooks/use-cart"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/toast"
+import { selectVehicleTypeId, selectVehicleType } from "@/store/slice/vehicle/vehicleSlice"
+import { useAppSelector } from "@/store/hooks"
+
+interface Vehicle {
+  _id: string;
+  vehicle_name: string;
+  vehicle_image: string;
+  brand_id: {
+    _id: string;
+    brand_name: string;
+    brand_logo: string;
+  };
+  model_id: {
+    _id: string;
+    model_name: string;
+    model_image: string;
+  };
+  variant_id: {
+    _id: string;
+    variant_name: string;
+  };
+  vehicle_type: {
+    _id: string;
+    type_name: string;
+  };
+}
 
 export default function FeaturedProducts() {
-  const [products, setProducts] = React.useState<ProductType[]>([])
+  const [vehicles, setVehicles] = React.useState<Vehicle[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
-  const [currentPage, setCurrentPage] = React.useState<number>(1)
-  const [totalPages, setTotalPages] = React.useState<number>(1)
-  const [addingToCart, setAddingToCart] = React.useState<string | null>(null)
-  const pageSize = 8
+  const [currentSlide, setCurrentSlide] = React.useState<number>(0)
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+  const cardsPerView = 4 // Number of cards visible at once on desktop
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || ""
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase])
   const buildImageUrl = React.useCallback((path?: string) => {
@@ -24,119 +46,112 @@ export default function FeaturedProducts() {
   }, [filesOrigin])
 
   const router = useRouter()
-  const { showToast } = useToast()
-  const { addItemToCart } = useCart()
-  const handleProductClick = (productId: string) => {
-    router.push(`/shop/product/${productId}`)
+  const vehicle_type = useAppSelector(selectVehicleTypeId)
+  const vehicleTypeName = useAppSelector(selectVehicleType)
+  const handleVehicleClick = (vehicleId: string) => {
+    router.push(`/shop/vehicle/${vehicleId}`)
+  }
+
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      const cardWidth = scrollRef.current.offsetWidth / cardsPerView
+      scrollRef.current.scrollBy({ left: -cardWidth, behavior: 'smooth' })
+      setCurrentSlide(prev => Math.max(0, prev - 1))
+    }
+  }
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      const cardWidth = scrollRef.current.offsetWidth / cardsPerView
+      const maxSlide = Math.max(0, vehicles.length - cardsPerView)
+      scrollRef.current.scrollBy({ left: cardWidth, behavior: 'smooth' })
+      setCurrentSlide(prev => Math.min(maxSlide, prev + 1))
+    }
+  }
+
+  const goToSlide = (slideIndex: number) => {
+    if (scrollRef.current) {
+      const cardWidth = scrollRef.current.offsetWidth / cardsPerView
+      scrollRef.current.scrollTo({ left: slideIndex * cardWidth, behavior: 'smooth' })
+      setCurrentSlide(slideIndex)
+    }
   }
   React.useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const res = await getProductsByPage(currentPage, pageSize, "Approved", "")
-        console.log("productid ", res?.data?.products?.[0]?._id)
-        const items = (res?.data?.products ?? []) as ProductType[]
-        setProducts(items)
-        const tp = res?.data?.pagination?.totalPages
-        if (tp) setTotalPages(tp)
+        console.log("Fetching popular vehicles for type:", vehicle_type)
+        const res = await getPopularVehicles(vehicle_type)
+        const items = (res.data || [])
+        console.log("Fetched vehicles:", items)
+        setVehicles(items)
       } catch (e) {
-        setProducts([])
-        setTotalPages(1)
+        console.error("Error fetching vehicles:", e)
+        setVehicles([])
       } finally {
         setLoading(false)
       }
     }
-    fetchData()
-  }, [currentPage])
-
-  const handleSubmit = async (productId: string) => {
-    if (!productId) return
-
-    try {
-      setAddingToCart(productId)
-      await addItemToCart(productId, 1)
-      showToast("Product added to cart successfully", "success")
-    } catch (error: any) {
-      if (error.message === 'User not authenticated') {
-        showToast("Please login to add items to cart", "error")
-        router.push("/login")
-      } else {
-        showToast("Failed to add product to cart", "error")
-        console.error("Error adding to cart:", error)
-      }
-    } finally {
-      setAddingToCart(null)
+    if (vehicle_type) {
+      fetchData()
     }
-  }
+  }, [vehicle_type])
 
-  const handleBuyNow = async (productId: string) => {
-    if (!productId) return
-
-    try {
-      await addItemToCart(productId, 1)
-      showToast("Product added to cart", "success")
-      router.push("/cart")
-    } catch (error: any) {
-      if (error.message === 'User not authenticated') {
-        showToast("Please login to buy this product", "error")
-        router.push("/login")
-      } else {
-        showToast("Failed to add product to cart", "error")
-        console.error("Error adding to cart:", error)
-      }
-    }
-  }
-
-  const computeDiscount = (mrp?: number, price?: number) => {
-    if (!mrp || !price || mrp <= 0) return 0
-    return Math.max(0, Math.round((1 - price / mrp) * 100))
-  }
 
   return (
     <section className="py-12 px-4 max-w-screen-2xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Featured Product List</h2>
-        <div className="flex items-center gap-2 text-sm">
-          <button
-            aria-label="Previous page"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="p-2 rounded-md bg-red-600 text-white disabled:opacity-50 disabled:bg-red-400 hover:bg-red-700 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-gray-600 select-none">
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            aria-label="Next page"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="p-2 rounded-md bg-red-600 text-white disabled:opacity-50 disabled:bg-red-400 hover:bg-red-700 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900">
+          Popular {vehicleTypeName === 'bike' ? 'Bike/Scooter' : 'Car'} Vehicles
+        </h2>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {(loading ? Array.from({ length: pageSize }) : products).map((product: any, idx: number) => {
-          const imageSrc = buildImageUrl(product?.images?.[0])
-          const name = product?.product_name || "Product"
-          const vehicle = product?.brand?.brand_name || ""
-          const price = product?.selling_price ?? 0
-          const originalPrice = product?.mrp_with_gst ?? price
-          const discount = computeDiscount(originalPrice, price)
-          const key = product?._id ?? idx
-          const isOutOfStock = product?.out_of_stock || product?.no_of_stock <= 0
+      {!loading && vehicles.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No popular vehicles found for the selected vehicle type.</p>
+        </div>
+      ) : (
+        <div className="relative">
+          {/* Navigation Arrows */}
+          <button
+            onClick={scrollLeft}
+            disabled={currentSlide === 0}
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:shadow-xl transition-all hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Previous vehicles"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
+          </button>
+
+          <button
+            onClick={scrollRight}
+            disabled={currentSlide >= Math.max(0, vehicles.length - cardsPerView)}
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:shadow-xl transition-all hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Next vehicles"
+          >
+            <ArrowRight className="h-5 w-5 text-gray-600" />
+          </button>
+
+          {/* Carousel Container */}
+          <div
+            ref={scrollRef}
+            className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"
+          >
+            {(loading ? Array.from({ length: 8 }) : vehicles).map((vehicle: Vehicle | any, idx: number) => {
+          const imageSrc = vehicle?.vehicle_image || "/placeholder.svg"
+          const name = vehicle?.vehicle_name || "Vehicle"
+          const brand = vehicle?.brand_id?.brand_name || ""
+          const model = vehicle?.model_id?.model_name || ""
+          const variant = vehicle?.variant_id?.variant_name || ""
+          const type = vehicle?.vehicle_type?.type_name || ""
+          const key = vehicle?._id ?? idx
 
           return (
             <div
               key={key}
-              className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${product?._id ? 'cursor-pointer' : ''}`}
-              onClick={product?._id ? () => handleProductClick(product._id) : undefined}
-              role={product?._id ? "button" : undefined}
-              tabIndex={product?._id ? 0 : -1}
+              className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex-shrink-0 w-80 ${vehicle?._id ? 'cursor-pointer' : ''}`}
+              onClick={vehicle?._id ? () => handleVehicleClick(vehicle._id) : undefined}
+              role={vehicle?._id ? "button" : undefined}
+              tabIndex={vehicle?._id ? 0 : -1}
             >
               <div className="relative p-4 bg-gray-50">
                 <button
@@ -151,89 +166,80 @@ export default function FeaturedProducts() {
                 <img
                   src={imageSrc}
                   alt={name}
-                  className={`w-full h-48 object-contain ${isOutOfStock ? 'opacity-50' : ''}`}
-                  onClick={product?._id ? (e) => {
+                  className="w-full h-48 object-contain"
+                  onClick={vehicle?._id ? (e) => {
                     e.stopPropagation()
-                    handleProductClick(product._id)
+                    handleVehicleClick(vehicle._id)
                   } : undefined}
                 />
-                {isOutOfStock && (
-                  <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-medium">
-                    Out of Stock
-                  </div>
-                )}
-                {!isOutOfStock && discount > 0 && (
-                  <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-sm font-medium">
-                    {discount}%
-                  </div>
-                )}
+                <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
+                  {type}
+                </div>
               </div>
 
               <div className="p-4">
-  <h3
-    className="font-semibold text-gray-900 mb-1"
-    onClick={product?._id ? (e) => {
-      e.stopPropagation()
-      handleProductClick(product._id)
-    } : undefined}
-  >
-    {name}
-  </h3>
-  {vehicle ? (
-    <p className="text-sm text-gray-600 mb-3">{vehicle}</p>
-  ) : (
-    <div className="h-5 mb-3" />
-  )}
+                <h3
+                  className="font-semibold text-gray-900 mb-1"
+                  onClick={vehicle?._id ? (e) => {
+                    e.stopPropagation()
+                    handleVehicleClick(vehicle._id)
+                  } : undefined}
+                >
+                  {name}
+                </h3>
+                {brand && (
+                  <p className="text-sm text-gray-600 mb-1">{brand}</p>
+                )}
+                {model && (
+                  <p className="text-sm text-gray-500 mb-3">{model}</p>
+                )}
+                {variant && (
+                  <p className="text-xs text-gray-400 mb-3">{variant}</p>
+                )}
 
-  <div className="flex items-center gap-2 mb-4">
-    <span className="text-lg font-bold text-gray-900">₹{Number(price).toFixed(2)}</span>
-    {originalPrice && originalPrice !== price && (
-      <span className="text-sm text-gray-500 line-through">
-        ₹{Number(originalPrice).toFixed(2)}
-      </span>
-    )}
-  </div>
-
-  {/* Conditional buttons */}
-  {isOutOfStock ? (
-    <button
-      disabled
-      className="w-full bg-gray-400 text-white py-2 px-4 rounded font-medium cursor-not-allowed"
-    >
-      Out of Stock
-    </button>
-  ) : (
-    <div className="flex gap-2">
-      <DynamicButton
-        className="flex-1 bg-red-600 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        text={addingToCart === product?._id ? "Adding..." : "Add to Cart"}
-        icon={
-          addingToCart === product?._id
-            ? <Loader2 className="w-4 h-4 animate-spin" />
-            : <ShoppingCart className="w-4 h-4" />
-        }
-        onClick={(e) => {
-          e.stopPropagation()
-          if (product?._id) handleSubmit(product._id)
-        }}
-        disabled={addingToCart === product?._id}
-      />
-
-      <DynamicButton
-        className="flex-1 bg-green-600 text-white py-2 px-4 rounded font-medium transition-colors flex items-center justify-center gap-2 hover:bg-green-700"
-        text="Buy Now"
-        onClick={(e) => {
-          e.stopPropagation()
-          if (product?._id) handleBuyNow(product._id)
-        }}
-      />
-    </div>
-  )}
-</div>
+                <DynamicButton
+                  className="w-full bg-red-600 text-white py-2 px-4 rounded font-medium transition-colors hover:bg-red-700"
+                  text="View Details"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (vehicle?._id) handleVehicleClick(vehicle._id)
+                  }}
+                />
+              </div>
             </div>
           )
         })}
-      </div>
+          </div>
+
+          {/* Dot Indicators */}
+          {!loading && vehicles.length > cardsPerView && (
+            <div className="flex justify-center mt-6 space-x-2">
+              {Array.from({ length: Math.ceil(vehicles.length / cardsPerView) }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    Math.floor(currentSlide / cardsPerView) === index
+                      ? 'bg-red-600'
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </section>
   )
 }

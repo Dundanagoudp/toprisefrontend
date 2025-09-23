@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginUser } from "@/service/auth-service";
+import { loginUser, checkUserExists } from "@/service/auth-service";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
@@ -121,8 +121,16 @@ export function UserLoginForm({
 
     setOtpLoading(true);
     setError(null);
-    
+
     try {
+      // Check if user exists first
+      const userExists = await checkUserExists(phoneNumber);
+      if (!userExists) {
+        showToast("User not found. Please create a new account.", "error");
+        return;
+      }
+
+      // User exists, proceed with OTP
       const result = await firebasePhoneAuth.sendOTP(phoneNumber);
       setConfirmationResult(result);
       setOtpSent(true);
@@ -189,7 +197,7 @@ export function UserLoginForm({
 
         // Handle regular user login
         if (role === "User") {
-          router.replace("/shop");
+          router.replace("/");
           showToast("Successfully logged in with phone", "success");
         } else {
           showToast("Your account type is not allowed to log in here.", "error");

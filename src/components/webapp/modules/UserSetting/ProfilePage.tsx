@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useToast } from "@/components/ui/toast";
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -51,6 +52,8 @@ import {
   Loader2,
   ExternalLink,
   Star,
+  Bus,
+  Ticket,
 } from "lucide-react";
 
 interface Address {
@@ -87,6 +90,9 @@ export default function ProfilePage() {
   const [editingAddressIndex, setEditingAddressIndex] = useState<number | null>(
     null
   );
+  const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
   const [newAddress, setNewAddress] = useState<UserAddress>({
     nick_name: "",
     street: "",
@@ -260,14 +266,6 @@ export default function ProfilePage() {
         updateData.username = profileData.username;
       }
 
-      // Add phone if it's different from current profile
-      if (
-        profileData.phone_Number &&
-        profileData.phone_Number !== userProfile?.phone_Number
-      ) {
-        updateData.phone_Number = profileData.phone_Number;
-      }
-
       // Add bank details if they exist
       if (
         profileData.bank_details &&
@@ -419,6 +417,24 @@ export default function ProfilePage() {
       return;
     }
 
+    // Validate pincode format (exactly 6 digits)
+    if (!/^[0-9]{6}$/.test(newAddress.pincode)) {
+      showToast("Please enter a valid 6-digit pincode", "error");
+      return;
+    }
+
+    // Show confirmation dialog
+    setShowUpdateConfirmation(true);
+  };
+
+  const confirmSaveAddress = async () => {
+    setShowUpdateConfirmation(false);
+
+    if (!userId) {
+      showToast("User ID not found", "error");
+      return;
+    }
+
     try {
       setUpdatingAddress(true);
 
@@ -486,6 +502,23 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAddress = async (addressIndex: number) => {
+    if (!userId) {
+      showToast("User ID not found", "error");
+      return;
+    }
+
+    // Show confirmation dialog
+    setPendingDeleteIndex(addressIndex);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteAddress = async () => {
+    if (pendingDeleteIndex === null) return;
+
+    setShowDeleteConfirmation(false);
+    const addressIndex = pendingDeleteIndex;
+    setPendingDeleteIndex(null);
+
     if (!userId) {
       showToast("User ID not found", "error");
       return;
@@ -634,6 +667,20 @@ export default function ProfilePage() {
               <MapPin className="mr-2 h-4 w-4" />
               Addresses
             </TabsTrigger>
+            <TabsTrigger
+              value="saved-vehicles"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+            >
+              <Bus className="mr-2 h-4 w-4" />
+             Saved Vehicles
+            </TabsTrigger>
+            <TabsTrigger
+              value="tickets"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+            >
+              <Ticket className="mr-2 h-4 w-4" />
+             Tickets
+            </TabsTrigger>
           </TabsList>
 
           {/* Profile Tab */}
@@ -688,12 +735,7 @@ export default function ProfilePage() {
                               id="phone_Number"
                               type="tel"
                               value={profileData.phone_Number}
-                              onChange={(e) =>
-                                setProfileData({
-                                  ...profileData,
-                                  phone_Number: e.target.value,
-                                })
-                              }
+                              disabled
                               placeholder="Enter your phone number"
                             />
                           </div>
@@ -871,17 +913,7 @@ export default function ProfilePage() {
                   description="Manage your account preferences and security"
                 >
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
-                      <div>
-                        <p className="font-medium text-foreground">
-                          Change Password
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Update your password regularly for security
-                        </p>
-                      </div>
-                      <Button variant="outline">Change</Button>
-                    </div>
+             
                     <div className="flex items-center justify-between p-4 rounded-lg bg-destructive/5 border border-destructive/20">
                       <div>
                         <p className="font-medium text-destructive">
@@ -1040,30 +1072,43 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="nick_name">Address Nickname *</Label>
-                      <Input
-                        id="nick_name"
+                      <Select
                         value={newAddress.nick_name}
-                        onChange={(e) =>
+                        onValueChange={(value) =>
                           setNewAddress({
                             ...newAddress,
-                            nick_name: e.target.value,
+                            nick_name: value,
                           })
                         }
-                        placeholder="e.g., Home, Office, etc."
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select address type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Home">Home</SelectItem>
+                          <SelectItem value="Work">Work</SelectItem>
+                          <SelectItem value="Shop">Shop</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="pincode">Pincode *</Label>
                       <Input
                         id="pincode"
+                        type="tel"
+                        maxLength={6}
+                        pattern="[0-9]{6}"
                         value={newAddress.pincode}
-                        onChange={(e) =>
-                          setNewAddress({
-                            ...newAddress,
-                            pincode: e.target.value,
-                          })
-                        }
-                        placeholder="Enter pincode"
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          if (value.length <= 6) {
+                            setNewAddress({
+                              ...newAddress,
+                              pincode: value,
+                            });
+                          }
+                        }}
+                        placeholder="Enter 6-digit pincode"
                       />
                     </div>
                   </div>
@@ -1108,7 +1153,7 @@ export default function ProfilePage() {
                   <div className="flex gap-2 pt-4">
                     <Button
                       onClick={handleSaveAddress}
-                      disabled={updatingAddress}
+                      disabled={updatingAddress || showUpdateConfirmation}
                       className="bg-gradient-to-r from-[#c72920] to-[#e5665f] text-white hover:opacity-90"
                     >
                       {updatingAddress ? (
@@ -1177,7 +1222,7 @@ export default function ProfilePage() {
                           className="text-destructive hover:bg-destructive/10"
                           onClick={() => handleDeleteAddress(index)}
                           disabled={
-                            updatingAddress || editingAddressIndex !== null
+                            updatingAddress || editingAddressIndex !== null || showDeleteConfirmation
                           }
                         >
                           {updatingAddress ? (
@@ -1206,6 +1251,33 @@ export default function ProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={showUpdateConfirmation}
+        onClose={() => setShowUpdateConfirmation(false)}
+        onConfirm={confirmSaveAddress}
+        title="Confirm Address Update"
+        description={editingAddressIndex !== null
+          ? "Are you sure you want to update this address?"
+          : "Are you sure you want to add this new address?"
+        }
+        confirmText="Yes, Save"
+        cancelText="Cancel"
+      />
+
+      <ConfirmationDialog
+        isOpen={showDeleteConfirmation}
+        onClose={() => {
+          setShowDeleteConfirmation(false);
+          setPendingDeleteIndex(null);
+        }}
+        onConfirm={confirmDeleteAddress}
+        title="Confirm Address Deletion"
+        description="Are you sure you want to delete this address? This action cannot be undone."
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 }
