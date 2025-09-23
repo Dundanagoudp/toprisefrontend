@@ -24,6 +24,8 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { getProductById } from '@/service/product-Service'
 import formatDate from '@/utils/formateDate'
+import { Header } from './layout/Header'
+import Footer from '../landingPage/module/Footer'
 
 interface OrderDetailsPageProps {
   order: any
@@ -157,6 +159,8 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
   }
 
   return (
+    <div> 
+      <Header/>
     <div className="min-h-screen bg-background">
       {/* Breadcrumb */}
       <div className="border-b border-border bg-card">
@@ -534,6 +538,8 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
           </div>
         </div>
       </div>
+    </div>
+    <Footer/>
     </div>
   )
 }

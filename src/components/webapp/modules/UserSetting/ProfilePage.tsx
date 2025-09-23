@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProfileSection } from "./ProfileSection";
@@ -32,7 +33,7 @@ import {
   editUserAddress,
   EditAddressRequest,
 } from "@/service/user/userService";
-import { getUserOrders, Order as UserOrder } from "@/service/user/orderService";
+import { getUserOrders, Order as UserOrder, getWishlistByUser, moveToCart, removeWishlistByUser } from "@/service/user/orderService";
 import {
   User,
   ShoppingBag,
@@ -54,8 +55,9 @@ import {
   Star,
   Bus,
   Ticket,
+ 
 } from "lucide-react";
-
+import Link from "next/link";
 interface Address {
   id: string;
   type: "home" | "work" | "other";
@@ -82,8 +84,12 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
+  const [userWishlist, setUserWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [movingToCart, setMovingToCart] = useState<string[]>([]);
+  const [removingFromWishlist, setRemovingFromWishlist] = useState<string[]>([]);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updatingAddress, setUpdatingAddress] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
@@ -164,6 +170,118 @@ export default function ProfilePage() {
 
     fetchUserOrders();
   }, [userId, activeTab, showToast]);
+
+  // Fetch user wishlist when wishlists tab is active
+  useEffect(() => {
+    const fetchUserWishlist = async () => {
+      if (!userId || activeTab !== "wishlists") return;
+
+      try {
+        setWishlistLoading(true);
+        const response = await getWishlistByUser(userId);
+
+        // Handle malformed responses
+        if (!response || typeof response !== 'object') {
+          console.error("Invalid response format:", response);
+          setUserWishlist([]);
+          return;
+        }
+
+        if (response.success) {
+          let wishlistData: any[] = [];
+
+          if (Array.isArray(response.data)) {
+            wishlistData = response.data;
+          } else if (response.data && typeof response.data === 'object') {
+            // Handle nested structure like { items: [...] } or similar
+            if (Array.isArray(response.data.items)) {
+              wishlistData = response.data.items;
+            } else if (Array.isArray(response.data.products)) {
+              wishlistData = response.data.products;
+            } else if (Array.isArray(response.data.wishlist)) {
+              wishlistData = response.data.wishlist;
+            } else {
+              // If data is an object but not an array, wrap it in an array if it looks like a product
+              wishlistData = [response.data];
+            }
+          } else if (!response.data) {
+            wishlistData = [];
+          }
+
+          setUserWishlist(wishlistData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user wishlist:", error);
+        showToast("Failed to load wishlist", "error");
+      } finally {
+        setWishlistLoading(false);
+      }
+    };
+
+    fetchUserWishlist();
+  }, [userId, activeTab, showToast]);
+
+  // Handle moving wishlist item to cart
+  const handleMoveToCart = async (productId: string) => {
+    if (!userId) return;
+
+    try {
+      setMovingToCart(prev => [...prev, productId]);
+
+      const response = await moveToCart({
+        userId: userId,
+        productId: productId
+      });
+
+      if (response.success) {
+        showToast("Item moved to cart successfully!", "success");
+        // Refresh wishlist to remove the moved item
+        const wishlistResponse = await getWishlistByUser(userId);
+        if (wishlistResponse.success) {
+          const wishlistData = Array.isArray(wishlistResponse.data)
+            ? wishlistResponse.data
+            : wishlistResponse.data?.items || [];
+          setUserWishlist(wishlistData);
+        }
+      } else {
+        showToast("Failed to move item to cart", "error");
+      }
+    } catch (error) {
+      console.error("Failed to move item to cart:", error);
+      showToast("Failed to move item to cart", "error");
+    } finally {
+      setMovingToCart(prev => prev.filter(id => id !== productId));
+    }
+  };
+
+  // Handle removing item from wishlist
+  const handleRemoveFromWishlist = async (productId: string) => {
+    if (!userId) return;
+
+    try {
+      setRemovingFromWishlist(prev => [...prev, productId]);
+
+      const response = await removeWishlistByUser({
+        userId: userId,
+        productId: productId
+      });
+
+      if (response.success) {
+        showToast("Item removed from wishlist", "success");
+        // Remove item from local state immediately
+        setUserWishlist(prev => prev.filter(item =>
+          (item.productDetails?._id || item._id) !== productId
+        ));
+      } else {
+        showToast("Failed to remove item from wishlist", "error");
+      }
+    } catch (error) {
+      console.error("Failed to remove item from wishlist:", error);
+      showToast("Failed to remove item from wishlist", "error");
+    } finally {
+      setRemovingFromWishlist(prev => prev.filter(id => id !== productId));
+    }
+  };
 
   // Profile form state - updated to match user model
   const [profileData, setProfileData] = useState({
@@ -1026,15 +1144,147 @@ export default function ProfilePage() {
               title="My Wishlists"
               description="Items you've saved for later"
             >
-              <div className="text-center py-12">
-                <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  No items in your wishlist
-                </p>
-                <Button className="mt-4 bg-gradient-primary">
-                  Browse Products
-                </Button>
-              </div>
+              {wishlistLoading ? (
+                <div className="text-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                  <p className="text-muted-foreground">Loading wishlist...</p>
+                </div>
+              ) : userWishlist.length === 0 ? (
+                <div className="text-center py-12">
+                  <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    No items in your wishlist
+                  </p>
+                  <Button className="mt-4 bg-gradient-primary">
+                    Browse Products
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Array.isArray(userWishlist) && userWishlist.map((item, index) => {
+                    const product = item.productDetails || item;
+                    return (
+                      <Card key={item._id || index} className="group bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg hover:scale-[1.01] transition-all duration-200 overflow-hidden">
+                        {/* Product Image */}
+                        <div className="relative h-32 bg-gray-100 overflow-hidden">
+                          {product.model?.model_image ? (
+                            <img
+                              src={product.model.model_image}
+                              alt={product.model.model_name || product.product_name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = product.images && product.images.length > 0
+                                  ? product.images[0]
+                                  : '/placeholder-product.png';
+                              }}
+                            />
+                          ) : product.images && product.images.length > 0 ? (
+                            <img
+                              src={product.images[0]}
+                              alt={product.product_name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = '/placeholder-product.png';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                              <img
+                                src="/placeholder-product.png"
+                                alt="No image"
+                                className="w-16 h-16 object-contain opacity-50"
+                              />
+                            </div>
+                          )}
+                          <div className="absolute top-3 right-3">
+                            <button
+                              onClick={() => handleRemoveFromWishlist(product._id)}
+                              disabled={removingFromWishlist.includes(product._id)}
+                              className="p-1 rounded-full hover:bg-white/20 transition-colors disabled:opacity-50"
+                            >
+                              {removingFromWishlist.includes(product._id) ? (
+                                <Loader2 className="h-5 w-5 text-red-500 animate-spin" />
+                              ) : (
+                                <Heart className="h-5 w-5 text-red-500" fill="currentColor" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="relative p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-base font-semibold text-gray-900 line-clamp-1 mb-1">
+                                {product.product_name || product.name || "Unnamed Product"}
+                              </CardTitle>
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-red-50 text-red-700 border-red-200 font-medium px-2 py-0.5"
+                              >
+                                {product.sku_code || product.sku || "No SKU"}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600 font-medium">Price</span>
+                              <span className="text-base font-bold text-green-600">
+                                ₹{product.selling_price || product.price || "N/A"}
+                              </span>
+                            </div>
+
+                            {product.mrp_with_gst && product.selling_price && product.mrp_with_gst > product.selling_price && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-500 line-through">MRP</span>
+                                <span className="text-xs text-gray-500 line-through">
+                                  ₹{product.mrp_with_gst}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600 font-medium">Model</span>
+                              <span className="text-xs text-gray-900 truncate">
+                                {product.model?.model_name || "N/A"}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600 font-medium">Category</span>
+                              <span className="text-xs text-gray-900 truncate">
+                                {product.category?.category_name || product.category || "N/A"}
+                              </span>
+                            </div>
+
+                   
+                          </div>
+
+                          <div className="mt-3 flex gap-2">
+                            <Link href={`/shop/product/${product._id}`}>
+                              <Button size="sm" className="flex-1 bg-primary hover:opacity-90 text-white text-xs">
+                                View Details
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="px-2"
+                              onClick={() => handleMoveToCart(product._id)}
+                              disabled={movingToCart.includes(product._id)}
+                            >
+                              {movingToCart.includes(product._id) ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <ShoppingBag className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </ProfileSection>
           </TabsContent>
 

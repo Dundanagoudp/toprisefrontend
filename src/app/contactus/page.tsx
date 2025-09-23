@@ -1,14 +1,14 @@
-import CheckoutPage from '@/components/webapp/layout/Checkout'
+import Footer from '@/components/landingPage/module/Footer'
+import ContactPage from '@/components/landingPage/module/popup/contactus'
 import { Header } from '@/components/webapp/layout/Header'
 import React from 'react'
-import { Footer } from 'react-day-picker'
 
 export default function page() {
   return (
     <div>
         <Header/>
-        <CheckoutPage />
-        <Footer/>
+      <ContactPage/>
+      <Footer/>
     </div>
   )
 }

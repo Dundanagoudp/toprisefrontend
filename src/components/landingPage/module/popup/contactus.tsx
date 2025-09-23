@@ -1,13 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { X } from "lucide-react"
+import { useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-
 import { useToast as useGlobalToast } from "@/components/ui/toast"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -20,24 +17,15 @@ const schema = z.object({
     .string()
     .min(1, "Mobile number is required")
     .regex(/^\d{10,15}$/, "Invalid phone number (10-15 digits)"),
-  enquiry_email: z.string()
-    .min(1, "Email is required")
-    .email("Invalid email address"),
+  enquiry_email: z.string().min(1, "Email is required").email("Invalid email address"),
   enquiry_message: z.string().min(1, "Message is required"),
 })
 
 type FormValues = z.infer<typeof schema>
 
-interface ContactDialogProps {
-  open: boolean
-  onClose: () => void
-}
-
-export default function ContactDialog({ open, onClose }: ContactDialogProps) {
+export default function ContactPage() {
   const { showToast } = useGlobalToast()
-  // Removed isSubmitting state, use formState.isSubmitting
-
-  const { 
+  const {
     register,
     handleSubmit,
     reset,
@@ -46,105 +34,100 @@ export default function ContactDialog({ open, onClose }: ContactDialogProps) {
     resolver: zodResolver(schema),
   })
 
-  const handleFormSubmit = async (data: FormValues) => {
-    try {
-      // Send as JSON, not FormData
-      const formData = new FormData()
-      formData.append("enquiry_name", data.enquiry_name)
-      formData.append("enquiry_phone", data.enquiry_phone)
-      formData.append("enquiry_email", data.enquiry_email)
-      formData.append("enquiry_message", data.enquiry_message)
-      await contactUs(data)
-      showToast("Contact sent successfully!", "success")
-      reset()
+  const onSubmit = useCallback(
+    async (data: FormValues) => {
       try {
-        onClose()
-      } catch (e) {
-        // Safe fallback if onClose fails
-        console.error("onClose error:", e)
+        await contactUs(data)
+        showToast("Message sent successfully!", "success")
+        reset()
+      } catch (err) {
+        console.error(err)
+        showToast("Failed to send. Try again.", "error")
       }
-    } catch (error: any) {
-      console.error("Contact form error:", error)
-    showToast("Failed to send contact form. Please try again.", "error")
-    }
-  }
+    },
+    [reset, showToast]
+  )
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <DialogTitle className="text-xl font-semibold">Contact Us</DialogTitle>
-          {/* <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onClose}
-            className="h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button> */}
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+    <main className="bg-neutral-100 py-16 px-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        {/* Left side text */}
+        <section className="space-y-6">
+          <h1 className="h2 text-neutral-1000">Get in Touch</h1>
+          <p className="b2 text-neutral-700 max-w-md">
+            We’d love to hear from you. Fill out the form and our team will get back to you as soon
+            as possible.
+          </p>
           <div className="space-y-2">
-            <Label htmlFor="enquiry_name">Name</Label>
-            <Input 
-              id="enquiry_name" 
-              placeholder="Full Name" 
-              {...register("enquiry_name")}
-            />
-            {errors.enquiry_name && (
-              <p className="text-sm text-red-500">{errors.enquiry_name.message}</p>
-            )}
+            <p className="b3 text-neutral-800">📞 +91 98765 43210</p>
+            <p className="b3 text-neutral-800">✉️ support@example.com</p>
           </div>
+        </section>
 
-          <div className="space-y-2">
-            <Label htmlFor="enquiry_phone">Mobile Number</Label>
-            <Input 
-              id="enquiry_phone" 
-              type="tel" 
-              placeholder="Enter Your Mobile Number" 
-              {...register("enquiry_phone")}
-            />
-            {errors.enquiry_phone && (
-              <p className="text-sm text-red-500">{errors.enquiry_phone.message}</p>
-            )}
-          </div>
+        {/* Right side form */}
+        <section className="bg-white rounded-xl shadow-md p-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+            <div>
+              <Label htmlFor="enquiry_name">Name</Label>
+              <Input
+                id="enquiry_name"
+                placeholder="Your name"
+                {...register("enquiry_name")}
+                disabled={isSubmitting}
+              />
+              {errors.enquiry_name && (
+                <p className="text-sm text-red-600 mt-1">{errors.enquiry_name.message}</p>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="enquiry_email">Email</Label>
-            <Input 
-              id="enquiry_email" 
-              type="email" 
-              placeholder="Enter your email address" 
-              {...register("enquiry_email")}
-            />
-            {errors.enquiry_email && (
-              <p className="text-sm text-red-500">{errors.enquiry_email.message}</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="enquiry_phone">Mobile</Label>
+              <Input
+                id="enquiry_phone"
+                type="tel"
+                placeholder="10–15 digit number"
+                {...register("enquiry_phone")}
+                disabled={isSubmitting}
+              />
+              {errors.enquiry_phone && (
+                <p className="text-sm text-red-600 mt-1">{errors.enquiry_phone.message}</p>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="enquiry_message">Message</Label>
-            <Textarea
-              id="enquiry_message"
-              placeholder="Enter Message"
-              className="min-h-[120px]"
-              {...register("enquiry_message")}
-            />
-            {errors.enquiry_message && (
-              <p className="text-sm text-red-500">{errors.enquiry_message.message}</p>
-            )}
-          </div>
+            <div>
+              <Label htmlFor="enquiry_email">Email</Label>
+              <Input
+                id="enquiry_email"
+                type="email"
+                placeholder="you@example.com"
+                {...register("enquiry_email")}
+                disabled={isSubmitting}
+              />
+              {errors.enquiry_email && (
+                <p className="text-sm text-red-600 mt-1">{errors.enquiry_email.message}</p>
+              )}
+            </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Sending..." : "Contact Us"}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <div>
+              <Label htmlFor="enquiry_message">Message</Label>
+              <Textarea
+                id="enquiry_message"
+                placeholder="Write your message..."
+                className="min-h-[120px]"
+                {...register("enquiry_message")}
+                disabled={isSubmitting}
+              />
+              {errors.enquiry_message && (
+                <p className="text-sm text-red-600 mt-1">{errors.enquiry_message.message}</p>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Sending..." : "Send Message"}
+            </Button>
+          </form>
+        </section>
+      </div>
+    </main>
   )
 }

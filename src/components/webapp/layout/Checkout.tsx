@@ -44,9 +44,11 @@ export default function CheckoutPage() {
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
-  const [currentStep, setCurrentStep] = useState(0); // 0: Delivery, 1: Address, 2: Review, 3: Pay
+
+  // Steps: Address (0) -> Delivery (1) -> Review (2) -> Pay (3)
+  const [currentStep, setCurrentStep] = useState(0); 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  
+
   // Delivery type state
   const [deliveryType, setDeliveryType] = useState<'Standard' | 'express'>('Standard');
   const [pincode, setPincode] = useState('');
@@ -54,15 +56,13 @@ export default function CheckoutPage() {
   const [checkingPincode, setCheckingPincode] = useState(false);
   const [expressAvailable, setExpressAvailable] = useState(false);
 
-  // Define checkout steps
   const checkoutSteps: Step[] = [
-    { id: "delivery", label: "Delivery", icon: Package },
     { id: "address", label: "Address", icon: User },
+    { id: "delivery", label: "Delivery", icon: Package },
     { id: "review", label: "Review", icon: FileText },
     { id: "pay", label: "Pay", icon: CreditCard },
   ];
 
-  // Get completed steps based on current step
   const getCompletedSteps = () => {
     const completed = [];
     for (let i = 0; i < currentStep; i++) {
@@ -71,7 +71,6 @@ export default function CheckoutPage() {
     return completed;
   };
 
-  // Step navigation functions
   const goToNextStep = () => {
     if (currentStep < checkoutSteps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -90,7 +89,7 @@ export default function CheckoutPage() {
     }
   };
 
-  // Handle pincode checking
+  // Pincode check (used in Delivery step)
   const handlePincodeCheck = async () => {
     if (!pincode || pincode.length !== 6) {
       showToast("Please enter a valid 6-digit pincode", "error");
@@ -119,15 +118,13 @@ export default function CheckoutPage() {
     }
   };
 
-  // Handle delivery type selection
   const handleDeliveryTypeSelect = async (type: 'Standard' | 'express') => {
     setDeliveryType(type);
     
-    // Update delivery type in cart if we have a cart ID
     if (cart?._id) {
       try {
         await updateDeliveryType(cart._id, type);
-        await fetchCart(); // Refresh cart data
+        await fetchCart();
         showToast(`Delivery type updated to ${type}`, "success");
       } catch (error) {
         console.error("Failed to update delivery type:", error);
@@ -141,25 +138,21 @@ export default function CheckoutPage() {
   const fetchData = async () => {
     if (!userId) {
       console.log("No userId available, skipping data fetch");
-      return; // Don't fetch if userId is not available
+      return;
     }
     
     console.log("Fetching user and cart data for userId:", userId);
     setIsLoading(true);
     try {
-      const [userResponse] = await Promise.all([
-        getUserById(userId),
-      ]);
+      const [userResponse] = await Promise.all([ getUserById(userId) ]);
       console.log("User response:", userResponse);
       setUser(userResponse.data);
-      // Set the first address as selected by default if available
       if (userResponse.data?.address && userResponse.data.address.length > 0) {
         setSelectedAddress(userResponse.data.address[0]);
         console.log("Auto-selected first address:", userResponse.data.address[0]);
       } else {
         console.log("No addresses found for user");
       }
-      // Cart data is now managed by Redux, so we don't need to fetch it here
       await fetchCart();
       console.log("Data fetch completed successfully");
     } catch (err) {
@@ -173,6 +166,8 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchData();
   }, [userId, fetchCart]);
+
+  // Use currently selected delivery type in the order body
   const prepareOrderBody = (user: AppUser, cart: Cart) => {
     const address = selectedAddress || user.address?.[0] || {};
 
@@ -197,15 +192,13 @@ export default function CheckoutPage() {
         userId: user._id,
         name: user.username || "",
         phone: user.phone_Number || "",
-        address: `${address.street || ""}, ${address.city || ""}, ${
-          address.state || ""
-        }, ${address.country || ""}`.trim(),
+        address: `${address.street || ""}, ${address.city || ""}, ${address.state || ""}, ${address.country || ""}`.trim(),
         pincode: address.pincode || "",
         email: user.email || "",
       },
       paymentType: "COD",
-      delivery_type: "standard",
-      deliveryCharges: cart.deliveryCharge || 0,
+      delivery_type: deliveryType.toLowerCase(), // use selected deliveryType
+      deliveryCharges: deliveryType === 'express' ? (pincodeData?.delivery_charges || cart.deliveryCharge || 0) : (cart.deliveryCharge || 0),
       GST: cart.total_mrp_gst_amount || 0,
     };
     return orderBody;
@@ -219,21 +212,22 @@ export default function CheckoutPage() {
     console.log("Selected address:", selectedAddress);
     console.log("Is placing order:", isPlacingOrder);
     
-    if (currentStep === 0) { // Delivery step
-      // Move to address step
-      goToNextStep();
-    } else if (currentStep === 1) { // Address step
+    if (currentStep === 0) { // Address step -> must have address selected before going to Delivery
       if (!selectedAddress) {
         showToast("Please select an address for your order", "error");
         return;
       }
-      // Move to review step
       goToNextStep();
-    } else if (currentStep === 2) { // Review step
-      // Move to payment step
+    } else if (currentStep === 1) { // Delivery step
+      // if express selected ensure PIN checked/available when applicable
+      if (deliveryType === 'express' && !expressAvailable) {
+        showToast("Express delivery not available for selected pincode", "error");
+        return;
+      }
       goToNextStep();
-    } else if (currentStep === 3) { // Payment step
-      // Place the order
+    } else if (currentStep === 2) { // Review step -> Payment
+      goToNextStep();
+    } else if (currentStep === 3) { // Payment step -> Place order
       await handlePlaceOrder();
     }
   };
@@ -283,7 +277,7 @@ export default function CheckoutPage() {
       // Navigate to shop page after successful order placement
       setTimeout(() => {
         router.push('/shop');
-      }, 2000); // Wait 2 seconds to show the success message
+      }, 2000);
     } catch (error: any) {
       console.error("Full Error Object:", error);
       console.error("Error response:", error.response);
@@ -302,6 +296,7 @@ export default function CheckoutPage() {
       setIsPlacingOrder(false);
     }
   };
+
   const removeItem = async (productId: string) => {
     try {
       const data = {
@@ -311,7 +306,6 @@ export default function CheckoutPage() {
       const response = await removeProductFromCart(data);
       console.log("response", response);
   
-      // Refresh cart data after successful removal
       await fetchCart();
       showToast("Item removed from cart", "success");
     } catch(error) {
@@ -344,7 +338,6 @@ export default function CheckoutPage() {
       try {
         const userResponse = await getUserById(userId);
         setUser(userResponse.data);
-        // Select the newly added address (last one in the array)
         if (userResponse.data?.address && userResponse.data.address.length > 0) {
           const newAddress = userResponse.data.address[userResponse.data.address.length - 1];
           setSelectedAddress(newAddress);
@@ -359,25 +352,59 @@ export default function CheckoutPage() {
 
   return (
     <div className="bg-gray-50">
-      {/* Step Progress Bar */}
       <StepProgressBar
         steps={checkoutSteps}
         currentStep={currentStep}
         completedSteps={getCompletedSteps()}
       />
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Step Content */}
           <div className="lg:col-span-2">
+            {/* STEP 0: Address (was previously step 1) */}
             {currentStep === 0 && (
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+                  Delivery Address
+                </h2>
+
+                <BillingAddressForm 
+                  onSubmit={onSubmit}
+                  onAddressSelect={setSelectedAddress}
+                  selectedAddressId={selectedAddress?._id}
+                  showSelection={true}
+                  isLoading={isLoading}
+                />
+
+                <div className="flex justify-end mt-6">
+                  <Button
+                    onClick={handleProceed}
+                    className="bg-[#C72920] hover:bg-[#A0221A] text-white"
+                  >
+                    Continue to Delivery
+                  </Button>
+                </div>
+
+                {/* Quick preview of selected address while still on Address step */}
+                {selectedAddress && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800 font-medium">Selected Address Preview:</p>
+                    <p className="text-sm text-green-700">
+                      {selectedAddress.nick_name || "Address"} — {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STEP 1: Delivery (was previously step 0) */}
+            {currentStep === 1 && (
               <div className="bg-white rounded-lg p-6 shadow-sm border">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Select Delivery Type
                 </h2>
                 
-                {/* Pincode Check Section */}
                 <div className="mb-8">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Check express Delivery Availability
@@ -431,13 +458,11 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* Delivery Type Selection */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Choose Delivery Type
                   </h3>
                   
-                  {/* Standard Delivery */}
                   <div 
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                       deliveryType === 'Standard' 
@@ -469,7 +494,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* express Delivery */}
                   <div 
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                       deliveryType === 'express' 
@@ -510,37 +534,25 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Continue Button */}
                 <div className="flex justify-end mt-8">
                   <Button
-                    onClick={() => setCurrentStep(1)}
+                    onClick={() => goToStep(2)}
                     className="bg-[#C72920] hover:bg-[#A0221A] text-white"
                   >
-                    Continue to Address
+                    Continue to Review
                   </Button>
                 </div>
               </div>
             )}
 
-            {currentStep === 1 && (
-              <BillingAddressForm 
-                onSubmit={onSubmit}
-                onAddressSelect={setSelectedAddress}
-                selectedAddressId={selectedAddress?._id}
-                showSelection={true}
-                isLoading={isLoading}
-              />
-            )}
-            
+            {/* STEP 2: Review */}
             {currentStep === 2 && (
               <div className="bg-white rounded-lg p-6 shadow-sm border">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Review Your Order
                 </h2>
                 
-                {/* Order Summary for Review */}
                 <div className="space-y-6">
-                  {/* Delivery Type */}
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Delivery Type
@@ -569,14 +581,13 @@ export default function CheckoutPage() {
                         variant="outline"
                         size="sm"
                         className="mt-2"
-                        onClick={() => goToStep(0)}
+                        onClick={() => goToStep(1)}
                       >
                         Change Delivery Type
                       </Button>
                     </div>
                   </div>
 
-                  {/* Selected Address */}
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Delivery Address
@@ -596,7 +607,7 @@ export default function CheckoutPage() {
                           variant="outline"
                           size="sm"
                           className="mt-2"
-                          onClick={() => goToStep(1)}
+                          onClick={() => goToStep(0)}
                         >
                           Change Address
                         </Button>
@@ -604,7 +615,6 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
-                  {/* Order Items */}
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Order Items ({cart?.items?.length ?? 0} items)
@@ -660,7 +670,6 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
-                  {/* Payment Method */}
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Payment Method
@@ -676,15 +685,14 @@ export default function CheckoutPage() {
               </div>
             )}
 
+            {/* STEP 3: Payment & Confirmation */}
             {currentStep === 3 && (
               <div className="bg-white rounded-lg p-6 shadow-sm border">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Payment & Confirmation
                 </h2>
                 
-                {/* Payment Confirmation */}
                 <div className="space-y-6">
-                  {/* Selected Payment Method */}
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Payment Method
@@ -704,7 +712,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Order Summary */}
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Order Summary
@@ -717,7 +724,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Delivery Address Confirmation */}
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Delivery Address
@@ -737,7 +743,6 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
-                  {/* Confirmation Message */}
                   <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Bell className="w-5 h-5 text-yellow-600" />
@@ -754,7 +759,7 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* Right Column - Order Summary */}
+          {/* Right Column - Order Summary & Selected Address Preview */}
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               <div className="bg-white rounded-lg p-6 shadow-sm border">
@@ -762,7 +767,6 @@ export default function CheckoutPage() {
                   Your Order
                 </h2>
 
-                {/* Cart Items */}
                 {cart?.items && cart.items.length > 0 && (
                   <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
                     {cart.items.map((item: any) => (
@@ -805,7 +809,6 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {/* Order Summary */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Subtotal ({cart?.items?.length ?? 0} items):</span>
@@ -813,7 +816,27 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Navigation Buttons */}
+                {/* Show selected address preview in right column at all times */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Deliver to</h3>
+                  {selectedAddress ? (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded">
+                      <p className="text-sm font-medium text-green-800">{selectedAddress.nick_name || "Address"}</p>
+                      <p className="text-xs text-green-700 truncate">{selectedAddress.street}</p>
+                      <p className="text-xs text-green-700">{selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}</p>
+                      <div className="mt-2">
+                        <Button variant="outline" size="sm" className="text-xs" onClick={() => goToStep(0)}>
+                          Change
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-gray-50 border border-gray-100 rounded text-sm text-gray-500">
+                      No address selected
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-3">
                   {(currentStep === 1 || currentStep === 2 || currentStep === 3) && (
                     <Button
@@ -821,11 +844,10 @@ export default function CheckoutPage() {
                       className="w-full"
                       onClick={goToPreviousStep}
                     >
-                      {currentStep === 1 ? "Back to Address" : "Back to Review"}
+                      {currentStep === 1 ? "Back to Address" : "Back"}
                     </Button>
                   )}
                   
-                  {/* Debug Information */}
                   {process.env.NODE_ENV === 'development' && (
                     <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
                       <div>Step: {currentStep}</div>
@@ -841,7 +863,7 @@ export default function CheckoutPage() {
                     onClick={handleProceed}
                     disabled={
                       isPlacingOrder || 
-                      (currentStep === 1 && !selectedAddress) ||
+                      (currentStep === 0 && !selectedAddress) ||
                       (currentStep === 3 && (!user || !cart || !selectedAddress))
                     }
                   >
@@ -850,58 +872,37 @@ export default function CheckoutPage() {
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Placing Order...
                       </>
-                    ) : currentStep === 0 ? "Continue to Address" : 
+                    ) : currentStep === 0 ? "Continue to Delivery" : 
                        currentStep === 1 ? "Proceed To Review" : 
                        currentStep === 2 ? "Proceed To Payment" :
                        "Confirm & Place Order"}
                   </Button>
                   
-                  {/* Show warning if button is disabled due to missing data */}
                   {!isPlacingOrder && currentStep === 3 && (!user || !cart || !selectedAddress) && (
                     <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
                       {!user && <div>• User data not loaded</div>}
                       {!cart && <div>• Cart data not loaded</div>}
                       {!selectedAddress && <div>• No address selected</div>}
                       <div className="mt-2 flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => {
-                            console.log("Retrying data fetch...");
-                            if (userId) {
-                              fetchData();
-                            }
-                          }}
-                        >
+                        <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                            if (userId) fetchData();
+                          }}>
                           Retry
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => window.location.reload()}
-                        >
+                        <Button variant="outline" size="sm" className="text-xs" onClick={() => window.location.reload()}>
                           Refresh Page
                         </Button>
                       </div>
                     </div>
                   )}
                 </div>
-                
-                {selectedAddress && currentStep === 0 && (
-                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-800 font-medium">Selected Address:</p>
-                    <p className="text-sm text-green-700">
-                      {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
-                    </p>
-                  </div>
-                )}
+
               </div>
             </div>
           </div>
         </div>
       </div>
+
       <OrderConfirmationDialog
         open={isOrderConfirmed}
         onClose={() => setIsOrderConfirmed(false)}
