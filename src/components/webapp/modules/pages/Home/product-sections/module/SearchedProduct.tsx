@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { Search as SearchIcon } from 'lucide-react';
 import { smartSearch, smartSearchWithCategory } from '@/service/user/smartSearchService';
+import { getVariantsByModel } from '@/service/product-Service';
 import { Product, Brand } from '@/types/User/Search-Types';
 import { useAppSelector } from '@/store/hooks';
 import { selectVehicleType } from '@/store/slice/vehicle/vehicleSlice';
@@ -35,7 +36,7 @@ interface Variant {
   variant_name: string;
   variant_code: string;
   Year: string[];
-  model: string;
+  model: any;
   variant_image?: string;
   created_by: string;
   updated_by: any[];
@@ -75,6 +76,7 @@ const SearchResults = () => {
   const [modelData, setModelData] = useState<Model[]>([]);
   const [variantData, setVariantData] = useState<Variant[]>([]);
   const [searchValue, setSearchValue] = useState<string>(query || categoryName || '');
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const noVehicleResults =
     Boolean(vehicleTypeId) &&
     !loading &&
@@ -172,15 +174,53 @@ const SearchResults = () => {
     router.push(`?${newSearchParams.toString()}`);
   };
 
-  // Handle model click - update search query and trigger new search
+  // Handle model click - fetch variants for selected model and show them
   const handleModelClick = async (modelName: string) => {
-    const newQuery = `${query} ${modelName}`.trim();
-    console.log('Model clicked:', modelName, 'New query:', newQuery);
+    try {
+      setLoading(true);
+      setError(null);
 
-    // Update URL with new query
-    const newSearchParams = new URLSearchParams(searchParams.toString());
-    newSearchParams.set('query', newQuery);
-    router.push(`?${newSearchParams.toString()}`);
+      const model = modelData.find((m) => m.model_name === modelName);
+      if (!model) {
+        throw new Error('Selected model not found');
+      }
+
+      // Store selected model
+      setSelectedModel(model);
+
+      const variantsRes: any = await getVariantsByModel(model._id);
+      const fetchedVariants: Variant[] = Array.isArray(variantsRes?.data)
+        ? variantsRes.data
+        : Array.isArray(variantsRes?.data?.products)
+        ? variantsRes.data.products
+        : Array.isArray(variantsRes?.products)
+        ? variantsRes.products
+        : [];
+
+      // If variants exist, show them; otherwise fall back to search
+      if (fetchedVariants.length > 0) {
+        setIsCategory(false);
+        setIsBrand(false);
+        setIsModel(false);
+        setIsVariant(true);
+        setIsProduct(false);
+
+        setVariantData(fetchedVariants);
+        setModelData([model]);
+        setProducts([]);
+      } else {
+        // No variants - fall back to search
+        const newQuery = `${query || ''} ${modelName}`.trim();
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.set('query', newQuery);
+        router.push(`?${newSearchParams.toString()}`);
+      }
+    } catch (err) {
+      console.error('Error fetching variants by model:', err);
+      setError('Failed to load variants for this model');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle variant click - update search query and trigger new search
@@ -262,6 +302,18 @@ const SearchResults = () => {
     const newSearchParams = new URLSearchParams(searchParams.toString());
     newSearchParams.set('query', newQuery);
     router.push(`?${newSearchParams.toString()}`);
+  };
+
+  // Handle back to model - go back to model selection
+  const handleBackToModel = () => {
+    setIsCategory(false);
+    setIsBrand(false);
+    setIsModel(true);
+    setIsVariant(false);
+    setIsProduct(false);
+    
+    setVariantData([]);
+    setProducts([]);
   };
 
   useEffect(() => {
@@ -547,10 +599,21 @@ const SearchResults = () => {
             {/* Variant Display - grid of all variants or direct products */}
             {isVariant && variantData.length > 0 && products.length === 0 && (
               <div className="mb-6">
-                <div className="mb-4">
+                <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">
                     {variantData.length} Variant{variantData.length !== 1 ? 's' : ''} Found
+                    {selectedModel && (
+                      <span className="text-sm text-muted-foreground ml-2">
+                        for {selectedModel.model_name}
+                      </span>
+                    )}
                   </h2>
+                  <button
+                    onClick={handleBackToModel}
+                    className="px-4 py-2 text-sm border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    ← Back to Models
+                  </button>
                 </div>
                 <VariantListing
                   variants={variantData}
