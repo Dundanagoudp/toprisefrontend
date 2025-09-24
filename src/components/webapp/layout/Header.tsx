@@ -87,7 +87,7 @@ export const Header = () => {
         vehicleTypeId: typeId,
       });
 
-      router.push(`/shop/search/?${params.toString()}`);
+      router.push(`/shop/search-results/?${params.toString()}`);
     } catch (error) {
       console.error("Failed to execute search:", error);
     }

@@ -90,7 +90,16 @@ export const CartSidebar = ({
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-gray-900 truncate">{item.product_name}</h4>
                       <p className="text-sm text-gray-500">SKU: {item.sku}</p>
-                      <p className="text-sm font-medium text-gray-900">₹{item.selling_price}</p>
+                      <div className="flex items-center gap-2">
+                        {item.mrp && item.mrp > item.selling_price ? (
+                          <>
+                            <span className="text-sm text-gray-500 line-through">₹{item.mrp}</span>
+                            <span className="text-sm font-medium text-gray-900">₹{item.selling_price}</span>
+                          </>
+                        ) : (
+                          <span className="text-sm font-medium text-gray-900">₹{item.selling_price}</span>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex flex-col items-end gap-2">
@@ -141,7 +150,7 @@ export const CartSidebar = ({
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
-                    <span>₹{Math.round(cart.total_mrp || 0)}</span>
+                    <span>₹{calculateTotal()}</span>
                   </div>
                 </div>
                 

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -49,12 +50,14 @@ export default function CheckoutPage() {
   const [currentStep, setCurrentStep] = useState(0); 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
-  // Delivery type state
-  const [deliveryType, setDeliveryType] = useState<'Standard' | 'express'>('Standard');
+  // Delivery type state - express delivery has two options: fast and regular
+  const [deliveryType, setDeliveryType] = useState<'Standard' | 'express-fast' | 'express-regular'>('express-fast');
   const [pincode, setPincode] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'online'>('cod');
   const [pincodeData, setPincodeData] = useState<any>(null);
   const [checkingPincode, setCheckingPincode] = useState(false);
   const [expressAvailable, setExpressAvailable] = useState(false);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
 
   const checkoutSteps: Step[] = [
     { id: "address", label: "Address", icon: User },
@@ -90,15 +93,19 @@ export default function CheckoutPage() {
   };
 
   // Pincode check (used in Delivery step)
-  const handlePincodeCheck = async () => {
-    if (!pincode || pincode.length !== 6) {
-      showToast("Please enter a valid 6-digit pincode", "error");
+  const handlePincodeCheck = async (autoPincode?: string) => {
+    const pincodeToCheck = autoPincode || pincode;
+
+    if (!pincodeToCheck || pincodeToCheck.length !== 6) {
+      if (!autoPincode) {
+        showToast("Please enter a valid 6-digit pincode", "error");
+      }
       return;
     }
 
     setCheckingPincode(true);
     try {
-      const response = await checkPincode(pincode);
+      const response = await checkPincode(pincodeToCheck);
       if (response.success && response.data.delivery_available) {
         setPincodeData(response.data);
         setExpressAvailable(true);
@@ -118,17 +125,28 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleDeliveryTypeSelect = async (type: 'Standard' | 'express') => {
+  const handleDeliveryTypeSelect = async (type: 'Standard' | 'express-fast' | 'express-regular') => {
     setDeliveryType(type);
-    
+    setDeliveryError(null); // Clear any previous errors
+
+    if (type === 'Standard') {
+      // Standard delivery is disabled - error will be shown in UI
+      return;
+    }
+
+    // Clear error for valid express delivery selections
+    setDeliveryError(null);
+
     if (cart?._id) {
       try {
-        await updateDeliveryType(cart._id, type);
+        // Map the granular types to the API expected format
+        const apiDeliveryType = type.startsWith('express') ? 'express' : type;
+        await updateDeliveryType(cart._id, apiDeliveryType);
         await fetchCart();
-        showToast(`Delivery type updated to ${type}`, "success");
+        showToast(`Delivery type updated to ${type.replace('-', ' ')}`, "success");
       } catch (error) {
         console.error("Failed to update delivery type:", error);
-        showToast("Failed to update delivery type", "error");
+        setDeliveryError("Failed to update delivery type. Please try again.");
       }
     }
   };
@@ -167,6 +185,14 @@ export default function CheckoutPage() {
     fetchData();
   }, [userId, fetchCart]);
 
+  // Auto-check pincode when address is selected
+  useEffect(() => {
+    if (selectedAddress?.pincode && selectedAddress.pincode !== pincode) {
+      setPincode(selectedAddress.pincode);
+      handlePincodeCheck(selectedAddress.pincode);
+    }
+  }, [selectedAddress]);
+
   // Use currently selected delivery type in the order body
   const prepareOrderBody = (user: AppUser, cart: Cart) => {
     const address = selectedAddress || user.address?.[0] || {};
@@ -196,9 +222,9 @@ export default function CheckoutPage() {
         pincode: address.pincode || "",
         email: user.email || "",
       },
-      paymentType: "COD",
-      delivery_type: deliveryType.toLowerCase(), // use selected deliveryType
-      deliveryCharges: deliveryType === 'express' ? (pincodeData?.delivery_charges || cart.deliveryCharge || 0) : (cart.deliveryCharge || 0),
+      paymentType: selectedPaymentMethod === 'cod' ? 'COD' : 'Online',
+      delivery_type: deliveryType.startsWith('express') ? 'express' : deliveryType.toLowerCase(), // map granular types to API format
+      deliveryCharges: deliveryType.startsWith('express') ? (pincodeData?.delivery_charges || cart.deliveryCharge || 0) : (cart.deliveryCharge || 0),
       GST: cart.total_mrp_gst_amount || 0,
     };
     return orderBody;
@@ -219,11 +245,17 @@ export default function CheckoutPage() {
       }
       goToNextStep();
     } else if (currentStep === 1) { // Delivery step
-      // if express selected ensure PIN checked/available when applicable
-      if (deliveryType === 'express' && !expressAvailable) {
-        showToast("Express delivery not available for selected pincode", "error");
+      // Block Standard delivery since it's coming soon
+      if (deliveryType === 'Standard') {
+        setDeliveryError("Standard delivery coming soon - not available at this time");
         return;
       }
+      // if express selected ensure PIN checked/available when applicable
+      if (deliveryType.startsWith('express') && !expressAvailable) {
+        setDeliveryError("Express delivery not available for selected pincode");
+        return;
+      }
+      setDeliveryError(null); // Clear any errors when proceeding
       goToNextStep();
     } else if (currentStep === 2) { // Review step -> Payment
       goToNextStep();
@@ -276,7 +308,7 @@ export default function CheckoutPage() {
       
       // Navigate to shop page after successful order placement
       setTimeout(() => {
-        router.push('/shop');
+        router.push('/');
       }, 2000);
     } catch (error: any) {
       console.error("Full Error Object:", error);
@@ -304,7 +336,7 @@ export default function CheckoutPage() {
         productId: productId,
       }
       const response = await removeProductFromCart(data);
-      console.log("response", response);
+      console.log("Item removed from cart", response);
   
       await fetchCart();
       showToast("Item removed from cart", "success");
@@ -377,13 +409,20 @@ export default function CheckoutPage() {
                   isLoading={isLoading}
                 />
 
-                <div className="flex justify-end mt-6">
+                <div className="flex justify-between mt-6">
                   <Button
+                    variant="outline"
+                    onClick={() => router.push('/shop')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    ← Back to Shop
+                  </Button>
+                  {/* <Button
                     onClick={handleProceed}
                     className="bg-[#C72920] hover:bg-[#A0221A] text-white"
                   >
                     Continue to Delivery
-                  </Button>
+                  </Button> */}
                 </div>
 
                 {/* Quick preview of selected address while still on Address step */}
@@ -405,77 +444,149 @@ export default function CheckoutPage() {
                   Select Delivery Type
                 </h2>
                 
-                <div className="mb-8">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Check express Delivery Availability
-                  </h3>
-                  <div className="flex gap-3 mb-4">
-                    <div className="flex-1">
-                      <Label htmlFor="pincode" className="text-sm font-medium text-gray-700">
-                        Enter Pincode
-                      </Label>
-                      <Input
-                        id="pincode"
-                        type="text"
-                        placeholder="Enter 6-digit pincode"
-                        value={pincode}
-                        onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="mt-1"
-                        maxLength={6}
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button
-                        onClick={handlePincodeCheck}
-                        disabled={checkingPincode || pincode.length !== 6}
-                        className="bg-[#C72920] hover:bg-[#A0221A] text-white"
-                      >
-                        {checkingPincode ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Checking...
-                          </>
-                        ) : (
-                          "Check"
-                        )}
-                      </Button>
+                {/* Pincode status - auto-checked from selected address */}
+                {checkingPincode && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <span className="text-sm text-blue-800">Checking delivery availability for pincode {pincode}...</span>
                     </div>
                   </div>
-                  
-                  {pincodeData && (
-                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Package className="w-5 h-5 text-green-600" />
-                        <span className="font-medium text-green-800">express Delivery Available!</span>
-                      </div>
-                      <div className="text-sm text-green-700 space-y-1">
-                        <p><strong>Location:</strong> {pincodeData.city}, {pincodeData.state}</p>
-                        <p><strong>Delivery Charges:</strong> ₹{pincodeData.delivery_charges}</p>
-                        <p><strong>Estimated Delivery:</strong> {pincodeData.estimated_delivery_days} days</p>
-                        <p><strong>COD Available:</strong> {pincodeData.cod_available ? "Yes" : "No"}</p>
-                      </div>
+                )}
+
+                {pincodeData && !checkingPincode && (
+                  <div className={`mb-4 p-4 rounded-lg border ${
+                    expressAvailable
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-red-50 border-red-200'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Package className={`w-5 h-5 ${expressAvailable ? 'text-green-600' : 'text-red-600'}`} />
+                      <span className={`font-medium ${expressAvailable ? 'text-green-800' : 'text-red-800'}`}>
+                        {expressAvailable ? 'Express Delivery Available!' : 'Express Delivery Not Available'}
+                      </span>
                     </div>
-                  )}
-                </div>
+                    <div className={`text-sm ${expressAvailable ? 'text-green-700' : 'text-red-700'} space-y-1`}>
+                      <p><strong>Location:</strong> {pincodeData.city}, {pincodeData.state}</p>
+                      {expressAvailable && (
+                        <>
+                          <p><strong>Delivery Charges:</strong> ₹{pincodeData.delivery_charges}</p>
+                          <p><strong>Estimated Delivery:</strong> {pincodeData.estimated_delivery_days} days</p>
+                          <p><strong>COD Available:</strong> {pincodeData.cod_available ? "Yes" : "No"}</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Error Display */}
+                {deliveryError && (
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center">
+                        <span className="text-red-600 text-xs font-bold">!</span>
+                      </div>
+                      <p className="text-sm text-red-800 font-medium">{deliveryError}</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Choose Delivery Type
                   </h3>
-                  
-                  <div 
+
+                  {/* Express Delivery Section */}
+                  <div className="border-2 rounded-lg p-4 transition-all border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          deliveryType.startsWith('express')
+                            ? 'border-[#C72920] bg-[#C72920]'
+                            : 'border-gray-300'
+                        }`}>
+                          {deliveryType.startsWith('express') && (
+                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Express Delivery</h4>
+                          <p className="text-sm text-gray-600">
+                            {expressAvailable ? "Fast delivery options" : "Express delivery not available in your selected pincode"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Express Delivery Sub-options */}
+                    {expressAvailable && (
+                      <div className="ml-7 space-y-2">
+                        <div
+                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                            deliveryType === 'express-fast'
+                              ? 'border-[#C72920] bg-red-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => handleDeliveryTypeSelect('express-fast')}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h5 className="font-medium text-gray-900">Fast Delivery</h5>
+                              <p className="text-sm text-gray-600">Super fast delivery</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium text-gray-900">₹{pincodeData?.delivery_charges || 0}</p>
+                              <p className="text-sm text-gray-600">Arrival in 2-3 hours</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                            deliveryType === 'express-regular'
+                              ? 'border-[#C72920] bg-red-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => handleDeliveryTypeSelect('express-regular')}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h5 className="font-medium text-gray-900">Regular Delivery</h5>
+                              <p className="text-sm text-gray-600">Express regular delivery</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium text-gray-900">₹{pincodeData?.delivery_charges || 0}</p>
+                              <p className="text-sm text-gray-600">{pincodeData?.estimated_delivery_days || 3} days</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!expressAvailable && pincodeData && (
+                      <div className="ml-7 mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-800">Express delivery is not available in your selected pincode</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Standard Delivery Section */}
+                  <div
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      deliveryType === 'Standard' 
-                        ? 'border-[#C72920] bg-red-50' 
+                      deliveryType === 'Standard'
+                        ? 'border-[#C72920] bg-red-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
-                    onClick={() => handleDeliveryTypeSelect('Standard')}
+                    onClick={() => {
+                      handleDeliveryTypeSelect('Standard');
+                      showToast("Standard delivery coming soon!", "warning");
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-4 h-4 rounded-full border-2 ${
-                          deliveryType === 'Standard' 
-                            ? 'border-[#C72920] bg-[#C72920]' 
+                          deliveryType === 'Standard'
+                            ? 'border-[#C72920] bg-[#C72920]'
                             : 'border-gray-300'
                         }`}>
                           {deliveryType === 'Standard' && (
@@ -493,54 +604,40 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                   </div>
-
-                  <div 
-                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      deliveryType === 'express' 
-                        ? 'border-[#C72920] bg-red-50' 
-                        : expressAvailable 
-                          ? 'border-gray-200 hover:border-gray-300' 
-                          : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
-                    }`}
-                    onClick={() => expressAvailable && handleDeliveryTypeSelect('express')}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded-full border-2 ${
-                          deliveryType === 'express' 
-                            ? 'border-[#C72920] bg-[#C72920]' 
-                            : 'border-gray-300'
-                        }`}>
-                          {deliveryType === 'express' && (
-                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">express Delivery</h4>
-                          <p className="text-sm text-gray-600">
-                            {expressAvailable ? "Fast delivery service" : "Enter pincode to check availability"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-gray-900">
-                          {expressAvailable ? `₹${pincodeData?.delivery_charges || 0}` : "N/A"}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {expressAvailable ? `${pincodeData?.estimated_delivery_days || 0} days` : "Check pincode"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
-                <div className="flex justify-end mt-8">
-                  <Button
-                    onClick={() => goToStep(2)}
-                    className="bg-[#C72920] hover:bg-[#A0221A] text-white"
-                  >
-                    Continue to Review
-                  </Button>
+                <div className="flex justify-between items-end mt-8">
+                  {deliveryType === 'Standard' ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => goToStep(0)}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      ← Back to Address
+                    </Button>
+                  ) : (
+                    <div></div> // Empty div for spacing
+                  )}
+
+                  <div className="flex flex-col items-end gap-2">
+                    {/* <Button
+                      onClick={() => goToStep(2)}
+                      className="bg-[#C72920] hover:bg-[#A0221A] text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      disabled={deliveryType === 'Standard' || (deliveryType.startsWith('express') && !expressAvailable)}
+                    >
+                      Continue to Review
+                    </Button> */}
+                    {deliveryType === 'Standard' && (
+                      <p className="text-xs text-red-600 text-right">
+                        Standard delivery coming soon - not available at this time
+                      </p>
+                    )}
+                    {deliveryType.startsWith('express') && !expressAvailable && (
+                      <p className="text-xs text-red-600 text-right">
+                        Express delivery not available for your selected pincode
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -560,19 +657,25 @@ export default function CheckoutPage() {
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">{deliveryType} Delivery</p>
+                          <p className="font-medium text-gray-900">
+                            {deliveryType === 'Standard' ? 'Standard Delivery' :
+                             deliveryType === 'express-fast' ? 'Express Fast Delivery' :
+                             deliveryType === 'express-regular' ? 'Express Regular Delivery' : deliveryType}
+                          </p>
                           <p className="text-sm text-gray-600">
-                            {deliveryType === 'express' 
-                              ? `Estimated delivery: ${pincodeData?.estimated_delivery_days || 0} days`
-                              : 'Estimated delivery: 5-7 days'
+                            {deliveryType === 'Standard'
+                              ? 'Estimated delivery: 5-7 days'
+                              : deliveryType === 'express-fast'
+                              ? 'Estimated delivery: 1-2 days'
+                              : `Estimated delivery: ${pincodeData?.estimated_delivery_days || 3} days`
                             }
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-gray-900">
-                            {deliveryType === 'express' 
-                              ? `₹${pincodeData?.delivery_charges || 0}`
-                              : '₹0'
+                            {deliveryType === 'Standard'
+                              ? '₹0'
+                              : `₹${pincodeData?.delivery_charges || 0}`
                             }
                           </p>
                         </div>
@@ -648,12 +751,26 @@ export default function CheckoutPage() {
                             </div>
                             <div className="flex items-center gap-3">
                               <div className="text-right">
-                                <p className="font-medium text-gray-900">
-                                  ₹{(item.selling_price * item.quantity).toFixed(2)}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                  ₹{item.selling_price} each
-                                </p>
+                                {item.mrp && item.mrp > item.selling_price ? (
+                                  <>
+                                    <div className="flex items-center gap-1 justify-end">
+                                      <span className="text-sm text-gray-500 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</span>
+                                      <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                      <span className="line-through">₹{item.mrp}</span> ₹{item.selling_price} each
+                                    </p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="font-medium text-gray-900">
+                                      ₹{(item.selling_price * item.quantity).toFixed(2)}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                      ₹{item.selling_price} each
+                                    </p>
+                                  </>
+                                )}
                               </div>
                               <Button
                                 variant="outline"
@@ -675,10 +792,41 @@ export default function CheckoutPage() {
                       Payment Method
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="font-medium text-gray-900">Cash on Delivery (COD)</p>
-                      <p className="text-sm text-gray-600">
-                        Pay when your order is delivered
-                      </p>
+                      <RadioGroup
+                        value={selectedPaymentMethod}
+                        onValueChange={(value) => setSelectedPaymentMethod(value as 'cod' | 'online')}
+                        className="space-y-3"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <RadioGroupItem value="cod" id="cod" />
+                          <Label htmlFor="cod" className="flex-1 cursor-pointer">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <Package className="w-5 h-5 text-green-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900">Cash on Delivery (COD)</p>
+                                <p className="text-sm text-gray-600">Pay when your order is delivered</p>
+                              </div>
+                            </div>
+                          </Label>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                          <RadioGroupItem value="online" id="online" />
+                          <Label htmlFor="online" className="flex-1 cursor-pointer">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <CreditCard className="w-5 h-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900">Online Payment</p>
+                                <p className="text-sm text-gray-600">Pay securely with card, UPI, or net banking</p>
+                              </div>
+                            </div>
+                          </Label>
+                        </div>
+                      </RadioGroup>
                     </div>
                   </div>
                 </div>
@@ -697,15 +845,24 @@ export default function CheckoutPage() {
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Payment Method
                     </h3>
-                    <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                    <div className={`${selectedPaymentMethod === 'cod' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border p-4 rounded-lg`}>
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                          <CreditCard className="w-6 h-6 text-green-600" />
+                        <div className={`w-12 h-12 ${selectedPaymentMethod === 'cod' ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
+                          {selectedPaymentMethod === 'cod' ? (
+                            <Package className="w-6 h-6 text-green-600" />
+                          ) : (
+                            <CreditCard className="w-6 h-6 text-blue-600" />
+                          )}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">Cash on Delivery (COD)</p>
+                          <p className="font-medium text-gray-900">
+                            {selectedPaymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment'}
+                          </p>
                           <p className="text-sm text-gray-600">
-                            Pay ₹{Math.round(cart?.total_mrp || 0)} when your order is delivered
+                            {selectedPaymentMethod === 'cod'
+                              ? `Pay ₹${Math.round(cart?.grandTotal || 0)} when your order is delivered`
+                              : 'Pay securely online with card, UPI, or net banking'
+                            }
                           </p>
                         </div>
                       </div>
@@ -716,10 +873,23 @@ export default function CheckoutPage() {
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Order Summary
                     </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Subtotal ({cart?.items?.length ?? 0} items):</span>
-                        <span className="font-medium">₹{Math.round(cart?.total_mrp || 0)}</span>
+                        <span className="text-gray-600">Item Total ({cart?.items?.length ?? 0} items):</span>
+                        <span className="font-medium">₹{Math.round(cart?.itemTotal || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">GST:</span>
+                        <span className="font-medium">₹{Math.round(cart?.gst_amount || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Delivery Charge ({cart?.delivery_type || 'Standard'}):</span>
+                        <span className="font-medium">₹{Math.round(cart?.deliveryCharge || 0)}</span>
+                      </div>
+                      <hr className="border-gray-300" />
+                      <div className="flex justify-between text-lg font-semibold">
+                        <span className="text-gray-900">Total:</span>
+                        <span className="text-gray-900">₹{Math.round(cart?.grandTotal || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -792,8 +962,15 @@ export default function CheckoutPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium text-gray-900">
-                            ₹{(item.selling_price * item.quantity).toFixed(2)}
+                          <div className="text-sm">
+                            {item.mrp && item.mrp > item.selling_price ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-gray-500 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</span>
+                                <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                              </div>
+                            ) : (
+                              <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                            )}
                           </div>
                           <Button
                             variant="ghost"
@@ -811,8 +988,21 @@ export default function CheckoutPage() {
 
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Subtotal ({cart?.items?.length ?? 0} items):</span>
-                    <span className="font-medium">₹{Math.round(cart?.total_mrp || 0)}</span>
+                    <span className="text-gray-600">Item Total ({cart?.items?.length ?? 0} items):</span>
+                    <span className="font-medium">₹{Math.round(cart?.itemTotal || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">GST:</span>
+                    <span className="font-medium">₹{Math.round(cart?.gst_amount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Delivery Charge ({cart?.delivery_type || 'Standard'}):</span>
+                    <span className="font-medium">₹{typeof cart?.deliveryCharge === 'number' ? Math.round(cart.deliveryCharge) : 0}</span>
+                  </div>
+                  <hr className="border-gray-300" />
+                  <div className="flex justify-between items-center text-lg font-semibold">
+                    <span className="text-gray-900">Total:</span>
+                    <span className="text-gray-900">₹{Math.round(cart?.grandTotal || 0)}</span>
                   </div>
                 </div>
 
@@ -848,7 +1038,7 @@ export default function CheckoutPage() {
                     </Button>
                   )}
                   
-                  {process.env.NODE_ENV === 'development' && (
+                  {/* {process.env.NODE_ENV === 'development' && (
                     <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
                       <div>Step: {currentStep}</div>
                       <div>User: {user ? '✓' : '✗'}</div>
@@ -857,16 +1047,27 @@ export default function CheckoutPage() {
                       <div>Placing: {isPlacingOrder ? '✓' : '✗'}</div>
                     </div>
                   )}
-                  
+                   */}
                   <Button
                     className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                     onClick={handleProceed}
                     disabled={
-                      isPlacingOrder || 
+                      isPlacingOrder ||
                       (currentStep === 0 && !selectedAddress) ||
-                      (currentStep === 3 && (!user || !cart || !selectedAddress))
+                      (currentStep === 3 && (!user || !cart || !selectedAddress)) ||
+                      ((currentStep === 1 || currentStep === 2) && (deliveryType === 'Standard' || (deliveryType.startsWith('express') && !expressAvailable)))
                     }
                   >
+                    {(currentStep === 1 || currentStep === 2) && deliveryType === 'Standard' && (
+                      <span className="text-xs block mb-1">
+                        Standard delivery coming soon - not available at this time
+                      </span>
+                    )}
+                    {(currentStep === 1 || currentStep === 2) && deliveryType.startsWith('express') && !expressAvailable && (
+                      <span className="text-xs block mb-1">
+                        Express delivery not available for your selected pincode
+                      </span>
+                    )}
                     {isPlacingOrder ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
