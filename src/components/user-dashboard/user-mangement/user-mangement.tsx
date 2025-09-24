@@ -16,7 +16,6 @@ import uploadFile from "../../../../public/assets/uploadFile.svg";
 import FileUploadModal from "./module/Employee-upload"
 import { useAppSelector } from "@/store/hooks"
 import GlobalFilters from "./module/global-filters"
-import { getAllDealers } from "@/service/dealerServices"
 import { getAvailableRegions } from "@/service/employeeServices"
 import UserManagementStatsCards from "./module/UserManagementStatsCards"
 
@@ -30,15 +29,13 @@ export default function Usermangement() {
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
   const [region, setRegion] = useState("");
-  const [dealer, setDealer] = useState("");
   
   // Available roles state
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
-  const [availableDealers, setAvailableDealers] = useState<Array<{ _id: string; legal_name: string; trade_name: string }>>([]);
   
   // Sorting state
-  const [sortField, setSortField] = useState("");
+  const [sortField, setSortField] = useState("id");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   
   const router = useRouter();
@@ -58,20 +55,15 @@ export default function Usermangement() {
     }
   }, [auth?.role]);
 
-  // Fetch dealers and regions for employee filtering
+  // Fetch regions for employee filtering
   useEffect(() => {
     const fetchFilterData = async () => {
       try {
-        // Fetch dealers
-        const dealersResponse = await getAllDealers();
-        setAvailableDealers(dealersResponse.data || []);
-        
         // Fetch available regions
         const regions = await getAvailableRegions();
         setAvailableRegions(regions);
       } catch (error) {
         console.error("Failed to fetch filter data:", error);
-        setAvailableDealers([]);
         setAvailableRegions([]);
       }
     };
@@ -106,13 +98,11 @@ export default function Usermangement() {
   const handleRoleChange = (role: string) => setRole(role);
   const handleStatusChange = (status: string) => setStatus(status);
   const handleRegionChange = (region: string) => setRegion(region);
-  const handleDealerChange = (dealer: string) => setDealer(dealer);
   const handleResetFilters = () => {
     setSearch("");
     setRole("");
     setStatus("");
     setRegion("");
-    setDealer("");
   };
 
 
@@ -195,12 +185,9 @@ export default function Usermangement() {
               onStatusChange={handleStatusChange}
               currentRegion={region || "all"}
               onRegionChange={handleRegionChange}
-              currentDealer={dealer || "all"}
-              onDealerChange={handleDealerChange}
               onResetFilters={handleResetFilters}
               availableRoles={activeTab === "employee" ? availableRoles : activeTab === "users" ? ["User"] : []}
               availableRegions={availableRegions}
-              availableDealers={availableDealers}
             />
           </div>
 
@@ -256,7 +243,6 @@ export default function Usermangement() {
               role={role === "all" ? "" : role}
               status={status === "all" ? "" : status}
               region={region === "all" ? "" : region}
-              dealer={dealer === "all" ? "" : dealer}
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={handleSort}

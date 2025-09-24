@@ -14,8 +14,23 @@ import { Bell } from "lucide-react";
 import { NotificationsPanel } from "@/components/notifications/modules/notifications-panel";
 import { getAllNotifications } from "@/service/notificationServices";
 import { getUserIdFromToken } from "@/utils/auth";
+import { BreadcrumbProvider, useBreadcrumb } from "@/contexts/BreadcrumbContext";
 
 
+
+function BreadcrumbWithContext() {
+  const { customLabels } = useBreadcrumb();
+  return <DynamicBreadcrumb customLabels={{ 
+    user: "User Management", 
+    employeeview: "", // Hide employeeview from breadcrumb
+    addemployee: "Add Employee", // Change addemployee to Add Employee
+    "edit-dealer": "Edit Dealer", // Change edit-dealer to Edit Dealer
+    adddealer: "Add Dealer", // Change adddealer to Add Dealer
+    "PricingMarginMangement": "SLA Violations", // Fix route display
+    "sla-violations": "SLA Violations", // Correct route display
+    ...customLabels 
+  }} />;
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -33,8 +48,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const response = await getAllNotifications(userId);
       if (response?.success) {
         const allItems = (response.data || []).filter((n: any) => !n.isUserDeleted);
-        const total = allItems.length;
-        setNotifCount(total);
+        const unreadCount = allItems.filter((n: any) => !n.markAsRead).length;
+        setNotifCount(unreadCount);
       } else {
         setNotifCount(0);
       }
@@ -65,50 +80,52 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
   }, [refreshUnreadCount]);
   return (
-    <WithProtectionRoute redirectTo="/login">
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 data-[orientation=vertical]:h-4"
-              />
-              <DynamicBreadcrumb />
-            </div>
-            <div className="ml-auto px-4">
-              <button
-                onClick={() => setIsNotifOpen((prev) => !prev)}
-                className="relative rounded-full p-2 hover:bg-gray-100 transition-colors"
-                aria-label="Open notifications"
-              >
-                <Bell className="w-6 h-6 text-gray-700" />
-                <span
-                  className={`absolute -top-1 -right-1 rounded-full min-w-4 h-4 px-1 flex items-center justify-center text-[10px] leading-none ${
-                    notifCount > 0 ? "bg-red-500 text-white" : "bg-gray-200 text-gray-700"
-                  }`}
+    <WithProtectionRoute redirectTo="/admin/login">
+      <BreadcrumbProvider>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
+              <div className="flex items-center gap-2 px-4">
+                <SidebarTrigger className="-ml-1" />
+                <Separator
+                  orientation="vertical"
+                  className="mr-2 data-[orientation=vertical]:h-4"
+                />
+                <BreadcrumbWithContext />
+              </div>
+              <div className="ml-auto px-4">
+                <button
+                  onClick={() => setIsNotifOpen((prev) => !prev)}
+                  className="relative rounded-full p-2 hover:bg-gray-100 transition-colors"
+                  aria-label="Open notifications"
                 >
-                  {notifCount}
-                </span>
-              </button>
-            </div>
-          </header>
-          <NotificationsPanel
-            open={isNotifOpen}
-            onOpenChange={(open) => {
-              setIsNotifOpen(open);
-              if (!open) {
-                // refresh count when panel closes after actions
-                refreshUnreadCount();
-              }
-            }}
-            onCountUpdate={setNotifCount}
-          />
-          {children}
-        </SidebarInset>
-      </SidebarProvider>
+                  <Bell className="w-6 h-6 text-gray-700" />
+                  <span
+                    className={`absolute -top-1 -right-1 rounded-full min-w-4 h-4 px-1 flex items-center justify-center text-[10px] leading-none ${
+                      notifCount > 0 ? "bg-red-500 text-white" : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {notifCount}
+                  </span>
+                </button>
+              </div>
+            </header>
+            <NotificationsPanel
+              open={isNotifOpen}
+              onOpenChange={(open) => {
+                setIsNotifOpen(open);
+                if (!open) {
+                  // refresh count when panel closes after actions
+                  refreshUnreadCount();
+                }
+              }}
+              onCountUpdate={setNotifCount}
+            />
+            {children}
+          </SidebarInset>
+        </SidebarProvider>
+      </BreadcrumbProvider>
     </WithProtectionRoute>
   );
 }

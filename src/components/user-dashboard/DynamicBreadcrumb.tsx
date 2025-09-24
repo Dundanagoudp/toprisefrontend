@@ -25,7 +25,7 @@ export function DynamicBreadcrumb({ customLabels = {} }: { customLabels?: Record
         || (/^[0-9a-f]{24}$/i.test(seg) ? "Loading..." : toTitle(seg));
       const href = '/user/dashboard/' + segments.slice(2, 2 + idx + 1).join('/');
       return { label, href };
-    })
+    }).filter(item => item.label && item.label.trim() !== '') // Filter out empty labels
   ];
   return (
     <Breadcrumb>

@@ -2,22 +2,25 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, Building2, MapPin, Phone, Mail, Hash } from "lucide-react"
+import { Building2, MapPin, Phone, Mail, Hash } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { getEmployeeById } from "@/service/employeeServices"
 import type { Employee, AssignedDealer } from "@/types/employee-types"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useBreadcrumb } from "@/contexts/BreadcrumbContext"
 
 export default function ViewEmployee() {
   const router = useRouter()
   const params = useParams()
   const employeeId = params.id as string
+  const { updateLabel } = useBreadcrumb()
 
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const breadcrumbUpdatedRef = useRef(false)
 
   useEffect(() => {
     if (!employeeId) {
@@ -29,7 +32,14 @@ export default function ViewEmployee() {
       try {
         setIsLoading(true)
         const response = await getEmployeeById(employeeId)
-        setEmployee(response.data || null)
+        const employeeData = response.data || null
+        setEmployee(employeeData)
+        
+        // Update breadcrumb with employee name only once
+        if (employeeData && employeeData.First_name && !breadcrumbUpdatedRef.current) {
+          updateLabel(employeeId, employeeData.First_name)
+          breadcrumbUpdatedRef.current = true
+        }
       } catch (err) {
         setError(err as Error)
       } finally {
@@ -37,7 +47,7 @@ export default function ViewEmployee() {
       }
     }
     fetchEmployee()
-  }, [employeeId])
+  }, [employeeId, updateLabel])
 
   // const handleEdit = () => {
   //   router.push(`/dashboard/employees/edit-employee/${employeeId}`)
@@ -161,7 +171,7 @@ export default function ViewEmployee() {
                     : "bg-yellow-100 text-yellow-800"
                 }`}
               >
-                {employee.status || "Inactive"}
+                {employee.status || "Active"}
               </span>
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-6">
@@ -193,10 +203,6 @@ export default function ViewEmployee() {
                   <span className="text-sm font-medium text-gray-700">Role</span>
                   <span className="text-gray-900">{employee.role}</span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-700">Department</span>
-                  <span className="text-gray-900">{employee.department || employee.role}</span>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -206,15 +212,7 @@ export default function ViewEmployee() {
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Login Information</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-              <div className="flex items-center gap-2">
-                {employee.sendLoginInvite ? (
-                  <Check className="w-4 h-4 text-green-600" />
-                ) : (
-                  <div className="w-4 h-4 border border-gray-300 rounded" />
-                )}
-                <span className="text-sm font-medium text-gray-700">Login Invite Sent</span>
-              </div>
+            <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4">
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-gray-700">Last Login</span>
                 <span className="text-gray-900">

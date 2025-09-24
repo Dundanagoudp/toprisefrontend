@@ -37,28 +37,33 @@ export async function getProductsByPage(
       // Sanitize search query to prevent potential issues
       const sanitizedQuery = searchQuery.trim().replace(/[<>]/g, "");
       if (sanitizedQuery.length > 0) {
-        url += `&search=${encodeURIComponent(sanitizedQuery)}`;
+        url += `&query=${encodeURIComponent(sanitizedQuery)}`;
       }
     }
 
     if (categoryFilter && categoryFilter.trim() !== "") {
-      url += `&category=${encodeURIComponent(categoryFilter.trim())}`;
+      // Check if it's an ID (24 character hex string) or a name
+      const isId = /^[0-9a-fA-F]{24}$/.test(categoryFilter.trim());
+      if (isId) {
+        url += `&categoryId=${encodeURIComponent(categoryFilter.trim())}`;
+      } else {
+        url += `&category=${encodeURIComponent(categoryFilter.trim())}`;
+      }
     }
 
     if (subCategoryFilter && subCategoryFilter.trim() !== "") {
-      url += `&subCategory=${encodeURIComponent(subCategoryFilter.trim())}`;
+      // Check if it's an ID (24 character hex string) or a name
+      const isId = /^[0-9a-fA-F]{24}$/.test(subCategoryFilter.trim());
+      if (isId) {
+        url += `&subCategoryId=${encodeURIComponent(subCategoryFilter.trim())}`;
+      } else {
+        url += `&subCategory=${encodeURIComponent(subCategoryFilter.trim())}`;
+      }
     }
 
-    console.log("API URL for getProductsByPage:", url);
-    console.log(
-      "Search parameters - searchQuery:",
-      searchQuery,
-      "categoryFilter:",
-      categoryFilter,
-      "subCategoryFilter:",
-      subCategoryFilter
-    );
-    console.log("Full search query details:", {
+    console.log("🔍 API URL for getProductsByPage:", url);
+    console.log("🔍 Search parameters - query:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+    console.log("🔍 Full search query details:", {
       searchQuery,
       searchQueryType: typeof searchQuery,
       searchQueryLength: searchQuery?.length,

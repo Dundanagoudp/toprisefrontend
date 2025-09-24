@@ -267,10 +267,6 @@ export default function ViewDealer() {
                 <span className="text-sm font-medium text-gray-700">Default Margin %</span>
                 <span className="text-gray-900">{dealer.default_margin}%</span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-700">Dealer Dispatch Time</span>
-                <span className="text-gray-900">{dealer.dealer_dispatch_time} hours</span>
-              </div>
             </div>
             
             {/* SLA Type Information */}

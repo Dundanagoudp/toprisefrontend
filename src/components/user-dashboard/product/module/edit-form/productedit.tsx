@@ -37,7 +37,6 @@ import { Product } from "@/types/product-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 
 const schema = z.object({
-  sku_code: z.string().min(1, "SKU Code is required"),
   manufacturer_part_name: z.string().optional(),
   product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().optional(),
@@ -52,10 +51,6 @@ const schema = z.object({
     .number()
     .int({ message: "Selling Price must be an integer" }),
   updatedBy: z.string().optional(),
-  fulfillment_priority: z.coerce
-    .number()
-    .int({ message: "Fulfillment Priority must be an integer" })
-    .optional(),
   admin_notes: z.string().optional(),
   product_type: z.string(),
   vehicle_type: z.string(),
@@ -77,7 +72,6 @@ const schema = z.object({
   // Media & Documentation
   images: z.string().optional(),
   videoUrl: z.string().optional(),
-  brochure_available: z.string().optional(),
   // Pricing details
   mrp_with_gst: z.string().min(1, "mrp_with_gst is required"),
   gst_percentage: z.string().min(1, "gst_percentage is required"),
@@ -85,8 +79,12 @@ const schema = z.object({
   is_returnable: z.string().min(1, "is_returnable is required"),
   return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
-  availableDealers: z.string().optional(),
-  quantityPerDealer: z.string().optional(),
+  dealerAssignments: z.array(z.object({
+    dealerId: z.string().min(1, "Dealer is required"),
+    quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+    margin: z.coerce.number().optional(),
+    priority: z.coerce.number().optional(),
+  })).optional(),
   dealerMargin: z.string().optional(),
   dealerPriorityOverride: z.string().optional(),
   stockExpiryRule: z.string().optional(),
@@ -135,6 +133,12 @@ export default function ProductEdit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const [availableDealers, setAvailableDealers] = useState<any[]>([]);
+  const [dealerAssignments, setDealerAssignments] = useState<Array<{
+    dealerId: string;
+    quantity: number;
+    margin?: number;
+    priority?: number;
+  }>>([]);
   const [loadingDealers, setLoadingDealers] = useState(false);
   const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
@@ -350,7 +354,6 @@ export default function ProductEdit() {
         no_of_stock: product.no_of_stock,
         selling_price: product.selling_price,
         updatedBy: product.updated_at || "",
-        fulfillment_priority: product.fulfillment_priority,
         admin_notes: product.admin_notes || "",
         make: product.make && product.make.length > 0 ? product.make[0] : "",
         make2: product.make && product.make.length > 1 ? product.make[1] : "",
@@ -374,13 +377,11 @@ export default function ProductEdit() {
         warranty: product.warranty?.toString() || "",
         images: product.images?.join(",") || "",
         videoUrl: "",
-        brochure_available: product.brochure_available ? "yes" : "no",
         mrp_with_gst: product.mrp_with_gst?.toString() || "",
         gst_percentage: product.gst_percentage?.toString() || "",
         is_returnable: product.is_returnable ? "yes" : "no",
         return_policy: product.return_policy || "",
-        availableDealers: "",
-        quantityPerDealer: "",
+        dealerAssignments: [],
         dealerMargin: "",
         dealerPriorityOverride: "",
         stockExpiryRule: "",
@@ -509,6 +510,7 @@ export default function ProductEdit() {
     if (typeof id.id === "string") {
       const preparedData = {
         ...data,
+        dealerAssignments: dealerAssignments,
       };
 
       // Always use FormData for images update
@@ -516,7 +518,10 @@ export default function ProductEdit() {
       // Append all prepared fields except images
       Object.entries(preparedData).forEach(([key, value]) => {
         if (key !== "images" && value != null) {
-          if (Array.isArray(value)) {
+          if (key === "dealerAssignments" && Array.isArray(value)) {
+            // Special handling for dealerAssignments array
+            formData.append("dealerAssignments", JSON.stringify(value));
+          } else if (Array.isArray(value)) {
             value.forEach((v) => formData.append(`${key}[]`, v));
           } else {
             formData.append(key, value.toString());
@@ -625,23 +630,6 @@ export default function ProductEdit() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sku Code */}
-            <div className="space-y-2">
-              <Label htmlFor="skuCode" className="text-sm font-medium">
-                Sku Code
-              </Label>
-              <Input
-                id="sku_code"
-                placeholder="Enter Sku Code"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("sku_code")}
-              />
-              {errors.sku_code && (
-                <span className="text-red-500 text-sm">
-                  {errors.sku_code.message}
-                </span>
-              )}
-            </div>
             {/* No. of Stock */}
             <div className="space-y-2">
               <Label htmlFor="noOfStock" className="text-sm font-medium">
@@ -1058,29 +1046,6 @@ export default function ProductEdit() {
                 </span>
               )}
             </div>
-            {/* Fulfillment Priority */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="fulfillmentPriority"
-                className="text-sm font-medium"
-              >
-                Fulfillment Priority
-              </Label>
-              <Input
-                id="fulfillment_priority"
-                type="number"
-                step="1"
-                min="0"
-                placeholder="Enter Fulfillment Priority"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("fulfillment_priority", { valueAsNumber: true })}
-              />
-              {errors.fulfillment_priority && (
-                <span className="text-red-500 text-sm">
-                  {errors.fulfillment_priority.message}
-                </span>
-              )}
-            </div>
             {/* Is Universal */}
             <div className="space-y-2">
               <Label htmlFor="isUniversal" className="text-sm font-medium">
@@ -1328,35 +1293,6 @@ export default function ProductEdit() {
                 </span>
               )}
             </div>
-            {/* Brochure Available */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="brouchureAvailable"
-                className="text-sm font-medium"
-              >
-                Brochure Available
-              </Label>
-              <Select
-                value={watch("brochure_available") || ""}
-                onValueChange={(value) => setValue("brochure_available", value)}
-              >
-                <SelectTrigger
-                  id="brochure_available"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.brochure_available && (
-                <span className="text-red-500 text-sm">
-                  {errors.brochure_available.message}
-                </span>
-              )}
-            </div>
           </CardContent>
         </Card>
         {/* Pricing details */}
@@ -1472,56 +1408,136 @@ export default function ProductEdit() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Available Dealers */}
-            <div className="space-y-2">
-              <Label htmlFor="availableDealers" className="text-sm font-medium">
-                Available Dealers {availableDealers.length > 0 && `(${availableDealers.length} found)`}
-              </Label>
-              <Select
-                value={watch("availableDealers") || ""}
-                onValueChange={(value) => setValue("availableDealers", value)}
-              >
-                <SelectTrigger className="bg-gray-50 border-gray-200 rounded-[8px] p-4">
-                  <SelectValue placeholder={loadingDealers ? "Loading dealers..." : "Select a dealer"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDealers.length > 0 ? (
-                    availableDealers.map((dealer) => (
-                      <SelectItem key={dealer._id} value={dealer._id}>
-                        {dealer.legal_name} ({dealer.trade_name})
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-dealers" disabled>
-                      {loadingDealers ? "Loading..." : "No dealers available for this category"}
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.availableDealers && (
-                <span className="text-red-500 text-sm">
-                  {errors.availableDealers.message}
-                </span>
-              )}
-            </div>
-            {/* Quantity per Dealer */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="quantityPerDealer"
-                className="text-sm font-medium"
-              >
-                Quantity per Dealer
-              </Label>
-              <Input
-                id="quantityPerDealer"
-                placeholder="Enter Quantity"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("quantityPerDealer")}
-              />
-              {errors.quantityPerDealer && (
-                <span className="text-red-500 text-sm">
-                  {errors.quantityPerDealer.message}
-                </span>
+            {/* Multiple Dealer Assignments */}
+            <div className="col-span-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">
+                  Dealer Assignments {dealerAssignments.length > 0 && `(${dealerAssignments.length} assigned)`}
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newAssignment = {
+                      dealerId: "",
+                      quantity: 1,
+                      margin: 0,
+                      priority: 0
+                    };
+                    setDealerAssignments([...dealerAssignments, newAssignment]);
+                  }}
+                  className="text-xs"
+                >
+                  + Add Dealer
+                </Button>
+              </div>
+              
+              {dealerAssignments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+                  <p className="text-sm">No dealers assigned yet</p>
+                  <p className="text-xs mt-1">Click "Add Dealer" to assign dealers to this product</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {dealerAssignments.map((assignment, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* Dealer Selection */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Dealer</Label>
+                          <Select
+                            value={assignment.dealerId}
+                            onValueChange={(value) => {
+                              const updated = [...dealerAssignments];
+                              updated[index].dealerId = value;
+                              setDealerAssignments(updated);
+                            }}
+                          >
+                            <SelectTrigger className="bg-white border-gray-200 rounded-[6px] p-2 text-xs">
+                              <SelectValue placeholder="Select dealer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableDealers
+                                .filter(dealer => !dealerAssignments.some((a, i) => i !== index && a.dealerId === dealer._id))
+                                .map((dealer) => (
+                                  <SelectItem key={dealer._id} value={dealer._id}>
+                                    {dealer.legal_name} ({dealer.trade_name})
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Quantity */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Quantity</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={assignment.quantity}
+                            onChange={(e) => {
+                              const updated = [...dealerAssignments];
+                              updated[index].quantity = parseInt(e.target.value) || 1;
+                              setDealerAssignments(updated);
+                            }}
+                            className="bg-white border-gray-200 rounded-[6px] p-2 text-xs"
+                            placeholder="Qty"
+                          />
+                        </div>
+                        
+                        {/* Margin */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Margin %</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={assignment.margin || ""}
+                            onChange={(e) => {
+                              const updated = [...dealerAssignments];
+                              updated[index].margin = parseFloat(e.target.value) || 0;
+                              setDealerAssignments(updated);
+                            }}
+                            className="bg-white border-gray-200 rounded-[6px] p-2 text-xs"
+                            placeholder="Margin"
+                          />
+                        </div>
+                        
+                        {/* Priority & Remove */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Priority</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={assignment.priority || ""}
+                              onChange={(e) => {
+                                const updated = [...dealerAssignments];
+                                updated[index].priority = parseInt(e.target.value) || 0;
+                                setDealerAssignments(updated);
+                              }}
+                              className="bg-white border-gray-200 rounded-[6px] p-2 text-xs flex-1"
+                              placeholder="Priority"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const updated = dealerAssignments.filter((_, i) => i !== index);
+                                setDealerAssignments(updated);
+                              }}
+                              className="px-2 py-2 text-red-600 hover:bg-red-50"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
             {/* Dealer Margin % */}
