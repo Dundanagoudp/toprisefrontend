@@ -102,8 +102,7 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
           const allItems = (allNotifications.data || []).filter((n) => !n.isUserDeleted)
           const unread = allItems.filter((n) => !n.markAsRead).length
           setAllTotalCount(allItems.length)
-          const badge = unread > 0 ? unread : allItems.length
-          onCountUpdate?.(badge)
+          onCountUpdate?.(unread)
         }
       }
     } catch (err) {

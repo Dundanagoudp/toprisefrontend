@@ -1,8 +1,12 @@
-"use client"
+"use client";
 
-import { ChevronRight, type LucideIcon } from "lucide-react"
+import { ChevronRight, type LucideIcon } from "lucide-react";
 import type { ElementType } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -13,32 +17,37 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { cn } from "@/lib/utils"
-import Link from "next/link"
+} from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export function NavMain({
   items,
 }: {
   items: {
-    title: string
-    url: string
-    icon?: ElementType
-    isActive?: boolean
+    title: string;
+    url: string;
+    icon?: ElementType;
+    isActive?: boolean;
     items?: {
-      title: string
-      url: string
-    }[]
-  }[]
+      title: string;
+      url: string;
+    }[];
+  }[];
 }) {
   const { state } = useSidebar();
   const expanded = state === "expanded";
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      {/* <SidebarGroupLabel>Platform</SidebarGroupLabel> */}
       <SidebarMenu className={expanded ? "pt-4 pb-4" : undefined}>
         {items.map((item) => (
-          <Collapsible key={item.title} asChild defaultOpen={item.isActive} className="group/collapsible">
+          <Collapsible
+            key={item.title}
+            asChild
+            defaultOpen={item.isActive}
+            className="group/collapsible"
+          >
             <SidebarMenuItem className={expanded ? "py-2" : undefined}>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton
@@ -47,7 +56,7 @@ export function NavMain({
                   isActive={item.isActive}
                   className={cn(
                     "transition-all duration-200 sidebar-menu-item",
-                    item.isActive && "sidebar-menu-active",
+                    item.isActive && "sidebar-menu-active"
                   )}
                 >
                   <Link href={item.url}>
@@ -79,5 +88,5 @@ export function NavMain({
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

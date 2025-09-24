@@ -266,7 +266,7 @@ export default function statusTable() {
                     Failed Uploads
                   </TableHead>
                   <TableHead className="font-medium text-gray-700">
-                    Logs
+                    View Details
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -326,21 +326,21 @@ export default function statusTable() {
                         <DynamicButton
                           variant="outline"
                           text={
-                            expandedSessionId === log.id
+                            expandedSessionId === log.sessionId
                               ? "Hide Details"
                               : "View Details"
                           }
                           onClick={() =>
                             setExpandedSessionId(
-                              expandedSessionId === log.id
+                              expandedSessionId === log.sessionId
                                 ? null
-                                : log.id
+                                : log.sessionId
                             )
                           }
                         />
                       </TableCell>
                     </TableRow>
-                    {expandedSessionId === log.id && (
+                    {expandedSessionId === log.sessionId && (
                       <TableRow>
                         <TableCell colSpan={6} className="bg-gray-50 p-0">
                           <div className="p-4">

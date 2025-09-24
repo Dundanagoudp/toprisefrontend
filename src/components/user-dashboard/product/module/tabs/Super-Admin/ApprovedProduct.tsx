@@ -112,14 +112,20 @@ export default function ApprovedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        console.log("ApprovedProduct: Fetching products with status:", "Approved", "searchQuery:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
-        console.log("ApprovedProduct: Search query details:", {
+        console.log("🔍 ApprovedProduct: useEffect triggered");
+        console.log("🔍 ApprovedProduct: Fetching products with status: Approved");
+        console.log("🔍 ApprovedProduct: searchQuery received:", searchQuery);
+        console.log("🔍 ApprovedProduct: categoryFilter:", categoryFilter);
+        console.log("🔍 ApprovedProduct: subCategoryFilter:", subCategoryFilter);
+        console.log("🔍 ApprovedProduct: API call params:", {
+          currentPage,
+          itemsPerPage,
+          status: "Approved",
           searchQuery,
-          searchQueryType: typeof searchQuery,
-          searchQueryLength: searchQuery?.length,
-          isSearchQueryEmpty: !searchQuery || searchQuery.trim() === "",
-          trimmedSearchQuery: searchQuery ? searchQuery.trim() : ""
+          categoryFilter,
+          subCategoryFilter
         });
+        
         const res = await getProductsByPage(
           currentPage,
           itemsPerPage,
@@ -128,6 +134,8 @@ export default function ApprovedProduct({
           categoryFilter,
           subCategoryFilter
         );
+        
+        console.log("🔍 ApprovedProduct: API response received:", res);
         
         const data = res.data;
         console.log("ApprovedProduct: API response received:", res);

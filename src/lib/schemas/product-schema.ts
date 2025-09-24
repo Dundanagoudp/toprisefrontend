@@ -2,7 +2,6 @@ import { z } from "zod";
 
 export const dealerProductSchema = z.object({
   // Core Product Identity
-  sku_code: z.string().min(1, "SKU Code is required"),
   manufacturer_part_name: z.string().optional(),
   product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().optional(),
@@ -17,10 +16,6 @@ export const dealerProductSchema = z.object({
     .int({ message: "No. of Stock must be an integer" }),
 
   updatedBy: z.string().optional(),
-  fulfillment_priority: z.coerce
-    .number()
-    .int({ message: "Fulfillment Priority must be an integer" })
-    .optional(),
   admin_notes: z.string().optional(),
   // Vehicle Compatibility
   make: z.string().min(1, "Make is required"),
@@ -40,7 +35,6 @@ export const dealerProductSchema = z.object({
   // Media & Documentation
   images: z.string().optional(), // Assuming string for now, could be FileList later
   videoUrl: z.string().optional(),
-  brochure_available: z.string().optional(),
   // Pricing details
   mrp_with_gst: z.number().min(1, "MRP is required"),
   gst_percentage: z.number().min(1, "GST is required"),

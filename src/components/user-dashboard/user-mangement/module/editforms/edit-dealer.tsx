@@ -19,6 +19,7 @@ import { getAllEmployees } from "@/service/employeeServices"
 import { Employee } from "@/types/employee-types"
 import { set } from "zod"
 import { useAppSelector } from "@/store/hooks"
+import { useBreadcrumb } from "@/contexts/BreadcrumbContext"
 
 export default function EditDealer() {
   const { showToast } = useGlobalToast();
@@ -34,6 +35,8 @@ export default function EditDealer() {
   const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
   const allowedRoles = ["Super-admin", "Inventory-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
+  const { updateLabel } = useBreadcrumb();
+  const breadcrumbUpdatedRef = useRef(false);
 
   const form = useForm<DealerFormValues>({
     resolver: zodResolver(dealerSchema) as any,
@@ -62,7 +65,6 @@ export default function EditDealer() {
       last_fulfillment_date: new Date().toISOString(),
       assigned_Toprise_employee: [],
       SLA_type: "Standard",
-      dealer_dispatch_time: 72,
       onboarding_date: new Date().toISOString().split("T")[0],
       remarks: "",
     },
@@ -144,21 +146,29 @@ export default function EditDealer() {
           upload_access_enabled: d.upload_access_enabled,
           default_margin: d.default_margin,
           last_fulfillment_date: d.last_fulfillment_date,
-          assigned_Toprise_employee: Array.isArray(d.assigned_Toprise_employee)
-            ? (d.assigned_Toprise_employee
+          assigned_Toprise_employee: Array.isArray(d.assigned_Toprise_employee) && d.assigned_Toprise_employee.length > 0
+            ? [d.assigned_Toprise_employee
                 .map((ae: any) => {
                   const id = typeof ae?.assigned_user === "string" ? ae.assigned_user : ae?.assigned_user?._id
                   if (!id) return undefined
                   const status: "Active" | "Inactive" = ae?.status === "Inactive" ? "Inactive" : "Active"
                   return { assigned_user: id, status }
                 })
-                .filter(Boolean) as { assigned_user: string; status: "Active" | "Inactive" }[])
+                .filter(Boolean)[0]] as { assigned_user: string; status: "Active" | "Inactive" }[]
             : [],
           SLA_type: d.SLA_type,
-          dealer_dispatch_time: typeof d.dealer_dispatch_time === "number" ? d.dealer_dispatch_time : 72,
           onboarding_date: d.onboarding_date,
           remarks: d.remarks ?? "",
         })
+        
+        // Update breadcrumb with dealer name
+        if (d.trade_name && !breadcrumbUpdatedRef.current) {
+          // Use setTimeout to ensure the update happens after the form reset
+          setTimeout(() => {
+            updateLabel(dealerId, d.trade_name);
+            breadcrumbUpdatedRef.current = true;
+          }, 0);
+        }
       }
     } catch (error) {
       showToast("Failed to load dealer data.", "error");
@@ -548,25 +558,6 @@ export default function EditDealer() {
               />
               <FormField
                 control={form.control}
-                name="dealer_dispatch_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dealer Dispatch Time (hours)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="72"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        className="bg-gray-50 border-gray-200"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="last_fulfillment_date"
                 render={({ field }) => (
                   <FormItem>
@@ -575,8 +566,8 @@ export default function EditDealer() {
                       <Input
                         type="date"
                         value={field.value ? field.value.split("T")[0] : ""}
-                        onChange={e => field.onChange(new Date(e.target.value).toISOString())}
-                        className="bg-gray-50 border-gray-200"
+                        readOnly
+                        className="bg-gray-100 border-gray-200 cursor-not-allowed"
                       />
                     </FormControl>
                     <FormMessage />
@@ -598,7 +589,7 @@ export default function EditDealer() {
                 name="assigned_Toprise_employee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assigned Toprise Employee</FormLabel>
+                    <FormLabel>Assigned Fulfilment Staff</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange([{ assigned_user: value, status: "Active" }])
@@ -607,15 +598,17 @@ export default function EditDealer() {
                     >
                       <FormControl>
                         <SelectTrigger className="bg-gray-50 border-gray-200">
-                          <SelectValue placeholder="Select an employee" />
+                          <SelectValue placeholder="Select a Fulfilment Staff" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {employees.map((user) => (
-                          <SelectItem key={user._id} value={user._id}>
-                            {user.email} ({user.role})
-                          </SelectItem>
-                        ))}
+                        {employees
+                          .filter((user) => user.role === "Fulfillment-Staff")
+                          .map((user) => (
+                            <SelectItem key={user._id} value={user._id}>
+                              {user.email} ({user.role})
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

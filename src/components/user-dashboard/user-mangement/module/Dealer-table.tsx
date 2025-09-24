@@ -11,11 +11,7 @@ import { useToast as useToastMessage } from "@/components/ui/toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import AssignSLAForm from "../../dealer-management/module/popups/assignSLA"
-import AssignCategoriesModal from "./addforms/AssignCategoriesModal"
-import RemoveCategoriesModal from "./addforms/RemoveCategoriesModal"
 import { useAppSelector } from "@/store/hooks"
-import AssignStaffPopup from "./assignpop/AssignStaff"
-import RemoveStaffPopup from "./assignpop/RemoveStaff"
 import ExportButton from "./ExportButton"
 
 interface DealertableProps {
@@ -74,22 +70,6 @@ export default function Dealertable({
         aValue = a.trade_name?.toLowerCase() || ""
         bValue = b.trade_name?.toLowerCase() || ""
         break
-      case "email":
-        aValue = a.user_id.email?.toLowerCase() || ""
-        bValue = b.user_id.email?.toLowerCase() || ""
-        break
-      case "phone":
-        aValue = a.user_id.phone_Number?.toLowerCase() || ""
-        bValue = b.user_id.phone_Number?.toLowerCase() || ""
-        break
-      case "contactPerson":
-        aValue = a.contact_person.name?.toLowerCase() || ""
-        bValue = b.contact_person.name?.toLowerCase() || ""
-        break
-      case "role":
-        aValue = a.user_id.role?.toLowerCase() || ""
-        bValue = b.user_id.role?.toLowerCase() || ""
-        break
       case "status":
         aValue = a.is_active ? "active" : "inactive"
         bValue = b.is_active ? "active" : "inactive"
@@ -137,13 +117,6 @@ export default function Dealertable({
   const [addDealerLoading, setAddDealerLoading] = useState(false)
   const [disablingId, setDisablingId] = useState<string | null>(null)
   const [enablingId, setEnablingId] = useState<string | null>(null)
-  const [assignCategoriesModalOpen, setAssignCategoriesModalOpen] = useState(false)
-  const [removeCategoriesModalOpen, setRemoveCategoriesModalOpen] = useState(false)
-  const [selectedDealerForCategories, setSelectedDealerForCategories] = useState<Dealer | null>(null)
-  const [assignStaffModalOpen, setAssignStaffModalOpen] = useState(false)
-  const [selectedDealerForStaff, setSelectedDealerForStaff] = useState<Dealer | null>(null)
-  const [removeStaffModalOpen, setRemoveStaffModalOpen] = useState(false)
-  const [selectedDealerForRemoveStaff, setSelectedDealerForRemoveStaff] = useState<Dealer | null>(null)
 
   useEffect(() => {
     fetchDealers()
@@ -157,25 +130,7 @@ export default function Dealertable({
     // Optionally, refresh dealers or perform other actions here
   }
 
-  const handleAssignCategories = (dealer: Dealer) => {
-    setSelectedDealerForCategories(dealer)
-    setAssignCategoriesModalOpen(true)
-  }
 
-  const handleRemoveCategories = (dealer: Dealer) => {
-    setSelectedDealerForCategories(dealer)
-    setRemoveCategoriesModalOpen(true)
-  }
-
-  const handleCategoriesSuccess = () => {
-    // Refresh the dealers list to show updated categories
-    fetchDealers()
-  }
-
-  const handleStaffSuccess = () => {
-    // Refresh the dealers list to show updated staff assignments
-    fetchDealers()
-  }
 
   const fetchDealers = async () => {
     try {
@@ -261,15 +216,6 @@ export default function Dealertable({
     }
   }
 
-  const handleAssignStaff = (dealer: Dealer) => {
-    setSelectedDealerForStaff(dealer)
-    setAssignStaffModalOpen(true)
-  }
-
-  const handleRemoveStaff = (dealer: Dealer) => {
-    setSelectedDealerForRemoveStaff(dealer)
-    setRemoveStaffModalOpen(true)
-  }
 
   if (loading) {
     return (
@@ -296,32 +242,14 @@ export default function Dealertable({
                   {getSortIcon("tradeName")}
                 </div>
               </th>
-              <th
-                className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
-                onClick={() => handleSort("email")}
-              >
-                <div className="flex items-center gap-1">
-                  Email/Phone
-                  {getSortIcon("email")}
-                </div>
+              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                Email/Phone
               </th>
-              <th
-                className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
-                onClick={() => handleSort("contactPerson")}
-              >
-                <div className="flex items-center gap-1">
-                  Contact Person
-                  {getSortIcon("contactPerson")}
-                </div>
+              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                Contact Person
               </th>
-              <th
-                className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
-                onClick={() => handleSort("role")}
-              >
-                <div className="flex items-center gap-1">
-                  Role
-                  {getSortIcon("role")}
-                </div>
+              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                Role
               </th>
               <th
                 className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
@@ -557,22 +485,6 @@ export default function Dealertable({
                         Assign SLA
                       </DropdownMenuItem>
                     )}
-                    {canPerformAdminActions() && (
-                      <DropdownMenuItem onClick={() => handleAssignCategories(dealer)}>
-                        Assign Categories
-                      </DropdownMenuItem>
-                    )}
-                    {canPerformAdminActions() && dealer.categories_allowed.length > 0 && (
-                      <DropdownMenuItem onClick={() => handleRemoveCategories(dealer)}>
-                        Remove Categories
-                      </DropdownMenuItem>
-                    )}
-                    {canPerformAdminActions() && (
-                      <DropdownMenuItem onClick={() => handleAssignStaff(dealer)}>Assign Staff</DropdownMenuItem>
-                    )}
-                    {canPerformAdminActions() && (dealer.assigned_Toprise_employee || []).length > 0 && (
-                      <DropdownMenuItem onClick={() => handleRemoveStaff(dealer)}>Remove Staff</DropdownMenuItem>
-                    )}
                     {canPerformAdminActions() && dealer.is_active && (
                       <DropdownMenuItem
                         onClick={() => {
@@ -641,54 +553,6 @@ export default function Dealertable({
       />
 
       {/* Category Management Modals */}
-      <AssignCategoriesModal
-        open={assignCategoriesModalOpen}
-        onClose={() => setAssignCategoriesModalOpen(false)}
-        dealerId={selectedDealerForCategories?._id || null}
-        dealerName={selectedDealerForCategories?.legal_name || "Dealer"}
-        currentCategories={selectedDealerForCategories?.categories_allowed || []}
-        onSuccess={handleCategoriesSuccess}
-      />
-
-      <RemoveCategoriesModal
-        open={removeCategoriesModalOpen}
-        onClose={() => setRemoveCategoriesModalOpen(false)}
-        dealerId={selectedDealerForCategories?._id || null}
-        dealerName={selectedDealerForCategories?.legal_name || "Dealer"}
-        currentCategories={selectedDealerForCategories?.categories_allowed || []}
-        onSuccess={handleCategoriesSuccess}
-      />
-
-      {/* Staff Management Modal */}
-      <AssignStaffPopup
-        open={assignStaffModalOpen}
-        onClose={() => setAssignStaffModalOpen(false)}
-        dealerId={selectedDealerForStaff?._id || null}
-        dealerName={selectedDealerForStaff?.legal_name || "Dealer"}
-        currentStaff={(selectedDealerForStaff?.assigned_Toprise_employee || [])
-          .map((a) => {
-            const u: any = a?.assigned_user as any
-            if (!u) return ""
-            return typeof u === "string" ? u : u._id
-          })
-          .filter(Boolean) as string[]}
-        onSuccess={handleStaffSuccess}
-      />
-
-      <RemoveStaffPopup
-        open={removeStaffModalOpen}
-        onClose={() => setRemoveStaffModalOpen(false)}
-        dealerId={selectedDealerForRemoveStaff?._id || null}
-        dealerName={selectedDealerForRemoveStaff?.legal_name || "Dealer"}
-        currentStaff={(selectedDealerForRemoveStaff?.assigned_Toprise_employee || [])
-          .map((a) => {
-            const u: any = a?.assigned_user as any
-            if (!u) return ""
-            return typeof u === "string" ? u : u._id
-          })
-          .filter(Boolean) as string[]}
-        onSuccess={handleStaffSuccess}
-      />
 
       {/* Loader for dealers */}
       {viewDealerLoading && (

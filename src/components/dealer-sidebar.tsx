@@ -40,9 +40,9 @@ const data = {
   },
   teams: [
     {
-      name: "Toprise",
+      name: "Toprise Ventures",
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      plan: "",
     },
   ],
   navMain: [
