@@ -76,6 +76,7 @@ const SearchResults = () => {
   const [modelData, setModelData] = useState<Model[]>([]);
   const [variantData, setVariantData] = useState<Variant[]>([]);
   const [searchValue, setSearchValue] = useState<string>(query || categoryName || '');
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
 
   // Filter states
   const [sortBy, setSortBy] = useState<string>('name-asc');
