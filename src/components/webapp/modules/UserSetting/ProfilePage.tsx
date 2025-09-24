@@ -55,9 +55,9 @@ import {
   Star,
   Bus,
   Ticket,
- 
 } from "lucide-react";
 import Link from "next/link";
+
 interface Address {
   id: string;
   type: "home" | "work" | "other";
@@ -110,7 +110,6 @@ export default function ProfilePage() {
   const router = useRouter();
   const userId = useAppSelector((state) => state.auth.user?._id);
 
-  // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!userId) return;
@@ -120,7 +119,6 @@ export default function ProfilePage() {
         const response = await getUserProfile(userId);
         if (response.success && response.data) {
           setUserProfile(response.data);
-          // Update profile form data with fetched data
           setProfileData({
             email: response.data.email || "",
             username: response.data.username || "",
@@ -149,7 +147,6 @@ export default function ProfilePage() {
     fetchUserProfile();
   }, [userId, showToast]);
 
-  // Fetch user orders when orders tab is active
   useEffect(() => {
     const fetchUserOrders = async () => {
       if (!userId || activeTab !== "orders") return;
@@ -171,7 +168,6 @@ export default function ProfilePage() {
     fetchUserOrders();
   }, [userId, activeTab, showToast]);
 
-  // Fetch user wishlist when wishlists tab is active
   useEffect(() => {
     const fetchUserWishlist = async () => {
       if (!userId || activeTab !== "wishlists") return;
@@ -180,7 +176,6 @@ export default function ProfilePage() {
         setWishlistLoading(true);
         const response = await getWishlistByUser(userId);
 
-        // Handle malformed responses
         if (!response || typeof response !== 'object') {
           console.error("Invalid response format:", response);
           setUserWishlist([]);
@@ -193,7 +188,6 @@ export default function ProfilePage() {
           if (Array.isArray(response.data)) {
             wishlistData = response.data;
           } else if (response.data && typeof response.data === 'object') {
-            // Handle nested structure like { items: [...] } or similar
             if (Array.isArray(response.data.items)) {
               wishlistData = response.data.items;
             } else if (Array.isArray(response.data.products)) {
@@ -201,7 +195,6 @@ export default function ProfilePage() {
             } else if (Array.isArray(response.data.wishlist)) {
               wishlistData = response.data.wishlist;
             } else {
-              // If data is an object but not an array, wrap it in an array if it looks like a product
               wishlistData = [response.data];
             }
           } else if (!response.data) {
@@ -221,7 +214,6 @@ export default function ProfilePage() {
     fetchUserWishlist();
   }, [userId, activeTab, showToast]);
 
-  // Handle moving wishlist item to cart
   const handleMoveToCart = async (productId: string) => {
     if (!userId) return;
 
@@ -235,7 +227,6 @@ export default function ProfilePage() {
 
       if (response.success) {
         showToast("Item moved to cart successfully!", "success");
-        // Refresh wishlist to remove the moved item
         const wishlistResponse = await getWishlistByUser(userId);
         if (wishlistResponse.success) {
           const wishlistData = Array.isArray(wishlistResponse.data)
@@ -254,7 +245,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle removing item from wishlist
   const handleRemoveFromWishlist = async (productId: string) => {
     if (!userId) return;
 
@@ -268,7 +258,6 @@ export default function ProfilePage() {
 
       if (response.success) {
         showToast("Item removed from wishlist", "success");
-        // Remove item from local state immediately
         setUserWishlist(prev => prev.filter(item =>
           (item.productDetails?._id || item._id) !== productId
         ));
@@ -283,7 +272,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Profile form state - updated to match user model
   const [profileData, setProfileData] = useState({
     email: "",
     username: "",
@@ -299,7 +287,6 @@ export default function ProfilePage() {
     vehicle_details: [] as UserVehicleDetails[],
   });
 
-  // Helper function to format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-IN", {
       year: "numeric",
@@ -308,7 +295,6 @@ export default function ProfilePage() {
     });
   };
 
-  // Helper function to format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -316,7 +302,6 @@ export default function ProfilePage() {
     }).format(amount);
   };
 
-  // Helper function to get status badge color
   const getStatusBadgeColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "delivered":
@@ -334,10 +319,8 @@ export default function ProfilePage() {
     }
   };
 
-  // Addresses state - will be populated from user profile
   const [addresses, setAddresses] = useState<Address[]>([]);
 
-  // Update addresses when user profile is loaded
   useEffect(() => {
     if (userProfile?.address) {
       const formattedAddresses: Address[] = userProfile.address.map(
@@ -368,15 +351,12 @@ export default function ProfilePage() {
     try {
       setUpdatingProfile(true);
 
-      // Prepare the update data - only include fields that have changed
       const updateData: UpdateProfileRequest = {};
 
-      // Add email if it's different from current profile
       if (profileData.email && profileData.email !== userProfile?.email) {
         updateData.email = profileData.email;
       }
 
-      // Add username if it's different from current profile
       if (
         profileData.username &&
         profileData.username !== userProfile?.username
@@ -384,7 +364,6 @@ export default function ProfilePage() {
         updateData.username = profileData.username;
       }
 
-      // Add bank details if they exist
       if (
         profileData.bank_details &&
         Object.values(profileData.bank_details).some((value) => value)
@@ -392,12 +371,10 @@ export default function ProfilePage() {
         updateData.bank_details = profileData.bank_details;
       }
 
-      // Add address if it exists
       if (profileData.address && profileData.address.length > 0) {
         updateData.address = profileData.address;
       }
 
-      // Add vehicle details if they exist
       if (
         profileData.vehicle_details &&
         profileData.vehicle_details.length > 0
@@ -405,7 +382,6 @@ export default function ProfilePage() {
         updateData.vehicle_details = profileData.vehicle_details;
       }
 
-      // Only make API call if there are changes
       if (Object.keys(updateData).length === 0) {
         showToast("No changes to save", "warning");
         setIsEditing(false);
@@ -418,11 +394,9 @@ export default function ProfilePage() {
         showToast("Profile updated successfully", "success");
         setIsEditing(false);
 
-        // Refresh the profile data
         const updatedProfile = await getUserProfile(userId);
         if (updatedProfile.success && updatedProfile.data) {
           setUserProfile(updatedProfile.data);
-          // Update the form data with the new values
           setProfileData({
             email: updatedProfile.data.email || "",
             username: updatedProfile.data.username || "",
@@ -455,12 +429,7 @@ export default function ProfilePage() {
     showToast("Please contact support to delete your account.", "warning");
   };
 
-  // Address management functions
   const handleAddAddress = () => {
-    console.log("Add address clicked, current states:", {
-      isAddingAddress,
-      editingAddressIndex,
-    });
     setIsAddingAddress(true);
     setNewAddress({
       nick_name: "",
@@ -471,7 +440,6 @@ export default function ProfilePage() {
     });
   };
 
-  // Debug effect to track state changes
   useEffect(() => {
     console.log("Address states changed:", {
       isAddingAddress,
@@ -523,7 +491,6 @@ export default function ProfilePage() {
       return;
     }
 
-    // Validate required fields
     if (
       !newAddress.nick_name ||
       !newAddress.street ||
@@ -535,13 +502,11 @@ export default function ProfilePage() {
       return;
     }
 
-    // Validate pincode format (exactly 6 digits)
     if (!/^[0-9]{6}$/.test(newAddress.pincode)) {
       showToast("Please enter a valid 6-digit pincode", "error");
       return;
     }
 
-    // Show confirmation dialog
     setShowUpdateConfirmation(true);
   };
 
@@ -557,7 +522,6 @@ export default function ProfilePage() {
       setUpdatingAddress(true);
 
       if (editingAddressIndex !== null) {
-        // Editing existing address - use edit endpoint
         const editData: EditAddressRequest = {
           index: editingAddressIndex,
           updatedAddress: newAddress,
@@ -569,7 +533,6 @@ export default function ProfilePage() {
           showToast("Address updated successfully", "success");
           setEditingAddressIndex(null);
 
-          // Refresh the profile data
           const updatedProfile = await getUserProfile(userId);
           if (updatedProfile.success && updatedProfile.data) {
             setUserProfile(updatedProfile.data);
@@ -582,7 +545,6 @@ export default function ProfilePage() {
           showToast(response.message || "Failed to update address", "error");
         }
       } else {
-        // Adding new address - use add endpoint
         const updatedAddressList = [...(profileData.address || []), newAddress];
 
         const addressData: UpdateAddressRequest = {
@@ -595,13 +557,11 @@ export default function ProfilePage() {
           showToast("Address added successfully", "success");
           setIsAddingAddress(false);
 
-          // Update the profile data with new address
           setProfileData((prev) => ({
             ...prev,
             address: updatedAddressList,
           }));
 
-          // Refresh the profile data
           const updatedProfile = await getUserProfile(userId);
           if (updatedProfile.success && updatedProfile.data) {
             setUserProfile(updatedProfile.data);
@@ -625,7 +585,6 @@ export default function ProfilePage() {
       return;
     }
 
-    // Show confirmation dialog
     setPendingDeleteIndex(addressIndex);
     setShowDeleteConfirmation(true);
   };
@@ -645,7 +604,6 @@ export default function ProfilePage() {
     try {
       setUpdatingAddress(true);
 
-      // Remove the address at the specified index
       const updatedAddressList =
         profileData.address?.filter((_, index) => index !== addressIndex) || [];
 
@@ -658,13 +616,11 @@ export default function ProfilePage() {
       if (response.success) {
         showToast("Address deleted successfully", "success");
 
-        // Update the profile data
         setProfileData((prev) => ({
           ...prev,
           address: updatedAddressList,
         }));
 
-        // Refresh the profile data
         const updatedProfile = await getUserProfile(userId);
         if (updatedProfile.success && updatedProfile.data) {
           setUserProfile(updatedProfile.data);
@@ -701,7 +657,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Debug logging
   console.log(
     "ProfilePage render - activeTab:",
     activeTab,
@@ -711,7 +666,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-background">
-      {/* Header */}
       <div className="bg-card border-b border-border/50">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
@@ -721,35 +675,35 @@ export default function ProfilePage() {
                 Manage your account settings and preferences
               </p>
             </div>
-            {/* Test button - always visible */}
-            <Button
-              onClick={() =>
-                isEditing ? handleSaveProfile() : setIsEditing(true)
-              }
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
-              disabled={updatingProfile}
-            >
-              {isEditing ? (
-                <>
-                  {updatingProfile ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                  )}
-                  {updatingProfile ? "Saving..." : "Save Changes"}
-                </>
-              ) : (
-                <>
-                  <Edit2 className="mr-2 h-4 w-4" />
-                  Edit Profile
-                </>
-              )}
-            </Button>
+            {activeTab === "profile" && (
+              <Button
+                onClick={() =>
+                  isEditing ? handleSaveProfile() : setIsEditing(true)
+                }
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
+                disabled={updatingProfile}
+              >
+                {isEditing ? (
+                  <>
+                    {updatingProfile ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    {updatingProfile ? "Saving..." : "Save Changes"}
+                  </>
+                ) : (
+                  <>
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    Edit Profile
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs
           value={activeTab}
@@ -790,14 +744,14 @@ export default function ProfilePage() {
               className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
             >
               <Bus className="mr-2 h-4 w-4" />
-             Saved Vehicles
+              Saved Vehicles
             </TabsTrigger>
             <TabsTrigger
               value="tickets"
               className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
             >
               <Ticket className="mr-2 h-4 w-4" />
-             Tickets
+              Tickets
             </TabsTrigger>
           </TabsList>
 
@@ -1031,7 +985,6 @@ export default function ProfilePage() {
                   description="Manage your account preferences and security"
                 >
                   <div className="space-y-4">
-             
                     <div className="flex items-center justify-between p-4 rounded-lg bg-destructive/5 border border-destructive/20">
                       <div>
                         <p className="font-medium text-destructive">
@@ -1088,8 +1041,7 @@ export default function ProfilePage() {
                               {order.orderId}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {formatDate(order.orderDate)} •{" "}
-                              {order.skus.length} items
+                              {formatDate(order.orderDate)} • {order.skus.length} items
                             </p>
                           </div>
                         </div>
@@ -1165,7 +1117,6 @@ export default function ProfilePage() {
                     const product = item.productDetails || item;
                     return (
                       <Card key={item._id || index} className="group bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg hover:scale-[1.01] transition-all duration-200 overflow-hidden">
-                        {/* Product Image */}
                         <div className="relative h-32 bg-gray-100 overflow-hidden">
                           {product.model?.model_image ? (
                             <img
@@ -1256,7 +1207,6 @@ export default function ProfilePage() {
                               </span>
                             </div>
 
-                   
                           </div>
 
                           <div className="mt-3 flex gap-2">
@@ -1282,7 +1232,7 @@ export default function ProfilePage() {
                         </div>
                       </Card>
                     );
-                  })}
+                 })}
                 </div>
               )}
             </ProfileSection>
@@ -1304,7 +1254,6 @@ export default function ProfilePage() {
               </Button>
             </div>
 
-            {/* Add/Edit Address Form */}
             {(isAddingAddress || editingAddressIndex !== null) && (
               <ProfileSection
                 title={
@@ -1438,7 +1387,6 @@ export default function ProfilePage() {
               </ProfileSection>
             )}
 
-            {/* Existing Addresses */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {profileData.address && profileData.address.length > 0 ? (
                 profileData.address.map((address, index) => (
@@ -1499,10 +1447,56 @@ export default function ProfilePage() {
               )}
             </div>
           </TabsContent>
+
+          {/* Saved Vehicles Tab - minimal, shows empty state for now */}
+          <TabsContent value="saved-vehicles" className="space-y-6 mt-6">
+            <ProfileSection
+              title="Saved Vehicles"
+              description="Vehicles linked to your account"
+            >
+              <div className="text-center py-12">
+                <Bus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No saved vehicles</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  You haven't added any vehicles yet.
+                </p>
+                <div className="mt-4">
+                  <Link href="/profile/vehicles/add">
+                    <Button size="sm" className="bg-gradient-primary">
+                      Add Vehicle
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </ProfileSection>
+          </TabsContent>
+
+          {/* Tickets Tab - minimal, shows empty state for now */}
+          <TabsContent value="tickets" className="space-y-6 mt-6">
+            <ProfileSection
+              title="Tickets"
+              description="Support tickets and event tickets"
+            >
+              <div className="text-center py-12">
+                <Ticket className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No tickets found</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  You have no open support tickets or event tickets at the moment.
+                </p>
+                <div className="mt-4">
+                  <Link href="/support">
+                    <Button size="sm" className="bg-gradient-primary">
+                      Contact Support
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </ProfileSection>
+          </TabsContent>
+
         </Tabs>
       </div>
 
-      {/* Confirmation Dialogs */}
       <ConfirmationDialog
         isOpen={showUpdateConfirmation}
         onClose={() => setShowUpdateConfirmation(false)}
