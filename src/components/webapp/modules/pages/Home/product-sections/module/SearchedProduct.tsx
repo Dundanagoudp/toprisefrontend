@@ -1,9 +1,9 @@
 "use client"
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-import { Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { smartSearch, smartSearchWithCategory } from '@/service/user/smartSearchService';
 import { Product, Brand } from '@/types/User/Search-Types';
 import { useAppSelector } from '@/store/hooks';
@@ -75,6 +75,13 @@ const SearchResults = () => {
   const [modelData, setModelData] = useState<Model[]>([]);
   const [variantData, setVariantData] = useState<Variant[]>([]);
   const [searchValue, setSearchValue] = useState<string>(query || categoryName || '');
+
+  // Filter states
+  const [sortBy, setSortBy] = useState<string>('name-asc');
+  const [minPrice, setMinPrice] = useState<number>(0);
+  const [maxPrice, setMaxPrice] = useState<number>(100000);
+  const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+
   const noVehicleResults =
     Boolean(vehicleTypeId) &&
     !loading &&
@@ -85,6 +92,32 @@ const SearchResults = () => {
     !isProduct;
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = apiBase.replace(/\/api$/, "");
+
+  // Filtered and sorted products
+  const filteredAndSortedProducts = useMemo(() => {
+    let filtered = products.filter(product => {
+      const price = product.selling_price || 0;
+      return price >= minPrice && price <= maxPrice;
+    });
+
+    // Sort products
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return (a.product_name || '').localeCompare(b.product_name || '');
+        case 'name-desc':
+          return (b.product_name || '').localeCompare(a.product_name || '');
+        case 'price-asc':
+          return (a.selling_price || 0) - (b.selling_price || 0);
+        case 'price-desc':
+          return (b.selling_price || 0) - (a.selling_price || 0);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [products, sortBy, minPrice, maxPrice]);
 
   // Update search value when component mounts
   useEffect(() => {
@@ -411,8 +444,8 @@ const SearchResults = () => {
 
 
 
-  const displayedProducts = products.slice(0, displayLimit);
-  const hasMoreProducts = displayLimit < products.length;
+  const displayedProducts = filteredAndSortedProducts.slice(0, displayLimit);
+  const hasMoreProducts = displayLimit < filteredAndSortedProducts.length;
 
   const buildImageUrl = (path?: string) => {
     if (!path) return "/placeholder.svg";
@@ -423,8 +456,150 @@ const SearchResults = () => {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
+  // Filter Sidebar Component
+  const FilterSidebar = () => (
+    <div className="w-80 bg-card border-r border-border p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <Filter className="w-5 h-5" />
+          Filters
+        </h3>
+        <button
+          onClick={() => setIsFilterOpen(false)}
+          className="lg:hidden p-1 hover:bg-muted rounded-md"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Sort By */}
+      <div className="space-y-3">
+        <h4 className="font-medium text-foreground">Sort By</h4>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="sort"
+              value="name-asc"
+              checked={sortBy === 'name-asc'}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="text-primary"
+            />
+            <span className="text-sm">Name (A-Z)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="sort"
+              value="name-desc"
+              checked={sortBy === 'name-desc'}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="text-primary"
+            />
+            <span className="text-sm">Name (Z-A)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="sort"
+              value="price-asc"
+              checked={sortBy === 'price-asc'}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="text-primary"
+            />
+            <span className="text-sm">Price (Low to High)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="sort"
+              value="price-desc"
+              checked={sortBy === 'price-desc'}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="text-primary"
+            />
+            <span className="text-sm">Price (High to Low)</span>
+          </label>
+        </div>
+      </div>
+
+      {/* Price Range */}
+      <div className="space-y-3">
+        <h4 className="font-medium text-foreground">Price Range</h4>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-muted-foreground mb-2">Min Price</label>
+            <input
+              type="range"
+              min="0"
+              max="100000"
+              step="1000"
+              value={minPrice}
+              onChange={(e) => setMinPrice(Number(e.target.value))}
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="text-sm text-foreground mt-1">Rs {minPrice.toLocaleString()}</div>
+          </div>
+          <div>
+            <label className="block text-sm text-muted-foreground mb-2">Max Price</label>
+            <input
+              type="range"
+              min="0"
+              max="100000"
+              step="1000"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="text-sm text-foreground mt-1">Rs {maxPrice.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Count */}
+      <div className="pt-4 border-t border-border">
+        <p className="text-sm text-muted-foreground">
+          Showing {displayedProducts.length} of {filteredAndSortedProducts.length} products
+        </p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 20px;
+          width: 20px;
+          border-radius: 50%;
+          background: hsl(var(--primary));
+          cursor: pointer;
+          border: 2px solid hsl(var(--background));
+          box-shadow: 0 0 2px rgba(0,0,0,0.2);
+        }
+        .slider::-moz-range-thumb {
+          height: 20px;
+          width: 20px;
+          border-radius: 50%;
+          background: hsl(var(--primary));
+          cursor: pointer;
+          border: 2px solid hsl(var(--background));
+          box-shadow: 0 0 2px rgba(0,0,0,0.2);
+        }
+        .slider::-webkit-slider-track {
+          height: 4px;
+          background: hsl(var(--muted));
+          border-radius: 2px;
+        }
+        .slider::-moz-range-track {
+          height: 4px;
+          background: hsl(var(--muted));
+          border-radius: 2px;
+        }
+      `}</style>
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card">
         <div className="max-w-screen-2xl mx-auto px-4 py-4">
@@ -454,9 +629,33 @@ const SearchResults = () => {
       </div>
       {/* Main Content */}
       <div className="max-w-screen-2xl mx-auto px-4 py-6">
-        <div className="w-full">
-          {/* Product Grid */}
-          <main>
+        <div className="flex gap-6">
+          {/* Mobile Filter Button */}
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="lg:hidden fixed bottom-4 right-4 z-50 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors"
+          >
+            <Filter className="w-5 h-5" />
+          </button>
+
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block">
+            <FilterSidebar />
+          </div>
+
+          {/* Mobile Sidebar Overlay */}
+          {isFilterOpen && (
+            <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsFilterOpen(false)}>
+              <div className="absolute left-0 top-0 h-full" onClick={(e) => e.stopPropagation()}>
+                <FilterSidebar />
+              </div>
+            </div>
+          )}
+
+          {/* Main Content Area */}
+          <div className="flex-1">
+            {/* Product Grid */}
+            <main>
             {/* Page Header */}
             <div className="mb-6 flex items-center justify-between">
               <h1 className="text-2xl font-bold text-foreground mb-4">
@@ -561,11 +760,11 @@ const SearchResults = () => {
             )}
 
             {/* Direct Product Display for variants that have products */}
-            {isVariant && products.length > 0 && (
+            {isVariant && filteredAndSortedProducts.length > 0 && (
               <div className="mb-6">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-foreground">
-                    {products.length} Product{products.length !== 1 ? 's' : ''} Found
+                    {filteredAndSortedProducts.length} Product{filteredAndSortedProducts.length !== 1 ? 's' : ''} Found
                   </h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -599,7 +798,7 @@ const SearchResults = () => {
                       onClick={handleLoadMore}
                       className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
-                      Load More Products ({products.length - displayLimit} remaining)
+                      Load More Products ({filteredAndSortedProducts.length - displayLimit} remaining)
                     </button>
                   </div>
                 )}
@@ -607,15 +806,15 @@ const SearchResults = () => {
             )}
 
             {/* Product Display - grid of all products */}
-            {isProduct && products.length > 0 && (
+            {isProduct && filteredAndSortedProducts.length > 0 && (
               <div className="mb-6">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold text-foreground">
-                    {products.length} Product{products.length !== 1 ? 's' : ''} Found
+                    {filteredAndSortedProducts.length} Product{filteredAndSortedProducts.length !== 1 ? 's' : ''} Found
                   </h2>
                 </div>
                 <ProductListing
-                  products={products}
+                  products={filteredAndSortedProducts}
                   onProductSelect={handleProductClick}
                 />
               </div>
@@ -668,16 +867,18 @@ const SearchResults = () => {
                       onClick={handleLoadMore}
                       className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
-                      Load More Products ({products.length - displayLimit} remaining)
+                      Load More Products ({filteredAndSortedProducts.length - displayLimit} remaining)
                     </button>
                   </div>
                 )}
               </>
             )}
-          </main>
+            </main>
+          </div>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

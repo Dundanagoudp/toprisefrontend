@@ -23,6 +23,7 @@ export interface Cart {
   totalPrice: number;
   handlingCharge: number;
   deliveryCharge: number;
+  delivery_type?: string;
   gst_amount: number;
   total_mrp: number;
   total_mrp_gst_amount: number;
