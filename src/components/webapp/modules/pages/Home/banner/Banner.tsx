@@ -175,7 +175,7 @@ const handleVehicleSearch = () => {
   if (queryStr) searchParams.append('query', queryStr);
   if (typeId) searchParams.append('vehicleTypeId', typeId);
 
-  router.push(`/shop/search/?${searchParams.toString()}`);
+  router.push(`/shop/search-results/?${searchParams.toString()}`);
 };
 
   // Handle number plate search
