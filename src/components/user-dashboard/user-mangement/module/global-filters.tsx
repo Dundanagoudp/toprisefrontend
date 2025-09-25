@@ -18,10 +18,7 @@ interface GlobalFiltersProps {
   // New filter props for employee management
   currentRegion?: string;
   onRegionChange?: (region: string) => void;
-  currentDealer?: string;
-  onDealerChange?: (dealer: string) => void;
   availableRegions?: string[];
-  availableDealers?: Array<{ _id: string; legal_name: string; trade_name: string }>;
 }
 
 // We'll get roles dynamically from the data instead of hardcoding
@@ -33,8 +30,8 @@ const AVAILABLE_REGIONS = ["North", "South", "East", "West", "Central", "Northea
 
 const DEALER_ROLES = ["admin", "user", "dealer"] as const;
 const DEALER_STATUSES = ["active", "inactive"] as const;
-// For app users, roles are dynamic (usually just "User"); no status filter for now
-const USER_STATUSES: readonly string[] = [] as const
+// For app users, roles are dynamic (usually just "User"); status filter available
+const USER_STATUSES = ["Active", "Inactive (Deleted)"] as const
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState<boolean>(() => {
@@ -63,10 +60,7 @@ export default function GlobalFilters({
   // New filter props
   currentRegion = "all",
   onRegionChange,
-  currentDealer = "all",
-  onDealerChange,
   availableRegions = [],
-  availableDealers = [],
 }: GlobalFiltersProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [open, setOpen] = useState(false);
@@ -77,7 +71,6 @@ export default function GlobalFilters({
   const [draftRole, setDraftRole] = useState(currentRole);
   const [draftStatus, setDraftStatus] = useState(currentStatus);
   const [draftRegion, setDraftRegion] = useState(currentRegion);
-  const [draftDealer, setDraftDealer] = useState(currentDealer);
 
   // Sync draft when opened
   useEffect(() => {
@@ -86,9 +79,8 @@ export default function GlobalFilters({
       setDraftRole(currentRole);
       setDraftStatus(currentStatus);
       setDraftRegion(currentRegion);
-      setDraftDealer(currentDealer);
     }
-  }, [open, search, currentRole, currentStatus, currentRegion, currentDealer]);
+  }, [open, search, currentRole, currentStatus, currentRegion]);
 
   const roles = type === "dealer" ? DEALER_ROLES : availableRoles;
   const statuses = type === "dealer" ? DEALER_STATUSES : type === "employee" ? EMPLOYEE_STATUSES : USER_STATUSES;
@@ -99,11 +91,10 @@ export default function GlobalFilters({
   const appliedFiltersCount = useMemo(
     () =>
       (search ? 1 : 0) +
-      (currentRole !== "all" ? 1 : 0) +
+      (type !== "users" && currentRole !== "all" ? 1 : 0) +
       (currentStatus !== "all" ? 1 : 0) +
-      (currentRegion !== "all" ? 1 : 0) +
-      (currentDealer !== "all" ? 1 : 0),
-    [search, currentRole, currentStatus, currentRegion, currentDealer]
+      (currentRegion !== "all" ? 1 : 0),
+    [search, currentRole, currentStatus, currentRegion, type]
   );
 
   const clearAll = () => {
@@ -111,7 +102,6 @@ export default function GlobalFilters({
     onRoleChange("all");
     onStatusChange("all");
     onRegionChange?.("all");
-    onDealerChange?.("all");
   };
 
   const applyDraft = () => {
@@ -119,7 +109,6 @@ export default function GlobalFilters({
     onRoleChange(draftRole);
     onStatusChange(draftStatus);
     onRegionChange?.(draftRegion);
-    onDealerChange?.(draftDealer);
     setOpen(false);
   };
 
@@ -197,13 +186,9 @@ export default function GlobalFilters({
                   setDraftStatus={setDraftStatus}
                   draftRegion={draftRegion}
                   setDraftRegion={setDraftRegion}
-                  draftDealer={draftDealer}
-                  setDraftDealer={setDraftDealer}
                   availableRoles={availableRoles}
                   availableRegions={availableRegions}
-                  availableDealers={availableDealers}
                   onRegionChange={onRegionChange}
-                  onDealerChange={onDealerChange}
                 />
                 <div className="flex gap-2 pt-2">
                   <button
@@ -219,7 +204,6 @@ export default function GlobalFilters({
                       setDraftRole("all");
                       setDraftStatus("all");
                       setDraftRegion("all");
-                      setDraftDealer("all");
                     }}
                   >
                     Reset
@@ -249,13 +233,9 @@ export default function GlobalFilters({
                   setDraftStatus={setDraftStatus}
                   draftRegion={draftRegion}
                   setDraftRegion={setDraftRegion}
-                  draftDealer={draftDealer}
-                  setDraftDealer={setDraftDealer}
                   availableRoles={availableRoles}
                   availableRegions={availableRegions}
-                  availableDealers={availableDealers}
                   onRegionChange={onRegionChange}
-                  onDealerChange={onDealerChange}
                 />
               </div>
               <div className="p-4 border-t flex gap-2">
@@ -372,13 +352,9 @@ function PanelContent(props: {
   setDraftStatus: (v: string) => void;
   draftRegion: string;
   setDraftRegion: (v: string) => void;
-  draftDealer: string;
-  setDraftDealer: (v: string) => void;
   availableRoles?: string[];
   availableRegions?: string[];
-  availableDealers?: Array<{ _id: string; legal_name: string; trade_name: string }>;
   onRegionChange?: (region: string) => void;
-  onDealerChange?: (dealer: string) => void;
 }) {
   const {
     type,
@@ -390,13 +366,9 @@ function PanelContent(props: {
     setDraftStatus,
     draftRegion,
     setDraftRegion,
-    draftDealer,
-    setDraftDealer,
     availableRoles = [],
     availableRegions = [],
-    availableDealers = [],
     onRegionChange,
-    onDealerChange,
   } = props;
   const roles = type === "dealer" ? DEALER_ROLES : availableRoles;
   const statuses = type === "dealer" ? DEALER_STATUSES : type === "employee" ? EMPLOYEE_STATUSES : USER_STATUSES;
@@ -405,8 +377,9 @@ function PanelContent(props: {
 
   return (
     <div className="space-y-4">
-      {/* Collapsible Role */}
-      <Collapsible title="Role">
+      {/* Collapsible Role - Hide for users */}
+      {type !== "users" && (
+        <Collapsible title="Role">
         <div className="rounded-md border">
           <ul className="max-h-40 overflow-auto p-1">
             <li>
@@ -436,8 +409,9 @@ function PanelContent(props: {
           </ul>
         </div>
       </Collapsible>
+      )}
 
-      {/* Collapsible Status (hidden for users) */}
+      {/* Collapsible Status */}
       {statuses.length > 0 && (
         <Collapsible title="Status">
           <div className="rounded-md border">
@@ -507,39 +481,6 @@ function PanelContent(props: {
         </Collapsible>
       )}
 
-      {/* Collapsible Dealer (for employee management) */}
-      {type === "employee" && (
-        <Collapsible title="Dealer">
-          <div className="rounded-md border">
-            <ul className="max-h-40 overflow-auto p-1">
-              <li>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-                  <input
-                    type="radio"
-                    name="dealer"
-                    checked={draftDealer === "all"}
-                    onChange={() => setDraftDealer("all")}
-                  />
-                  <span className="text-sm">All Dealers</span>
-                </label>
-              </li>
-              {availableDealers.map((dealer) => (
-                <li key={dealer._id}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-                    <input
-                      type="radio"
-                      name="dealer"
-                      checked={draftDealer === dealer._id}
-                      onChange={() => setDraftDealer(dealer._id)}
-                    />
-                    <span className="text-sm">{dealer.legal_name}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Collapsible>
-      )}
     </div>
   );
 }

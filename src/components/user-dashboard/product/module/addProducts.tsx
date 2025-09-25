@@ -42,7 +42,6 @@ import DynamicButton from "../../../common/button/button";
 
 const schema = z.object({
   // Core Product Identity
-  sku_code: z.string().min(1, "SKU Code is required"),
   manufacturer_part_name: z.string().optional(),
   product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().optional(),
@@ -57,10 +56,6 @@ const schema = z.object({
     .int({ message: "No. of Stock must be an integer" }),
 
   updatedBy: z.string().optional(),
-  fulfillment_priority: z.coerce
-    .number()
-    .int({ message: "Fulfillment Priority must be an integer" })
-    .optional(),
   admin_notes: z.string().optional(),
   // Vehicle Compatibility
   make: z.string().min(1, "Make is required"),
@@ -80,7 +75,6 @@ const schema = z.object({
   // Media & Documentation
   images: z.string().optional(), // Assuming string for now, could be FileList later
   videoUrl: z.string().optional(),
-  brochure_available: z.string().optional(),
   // Pricing details
   mrp_with_gst: z.number().min(1, "MRP is required"),
   gst_percentage: z.number().min(1, "GST is required"),
@@ -90,7 +84,12 @@ const schema = z.object({
   is_returnable: z.boolean(),
   return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
-  availableDealers: z.string().optional(),
+  dealerAssignments: z.array(z.object({
+    dealerId: z.string().min(1, "Dealer is required"),
+    quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+    margin: z.coerce.number().optional(),
+    priority: z.coerce.number().optional(),
+  })).optional(),
   quantityPerDealer: z.string().optional(),
   dealerMargin: z.string().optional(),
   dealerPriorityOverride: z.string().optional(),
@@ -131,6 +130,12 @@ export default function AddProducts() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [dealerOptions, setDealerOptions] = useState<any[]>([]);
+  const [dealerAssignments, setDealerAssignments] = useState<Array<{
+    dealerId: string;
+    quantity: number;
+    margin?: number;
+    priority?: number;
+  }>>([]);
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
 
 
@@ -147,7 +152,6 @@ export default function AddProducts() {
     defaultValues: {
       is_universal: false,
       is_consumable: false,
-      brochure_available: "no",
       active: "yes",
       is_returnable: false,
     },
@@ -299,12 +303,19 @@ export default function AddProducts() {
         setSubmitLoading(false);
         return;
       }
-      // Add created_by to data
-      const dataWithCreatedBy = { ...data, created_by: userId };
+      // Add created_by and dealer assignments to data
+      const dataWithCreatedBy = { 
+        ...data, 
+        created_by: userId,
+        dealerAssignments: dealerAssignments
+      };
       const formData = new FormData();
       Object.entries(dataWithCreatedBy).forEach(([key, value]) => {
         if (key !== "images" && key !== "searchTagsArray") {
-          if (Array.isArray(value)) {
+          if (key === "dealerAssignments" && Array.isArray(value)) {
+            // Special handling for dealerAssignments array
+            formData.append("dealerAssignments", JSON.stringify(value));
+          } else if (Array.isArray(value)) {
             // For arrays, append as comma-separated string (FormData does not support arrays natively)
             formData.append(key, value.join(","));
           } else if (typeof value === "number") {
@@ -393,25 +404,6 @@ export default function AddProducts() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sku Code */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="skuCode"
-                className="text-base font-medium font-sans">
-                Sku Code <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="skuCode"
-                placeholder="Enter Sku Code"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("sku_code")}
-              />
-              {errors.sku_code && (
-                <span className="text-red-500 text-sm">
-                  {errors.sku_code.message}
-                </span>
-              )}
-            </div>
             {/* No. of Stock */}
             <div className="space-y-2">
               <Label htmlFor="noOfStock" className="text-base font-medium font-sans">
@@ -825,29 +817,6 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Fulfillment Priority */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="fulfillmentPriority"
-                className="text-base font-medium font-sans"
-              >
-                Fulfillment Priority
-              </Label>
-              <Input
-                id="fulfillmentPriority"
-                type="number"
-                step="1"
-                min="0"
-                placeholder="Enter Fulfillment Priority"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("fulfillment_priority", { valueAsNumber: true })}
-              />
-              {errors.fulfillment_priority && (
-                <span className="text-red-500 text-sm">
-                  {errors.fulfillment_priority.message}
-                </span>
-              )}
-            </div>
             {/* Is Universal */}
             <div className="space-y-2">
               <Label htmlFor="isUniversal" className="text-base font-medium font-sans">
@@ -1106,35 +1075,6 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Brochure Available */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="brouchureAvailable"
-                className="text-base font-medium font-sans"
-              >
-                Brochure Available
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("brochure_available", value)}
-                defaultValue="no"
-              >
-                <SelectTrigger
-                  id="brouchureAvailable"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.brochure_available && (
-                <span className="text-red-500 text-sm">
-                  {errors.brochure_available.message}
-                </span>
-              )}
-            </div>
           </CardContent>
         </Card>
 
@@ -1270,58 +1210,136 @@ export default function AddProducts() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Available Dealers */}
-            <div className="space-y-2">
-              <Label htmlFor="availableDealers" className="text-base font-medium font-sans">
-                Available Dealers
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("availableDealers", value)}
-              >
-                <SelectTrigger
-                  id="availableDealers"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+            {/* Multiple Dealer Assignments */}
+            <div className="col-span-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium font-sans">
+                  Dealer Assignments {dealerAssignments.length > 0 && `(${dealerAssignments.length} assigned)`}
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newAssignment = {
+                      dealerId: "",
+                      quantity: 1,
+                      margin: 0,
+                      priority: 0
+                    };
+                    setDealerAssignments([...dealerAssignments, newAssignment]);
+                  }}
+                  className="text-xs"
                 >
-                  <SelectValue placeholder="Select Dealer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dealerOptions.length === 0 ? (
-                    <SelectItem value="loading" disabled>
-                      Loading...
-                    </SelectItem>
-                  ) : (
-                    dealerOptions.map((dealer) => (
-                      <SelectItem key={dealer._id} value={dealer._id}>
-                        {dealer.legal_name || dealer.dealerName || dealer.firstName + ' ' + dealer.lastName || dealer._id}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.availableDealers && (
-                <span className="text-red-500 text-sm">
-                  {errors.availableDealers.message}
-                </span>
-              )}
-            </div>
-            {/* Quantity per Dealer */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="quantityPerDealer"
-                className="text-base font-medium font-sans"
-              >
-                Quantity per Dealer
-              </Label>
-              <Input
-                id="quantityPerDealer"
-                placeholder="Enter Quantity"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("quantityPerDealer")}
-              />
-              {errors.quantityPerDealer && (
-                <span className="text-red-500 text-sm">
-                  {errors.quantityPerDealer.message}
-                </span>
+                  + Add Dealer
+                </Button>
+              </div>
+              
+              {dealerAssignments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+                  <p className="text-sm">No dealers assigned yet</p>
+                  <p className="text-xs mt-1">Click "Add Dealer" to assign dealers to this product</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {dealerAssignments.map((assignment, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* Dealer Selection */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Dealer</Label>
+                          <Select
+                            value={assignment.dealerId}
+                            onValueChange={(value) => {
+                              const updated = [...dealerAssignments];
+                              updated[index].dealerId = value;
+                              setDealerAssignments(updated);
+                            }}
+                          >
+                            <SelectTrigger className="bg-white border-gray-200 rounded-[6px] p-2 text-xs">
+                              <SelectValue placeholder="Select dealer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dealerOptions
+                                .filter(dealer => !dealerAssignments.some((a, i) => i !== index && a.dealerId === dealer._id))
+                                .map((dealer) => (
+                                  <SelectItem key={dealer._id} value={dealer._id}>
+                                    {dealer.legal_name || dealer.dealerName || dealer.firstName + ' ' + dealer.lastName || dealer._id}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Quantity */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Quantity</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={assignment.quantity}
+                            onChange={(e) => {
+                              const updated = [...dealerAssignments];
+                              updated[index].quantity = parseInt(e.target.value) || 1;
+                              setDealerAssignments(updated);
+                            }}
+                            className="bg-white border-gray-200 rounded-[6px] p-2 text-xs"
+                            placeholder="Qty"
+                          />
+                        </div>
+                        
+                        {/* Margin */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Margin %</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={assignment.margin || ""}
+                            onChange={(e) => {
+                              const updated = [...dealerAssignments];
+                              updated[index].margin = parseFloat(e.target.value) || 0;
+                              setDealerAssignments(updated);
+                            }}
+                            className="bg-white border-gray-200 rounded-[6px] p-2 text-xs"
+                            placeholder="Margin"
+                          />
+                        </div>
+                        
+                        {/* Priority & Remove */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Priority</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={assignment.priority || ""}
+                              onChange={(e) => {
+                                const updated = [...dealerAssignments];
+                                updated[index].priority = parseInt(e.target.value) || 0;
+                                setDealerAssignments(updated);
+                              }}
+                              className="bg-white border-gray-200 rounded-[6px] p-2 text-xs flex-1"
+                              placeholder="Priority"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const updated = dealerAssignments.filter((_, i) => i !== index);
+                                setDealerAssignments(updated);
+                              }}
+                              className="px-2 py-2 text-red-600 hover:bg-red-50"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
             {/* Dealer Margin % */}

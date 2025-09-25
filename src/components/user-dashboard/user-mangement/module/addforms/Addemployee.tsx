@@ -218,7 +218,7 @@ export default function Addemployee() {
               </label>
               <Input
                 id="mobileNumber"
-                placeholder="Official contact (can be WhatsApp)"
+                placeholder="Official contact"
                 {...form.register("mobileNumber")}
                 className="bg-gray-50 border-gray-200"
               />
@@ -352,7 +352,7 @@ export default function Addemployee() {
         onClose={() => setShowConfirmation(false)}
         onConfirm={handleConfirmSubmit}
         title="Confirm Add Employee"
-        description={`Are you sure you want to add "${formData?.fullName}" as a new employee? This action cannot be undone.`}
+        description={`Are you sure you want to add "${formData?.fullName}" as a new employee?`}
         confirmText="Yes, Add Employee"
         cancelText="Cancel"
       />

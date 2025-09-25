@@ -76,7 +76,6 @@ export default function DealerAddProducts() {
     defaultValues: {
       is_universal: false,
       is_consumable: false,
-      brochure_available: "no",
       active: "yes",
       is_returnable: false,
     },
@@ -283,25 +282,6 @@ export default function DealerAddProducts() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sku Code */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="skuCode"
-                className="text-base font-medium font-sans">
-                Sku Code <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="skuCode"
-                placeholder="Enter Sku Code"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("sku_code")}
-              />
-              {errors.sku_code && (
-                <span className="text-red-500 text-sm">
-                  {errors.sku_code.message}
-                </span>
-              )}
-            </div>
             {/* No. of Stock */}
             <div className="space-y-2">
               <Label htmlFor="noOfStock" className="text-base font-medium font-sans">
@@ -715,29 +695,6 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-            {/* Fulfillment Priority */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="fulfillmentPriority"
-                className="text-base font-medium font-sans"
-              >
-                Fulfillment Priority
-              </Label>
-              <Input
-                id="fulfillmentPriority"
-                type="number"
-                step="1"
-                min="0"
-                placeholder="Enter Fulfillment Priority"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("fulfillment_priority", { valueAsNumber: true })}
-              />
-              {errors.fulfillment_priority && (
-                <span className="text-red-500 text-sm">
-                  {errors.fulfillment_priority.message}
-                </span>
-              )}
-            </div>
             {/* Is Universal */}
             <div className="space-y-2">
               <Label htmlFor="isUniversal" className="text-base font-medium font-sans">
@@ -993,35 +950,6 @@ export default function DealerAddProducts() {
               {errors.videoUrl && (
                 <span className="text-red-500 text-sm">
                   {errors.videoUrl.message}
-                </span>
-              )}
-            </div>
-            {/* Brochure Available */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="brouchureAvailable"
-                className="text-base font-medium font-sans"
-              >
-                Brochure Available
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("brochure_available", value)}
-                defaultValue="no"
-              >
-                <SelectTrigger
-                  id="brouchureAvailable"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.brochure_available && (
-                <span className="text-red-500 text-sm">
-                  {errors.brochure_available.message}
                 </span>
               )}
             </div>

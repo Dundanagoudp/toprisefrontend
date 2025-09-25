@@ -7,8 +7,10 @@ interface LineChartDatum {
   name: string
   value1: number
   value2: number
+  value3?: number
   amount1?: number
   amount2?: number
+  amount3?: number
 }
 
 interface LineChartProps {
@@ -42,6 +44,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               <span>Previous Amount: {point.amount2}</span>
             </div>
           )}
+          {typeof point.value3 === "number" && (
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#10B981" }} />
+              <span>All Orders: {point.value3}</span>
+            </div>
+          )}
+          {typeof point.amount3 === "number" && (
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#10B981" }} />
+              <span>All Orders Amount: {point.amount3}</span>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -65,11 +79,12 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data }) => {
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 10, fill: "#6B7280" }}
-          domain={["dataMin - 20", "dataMax + 20"]}
+          domain={[0, "dataMax + 20"]}
         />
         <Tooltip content={<CustomTooltip />} />
         <Area type="monotone" dataKey="value1" stroke="#3B82F6" strokeWidth={2} fill="url(#colorBlue)" />
         <Line type="monotone" dataKey="value2" stroke="#EF4444" strokeWidth={2} dot={false} />
+        <Line type="monotone" dataKey="value3" stroke="#10B981" strokeWidth={2} dot={false} />
       </AreaChart>
     </ResponsiveContainer>
   )

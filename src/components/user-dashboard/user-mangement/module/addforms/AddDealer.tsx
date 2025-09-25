@@ -59,7 +59,6 @@ export default function AddDealer() {
       last_fulfillment_date: new Date().toISOString(),
       assigned_Toprise_employee: [],
       SLA_type: "Standard",
-      dealer_dispatch_time: 72,
       onboarding_date: new Date().toISOString().split("T")[0], // Format as YYYY-MM-DD
       remarks: "",
     },
@@ -97,7 +96,6 @@ export default function AddDealer() {
       last_fulfillment_date: new Date().toISOString(),
       assigned_Toprise_employee: [],
       SLA_type: "Standard",
-      dealer_dispatch_time: 72,
       onboarding_date: new Date().toISOString().split("T")[0],
       remarks: "",
     })
@@ -210,7 +208,7 @@ export default function AddDealer() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="email" {...field} className="bg-gray-50 border-gray-200" autoComplete="off" />
+                      <Input placeholder="Email" {...field} className="bg-gray-50 border-gray-200" autoComplete="off" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -246,7 +244,7 @@ export default function AddDealer() {
                         type="tel"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        placeholder="phone_Number"
+                        placeholder="Phone Number"
                         maxLength={15}
                         {...field}
                         onChange={(e) => {
@@ -386,7 +384,7 @@ export default function AddDealer() {
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        placeholder="pincode"
+                        placeholder="Pincode"
                         maxLength={6}
                         {...field}
                         onChange={(e) => {
@@ -447,7 +445,7 @@ export default function AddDealer() {
                         type="tel"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        placeholder="phone_number"
+                        placeholder="Phone Number"
                         maxLength={15}
                         {...field}
                         onChange={(e) => {
@@ -464,11 +462,11 @@ export default function AddDealer() {
             </CardContent>
           </Card>
 
-          {/* Categories & Access */}
+          {/* Brands & Access */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Categories & Access</CardTitle>
-              <p className="text-sm text-gray-500">Product categories and access permissions.</p>
+              <CardTitle className="text-red-600 font-semibold text-lg">Brands & Access</CardTitle>
+              <p className="text-sm text-gray-500">Product brands and access permissions.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
@@ -550,25 +548,6 @@ export default function AddDealer() {
               />
               <FormField
                 control={form.control}
-                name="dealer_dispatch_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dealer Dispatch Time (hours)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="72"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        className="bg-gray-50 border-gray-200"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="last_fulfillment_date"
                 render={({ field }) => (
                   <FormItem>
@@ -577,8 +556,8 @@ export default function AddDealer() {
                       <Input
                         type="date"
                         value={field.value ? field.value.split("T")[0] : ""}
-                        onChange={e => field.onChange(new Date(e.target.value).toISOString())}
-                        className="bg-gray-50 border-gray-200"
+                        readOnly
+                        className="bg-gray-100 border-gray-200 cursor-not-allowed"
                       />
                     </FormControl>
                     <FormMessage />

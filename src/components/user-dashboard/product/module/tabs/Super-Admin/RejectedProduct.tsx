@@ -80,7 +80,17 @@ export default function RejectedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        console.log("RejectedProduct: Fetching products with status:", "Rejected");
+        console.log("🔍 RejectedProduct: useEffect triggered");
+        console.log("🔍 RejectedProduct: searchQuery received:", searchQuery);
+        console.log("🔍 RejectedProduct: API call params:", {
+          currentPage,
+          itemsPerPage,
+          status: "Rejected",
+          searchQuery,
+          categoryFilter,
+          subCategoryFilter
+        });
+        
         const response = await getProductsByPage(
           currentPage,
           itemsPerPage,
@@ -89,6 +99,8 @@ export default function RejectedProduct({
           categoryFilter,
           subCategoryFilter
         );
+        
+        console.log("🔍 RejectedProduct: API response received:", response);
         if (response.data) {
           setPaginatedProducts(response.data.products || []);
           setTotalProducts(response.data.pagination?.totalItems || 0);

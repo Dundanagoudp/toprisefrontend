@@ -37,28 +37,33 @@ export async function getProductsByPage(
       // Sanitize search query to prevent potential issues
       const sanitizedQuery = searchQuery.trim().replace(/[<>]/g, "");
       if (sanitizedQuery.length > 0) {
-        url += `&search=${encodeURIComponent(sanitizedQuery)}`;
+        url += `&query=${encodeURIComponent(sanitizedQuery)}`;
       }
     }
 
     if (categoryFilter && categoryFilter.trim() !== "") {
-      url += `&category=${encodeURIComponent(categoryFilter.trim())}`;
+      // Check if it's an ID (24 character hex string) or a name
+      const isId = /^[0-9a-fA-F]{24}$/.test(categoryFilter.trim());
+      if (isId) {
+        url += `&categoryId=${encodeURIComponent(categoryFilter.trim())}`;
+      } else {
+        url += `&category=${encodeURIComponent(categoryFilter.trim())}`;
+      }
     }
 
     if (subCategoryFilter && subCategoryFilter.trim() !== "") {
-      url += `&subCategory=${encodeURIComponent(subCategoryFilter.trim())}`;
+      // Check if it's an ID (24 character hex string) or a name
+      const isId = /^[0-9a-fA-F]{24}$/.test(subCategoryFilter.trim());
+      if (isId) {
+        url += `&subCategoryId=${encodeURIComponent(subCategoryFilter.trim())}`;
+      } else {
+        url += `&subCategory=${encodeURIComponent(subCategoryFilter.trim())}`;
+      }
     }
 
-    console.log("API URL for getProductsByPage:", url);
-    console.log(
-      "Search parameters - searchQuery:",
-      searchQuery,
-      "categoryFilter:",
-      categoryFilter,
-      "subCategoryFilter:",
-      subCategoryFilter
-    );
-    console.log("Full search query details:", {
+    console.log("🔍 API URL for getProductsByPage:", url);
+    console.log("🔍 Search parameters - query:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+    console.log("🔍 Full search query details:", {
       searchQuery,
       searchQueryType: typeof searchQuery,
       searchQueryLength: searchQuery?.length,
@@ -509,7 +514,8 @@ export async function getModels(): Promise<ProductResponse> {
 
 export async function getvarient(): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(`/category/api/variants`);
+    // Updated endpoint to valid variants route
+    const response = await apiClient.get(`/category/variants`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch variants:", error);
@@ -797,28 +803,34 @@ export async function getContentStats(): Promise<{
   models: number;
   variants: number;
 }> {
-  try {
-    // Fetch all content types in parallel
-    const [categoriesRes, brandsRes, modelsRes, variantsRes, subcategoriesRes] =
-      await Promise.all([
-        getCategories(),
-        getBrand(),
-        getModels(),
-        getvarient(),
-        getSubcategories(),
-      ]);
+  // Fetch all content types in parallel and tolerate individual failures
+  const results = await Promise.allSettled([
+    getCategories(),
+    getBrand(),
+    getModels(),
+    getvarient(),
+    getSubcategories(),
+  ]);
 
-    return {
-      categories: categoriesRes.data?.length || 0,
-      subcategories: subcategoriesRes.data?.products.length || 0,
-      brands: brandsRes.data?.products.length || 0,
-      models: modelsRes.data?.products.length || 0,
-      variants: variantsRes.data?.products.length || 0,
-    };
-  } catch (error) {
-    console.error("Failed to fetch content stats:", error);
-    throw error;
-  }
+  const [categoriesRes, brandsRes, modelsRes, variantsRes, subcategoriesRes] = results;
+
+  const safeCount = (res: any): number => {
+    if (res?.status !== "fulfilled") return 0;
+    const data = res.value?.data;
+    if (Array.isArray(data)) return data.length;
+    if (Array.isArray(data?.products)) return data.products.length;
+    if (Array.isArray(data?.data)) return data.data.length;
+    if (typeof data?.count === "number") return data.count;
+    return 0;
+  };
+
+  return {
+    categories: safeCount(categoriesRes),
+    subcategories: safeCount(subcategoriesRes),
+    brands: safeCount(brandsRes),
+    models: safeCount(modelsRes),
+    variants: safeCount(variantsRes),
+  };
 }
 
 export async function getProductsByCategory(

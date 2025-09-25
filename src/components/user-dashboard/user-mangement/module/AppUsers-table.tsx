@@ -134,32 +134,17 @@ export default function AppUsersTable({
 				<thead>
 					<tr className="border-b border-gray-200 bg-gray-50">
 						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">#</th>
-						<th
-							className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
-							onClick={() => onSort && onSort("email")}
-						>
-							<div className="flex items-center gap-1">
-								Email
-								{getSortIcon("email")}
-							</div>
+						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+							Username
 						</th>
-						<th
-							className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
-							onClick={() => onSort && onSort("phone")}
-						>
-							<div className="flex items-center gap-1">
-								Phone
-								{getSortIcon("phone")}
-							</div>
+						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+							Name
 						</th>
-						<th
-							className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
-							onClick={() => onSort && onSort("role")}
-						>
-							<div className="flex items-center gap-1">
-								Role
-								{getSortIcon("role")}
-							</div>
+						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+							Email
+						</th>
+						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+							Status
 						</th>
 						<th
 							className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
@@ -178,18 +163,27 @@ export default function AppUsersTable({
 						? Array.from({ length: itemsPerPage }).map((_, idx) => (
 							<tr key={idx} className="border-b border-gray-100">
 								<td className="p-3 md:p-4"><Skeleton className="h-4 w-6" /></td>
+								<td className="p-3 md:p-4"><Skeleton className="h-4 w-24" /></td>
+								<td className="p-3 md:p-4"><Skeleton className="h-4 w-32" /></td>
 								<td className="p-3 md:p-4"><Skeleton className="h-4 w-40" /></td>
+								<td className="p-3 md:p-4"><Skeleton className="h-6 w-16 rounded" /></td>
 								<td className="p-3 md:p-4"><Skeleton className="h-4 w-28" /></td>
 								<td className="p-3 md:p-4"><Skeleton className="h-4 w-16" /></td>
-								<td className="p-3 md:p-4"><Skeleton className="h-6 w-16 rounded" /></td>
 							</tr>
 						))
 						: pageData.map((u, idx) => (
 							<tr key={u._id} className="border-b border-gray-100 hover:bg-gray-50">
 								<td className="p-3 md:p-4 text-gray-600 text-sm">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+								<td className="p-3 md:p-4 text-gray-700 text-sm">{u.username || "-"}</td>
+								<td className="p-3 md:p-4 text-gray-700 text-sm">
+									{`${u.firstName || ""} ${u.lastName || ""}`.trim() || "-"}
+								</td>
 								<td className="p-3 md:p-4 text-gray-700 text-sm">{u.email || "-"}</td>
-								<td className="p-3 md:p-4 text-gray-600 text-sm">{u.phone_Number || "-"}</td>
-								<td className="p-3 md:p-4 text-gray-600 text-sm"><span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{u.role || "User"}</span></td>
+								<td className="p-3 md:p-4 text-gray-600 text-sm">
+									<span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+										Active
+									</span>
+								</td>
 								<td className="p-3 md:p-4 text-gray-600 text-sm">{formatDate(u.last_login, { includeTime: true, timeFormat: "12h" })}</td>
 								<td className="p-3 md:p-4">
 									<DropdownMenu>

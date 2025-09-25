@@ -90,7 +90,17 @@ export default function PendingProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        console.log("PendingProduct: Fetching products with status:", "Pending");
+        console.log("🔍 PendingProduct: useEffect triggered");
+        console.log("🔍 PendingProduct: searchQuery received:", searchQuery);
+        console.log("🔍 PendingProduct: API call params:", {
+          currentPage,
+          itemsPerPage,
+          status: "Pending",
+          searchQuery,
+          categoryFilter,
+          subCategoryFilter
+        });
+        
         const response = await getProductsByPage(
           currentPage,
           itemsPerPage,
@@ -99,6 +109,8 @@ export default function PendingProduct({
           categoryFilter,
           subCategoryFilter
         );
+        
+        console.log("🔍 PendingProduct: API response received:", response);
         
         // Handle response safely
         if (response && response.data) {

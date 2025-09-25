@@ -113,3 +113,45 @@ export async function updateOrderStatusByDealerReq(payload: UpdateOrderStatusByD
     throw error;
   }
 }
+
+// Get all orders from the specified endpoint
+export async function getAllOrders(): Promise<{
+  success: boolean;
+  message: string;
+  data: Array<{
+    _id: string;
+    orderId: string;
+    orderDate: string;
+    order_Amount: number;
+    status: string;
+    paymentType: string;
+    orderType: string;
+    orderSource: string;
+    createdAt: string;
+    updatedAt: string;
+    skus: Array<{
+      sku: string;
+      quantity: number;
+      productName: string;
+      totalPrice: number;
+      tracking_info: {
+        status: string;
+      };
+    }>;
+    customerDetails: {
+      name: string;
+      email: string;
+      phone: string;
+    };
+  }>;
+}> {
+  try {
+    console.log("Fetching all orders from endpoint: /orders/api/orders/all");
+    const response = await apiClient.get(`/orders/api/orders/all`);
+    console.log("All orders response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch all orders:", error);
+    throw error;
+  }
+}
