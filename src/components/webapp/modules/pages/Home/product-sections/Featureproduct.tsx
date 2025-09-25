@@ -11,6 +11,7 @@ interface Vehicle {
   _id: string;
   vehicle_name: string;
   vehicle_image: string;
+  product_type?: string;
   brand_id: {
     _id: string;
     brand_name: string;
@@ -48,8 +49,38 @@ export default function FeaturedProducts() {
   const router = useRouter()
   const vehicle_type = useAppSelector(selectVehicleTypeId)
   const vehicleTypeName = useAppSelector(selectVehicleType)
-  const handleVehicleClick = (vehicleId: string) => {
-    router.push(`/shop/vehicle/${vehicleId}`)
+  const handleVehicleClick = (vehicle: Vehicle) => {
+    navigateToVehicleProducts(vehicle)
+  }
+
+  const navigateToVehicleProducts = (vehicle: Vehicle) => {
+    if (!vehicle) return
+
+    const params = new URLSearchParams()
+    const productType = vehicle.product_type?.trim() || "OE"
+    params.set("productType", productType)
+
+    if (vehicle.brand_id?.brand_name) {
+      params.set("brand", vehicle.brand_id._id)
+    }
+
+    if (vehicle.model_id?.model_name) {
+      params.set("model", vehicle.model_id._id)
+    }
+
+    if (vehicle.variant_id?.variant_name) {
+      params.set("variant", vehicle.variant_id._id)
+    }
+
+    // if (vehicle.vehicle_name) {
+    //   params.set("vehicleName", vehicle.vehicle_name)
+    // }
+
+    // if (vehicle.vehicle_type?.type_name) {
+    //   params.set("vehicleType", vehicle.vehicle_type.type_name)
+    // }
+
+    router.push(`/shop/vehicle-products?${params.toString()}`)
   }
 
   const scrollLeft = () => {
@@ -149,12 +180,12 @@ export default function FeaturedProducts() {
             <div
               key={key}
               className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex-shrink-0 w-80 ${vehicle?._id ? 'cursor-pointer' : ''}`}
-              onClick={vehicle?._id ? () => handleVehicleClick(vehicle._id) : undefined}
+              onClick={vehicle?._id ? () => handleVehicleClick(vehicle) : undefined}
               role={vehicle?._id ? "button" : undefined}
               tabIndex={vehicle?._id ? 0 : -1}
             >
               <div className="relative p-4 bg-gray-50">
-                <button
+                {/* <button
                   className="absolute top-2 right-2 p-2 rounded-full bg-white shadow-sm hover:bg-gray-50 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation()
@@ -162,14 +193,14 @@ export default function FeaturedProducts() {
                   }}
                 >
                   <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
-                </button>
+                </button> */}
                 <img
                   src={imageSrc}
                   alt={name}
                   className="w-full h-48 object-contain"
                   onClick={vehicle?._id ? (e) => {
                     e.stopPropagation()
-                    handleVehicleClick(vehicle._id)
+                    handleVehicleClick(vehicle)
                   } : undefined}
                 />
                 <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
@@ -182,7 +213,7 @@ export default function FeaturedProducts() {
                   className="font-semibold text-gray-900 mb-1"
                   onClick={vehicle?._id ? (e) => {
                     e.stopPropagation()
-                    handleVehicleClick(vehicle._id)
+                    handleVehicleClick(vehicle)
                   } : undefined}
                 >
                   {name}
@@ -202,7 +233,7 @@ export default function FeaturedProducts() {
                   text="View Details"
                   onClick={(e) => {
                     e.stopPropagation()
-                    if (vehicle?._id) handleVehicleClick(vehicle._id)
+                    if (vehicle?._id) handleVehicleClick(vehicle)
                   }}
                 />
               </div>
