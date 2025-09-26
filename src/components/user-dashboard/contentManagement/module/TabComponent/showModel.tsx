@@ -8,27 +8,72 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { getModels } from "@/service/product-Service";
+import { getModels, getBrand } from "@/service/product-Service";
+import { updateModel } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import UpdateModal from "../UpdateModal";
 
 export default function ShowModel({ searchQuery }: { searchQuery: string }) {
         const [model, setModel] = useState<any[]>([]);
+        const [brands, setBrands] = useState<any[]>([]);
         const [currentPage, setCurrentPage] = useState(1);
         const [loading, setLoading] = useState(false);
+        const [sortField, setSortField] = useState<string>("");
+        const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+        const [updateModalOpen, setUpdateModalOpen] = useState(false);
+        const [selectedModel, setSelectedModel] = useState<any>(null);
         const itemPerPage = 10;
 
-        // Filter models by searchQuery with safe array operations
+        // Filter and sort models
         const filteredModels = React.useMemo(() => {
           if (!model || !Array.isArray(model)) return [];
-          if (!searchQuery || !searchQuery.trim()) return model;
           
-          const q = searchQuery.trim().toLowerCase();
-          return model.filter((item) =>
-            (item?.model_name?.toLowerCase().includes(q) ||
-              item?.brand_ref?.brand_name?.toLowerCase().includes(q) ||
-              item?.model_Status?.toLowerCase().includes(q))
-          );
-        }, [model, searchQuery]);
+          let filtered = model;
+          
+          // Apply search filter
+          if (searchQuery && searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            filtered = model.filter((item) =>
+              (item?.model_name?.toLowerCase().includes(q) ||
+                item?.brand_ref?.brand_name?.toLowerCase().includes(q) ||
+                item?.model_Status?.toLowerCase().includes(q))
+            );
+          }
+          
+          // Apply sorting
+          if (sortField) {
+            filtered = [...filtered].sort((a, b) => {
+              let aValue = "";
+              let bValue = "";
+              
+              switch (sortField) {
+                case "name":
+                  aValue = a?.model_name || "";
+                  bValue = b?.model_name || "";
+                  break;
+                case "brand":
+                  aValue = a?.brand_ref?.brand_name || "";
+                  bValue = b?.brand_ref?.brand_name || "";
+                  break;
+                case "status":
+                  aValue = a?.model_Status || "";
+                  bValue = b?.model_Status || "";
+                  break;
+                default:
+                  return 0;
+              }
+              
+              if (sortDirection === "asc") {
+                return aValue.localeCompare(bValue);
+              } else {
+                return bValue.localeCompare(aValue);
+              }
+            });
+          }
+          
+          return filtered;
+        }, [model, searchQuery, sortField, sortDirection]);
 
         // Safe pagination calculations
         const totalPages = Math.ceil((filteredModels?.length || 0) / itemPerPage);
@@ -40,21 +85,64 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
           );
         }, [filteredModels, currentPage, itemPerPage]);
 
+        // Function to handle sorting
+        const handleSort = (field: string) => {
+          if (sortField === field) {
+            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+          } else {
+            setSortField(field);
+            setSortDirection("asc");
+          }
+        };
+
+        // Function to get sort icon
+        const getSortIcon = (field: string) => {
+          if (sortField !== field) {
+            return <ArrowUpDown className="h-4 w-4" />;
+          }
+          return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+        };
+
+        const handleEditModel = (model: any) => {
+            setSelectedModel(model);
+            setUpdateModalOpen(true);
+        };
+
+        const handleUpdateModel = async (formData: FormData) => {
+            if (!selectedModel) return;
+            await updateModel(selectedModel._id, formData);
+            // Refresh models after update
+            fetchData();
+        };
+
          useEffect(() => {
             const fetchData = async () => {
                 setLoading(true);
               try {
-                const response = await getModels();
-                if (!response || !response.data) {
-                  console.error("No data found in response");
+                const [modelsResponse, brandsResponse] = await Promise.all([
+                  getModels(),
+                  getBrand()
+                ]);
+                
+                if (!modelsResponse || !modelsResponse.data) {
+                  console.error("No models data found in response");
                   setModel([]);
-                  return;
+                } else {
+                  const Items = modelsResponse.data;
+                  setModel(Array.isArray(Items) ? Items : []);
                 }
-                const Items = response.data;
-                setModel(Array.isArray(Items) ? Items : []);
+
+                if (!brandsResponse || !brandsResponse.data) {
+                  console.error("No brands data found in response");
+                  setBrands([]);
+                } else {
+                  const Brands = brandsResponse.data;
+                  setBrands(Array.isArray(Brands) ? Brands : []);
+                }
               } catch (err: any) {
                 console.error("Error fetching data:", err);
                 setModel([]);
+                setBrands([]);
               } finally {
                 setLoading(false);
               }
@@ -83,9 +171,36 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Brand</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("name")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Name
+                {getSortIcon("name")}
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("brand")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Brand
+                {getSortIcon("brand")}
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("status")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Status
+                {getSortIcon("status")}
+              </Button>
+            </TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -109,7 +224,11 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleEditModel(item)}
+                  >
                     Edit
                   </Button>
                 </TableCell>
@@ -200,6 +319,16 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
           </div>
         </div>
       )}
+
+      {/* Update Modal */}
+      <UpdateModal
+        open={updateModalOpen}
+        onClose={() => setUpdateModalOpen(false)}
+        onUpdate={handleUpdateModel}
+        item={selectedModel}
+        type="model"
+        brands={brands}
+      />
     </div>
   );
 }

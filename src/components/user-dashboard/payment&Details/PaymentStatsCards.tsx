@@ -10,17 +10,27 @@ import {
   Clock, 
   RotateCcw, 
   DollarSign,
-  Loader2 
+  Loader2,
+  Download,
+  FileText,
+  FileSpreadsheet
 } from "lucide-react";
-import { getPaymentStats } from "@/service/payment-service";
-import { PaymentSummary } from "@/types/paymentDetails-Types";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getComprehensivePaymentStats } from "@/service/payment-service";
+import { ComprehensivePaymentStats } from "@/types/paymentDetails-Types";
 
 interface PaymentStatsCardsProps {
   className?: string;
 }
 
 export default function PaymentStatsCards({ className = "" }: PaymentStatsCardsProps) {
-  const [paymentStats, setPaymentStats] = useState<PaymentSummary | null>(null);
+  const [paymentStats, setPaymentStats] = useState<ComprehensivePaymentStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +40,7 @@ export default function PaymentStatsCards({ className = "" }: PaymentStatsCardsP
       setError(null);
       
       try {
-        const response = await getPaymentStats();
+        const response = await getComprehensivePaymentStats();
         
         if (response.success && response.data) {
           setPaymentStats(response.data);
@@ -87,15 +97,91 @@ export default function PaymentStatsCards({ className = "" }: PaymentStatsCardsP
     return null;
   }
 
-  // Calculate percentages
-  const totalPayments = paymentStats.total_payments;
-  const successRate = totalPayments > 0 ? ((paymentStats.successful_payments / totalPayments) * 100).toFixed(1) : "0";
-  const failureRate = totalPayments > 0 ? ((paymentStats.failed_payments / totalPayments) * 100).toFixed(1) : "0";
+  // Export functions
+  const exportToCSV = () => {
+    if (!paymentStats) return;
+    
+    const { overview, statusBreakdown, methodBreakdown, refunds } = paymentStats;
+    
+    // Create CSV content for overview
+    const overviewData = [
+      ["Metric", "Value"],
+      ["Total Payments", overview.totalPayments],
+      ["Total Amount", `₹${overview.totalAmount.toLocaleString()}`],
+      ["Average Amount", `₹${overview.averageAmount.toLocaleString()}`],
+      ["Success Rate", `${overview.successRate.toFixed(1)}%`],
+      ["Refund Rate", `${overview.refundRate.toFixed(1)}%`],
+      ["Growth Rate", `${overview.growthRate.toFixed(1)}%`],
+      ["", ""],
+      ["Status Breakdown", ""],
+      ["Status", "Count", "Total Amount", "Average Amount", "Percentage"],
+      ...statusBreakdown.map(status => [
+        status.status,
+        status.count,
+        `₹${status.totalAmount.toLocaleString()}`,
+        `₹${status.averageAmount.toLocaleString()}`,
+        `${status.percentage.toFixed(1)}%`
+      ]),
+      ["", ""],
+      ["Method Breakdown", ""],
+      ["Method", "Count", "Total Amount", "Average Amount", "Percentage"],
+      ...methodBreakdown.map(method => [
+        method.method,
+        method.count,
+        `₹${method.totalAmount.toLocaleString()}`,
+        `₹${method.averageAmount.toLocaleString()}`,
+        `${method.percentage.toFixed(1)}%`
+      ]),
+      ["", ""],
+      ["Refund Statistics", ""],
+      ["Total Refunds", refunds.totalRefunds],
+      ["Total Refund Amount", `₹${refunds.totalRefundAmount.toLocaleString()}`],
+      ["Successful Refunds", refunds.successfulRefunds],
+      ["Pending Refunds", refunds.pendingRefunds]
+    ];
 
+    const csvContent = overviewData.map(row => row.join(",")).join("\n");
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `payment-statistics-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToJSON = () => {
+    if (!paymentStats) return;
+    
+    const jsonContent = JSON.stringify(paymentStats, null, 2);
+    
+    // Create and download file
+    const blob = new Blob([jsonContent], { type: "application/json" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `payment-statistics-${new Date().toISOString().split('T')[0]}.json`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Calculate statistics from the comprehensive data
+  const { overview, statusBreakdown, methodBreakdown, refunds } = paymentStats;
+  
+  // Find paid status count
+  const paidStatus = statusBreakdown.find(status => status.status === "paid");
+  const createdStatus = statusBreakdown.find(status => status.status === "created" || status.status === "Created");
+  
   const statsCards = [
     {
       title: "Total Payments",
-      value: paymentStats.total_payments.toLocaleString(),
+      value: overview.totalPayments.toLocaleString(),
       icon: CreditCard,
       description: "All payment transactions",
       color: "text-blue-600",
@@ -104,79 +190,104 @@ export default function PaymentStatsCards({ className = "" }: PaymentStatsCardsP
     },
     {
       title: "Total Amount",
-      value: `₹${paymentStats.total_amount.toLocaleString()}`,
+      value: `₹${overview.totalAmount.toLocaleString()}`,
       icon: DollarSign,
-      description: "Total payment value",
+      description: `Avg: ₹${overview.averageAmount.toLocaleString()}`,
       color: "text-green-600",
       bgColor: "bg-green-50",
       borderColor: "border-green-200"
     },
     {
       title: "Successful",
-      value: paymentStats.successful_payments.toLocaleString(),
+      value: paidStatus ? paidStatus.count.toLocaleString() : "0",
       icon: CheckCircle,
-      description: `${successRate}% success rate`,
+      description: paidStatus ? `₹${paidStatus.totalAmount.toLocaleString()}` : "No successful payments",
       color: "text-green-600",
       bgColor: "bg-green-50",
       borderColor: "border-green-200"
     },
     {
-      title: "Failed",
-      value: paymentStats.failed_payments.toLocaleString(),
-      icon: XCircle,
-      description: `${failureRate}% failure rate`,
-      color: "text-red-600",
-      bgColor: "bg-red-50",
-      borderColor: "border-red-200"
-    },
-    {
-      title: "Pending",
-      value: paymentStats.pending_payments.toLocaleString(),
+      title: "Created",
+      value: createdStatus ? createdStatus.count.toLocaleString() : "0",
       icon: Clock,
-      description: "Awaiting processing",
+      description: createdStatus ? `₹${createdStatus.totalAmount.toLocaleString()}` : "No created payments",
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
       borderColor: "border-yellow-200"
     },
     {
-      title: "Refunded",
-      value: paymentStats.refunded_payments.toLocaleString(),
-      icon: RotateCcw,
-      description: "Processed refunds",
+      title: "Top Method",
+      value: methodBreakdown.length > 0 ? methodBreakdown[0].method : "N/A",
+      icon: CreditCard,
+      description: methodBreakdown.length > 0 ? `${methodBreakdown[0].count} payments` : "No data",
       color: "text-purple-600",
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200"
+    },
+    {
+      title: "Refunds",
+      value: refunds.totalRefunds.toLocaleString(),
+      icon: RotateCcw,
+      description: `₹${refunds.totalRefundAmount.toLocaleString()}`,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200"
     }
   ];
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 ${className}`}>
-      {statsCards.map((stat, index) => {
-        const IconComponent = stat.icon;
-        return (
-          <Card 
-            key={index} 
-            className={`border ${stat.borderColor} hover:shadow-md transition-shadow duration-200`}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                {stat.title}
-              </CardTitle>
-              <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                <IconComponent className={`h-4 w-4 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900 mb-1">
-                {stat.value}
-              </div>
-              <p className="text-xs text-gray-500">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className={`space-y-4 ${className}`}>
+      {/* Export Button */}
+      <div className="flex justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Export Report
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={exportToCSV} className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Export as CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportToJSON} className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Export as JSON
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {statsCards.map((stat, index) => {
+          const IconComponent = stat.icon;
+          return (
+            <Card 
+              key={index} 
+              className={`border ${stat.borderColor} hover:shadow-md transition-shadow duration-200`}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  {stat.title}
+                </CardTitle>
+                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                  <IconComponent className={`h-4 w-4 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {stat.value}
+                </div>
+                <p className="text-xs text-gray-500">
+                  {stat.description}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

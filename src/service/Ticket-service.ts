@@ -14,6 +14,17 @@ export const getTickets = async (): Promise<TicketResponse> => {
         throw err
     }
 }
+
+export const getTicketById = async (ticketId: string): Promise<TicketResponse> => {
+    try{
+        const response = await apiClient.get(`/orders/api/tickets/byId/${ticketId}`)
+        return response.data
+    }
+    catch(err:any){
+        console.log("error in get ticket by id",err)
+        throw err
+    }
+}
 export const statusUpdate = async (ticketId: string, statusData: {
     status: string;
     admin_notes: string;
@@ -25,6 +36,20 @@ export const statusUpdate = async (ticketId: string, statusData: {
     }
     catch(err:any){
         console.log("error in status update",err)
+        throw err
+    }
+}
+
+export const updateTicketNotes = async (ticketId: string, notesData: {
+    remarks: string;
+    updated_by: string;
+}): Promise<TicketResponse> => {
+    try{
+        const response = await apiClient.patch(`/orders/api/tickets/updateRemarks/${ticketId}`, notesData)
+        return response.data
+    }
+    catch(err:any){
+        console.log("error in notes update",err)
         throw err
     }
 }

@@ -252,7 +252,6 @@ export default function GlobalFilters({
                     setDraftRole("all");
                     setDraftStatus("all");
                     setDraftRegion("all");
-                    setDraftDealer("all");
                   }}
                 >
                   Reset

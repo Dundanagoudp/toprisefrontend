@@ -16,6 +16,7 @@ import { getTickets } from "@/service/Ticket-service";
 import { Ticket, TicketResponse, TicketStatus, TicketType } from "@/types/Ticket-types";
 import GeneralTickets from "./components/GeneralTickets";
 import UserTickets from "./components/UserTickets";
+import TicketDetails from "./components/popUp/TicketDetails";
 
 type TabType = "General" | "User";
 
@@ -37,6 +38,14 @@ export default function ShowTickets() {
   // Dialog state
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Filters state
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    status: "",
+    assigned: "",
+    dateRange: ""
+  });
 
   // Fetch tickets function
   const fetchTickets = useCallback(async () => {
@@ -95,9 +104,10 @@ export default function ShowTickets() {
         loading={loading}
         onViewTicket={handleViewTicketDetails}
         onTicketsRefresh={fetchTickets}
+        filters={filters}
       />
     );
-  }, [currentTabConfig, tickets, searchQuery, loading, fetchTickets]);
+  }, [currentTabConfig, tickets, searchQuery, loading, fetchTickets, filters]);
 
   // Debounced search functionality
   const performSearch = useCallback((query: string) => {
@@ -159,6 +169,7 @@ export default function ShowTickets() {
                   variant="outline"
                   text="Filters"
                   icon={<Filter className="h-4 w-4 mr-2" />}
+                  onClick={() => setIsFiltersOpen(true)}
                 />
               </div>
             </div>
@@ -217,6 +228,81 @@ export default function ShowTickets() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Filters Modal */}
+      {isFiltersOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Filter Tickets</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Status</label>
+                <select 
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={filters.status}
+                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="Open">Open</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Assigned</label>
+                <select 
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={filters.assigned}
+                  onChange={(e) => setFilters(prev => ({ ...prev, assigned: e.target.value }))}
+                >
+                  <option value="">All</option>
+                  <option value="true">Assigned</option>
+                  <option value="false">Unassigned</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Date Range</label>
+                <select 
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={filters.dateRange}
+                  onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                >
+                  <option value="">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <DynamicButton
+                variant="outline"
+                text="Clear Filters"
+                onClick={() => setFilters({ status: "", assigned: "", dateRange: "" })}
+                className="flex-1"
+              />
+              <DynamicButton
+                text="Apply Filters"
+                onClick={() => setIsFiltersOpen(false)}
+                className="flex-1"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Details Dialog */}
+      <TicketDetails
+        open={isDialogOpen}
+        onClose={handleCloseDialog}
+        ticketId={selectedTicketId}
+      />
     </div>
   );
 }

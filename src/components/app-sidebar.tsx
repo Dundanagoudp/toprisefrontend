@@ -178,7 +178,7 @@ const data = {
       icon: Box,
     },
     {
-      title: "Pickup",
+      title: "Picklist Management",
       url: "/user/dashboard/pickup",
       icon: Package,
     },
