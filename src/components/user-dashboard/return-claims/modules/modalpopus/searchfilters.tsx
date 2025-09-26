@@ -4,9 +4,6 @@ import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
 
 interface SearchFiltersModalProps {
   trigger?: React.ReactNode
@@ -15,9 +12,6 @@ interface SearchFiltersModalProps {
 export default function SearchFiltersModal({ trigger }: SearchFiltersModalProps) {
   const [returnStatus, setReturnStatus] = useState("Approved")
   const [claimType, setClaimType] = useState("Not Compatible")
-  const [returnWindow, setReturnWindow] = useState("7")
-  const [brand, setBrand] = useState("Yamaha")
-  const [category, setCategory] = useState("Brake Pad")
   const [isOpen, setIsOpen] = useState(false)
 
   const returnStatusOptions = ["Pending", "Approved", "Rejected", "In_Progress", "Pickup_Scheduled", "Pickup_Completed", "Completed"]
@@ -27,9 +21,6 @@ export default function SearchFiltersModal({ trigger }: SearchFiltersModalProps)
     console.log("Search filters:", {
       returnStatus,
       claimType,
-      returnWindow,
-      brand,
-      category,
     })
     setIsOpen(false)
   }
@@ -37,9 +28,6 @@ export default function SearchFiltersModal({ trigger }: SearchFiltersModalProps)
   const handleReset = () => {
     setReturnStatus("Pending")
     setClaimType("Defective")
-    setReturnWindow("7")
-    setBrand("")
-    setCategory("")
   }
 
   return (
@@ -99,77 +87,6 @@ export default function SearchFiltersModal({ trigger }: SearchFiltersModalProps)
               </div>
             </div>
 
-            {/* Return Window */}
-            <div>
-              <h3 className="text-base text-gray-900 font-bold mb-4">Return Window</h3>
-              <RadioGroup value={returnWindow} onValueChange={setReturnWindow} className="flex gap-8">
-                <div className="flex items-center space-x-3">
-                  <RadioGroupItem
-                    value="7"
-                    id="7days"
-                    className="w-5 h-5 border-2 border-gray-300 text-red-600 focus:ring-red-500"
-                  />
-                  <Label htmlFor="7days" className="text-base text-gray-700 font-medium cursor-pointer">
-                    7 Days
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <RadioGroupItem
-                    value="30"
-                    id="30days"
-                    className="w-5 h-5 border-2 border-gray-300 text-red-600 focus:ring-red-500"
-                  />
-                  <Label htmlFor="30days" className="text-base text-gray-700 font-medium cursor-pointer">
-                    30 Days
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <RadioGroupItem
-                    value="60"
-                    id="60days"
-                    className="w-5 h-5 border-2 border-gray-300 text-red-600 focus:ring-red-500"
-                  />
-                  <Label htmlFor="60days" className="text-base text-gray-700 font-medium cursor-pointer">
-                    60 Days
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Brand and Category */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-base text-gray-900 font-bold mb-4">Brand</h3>
-                <Select value={brand} onValueChange={setBrand}>
-                  <SelectTrigger className="w-full h-12 bg-gray-50 border-2 border-gray-200 rounded-lg hover:border-gray-300 focus:border-red-500 focus:ring-red-500">
-                    <SelectValue placeholder="Select Brand" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Yamaha">Yamaha</SelectItem>
-                    <SelectItem value="Honda">Honda</SelectItem>
-                    <SelectItem value="Toyota">Toyota</SelectItem>
-                    <SelectItem value="Nissan">Nissan</SelectItem>
-                    <SelectItem value="BMW">BMW</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <h3 className="text-base text-gray-900 font-bold mb-4">Category</h3>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="w-full h-12 bg-gray-50 border-2 border-gray-200 rounded-lg hover:border-gray-300 focus:border-red-500 focus:ring-red-500">
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Brake Pad">Brake Pad</SelectItem>
-                    <SelectItem value="Oil Filter">Oil Filter</SelectItem>
-                    <SelectItem value="Air Filter">Air Filter</SelectItem>
-                    <SelectItem value="Spark Plug">Spark Plug</SelectItem>
-                    <SelectItem value="Battery">Battery</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
           </div>
 
           {/* Action Buttons */}

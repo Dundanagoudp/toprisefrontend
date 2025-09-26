@@ -8,48 +8,136 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { getSubCategories } from "@/service/product-Service";
+import { getSubCategories, getCategories } from "@/service/product-Service";
+import { updateSubCategory } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import UpdateModal from "../UpdateModal";
 
 export default function SubCategory({ searchQuery }: { searchQuery: string }) {
   const [subCategories, setSubCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<any>(null);
   const itemPerPage = 10;
 
-  // Filter subcategories by searchQuery with safe array operations
+  // Filter and sort subcategories
   const filteredSubCategories = React.useMemo(() => {
     if (!subCategories || !Array.isArray(subCategories)) return [];
-    if (!searchQuery || !searchQuery.trim()) return subCategories;
     
-    const q = searchQuery.trim().toLowerCase();
-    return subCategories.filter((item) =>
-      (item?.subcategory_name?.toLowerCase().includes(q) ||
-        item?.subcategory_status?.toLowerCase().includes(q) ||
-        item?.category_ref?.category_name?.toLowerCase().includes(q))
-    );
-  }, [subCategories, searchQuery]);
+    let filtered = subCategories;
+    
+    // Apply search filter
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = subCategories.filter((item) =>
+        (item?.subcategory_name?.toLowerCase().includes(q) ||
+          item?.subcategory_status?.toLowerCase().includes(q) ||
+          item?.category_ref?.category_name?.toLowerCase().includes(q))
+      );
+    }
+    
+    // Apply sorting
+    if (sortField) {
+      filtered = [...filtered].sort((a, b) => {
+        let aValue = "";
+        let bValue = "";
+        
+        switch (sortField) {
+          case "name":
+            aValue = a?.subcategory_name || "";
+            bValue = b?.subcategory_name || "";
+            break;
+          case "status":
+            aValue = a?.subcategory_status || "";
+            bValue = b?.subcategory_status || "";
+            break;
+          case "category":
+            aValue = a?.category_ref?.category_name || "";
+            bValue = b?.category_ref?.category_name || "";
+            break;
+          default:
+            return 0;
+        }
+        
+        if (sortDirection === "asc") {
+          return aValue.localeCompare(bValue);
+        } else {
+          return bValue.localeCompare(aValue);
+        }
+      });
+    }
+    
+    return filtered;
+  }, [subCategories, searchQuery, sortField, sortDirection]);
 
   const totalPages = Math.ceil(filteredSubCategories.length / itemPerPage);
   const paginatedData = filteredSubCategories.slice(
     (currentPage - 1) * itemPerPage,
     currentPage * itemPerPage
   );
+
+  // Function to handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Function to get sort icon
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  };
+
+  const handleEditSubCategory = (subCategory: any) => {
+    setSelectedSubCategory(subCategory);
+    setUpdateModalOpen(true);
+  };
+
+  const handleUpdateSubCategory = async (formData: FormData) => {
+    if (!selectedSubCategory) return;
+    await updateSubCategory(selectedSubCategory._id, formData);
+    // Refresh subcategories after update
+    fetchData();
+  };
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await getSubCategories();
-        if (!response || !response.data) {
-          console.error("No data found in response");
+        const [subCategoriesResponse, categoriesResponse] = await Promise.all([
+          getSubCategories(),
+          getCategories()
+        ]);
+        
+        if (!subCategoriesResponse || !subCategoriesResponse.data) {
+          console.error("No subcategories data found in response");
           setSubCategories([]);
-          return;
+        } else {
+          const Items = subCategoriesResponse.data;
+          setSubCategories(Array.isArray(Items) ? Items : []);
         }
-        const Items = response.data;
-        setSubCategories(Array.isArray(Items) ? Items : []);
+
+        if (!categoriesResponse || !categoriesResponse.data) {
+          console.error("No categories data found in response");
+          setCategories([]);
+        } else {
+          const Categories = categoriesResponse.data;
+          setCategories(Array.isArray(Categories) ? Categories : []);
+        }
       } catch (err: any) {
         console.error("Error fetching data:", err);
         setSubCategories([]);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
@@ -78,9 +166,36 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Category</TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("name")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Name
+                {getSortIcon("name")}
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("status")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Status
+                {getSortIcon("status")}
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("category")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Category
+                {getSortIcon("category")}
+              </Button>
+            </TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -104,7 +219,11 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
                   {item?.category_ref?.category_name || "No Category"}
                 </TableCell>
                 <TableCell>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleEditSubCategory(item)}
+                  >
                     Edit
                   </Button>
                 </TableCell>
@@ -195,6 +314,16 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
           </div>
         </div>
       )}
+
+      {/* Update Modal */}
+      <UpdateModal
+        open={updateModalOpen}
+        onClose={() => setUpdateModalOpen(false)}
+        onUpdate={handleUpdateSubCategory}
+        item={selectedSubCategory}
+        type="subcategory"
+        categories={categories}
+      />
     </div>
   );
 }

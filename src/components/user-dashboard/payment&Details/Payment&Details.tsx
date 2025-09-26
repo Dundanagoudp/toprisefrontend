@@ -2,10 +2,32 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Card,
   CardContent,
@@ -28,6 +50,7 @@ import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import { getPaymentDetails } from "@/service/payment-service";
 import { PaymentDetail, PaymentDetailsResponse, PaymentPagination } from "@/types/paymentDetails-Types";
 import PaymentStatsCards from "./PaymentStatsCards";
+import PaymentDetailedStats from "./PaymentDetailedStats";
 
 // Using PaymentDetail interface from types file instead of local interface
 
@@ -42,6 +65,12 @@ export default function PaymentDetails() {
   // Sorting state
   const [sortField, setSortField] = useState("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
+  const [filterDateRange, setFilterDateRange] = useState<string>("all");
   
   // Pagination state from server
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,6 +123,46 @@ export default function PaymentDetails() {
       );
     }
 
+    // Apply status filter
+    if (filterStatus !== "all") {
+      currentPayments = currentPayments.filter(
+        (payment) => payment.payment_status?.toLowerCase() === filterStatus.toLowerCase()
+      );
+    }
+
+    // Apply payment method filter
+    if (filterPaymentMethod !== "all") {
+      currentPayments = currentPayments.filter(
+        (payment) => payment.payment_method?.toLowerCase() === filterPaymentMethod.toLowerCase()
+      );
+    }
+
+
+    // Apply date range filter
+    if (filterDateRange !== "all") {
+      const now = new Date();
+      const filterDate = new Date();
+      
+      switch (filterDateRange) {
+        case "today":
+          filterDate.setHours(0, 0, 0, 0);
+          break;
+        case "week":
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case "month":
+          filterDate.setMonth(now.getMonth() - 1);
+          break;
+        case "year":
+          filterDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+      
+      currentPayments = currentPayments.filter(
+        (payment) => new Date(payment.created_at) >= filterDate
+      );
+    }
+
     // Sort payments
     if (sortField) {
       currentPayments.sort((a: any, b: any) => {
@@ -142,7 +211,7 @@ export default function PaymentDetails() {
     }
     
     return currentPayments;
-  }, [payments, searchQuery, sortField, sortDirection]);
+  }, [payments, searchQuery, sortField, sortDirection, filterStatus, filterPaymentMethod, filterDateRange]);
 
   // Use filtered payments directly (no additional pagination since server handles it)
   const paginatedData = filteredAndSortedPayments;
@@ -194,6 +263,75 @@ export default function PaymentDetails() {
       <ChevronDown className="w-4 h-4 text-[#C72920]" />;
   };
 
+  // Filter handlers
+  const handleClearFilters = () => {
+    setFilterStatus("all");
+    setFilterPaymentMethod("all");
+    setFilterDateRange("all");
+  };
+
+  const handleApplyFilters = () => {
+    setShowFilters(false);
+  };
+
+  const getAppliedFiltersCount = () => {
+    let count = 0;
+    if (filterStatus !== "all") count++;
+    if (filterPaymentMethod !== "all") count++;
+    if (filterDateRange !== "all") count++;
+    return count;
+  };
+
+  // Export functions for payment list
+  const exportPaymentsToCSV = () => {
+    if (!payments || payments.length === 0) return;
+    
+    const csvData = [
+      ["Payment ID", "Razorpay Order ID", "Payment Method", "Payment Status", "Amount", "Created At", "Order ID", "Customer Name", "Customer Phone"],
+      ...payments.map(payment => [
+        payment.payment_id || payment._id,
+        payment.razorpay_order_id,
+        payment.payment_method,
+        payment.payment_status,
+        `₹${payment.amount.toLocaleString()}`,
+        new Date(payment.created_at).toLocaleDateString(),
+        payment.orderDetails?.orderId || payment.order_id?.orderId || "N/A",
+        payment.orderDetails?.customerName || payment.order_id?.customerDetails?.name || "N/A",
+        payment.orderDetails?.customerPhone || payment.order_id?.customerDetails?.phone || "N/A"
+      ])
+    ];
+
+    const csvContent = csvData.map(row => row.join(",")).join("\n");
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `payments-list-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportPaymentsToJSON = () => {
+    if (!payments || payments.length === 0) return;
+    
+    const jsonContent = JSON.stringify(payments, null, 2);
+    
+    // Create and download file
+    const blob = new Blob([jsonContent], { type: "application/json" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `payments-list-${new Date().toISOString().split('T')[0]}.json`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 rounded text-xs font-medium";
     switch (status.toLowerCase()) {
@@ -227,6 +365,9 @@ export default function PaymentDetails() {
 
           {/* Payment Statistics Cards */}
           <PaymentStatsCards className="mb-6" />
+          
+          {/* Detailed Payment Statistics */}
+          <PaymentDetailedStats className="mb-6" />
 
           {/* Search and Filters */}
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 gap-4 w-full">
@@ -241,9 +382,28 @@ export default function PaymentDetails() {
               <div className="flex gap-2 sm:gap-3">
                 <DynamicButton
                   variant="outline"
-                  text="Filters"
+                  text={`Filters${getAppliedFiltersCount() > 0 ? ` (${getAppliedFiltersCount()})` : ''}`}
                   icon={<Filter className="h-4 w-4 mr-2" />}
+                  onClick={() => setShowFilters(true)}
                 />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={exportPaymentsToCSV} className="flex items-center gap-2">
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Export as CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportPaymentsToJSON} className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Export as JSON
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -314,21 +474,21 @@ export default function PaymentDetails() {
                   </TableHead>
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("is_refund")}
-                  >
-                    <div className="flex items-center gap-1">
-                      Refund Status
-                      {getSortIcon("is_refund")}
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
                     onClick={() => handleSort("payment_status")}
                   >
                     <div className="flex items-center gap-1">
                       Payment Status
                       {getSortIcon("payment_status")}
                     </div>
+                  </TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+                    Order ID
+                  </TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+                    Order Amount
+                  </TableHead>
+                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
+                    Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -352,13 +512,16 @@ export default function PaymentDetails() {
                           <Skeleton className="h-4 w-1/2" />
                         </TableCell>
                         <TableCell className="px-6 py-4">
-                          <Skeleton className="h-4 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <Skeleton className="h-4 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
                           <Skeleton className="h-6 w-16 rounded" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <Skeleton className="h-4 w-1/2" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <Skeleton className="h-4 w-1/2" />
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <Skeleton className="h-8 w-16 rounded" />
                         </TableCell>
                       </TableRow>
                     ))
@@ -389,13 +552,28 @@ export default function PaymentDetails() {
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           {payment.payment_method}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
-                          {payment.is_refund ? 'Yes' : 'No'}
-                        </TableCell>
                         <TableCell className="px-6 py-4">
                           <span className={getStatusBadge(payment.payment_status)}>
                             {payment.payment_status}
                           </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 font-medium">
+                          {payment.orderDetails?.orderId || payment.order_id?.orderId || 'N/A'}
+                        </TableCell>
+                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
+                          ₹{payment.orderDetails?.order_Amount?.toLocaleString() || payment.order_id?.order_Amount?.toLocaleString() || 'N/A'}
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewPaymentDetails(payment._id);
+                            }}
+                          >
+                            View Details
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -436,6 +614,77 @@ export default function PaymentDetails() {
           </div>
         )}
       </Card>
+
+      {/* Filter Modal */}
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Filter Payments</DialogTitle>
+            <DialogDescription>
+              Apply filters to narrow down your payment results
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="status-filter">Payment Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="created">Created</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="method-filter">Payment Method</Label>
+              <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="netbanking">Net Banking</SelectItem>
+                  <SelectItem value="wallet">Wallet</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            
+            <div className="grid gap-2">
+              <Label htmlFor="date-filter">Date Range</Label>
+              <Select value={filterDateRange} onValueChange={setFilterDateRange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">Last 7 Days</SelectItem>
+                  <SelectItem value="month">Last 30 Days</SelectItem>
+                  <SelectItem value="year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClearFilters}>
+              Clear Filters
+            </Button>
+            <Button onClick={handleApplyFilters}>
+              Apply Filters
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
 
     </div>

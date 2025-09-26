@@ -9,26 +9,70 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { getCategories, getBrand } from "@/service/product-Service";
+import { updateBrand } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import UpdateModal from "../UpdateModal";
 
 export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
     const [brands, setBrands] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [sortField, setSortField] = useState<string>("");
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [updateModalOpen, setUpdateModalOpen] = useState(false);
+    const [selectedBrand, setSelectedBrand] = useState<any>(null);
     const itemPerPage = 10;
 
-    // Filter brands by searchQuery with safe array operations
+    // Filter and sort brands
     const filteredBrands = React.useMemo(() => {
         if (!brands || !Array.isArray(brands)) return [];
-        if (!searchQuery || !searchQuery.trim()) return brands;
         
-        const q = searchQuery.trim().toLowerCase();
-        return brands.filter((item) =>
-            (item?.brand_name?.toLowerCase().includes(q) ||
-                item?.status?.toLowerCase().includes(q) ||
-                item?.type?.type_name?.toLowerCase().includes(q))
-        );
-    }, [brands, searchQuery]);
+        let filtered = brands;
+        
+        // Apply search filter
+        if (searchQuery && searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            filtered = brands.filter((item) =>
+                (item?.brand_name?.toLowerCase().includes(q) ||
+                    item?.status?.toLowerCase().includes(q) ||
+                    item?.type?.type_name?.toLowerCase().includes(q))
+            );
+        }
+        
+        // Apply sorting
+        if (sortField) {
+            filtered = [...filtered].sort((a, b) => {
+                let aValue = "";
+                let bValue = "";
+                
+                switch (sortField) {
+                    case "name":
+                        aValue = a?.brand_name || "";
+                        bValue = b?.brand_name || "";
+                        break;
+                    case "status":
+                        aValue = a?.status || "";
+                        bValue = b?.status || "";
+                        break;
+                    case "type":
+                        aValue = a?.type?.type_name || "";
+                        bValue = b?.type?.type_name || "";
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (sortDirection === "asc") {
+                    return aValue.localeCompare(bValue);
+                } else {
+                    return bValue.localeCompare(aValue);
+                }
+            });
+        }
+        
+        return filtered;
+    }, [brands, searchQuery, sortField, sortDirection]);
 
     // Safe pagination calculations
     const totalPages = Math.ceil((filteredBrands?.length || 0) / itemPerPage);
@@ -39,6 +83,36 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
             currentPage * itemPerPage
         );
     }, [filteredBrands, currentPage, itemPerPage]);
+
+    // Function to handle sorting
+    const handleSort = (field: string) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+        } else {
+            setSortField(field);
+            setSortDirection("asc");
+        }
+    };
+
+    // Function to get sort icon
+    const getSortIcon = (field: string) => {
+        if (sortField !== field) {
+            return <ArrowUpDown className="h-4 w-4" />;
+        }
+        return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+    };
+
+    const handleEditBrand = (brand: any) => {
+        setSelectedBrand(brand);
+        setUpdateModalOpen(true);
+    };
+
+    const handleUpdateBrand = async (formData: FormData) => {
+        if (!selectedBrand) return;
+        await updateBrand(selectedBrand._id, formData);
+        // Refresh brands after update
+        fetchData();
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -82,9 +156,36 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Type</TableHead>
+                        <TableHead>
+                            <Button
+                                variant="ghost"
+                                onClick={() => handleSort("name")}
+                                className="h-auto p-0 font-semibold hover:bg-transparent"
+                            >
+                                Name
+                                {getSortIcon("name")}
+                            </Button>
+                        </TableHead>
+                        <TableHead>
+                            <Button
+                                variant="ghost"
+                                onClick={() => handleSort("status")}
+                                className="h-auto p-0 font-semibold hover:bg-transparent"
+                            >
+                                Status
+                                {getSortIcon("status")}
+                            </Button>
+                        </TableHead>
+                        <TableHead>
+                            <Button
+                                variant="ghost"
+                                onClick={() => handleSort("type")}
+                                className="h-auto p-0 font-semibold hover:bg-transparent"
+                            >
+                                Type
+                                {getSortIcon("type")}
+                            </Button>
+                        </TableHead>
                         <TableHead>Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -108,7 +209,11 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
                                 </TableCell>
                                 <TableCell>{item?.type?.type_name || "No Type"}</TableCell>
                                 <TableCell>
-                                    <Button variant="outline" size="sm">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => handleEditBrand(item)}
+                                    >
                                         Edit
                                     </Button>
                                 </TableCell>
@@ -199,6 +304,15 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
                     </div>
                 </div>
             )}
+
+            {/* Update Modal */}
+            <UpdateModal
+                open={updateModalOpen}
+                onClose={() => setUpdateModalOpen(false)}
+                onUpdate={handleUpdateBrand}
+                item={selectedBrand}
+                type="brand"
+            />
         </div>
     );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useBreadcrumb } from "@/contexts/BreadcrumbContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,6 @@ import {
   FileText,
   Image,
   Download,
-  Share2,
   MoreHorizontal,
   RefreshCw,
   Check,
@@ -54,9 +54,11 @@ interface ReturnDetailsProps {
 
 export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const router = useRouter();
+  const { updateLabel } = useBreadcrumb();
   const [returnRequest, setReturnRequest] = useState<ReturnRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const breadcrumbUpdatedRef = useRef(false);
 
   // Dialog states
   const [validationDialog, setValidationDialog] = useState(false);
@@ -74,10 +76,21 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
       setLoading(true);
       setError(null);
       const response = await getReturnRequestsById(returnId);
+      console.log("Return details API response:", response);
+      
       if (response.success && response.data) {
         // The API returns the return data directly in response.data
+        console.log("Return data:", response.data);
+        console.log("Return images:", response.data.returnImages);
         setReturnRequest(response.data);
+        
+        // Update breadcrumb with "Return Details" for the return ID segment
+        if (!breadcrumbUpdatedRef.current) {
+          updateLabel(returnId, "Return Details");
+          breadcrumbUpdatedRef.current = true;
+        }
       } else {
+        console.error("API response failed:", response);
         setError("Failed to load return details");
       }
     } catch (error) {
@@ -285,10 +298,6 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
               <DropdownMenuItem>
                 <Download className="h-4 w-4 mr-2" />
                 Export Details
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -582,36 +591,35 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
                    <CardDescription>Related documents and images</CardDescription>
                  </CardHeader>
                  <CardContent>
+                   {/* Debug Information */}
+              
+                   
                    {returnRequest.returnImages && returnRequest.returnImages.length > 0 ? (
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                       {returnRequest.returnImages.map((imageUrl, index) => (
-                         <div key={index} className="relative group">
-                           <img
-                             src={imageUrl}
-                             alt={`Return image ${index + 1}`}
-                             className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                             onError={(e) => {
-                               e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
-                             }}
-                           />
-                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
-                             <Button
-                               variant="secondary"
-                               size="sm"
-                               className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                               onClick={() => window.open(imageUrl, '_blank')}
-                             >
-                               <Eye className="h-4 w-4 mr-2" />
-                               View Full
-                             </Button>
+                     <div className="space-y-4">
+                       <div className="text-sm text-gray-600 mb-2">
+                         Found {returnRequest.returnImages.length} image(s)
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                       {returnRequest.returnImages.map((img, idx) => (
+                           <div key={idx} className="mb-2">
+                             <img 
+                               src={img} 
+                               alt={`Test ${idx + 1}`}
+                               className="w-20 h-20 object-cover border rounded"
+                               onLoad={() => console.log(`Simple test image ${idx + 1} loaded`)}
+                               onError={() => console.log(`Simple test image ${idx + 1} failed`)}
+                             />
                            </div>
-                         </div>
-                       ))}
+                         ))}
+                       </div>
                      </div>
                    ) : (
                      <div className="text-center py-8 text-gray-500">
                        <Image className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                       <p>No documents attached</p>
+                       <p>No return images attached</p>
+                       <p className="text-xs text-gray-400 mt-2">
+                         Images uploaded by the customer will appear here
+                       </p>
                      </div>
                    )}
                    

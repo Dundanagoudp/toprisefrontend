@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
+import { ChevronDown, ChevronUp, MoreHorizontal, Edit, FileText } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -15,19 +21,27 @@ import {
 } from "@/components/ui/table";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import { Ticket, TicketStatus } from "@/types/Ticket-types";
+import UpdateStatus from "./popUp/updateStatus";
+import UpdateNotes from "./popUp/UpdateNotes";
 
 interface UserTicketsProps {
   tickets: Ticket[];
   searchQuery: string;
   loading: boolean;
   onViewTicket: (ticketId: string) => void;
+  filters?: {
+    status: string;
+    assigned: string;
+    dateRange: string;
+  };
 }
 
 export default function UserTickets({ 
   tickets, 
   searchQuery, 
   loading, 
-  onViewTicket 
+  onViewTicket,
+  filters = { status: "", assigned: "", dateRange: "" }
 }: UserTicketsProps) {
   // Sorting state
   const [sortField, setSortField] = useState("");
@@ -36,6 +50,14 @@ export default function UserTickets({
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Update status dialog state
+  const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  
+  // Update notes dialog state
+  const [updateNotesOpen, setUpdateNotesOpen] = useState(false);
+  const [selectedTicketForNotes, setSelectedTicketForNotes] = useState<Ticket | null>(null);
 
   // Filter tickets to only show Order type (User tickets)
   const userTickets = useMemo(() => {
@@ -57,6 +79,44 @@ export default function UserTickets({
           ticket.userRef?.toLowerCase().includes(q) ||
           ticket.order_id?.toLowerCase().includes(q)
       );
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      currentTickets = currentTickets.filter(ticket => 
+        ticket.status?.toLowerCase() === filters.status.toLowerCase()
+      );
+    }
+
+    // Apply assigned filter
+    if (filters.assigned) {
+      const isAssigned = filters.assigned === "true";
+      currentTickets = currentTickets.filter(ticket => 
+        ticket.assigned === isAssigned
+      );
+    }
+
+    // Apply date range filter
+    if (filters.dateRange) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      currentTickets = currentTickets.filter(ticket => {
+        const ticketDate = new Date(ticket.createdAt);
+        
+        switch (filters.dateRange) {
+          case "today":
+            return ticketDate >= today;
+          case "week":
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            return ticketDate >= weekAgo;
+          case "month":
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return ticketDate >= monthAgo;
+          default:
+            return true;
+        }
+      });
     }
 
     // Sort tickets
@@ -107,7 +167,7 @@ export default function UserTickets({
     }
     
     return currentTickets;
-  }, [userTickets, searchQuery, sortField, sortDirection]);
+  }, [userTickets, searchQuery, sortField, sortDirection, filters]);
 
   // Pagination
   const totalItems = filteredAndSortedTickets.length;
@@ -173,6 +233,16 @@ export default function UserTickets({
     return text.substring(0, maxLength) + '...';
   };
 
+  const handleUpdateStatus = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
+    setUpdateStatusOpen(true);
+  };
+
+  const handleUpdateNotes = (ticket: Ticket) => {
+    setSelectedTicketForNotes(ticket);
+    setUpdateNotesOpen(true);
+  };
+
   return (
     <div>
       <div className="hidden sm:block overflow-x-auto">
@@ -205,7 +275,7 @@ export default function UserTickets({
                 onClick={() => handleSort("description")}
               >
                 <div className="flex items-center gap-1">
-                  Description
+                  Title
                   {getSortIcon("description")}
                 </div>
               </TableHead>
@@ -334,7 +404,9 @@ export default function UserTickets({
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <div className="flex gap-2">
-                       <Button
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 hover:bg-gray-100"
@@ -342,6 +414,24 @@ export default function UserTickets({
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Open menu</span>
                             </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => handleUpdateStatus(ticket._id)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Update Status
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleUpdateNotes(ticket)}
+                              className="cursor-pointer"
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              Update Remarks
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -378,6 +468,21 @@ export default function UserTickets({
           </p>
         </div>
       )}
+
+      {/* Update Status Dialog */}
+      <UpdateStatus
+        open={updateStatusOpen}
+        onClose={() => setUpdateStatusOpen(false)}
+        ticketId={selectedTicketId}
+      />
+
+      {/* Update Notes Dialog */}
+      <UpdateNotes
+        open={updateNotesOpen}
+        onClose={() => setUpdateNotesOpen(false)}
+        ticketId={selectedTicketForNotes?._id || null}
+        currentNotes={selectedTicketForNotes?.remarks || ""}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronDown, ChevronUp, MoreHorizontal, Edit } from 'lucide-react';
+import { ChevronDown, ChevronUp, MoreHorizontal, Edit, FileText } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +22,7 @@ import {
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import { Ticket, TicketStatus } from "@/types/Ticket-types";
 import UpdateStatus from "./popUp/updateStatus";
+import UpdateNotes from "./popUp/UpdateNotes";
 
 interface GeneralTicketsProps {
   tickets: Ticket[];
@@ -29,6 +30,11 @@ interface GeneralTicketsProps {
   loading: boolean;
   onViewTicket: (ticketId: string) => void;
   onTicketsRefresh?: () => void;
+  filters?: {
+    status: string;
+    assigned: string;
+    dateRange: string;
+  };
 }
 
 export default function GeneralTickets({ 
@@ -36,7 +42,8 @@ export default function GeneralTickets({
   searchQuery, 
   loading, 
   onViewTicket,
-  onTicketsRefresh 
+  onTicketsRefresh,
+  filters = { status: "", assigned: "", dateRange: "" }
 }: GeneralTicketsProps) {
   // Sorting state
   const [sortField, setSortField] = useState("");
@@ -49,6 +56,10 @@ export default function GeneralTickets({
   // Update status dialog state
   const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  
+  // Update notes dialog state
+  const [updateNotesOpen, setUpdateNotesOpen] = useState(false);
+  const [selectedTicketForNotes, setSelectedTicketForNotes] = useState<Ticket | null>(null);
 
   // Filter tickets to only show General type
   const generalTickets = useMemo(() => {
@@ -69,6 +80,44 @@ export default function GeneralTickets({
           ticket.status?.toLowerCase().includes(q) ||
           ticket.userRef?.toLowerCase().includes(q)
       );
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      currentTickets = currentTickets.filter(ticket => 
+        ticket.status?.toLowerCase() === filters.status.toLowerCase()
+      );
+    }
+
+    // Apply assigned filter
+    if (filters.assigned) {
+      const isAssigned = filters.assigned === "true";
+      currentTickets = currentTickets.filter(ticket => 
+        ticket.assigned === isAssigned
+      );
+    }
+
+    // Apply date range filter
+    if (filters.dateRange) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      currentTickets = currentTickets.filter(ticket => {
+        const ticketDate = new Date(ticket.createdAt);
+        
+        switch (filters.dateRange) {
+          case "today":
+            return ticketDate >= today;
+          case "week":
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            return ticketDate >= weekAgo;
+          case "month":
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return ticketDate >= monthAgo;
+          default:
+            return true;
+        }
+      });
     }
 
     // Sort tickets
@@ -115,7 +164,7 @@ export default function GeneralTickets({
     }
     
     return currentTickets;
-  }, [generalTickets, searchQuery, sortField, sortDirection]);
+  }, [generalTickets, searchQuery, sortField, sortDirection, filters]);
 
   // Pagination
   const totalItems = filteredAndSortedTickets.length;
@@ -186,6 +235,11 @@ export default function GeneralTickets({
     setUpdateStatusOpen(true);
   };
 
+  const handleUpdateNotes = (ticket: Ticket) => {
+    setSelectedTicketForNotes(ticket);
+    setUpdateNotesOpen(true);
+  };
+
   const handleStatusUpdated = () => {
     if (onTicketsRefresh) {
       onTicketsRefresh();
@@ -215,7 +269,7 @@ export default function GeneralTickets({
                 onClick={() => handleSort("description")}
               >
                 <div className="flex items-center gap-1">
-                  Description
+                  Message
                   {getSortIcon("description")}
                 </div>
               </TableHead>
@@ -351,6 +405,13 @@ export default function GeneralTickets({
                               <Edit className="h-4 w-4 mr-2" />
                               Update Status
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleUpdateNotes(ticket)}
+                              className="cursor-pointer"
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              Update Remarks
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -397,6 +458,15 @@ export default function GeneralTickets({
         ticketId={selectedTicketId}
         onStatusUpdated={handleStatusUpdated}
       />
+
+      {/* Update Notes Dialog */}
+                        <UpdateNotes
+                            open={updateNotesOpen}
+                            onClose={() => setUpdateNotesOpen(false)}
+                            ticketId={selectedTicketForNotes?._id || null}
+                            currentNotes={selectedTicketForNotes?.remarks || ""}
+                            onNotesUpdated={handleStatusUpdated}
+                        />
     </div>
   );
 }

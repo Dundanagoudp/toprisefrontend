@@ -8,49 +8,151 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { getCategories } from "@/service/product-Service";
+import { getCategories, getTypes } from "@/service/product-Service";
+import { updateCategory } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import UpdateModal from "../UpdateModal";
 
 
 export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
     const [Categories, setCategories] = useState<any[]>([]);
+    const [vehicleTypes, setVehicleTypes] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [sortField, setSortField] = useState<string>("");
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [updateModalOpen, setUpdateModalOpen] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<any>(null);
     const itemPerPage = 10;
 
-    // Filter categories by searchQuery with safe array operations
+    // Filter and sort categories
     const filteredCategories = React.useMemo(() => {
       if (!Categories || !Array.isArray(Categories)) return [];
-      if (!searchQuery || !searchQuery.trim()) return Categories;
       
-      const q = searchQuery.trim().toLowerCase();
-      return Categories.filter((item) =>
-        (item?.category_name?.toLowerCase().includes(q) ||
-          item?.category_code?.toLowerCase().includes(q) ||
-          item?.category_Status?.toLowerCase().includes(q))
-      );
-    }, [Categories, searchQuery]);
+      let filtered = Categories;
+      
+      // Apply search filter
+      if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        filtered = Categories.filter((item) =>
+          (item?.category_name?.toLowerCase().includes(q) ||
+            item?.category_code?.toLowerCase().includes(q) ||
+            item?.category_Status?.toLowerCase().includes(q))
+        );
+      }
+      
+      // Apply sorting
+      if (sortField) {
+        filtered = [...filtered].sort((a, b) => {
+          let aValue = "";
+          let bValue = "";
+          
+          switch (sortField) {
+            case "name":
+              aValue = a?.category_name || "";
+              bValue = b?.category_name || "";
+              break;
+            case "code":
+              aValue = a?.category_code || "";
+              bValue = b?.category_code || "";
+              break;
+            case "vehicleType":
+              aValue = getVehicleTypeName(a?.type || a?.vehicleType_id);
+              bValue = getVehicleTypeName(b?.type || b?.vehicleType_id);
+              break;
+            case "status":
+              aValue = a?.category_Status || "";
+              bValue = b?.category_Status || "";
+              break;
+            default:
+              return 0;
+          }
+          
+          if (sortDirection === "asc") {
+            return aValue.localeCompare(bValue);
+          } else {
+            return bValue.localeCompare(aValue);
+          }
+        });
+      }
+      
+      return filtered;
+    }, [Categories, searchQuery, sortField, sortDirection, vehicleTypes]);
 
     const totalPages = Math.ceil(filteredCategories.length / itemPerPage);
     const paginatedData = filteredCategories.slice(
       (currentPage - 1) * itemPerPage,
       currentPage * itemPerPage
     );
+
+    // Function to get vehicle type name by ID
+    const getVehicleTypeName = (typeId: string) => {
+      if (!typeId || !vehicleTypes || !Array.isArray(vehicleTypes)) return "No Vehicle Type";
+      const vehicleType = vehicleTypes.find(type => type._id === typeId);
+      return vehicleType?.type_name || "Unknown Type";
+    };
+
+    const handleEditCategory = (category: any) => {
+        setSelectedCategory(category);
+        setUpdateModalOpen(true);
+    };
+
+    const handleUpdateCategory = async (formData: FormData) => {
+        if (!selectedCategory) return;
+        await updateCategory(selectedCategory._id, formData);
+        // Refresh categories after update
+        fetchCategories();
+    };
+
+    // Function to handle sorting
+    const handleSort = (field: string) => {
+      if (sortField === field) {
+        setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+      } else {
+        setSortField(field);
+        setSortDirection("asc");
+      }
+    };
+
+    // Function to get sort icon
+    const getSortIcon = (field: string) => {
+      if (sortField !== field) {
+        return <ArrowUpDown className="h-4 w-4" />;
+      }
+      return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+    };
    useEffect(() => {
       const fetchData = async () => {
           setLoading(true);
         try {
-          const response = await getCategories();
-          if (!response || !response.data) {
-            console.error("No data found in response");
+          // Fetch categories and vehicle types in parallel
+          const [categoriesResponse, typesResponse] = await Promise.all([
+            getCategories(),
+            getTypes()
+          ]);
+
+          // Handle categories
+          if (!categoriesResponse || !categoriesResponse.data) {
+            console.error("No categories data found in response");
             setCategories([]);
-            return;
+          } else {
+            const Items = categoriesResponse.data;
+            setCategories(Array.isArray(Items) ? Items : []);
           }
-          const Items = response.data;
-          setCategories(Array.isArray(Items) ? Items : []);
+
+          // Handle vehicle types
+          if (!typesResponse || !typesResponse.data) {
+            console.error("No vehicle types data found in response");
+            setVehicleTypes([]);
+          } else {
+            const types = typesResponse.data;
+            setVehicleTypes(Array.isArray(types) ? types : []);
+          }
         } catch (err: any) {
           console.error("Error fetching data:", err);
           setCategories([]);
+          setVehicleTypes([]);
         } finally {
           setLoading(false);
         }
@@ -79,9 +181,46 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Code</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("name")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Name
+                {getSortIcon("name")}
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("code")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Code
+                {getSortIcon("code")}
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("vehicleType")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Vehicle Type
+                {getSortIcon("vehicleType")}
+              </Button>
+            </TableHead>
+            <TableHead>
+              <Button
+                variant="ghost"
+                onClick={() => handleSort("status")}
+                className="h-auto p-0 font-semibold hover:bg-transparent"
+              >
+                Status
+                {getSortIcon("status")}
+              </Button>
+            </TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -92,6 +231,9 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
                 <TableCell>{item?.category_name || "No Title"}</TableCell>
                 <TableCell>
                   {item?.category_code || "No Code"}
+                </TableCell>
+                <TableCell>
+                  {getVehicleTypeName(item?.type || item?.vehicleType_id)}
                 </TableCell>
                 <TableCell>
                   <span
@@ -106,7 +248,11 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
                 </TableCell>
              
                 <TableCell>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleEditCategory(item)}
+                  >
                     Edit
                   </Button>
                 </TableCell>
@@ -114,7 +260,7 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                 No categories found
               </TableCell>
             </TableRow>
@@ -197,6 +343,16 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
           </div>
         </div>
       )}
+
+      {/* Update Modal */}
+      <UpdateModal
+        open={updateModalOpen}
+        onClose={() => setUpdateModalOpen(false)}
+        onUpdate={handleUpdateCategory}
+        item={selectedCategory}
+        type="category"
+        vehicleTypes={vehicleTypes}
+      />
     </div>
   )
 }

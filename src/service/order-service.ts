@@ -155,3 +155,16 @@ export async function getAllOrders(): Promise<{
     throw error;
   }
 }
+
+// Cancel order with reason
+export async function cancelOrder(orderId: string, reason: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await apiClient.post(`/orders/api/orders/${orderId}/cancel`, {
+      reason: reason
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to cancel order ${orderId}:`, error);
+    throw error;
+  }
+}
