@@ -365,6 +365,7 @@ export async function getCategories(): Promise<ApiResponse<ProductCategory[]>> {
   }
 }
 
+
 export async function getBrand(): Promise<ProductResponse> {
   try {
     const response = await apiClient.get(`/category/api/brands`);
@@ -488,6 +489,16 @@ export async function getSubCategories(): Promise<SubCategoryResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch subcategories:", error);
+    throw error;
+  }
+}
+
+export async function getSubCategoriesByCategory(categoryId: string): Promise<SubCategoryResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/subCategory/by-category/${categoryId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch subcategories by category:", error);
     throw error;
   }
 }
@@ -892,5 +903,93 @@ export async function getRandomBanners(vehicleTypeId: string): Promise<ApiRespon
   } catch (err) {
     console.error("Failed to fetch random banners:", err);
     throw err;
+  }
+}
+
+
+
+export async function getProductsByFilter(
+  productType: string,
+  brand: string,
+  model: string,
+  variant: string,
+  subcategory: string,
+  query: string,
+  sortBy: string,
+  minPrice: number,
+  maxPrice: number,
+  page: number = 1,
+  limit: number = 10
+): Promise<ProductResponse> {
+  try {
+    // Validate input parameters
+    if (page < 1) page = 1;
+    if (limit < 1) limit = 10;
+
+    let url = `/category/products/v1?productType=${encodeURIComponent(productType)}`;
+    if (brand && brand.trim() !== "") {
+      url += `&brand=${encodeURIComponent(brand.trim())}`;
+    }
+    if (model && model.trim() !== "") {
+      url += `&model=${encodeURIComponent(model.trim())}`;
+    }
+    if (variant && variant.trim() !== "") {
+      url += `&variant=${encodeURIComponent(variant.trim())}`;
+    }
+    if (subcategory && subcategory.trim() !== "") {
+      url += `&subCategory=${encodeURIComponent(subcategory.trim())}`;
+    }
+    if (query && query.trim() !== "") {
+      const sanitizedQuery = query.trim().replace(/[<>]/g, "");
+      if (sanitizedQuery.length > 0) {
+        url += `&query=${encodeURIComponent(sanitizedQuery)}`;
+      }
+    }
+    if (sortBy && sortBy.trim() !== "") {
+      url += `&sort_by=${encodeURIComponent(sortBy.trim())}`;
+    }
+    if (minPrice) {
+      url += `&min_price=${encodeURIComponent(minPrice.toString())}`;
+    }
+    if (maxPrice) {
+      url += `&max_price=${encodeURIComponent(maxPrice.toString())}`;
+    }
+    // Removed page and limit parameters as they're causing issues
+    // url += `&page=${page}&limit=${limit}`;
+
+    console.log("API Request URL:", url);
+    console.log("API Request Method: GET");
+
+    const response = await apiClient.get(url);
+
+    // Validate response structure
+    if (!response.data) {
+      throw new Error("Invalid API response: No data received");
+    }
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to fetch products:", error);
+    // Return a safe fallback response structure
+    const fallbackResponse: ProductResponse = {
+      success: false,
+      message: error.message || "Failed to fetch products",
+      data: {
+        products: [],
+        pagination: {
+          currentPage: page,
+          totalPages: 0,
+          totalItems: 0,
+          itemsPerPage: limit,
+          hasNextPage: false,
+          hasPreviousPage: page > 1,
+        },
+      },
+    };
+    // If it's a network error or server error, return fallback
+    if (error.code === "NETWORK_ERROR" || error.response?.status >= 500) {
+      return fallbackResponse;
+    }
+    // For other errors, still throw to let the component handle it
+    throw error;
   }
 }

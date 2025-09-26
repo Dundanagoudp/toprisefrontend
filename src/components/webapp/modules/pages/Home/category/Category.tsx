@@ -30,7 +30,7 @@ export default function CategorySection() {
         categoryName: category.category_name
       });
 
-      router.push(`/shop/search/?${params.toString()}`);
+      router.push(`/shop/subcategories/?${params.toString()}`);
     }
   }
 
