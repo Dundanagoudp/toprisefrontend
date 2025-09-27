@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProfileSection } from "./ProfileSection";
 import { DataField } from "./DataField";
+import AddVehicleDialog from "./popup/AddVehicleDialog";
 import {
   Select,
   SelectContent,
@@ -32,8 +33,22 @@ import {
   UpdateAddressRequest,
   editUserAddress,
   EditAddressRequest,
+  getUserById,
 } from "@/service/user/userService";
-import { getUserOrders, Order as UserOrder, getWishlistByUser, moveToCart, removeWishlistByUser } from "@/service/user/orderService";
+import {
+  getUserOrders,
+  Order as UserOrder,
+  getWishlistByUser,
+  moveToCart,
+  removeWishlistByUser,
+} from "@/service/user/orderService";
+import {
+  getVehicleDetails,
+  addVehicle,
+  deleteVehicle,
+  editVehicle,
+  getPurchaseOrders,
+} from "@/service/product-Service";
 import {
   User,
   ShoppingBag,
@@ -54,9 +69,16 @@ import {
   ExternalLink,
   Star,
   Bus,
-  Ticket,
+  Ticket as TicketIcon,
+  MoreVertical,
+  NotepadText,
 } from "lucide-react";
 import Link from "next/link";
+import { ca } from "date-fns/locale";
+import { getTickets } from "@/service/Ticket-service";
+import TicketDetailsDialog from "./popup/TicketDialogBox";
+import { PurchaseOrder, TicketResponse, Ticket } from "@/types/Ticket-types";
+import PurchaseOrderDialog from "./popup/PurchaseOrderRequest";
 
 interface Address {
   id: string;
@@ -80,16 +102,29 @@ interface Order {
 }
 
 export default function ProfilePage() {
+  const [selectedTicket, setSelectedTicket] =
+    useState<Partial<Ticket> | null>(null);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
   const [userWishlist, setUserWishlist] = useState<any[]>([]);
+  const [vehicleDetails, setVehicleDetails] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [vehicleDetailsLoading, setVehicleDetailsLoading] = useState(false);
   const [movingToCart, setMovingToCart] = useState<string[]>([]);
-  const [removingFromWishlist, setRemovingFromWishlist] = useState<string[]>([]);
+  const [removingFromWishlist, setRemovingFromWishlist] = useState<string[]>(
+    []
+  );
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+  const [showEditVehicleConfirmation, setShowEditVehicleConfirmation] =
+    useState(false);
+
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updatingAddress, setUpdatingAddress] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
@@ -98,7 +133,23 @@ export default function ProfilePage() {
   );
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
+  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
+    null
+  );
+    const [selected, setSelected] = useState<any | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState<number | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<any>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+  const [showDeleteVehicleConfirmation, setShowDeleteVehicleConfirmation] =
+    useState(false);
+  const [pendingDeleteVehicle, setPendingDeleteVehicle] = useState<
+    string | null
+  >(null);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+const [purchaseOrdersLoading, setPurchaseOrdersLoading] = useState(false);
+const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(null);
+
   const [newAddress, setNewAddress] = useState<UserAddress>({
     nick_name: "",
     street: "",
@@ -110,6 +161,34 @@ export default function ProfilePage() {
   const router = useRouter();
   const userId = useAppSelector((state) => state.auth.user?._id);
 
+
+
+  // Fetch purchase orders on component mount
+ useEffect(() => {
+    let mounted = true;
+    const fetch = async () => {
+      setPurchaseOrdersLoading(true);
+      setPurchaseOrdersError(null);
+      try {
+        const res = await getPurchaseOrders();
+        // defensive: expect res.data as array or res as array
+        const items = Array.isArray(res) ? res : (res?.data || []);
+        if (!mounted) return;
+        setPurchaseOrders(Array.isArray(items) ? items : []);
+        console.log("Fetched purchase orders:", items);
+      } catch (err: any) {
+        console.error("Failed fetching purchase orders", err);
+        if (!mounted) return;
+        setPurchaseOrdersError(err?.message || "Failed to load");
+      } finally {
+        if (!mounted) return;
+        setPurchaseOrdersLoading(false);
+      }
+    };
+
+    fetch();
+    return () => { mounted = false; };
+  }, []);
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!userId) return;
@@ -119,6 +198,7 @@ export default function ProfilePage() {
         const response = await getUserProfile(userId);
         if (response.success && response.data) {
           setUserProfile(response.data);
+          console.log("User Profile:", response.data);
           setProfileData({
             email: response.data.email || "",
             username: response.data.username || "",
@@ -176,7 +256,7 @@ export default function ProfilePage() {
         setWishlistLoading(true);
         const response = await getWishlistByUser(userId);
 
-        if (!response || typeof response !== 'object') {
+        if (!response || typeof response !== "object") {
           console.error("Invalid response format:", response);
           setUserWishlist([]);
           return;
@@ -187,7 +267,7 @@ export default function ProfilePage() {
 
           if (Array.isArray(response.data)) {
             wishlistData = response.data;
-          } else if (response.data && typeof response.data === 'object') {
+          } else if (response.data && typeof response.data === "object") {
             if (Array.isArray(response.data.items)) {
               wishlistData = response.data.items;
             } else if (Array.isArray(response.data.products)) {
@@ -218,15 +298,14 @@ export default function ProfilePage() {
     if (!userId) return;
 
     try {
-      setMovingToCart(prev => [...prev, productId]);
+      setMovingToCart((prev) => [...prev, productId]);
 
       const response = await moveToCart({
         userId: userId,
-        productId: productId
+        productId: productId,
       });
 
       if (response.success) {
-        showToast("Item moved to cart successfully!", "success");
         const wishlistResponse = await getWishlistByUser(userId);
         if (wishlistResponse.success) {
           const wishlistData = Array.isArray(wishlistResponse.data)
@@ -241,7 +320,7 @@ export default function ProfilePage() {
       console.error("Failed to move item to cart:", error);
       showToast("Failed to move item to cart", "error");
     } finally {
-      setMovingToCart(prev => prev.filter(id => id !== productId));
+      setMovingToCart((prev) => prev.filter((id) => id !== productId));
     }
   };
 
@@ -249,18 +328,20 @@ export default function ProfilePage() {
     if (!userId) return;
 
     try {
-      setRemovingFromWishlist(prev => [...prev, productId]);
+      setRemovingFromWishlist((prev) => [...prev, productId]);
 
       const response = await removeWishlistByUser({
         userId: userId,
-        productId: productId
+        productId: productId,
       });
 
       if (response.success) {
         showToast("Item removed from wishlist", "success");
-        setUserWishlist(prev => prev.filter(item =>
-          (item.productDetails?._id || item._id) !== productId
-        ));
+        setUserWishlist((prev) =>
+          prev.filter(
+            (item) => (item.productDetails?._id || item._id) !== productId
+          )
+        );
       } else {
         showToast("Failed to remove item from wishlist", "error");
       }
@@ -268,7 +349,7 @@ export default function ProfilePage() {
       console.error("Failed to remove item from wishlist:", error);
       showToast("Failed to remove item from wishlist", "error");
     } finally {
-      setRemovingFromWishlist(prev => prev.filter(id => id !== productId));
+      setRemovingFromWishlist((prev) => prev.filter((id) => id !== productId));
     }
   };
 
@@ -341,6 +422,10 @@ export default function ProfilePage() {
       setAddresses(formattedAddresses);
     }
   }, [userProfile]);
+  const handleView = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setTicketDialogOpen(true);
+  };
 
   const handleSaveProfile = async () => {
     if (!userId) {
@@ -473,6 +558,73 @@ export default function ProfilePage() {
       });
     }
   };
+  useEffect(() => {
+    const fetchTickets = async () => {
+      if (activeTab !== "tickets") return;
+      try {
+        setTicketsLoading(true);
+        setTicketsError(null);
+        const res = await getTickets();
+        // defensive check for response shape
+        const data = res?.data || [];
+        setTickets(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to fetch tickets:", err);
+        setTicketsError("Failed to load tickets");
+      } finally {
+        setTicketsLoading(false);
+      }
+    };
+
+    fetchTickets();
+  }, [activeTab]);
+  const handleDeleteVehicle = async (vehicleId: string) => {
+    const res = await deleteVehicle(userId || "", vehicleId);
+    if (res.success) {
+      showToast("Vehicle deleted successfully", "success");
+      setUserProfile((prev: any) => ({
+        ...prev,
+        vehicle_details:
+          prev.vehicle_details?.filter(
+            (vehicle: { _id: string }) => vehicle._id !== vehicleId
+          ) || [],
+      }));
+    } else {
+      showToast(res.message || "Failed to delete vehicle", "error");
+    }
+  };
+
+  const handleEditVehicle = (vehicleId: string) => {
+    const vehicle = vehicleDetails.find((v: any) => v._id === vehicleId);
+
+    if (!vehicle) {
+      // fallback: try to find in userProfile.vehicle_details (if different shape)
+      const fallback = userProfile?.vehicle_details?.find(
+        (v: any) => v._id === vehicleId
+      );
+      if (fallback) {
+        setEditingVehicle({
+          vehicle_type: fallback.vehicle_type || "",
+          brand: (fallback.brand && typeof fallback.brand === 'object' && (fallback.brand as any)._id) || fallback.brand || "",
+          model: (fallback.model && typeof fallback.model === 'object' && (fallback.model as any)._id) || fallback.model || "",
+          variant: (fallback.variant && typeof fallback.variant === 'object' && (fallback.variant as any)._id) || fallback.variant || "",
+          _original: fallback,
+        });
+        return;
+      }
+
+      showToast("Vehicle data not found", "error");
+      return;
+    }
+
+    setEditingVehicle({
+      vehicle_type: vehicle.vehicle_type || vehicle.type || "",
+      brand: vehicle.brand?._id || vehicle.brand || "",
+      model: vehicle.model?._id || vehicle.model || "",
+      variant: vehicle.variant?._id || vehicle.variant || "",
+      _original: vehicle,
+    });
+  };
 
   const handleCancelEditAddress = () => {
     setEditingAddressIndex(null);
@@ -588,7 +740,20 @@ export default function ProfilePage() {
     setPendingDeleteIndex(addressIndex);
     setShowDeleteConfirmation(true);
   };
+  useEffect(() => {
+    const getVehicleById = async () => {
+      try {
+        const res = await getUserById(userId || "");
+        if (res.data) {
+          console.log("Fetched user data:", res.data);
+        }
+      } catch (err: any) {
+      } finally {
+      }
+    };
 
+    getVehicleById();
+  }, []);
   const confirmDeleteAddress = async () => {
     if (pendingDeleteIndex === null) return;
 
@@ -656,7 +821,113 @@ export default function ProfilePage() {
         return "bg-muted text-muted-foreground border-muted";
     }
   };
+  const handleSavedVehicle = async (newVehicle: any) => {
+    if (!userId) {
+      showToast("User not found. Please login again.", "error");
+      return;
+    }
 
+    try {
+      let response;
+
+      if (editingVehicle) {
+        // Edit existing vehicle
+        response = await editVehicle(
+          userId,
+          (editingVehicle as any)._original._id,
+          {
+            vehicle_type: newVehicle.vehicle_type,
+            brand: newVehicle.brand,
+            model: newVehicle.model,
+            variant: newVehicle.variant,
+          }
+        );
+      } else {
+        // Add new vehicle
+        response = await addVehicle(userId, {
+          vehicle_type: newVehicle.vehicle_type,
+          brand: newVehicle.brand,
+          model: newVehicle.model,
+          variant: newVehicle.variant,
+        });
+      }
+
+      if (response.success) {
+        showToast(
+          editingVehicle
+            ? "Vehicle updated successfully!"
+            : "Vehicle added successfully!",
+          "success"
+        );
+
+        // Refresh user profile to get updated vehicle details
+        const updatedProfile = await getUserProfile(userId);
+        if (updatedProfile.success) {
+          setUserProfile(updatedProfile.data);
+        }
+
+        // Reset editing state
+        setEditingVehicle(null);
+      } else {
+        showToast(
+          response.message ||
+            `Failed to ${editingVehicle ? "update" : "add"} vehicle`,
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Error ${editingVehicle ? "updating" : "adding"} vehicle:`,
+        error
+      );
+      showToast(
+        `Failed to ${
+          editingVehicle ? "update" : "add"
+        } vehicle. Please try again.`,
+        "error"
+      );
+    }
+  };
+  // Fetch vehicle details
+  useEffect(() => {
+    const fetchVehicleDetails = async () => {
+      console.log("Fetching vehicle details", userProfile?.vehicle_details);
+      if (
+        !userProfile?.vehicle_details ||
+        userProfile.vehicle_details.length === 0
+      ) {
+        setVehicleDetails([]);
+        return;
+      }
+
+      setVehicleDetailsLoading(true);
+      setVehicleDetails([]);
+
+      try {
+        const vehicleDetailsArr = userProfile.vehicle_details as any[];
+        for (const vehicle of vehicleDetailsArr) {
+          const response = await getVehicleDetails(
+            vehicle.brand,
+            vehicle.model,
+            vehicle.variant
+          );
+
+          if (response?.data) {
+            setVehicleDetails((prev: any[]) => [...prev, response.data]);
+            console.log("Vehicle Details: all:", response.data);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching vehicle details:", err);
+      } finally {
+        setVehicleDetailsLoading(false);
+      }
+    };
+
+    if (userProfile && activeTab === "saved-vehicles") {
+      fetchVehicleDetails();
+    }
+  }, [userProfile, activeTab]);
   console.log(
     "ProfilePage render - activeTab:",
     activeTab,
@@ -750,8 +1021,15 @@ export default function ProfilePage() {
               value="tickets"
               className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
             >
-              <Ticket className="mr-2 h-4 w-4" />
+              <TicketIcon className="mr-2 h-4 w-4" />
               Tickets
+            </TabsTrigger>
+            <TabsTrigger
+              value="purchase order requests"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+            >
+              <NotepadText className="mr-2 h-4 w-4" />
+              Purchase Order Requests
             </TabsTrigger>
           </TabsList>
 
@@ -918,16 +1196,24 @@ export default function ProfilePage() {
                           <div className="space-y-2">
                             <Label htmlFor="account_type">Account Type</Label>
                             <Select
-                              value={profileData.bank_details.account_type}
-                              onValueChange={(value) =>
-                                setProfileData({
-                                  ...profileData,
-                                  bank_details: {
-                                    ...profileData.bank_details,
-                                    account_type: value,
-                                  },
-                                })
+                              value={
+                                profileData.bank_details.account_type || ""
                               }
+                              onValueChange={(value) => {
+                                if (
+                                  ["savings", "current", "salary"].includes(
+                                    value
+                                  )
+                                ) {
+                                  setProfileData({
+                                    ...profileData,
+                                    bank_details: {
+                                      ...profileData.bank_details,
+                                      account_type: value,
+                                    },
+                                  });
+                                }
+                              }}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select account type" />
@@ -1041,7 +1327,8 @@ export default function ProfilePage() {
                               {order.orderId}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {formatDate(order.orderDate)} • {order.skus.length} items
+                              {formatDate(order.orderDate)} •{" "}
+                              {order.skus.length} items
                             </p>
                           </div>
                         </div>
@@ -1113,126 +1400,162 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {Array.isArray(userWishlist) && userWishlist.map((item, index) => {
-                    const product = item.productDetails || item;
-                    return (
-                      <Card key={item._id || index} className="group bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg hover:scale-[1.01] transition-all duration-200 overflow-hidden">
-                        <div className="relative h-32 bg-gray-100 overflow-hidden">
-                          {product.model?.model_image ? (
-                            <img
-                              src={product.model.model_image}
-                              alt={product.model.model_name || product.product_name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = product.images && product.images.length > 0
-                                  ? product.images[0]
-                                  : '/placeholder-product.png';
-                              }}
-                            />
-                          ) : product.images && product.images.length > 0 ? (
-                            <img
-                              src={product.images[0]}
-                              alt={product.product_name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = '/placeholder-product.png';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                  {Array.isArray(userWishlist) &&
+                    userWishlist.map((item, index) => {
+                      const product = item.productDetails || item;
+                      return (
+                        <Card
+                          key={item._id || index}
+                          className="group bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg hover:scale-[1.01] transition-all duration-200 overflow-hidden"
+                        >
+                          <div className="relative h-32 bg-gray-100 overflow-hidden">
+                            {product.model?.model_image ? (
                               <img
-                                src="/placeholder-product.png"
-                                alt="No image"
-                                className="w-16 h-16 object-contain opacity-50"
+                                src={product.model.model_image}
+                                alt={
+                                  product.model.model_name ||
+                                  product.product_name
+                                }
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src =
+                                    product.images && product.images.length > 0
+                                      ? product.images[0]
+                                      : "/placeholder-product.png";
+                                }}
                               />
-                            </div>
-                          )}
-                          <div className="absolute top-3 right-3">
-                            <button
-                              onClick={() => handleRemoveFromWishlist(product._id)}
-                              disabled={removingFromWishlist.includes(product._id)}
-                              className="p-1 rounded-full hover:bg-white/20 transition-colors disabled:opacity-50"
-                            >
-                              {removingFromWishlist.includes(product._id) ? (
-                                <Loader2 className="h-5 w-5 text-red-500 animate-spin" />
-                              ) : (
-                                <Heart className="h-5 w-5 text-red-500" fill="currentColor" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="relative p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-base font-semibold text-gray-900 line-clamp-1 mb-1">
-                                {product.product_name || product.name || "Unnamed Product"}
-                              </CardTitle>
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-red-50 text-red-700 border-red-200 font-medium px-2 py-0.5"
-                              >
-                                {product.sku_code || product.sku || "No SKU"}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600 font-medium">Price</span>
-                              <span className="text-base font-bold text-green-600">
-                                ₹{product.selling_price || product.price || "N/A"}
-                              </span>
-                            </div>
-
-                            {product.mrp_with_gst && product.selling_price && product.mrp_with_gst > product.selling_price && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500 line-through">MRP</span>
-                                <span className="text-xs text-gray-500 line-through">
-                                  ₹{product.mrp_with_gst}
-                                </span>
+                            ) : product.images && product.images.length > 0 ? (
+                              <img
+                                src={product.images[0]}
+                                alt={product.product_name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src =
+                                    "/placeholder-product.png";
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                <img
+                                  src="/placeholder-product.png"
+                                  alt="No image"
+                                  className="w-16 h-16 object-contain opacity-50"
+                                />
                               </div>
                             )}
-
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600 font-medium">Model</span>
-                              <span className="text-xs text-gray-900 truncate">
-                                {product.model?.model_name || "N/A"}
-                              </span>
+                            <div className="absolute top-3 right-3">
+                              <button
+                                onClick={() =>
+                                  handleRemoveFromWishlist(product._id)
+                                }
+                                disabled={removingFromWishlist.includes(
+                                  product._id
+                                )}
+                                className="p-1 rounded-full hover:bg-white/20 transition-colors disabled:opacity-50"
+                              >
+                                {removingFromWishlist.includes(product._id) ? (
+                                  <Loader2 className="h-5 w-5 text-red-500 animate-spin" />
+                                ) : (
+                                  <Heart
+                                    className="h-5 w-5 text-red-500"
+                                    fill="currentColor"
+                                  />
+                                )}
+                              </button>
                             </div>
-
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-600 font-medium">Category</span>
-                              <span className="text-xs text-gray-900 truncate">
-                                {product.category?.category_name || product.category || "N/A"}
-                              </span>
-                            </div>
-
                           </div>
+                          <div className="relative p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-base font-semibold text-gray-900 line-clamp-1 mb-1">
+                                  {product.product_name ||
+                                    product.name ||
+                                    "Unnamed Product"}
+                                </CardTitle>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-red-50 text-red-700 border-red-200 font-medium px-2 py-0.5"
+                                >
+                                  {product.sku_code || product.sku || "No SKU"}
+                                </Badge>
+                              </div>
+                            </div>
 
-                          <div className="mt-3 flex gap-2">
-                            <Link href={`/shop/product/${product._id}`}>
-                              <Button size="sm" className="flex-1 bg-primary hover:opacity-90 text-white text-xs">
-                                View Details
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-600 font-medium">
+                                  Price
+                                </span>
+                                <span className="text-base font-bold text-green-600">
+                                  ₹
+                                  {product.selling_price ||
+                                    product.price ||
+                                    "N/A"}
+                                </span>
+                              </div>
+
+                              {product.mrp_with_gst &&
+                                product.selling_price &&
+                                product.mrp_with_gst >
+                                  product.selling_price && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-gray-500 line-through">
+                                      MRP
+                                    </span>
+                                    <span className="text-xs text-gray-500 line-through">
+                                      ₹{product.mrp_with_gst}
+                                    </span>
+                                  </div>
+                                )}
+
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-600 font-medium">
+                                  Model
+                                </span>
+                                <span className="text-xs text-gray-900 truncate">
+                                  {product.model?.model_name || "N/A"}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-600 font-medium">
+                                  Category
+                                </span>
+                                <span className="text-xs text-gray-900 truncate">
+                                  {product.category?.category_name ||
+                                    product.category ||
+                                    "N/A"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex gap-2">
+                              <Link href={`/shop/product/${product._id}`}>
+                                <Button
+                                  size="sm"
+                                  className="flex-1 bg-primary hover:opacity-90 text-white text-xs"
+                                >
+                                  View Details
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="px-2"
+                                onClick={() => handleMoveToCart(product._id)}
+                                disabled={movingToCart.includes(product._id)}
+                              >
+                                {movingToCart.includes(product._id) ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <ShoppingBag className="h-3 w-3" />
+                                )}
                               </Button>
-                            </Link>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="px-2"
-                              onClick={() => handleMoveToCart(product._id)}
-                              disabled={movingToCart.includes(product._id)}
-                            >
-                              {movingToCart.includes(product._id) ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <ShoppingBag className="h-3 w-3" />
-                              )}
-                            </Button>
+                            </div>
                           </div>
-                        </div>
-                      </Card>
-                    );
-                 })}
+                        </Card>
+                      );
+                    })}
                 </div>
               )}
             </ProfileSection>
@@ -1272,13 +1595,15 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       <Label htmlFor="nick_name">Address Nickname *</Label>
                       <Select
-                        value={newAddress.nick_name}
-                        onValueChange={(value) =>
-                          setNewAddress({
-                            ...newAddress,
-                            nick_name: value,
-                          })
-                        }
+                        value={newAddress.nick_name || ""}
+                        onValueChange={(value) => {
+                          if (["Home", "Work", "Shop"].includes(value)) {
+                            setNewAddress({
+                              ...newAddress,
+                              nick_name: value,
+                            });
+                          }
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select address type" />
@@ -1299,7 +1624,7 @@ export default function ProfilePage() {
                         pattern="[0-9]{6}"
                         value={newAddress.pincode}
                         onChange={(e) => {
-                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          const value = e.target.value.replace(/[^0-9]/g, "");
                           if (value.length <= 6) {
                             setNewAddress({
                               ...newAddress,
@@ -1420,7 +1745,9 @@ export default function ProfilePage() {
                           className="text-destructive hover:bg-destructive/10"
                           onClick={() => handleDeleteAddress(index)}
                           disabled={
-                            updatingAddress || editingAddressIndex !== null || showDeleteConfirmation
+                            updatingAddress ||
+                            editingAddressIndex !== null ||
+                            showDeleteConfirmation
                           }
                         >
                           {updatingAddress ? (
@@ -1448,26 +1775,137 @@ export default function ProfilePage() {
             </div>
           </TabsContent>
 
-          {/* Saved Vehicles Tab - minimal, shows empty state for now */}
+          {/* Saved Vehicles Tab */}
           <TabsContent value="saved-vehicles" className="space-y-6 mt-6">
             <ProfileSection
               title="Saved Vehicles"
               description="Vehicles linked to your account"
             >
-              <div className="text-center py-12">
-                <Bus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No saved vehicles</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  You haven't added any vehicles yet.
-                </p>
-                <div className="mt-4">
-                  <Link href="/profile/vehicles/add">
-                    <Button size="sm" className="bg-gradient-primary">
-                      Add Vehicle
-                    </Button>
-                  </Link>
-                </div>
+              {/* Always-visible Add Vehicle button */}
+              <div className="flex justify-end mb-4">
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
+                  onClick={() => setIsOpen(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Vehicle
+                </Button>
               </div>
+              {vehicleDetailsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <span className="ml-2">Loading vehicle details...</span>
+                </div>
+              ) : vehicleDetails?.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {vehicleDetails.map((vehicle: any, index: number) => (
+                    <div key={index} className="relative">
+                      <Link href={`/profile/vehicles/${vehicle._id}`}>
+                        <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                          <div className="flex items-center gap-4">
+                            {/* Brand Logo */}
+                            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              {vehicle.brand?.brand_logo ? (
+                                <img
+                                  src={vehicle.brand.brand_logo}
+                                  alt={vehicle.brand.brand_name}
+                                  className="h-8 w-8 object-contain"
+                                />
+                              ) : (
+                                <Bus className="h-6 w-6 text-primary" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium text-foreground">
+                                {vehicle.brand?.brand_name || "Unknown Brand"}{" "}
+                                {vehicle.model?.model_name || "Unknown Model"}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {vehicle.variant?.variant_name ||
+                                  "Unknown Variant"}
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      </Link>
+                      {/* Menu Icon and Dropdown */}
+                      <div className="absolute top-4 right-4">
+                        <div className="relative">
+                          <button
+                            className="p-1 rounded-full hover:bg-gray-100"
+                            onClick={() =>
+                              setIsMenuOpen(isMenuOpen === index ? null : index)
+                            }
+                          >
+                            <MoreVertical className="h-6 w-6 text-gray-600" />
+                          </button>
+                          {isMenuOpen === index && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                              <button
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                onClick={() => {
+                                  const vehicleId =
+                                    userProfile?.vehicle_details?.[index]
+                                      ?._id ?? vehicleDetails?.[index]?._id;
+
+                                  if (!vehicleId) {
+                                    showToast("Vehicle id not found", "error");
+                                    return;
+                                  }
+
+                                  handleEditVehicle(vehicleId);
+                                  setIsOpen(true); // open dialog
+                                  setIsMenuOpen(null); // close dropdown
+                                }}
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                onClick={() => {
+                                  const vehicleId =
+                                    userProfile?.vehicle_details?.[index]
+                                      ?._id ??
+                                    (vehicleDetails?.[index] as any)?._id;
+
+                                  if (!vehicleId) {
+                                    showToast("Vehicle id not found", "error");
+                                    return;
+                                  }
+
+                                  setPendingDeleteVehicle(vehicleId);
+                                  setShowDeleteVehicleConfirmation(true);
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (userProfile?.vehicle_details ?? []).length > 0 ? (
+                <div className="text-center py-12">
+                  <Bus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    Unable to load vehicle details
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    There was an error fetching your vehicle information.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Bus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No saved vehicles</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    You haven't added any vehicles yet.
+                  </p>
+                </div>
+              )}
             </ProfileSection>
           </TabsContent>
 
@@ -1477,36 +1915,216 @@ export default function ProfilePage() {
               title="Tickets"
               description="Support tickets and event tickets"
             >
-              <div className="text-center py-12">
-                <Ticket className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No tickets found</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  You have no open support tickets or event tickets at the moment.
-                </p>
-                <div className="mt-4">
-                  <Link href="/support">
-                    <Button size="sm" className="bg-gradient-primary">
-                      Contact Support
-                    </Button>
-                  </Link>
+              {ticketsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <span className="ml-2">Loading tickets...</span>
                 </div>
-              </div>
+              ) : ticketsError ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-center">
+                  <p className="text-destructive font-medium">{ticketsError}</p>
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="text-center py-12">
+                  <TicketIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No tickets found</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    You have no open support tickets or event tickets at the
+                    moment.
+                  </p>
+                  <div className="mt-4">
+                    <Link href="/support">
+                      <Button size="sm" className="bg-gradient-primary">
+                        Contact Support
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tickets.map((t: any) => (
+                    <div
+                      key={t._id || t.ticketId || t.id}
+                      className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:shadow-sm transition"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-3">
+                          <TicketIcon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                          <div className="truncate">
+                            {/* <p className="font-medium text-foreground truncate">
+                              {t.subject || t.title || "Untitled Ticket"}
+                            </p> */}
+                            <p className="text-xs text-muted-foreground truncate">
+                              ID:{t.ticket_number || t._id || t.id} •{" "}
+                              {new Date(
+                                t.created_at ||
+                                  t.createdAt ||
+                                  t.created ||
+                                  Date.now()
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            (t.status || "").toLowerCase() === "open"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : (t.status || "").toLowerCase() === "closed"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {(t.status || "unknown").toString().toUpperCase()}
+                        </span>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleView(t)}
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </ProfileSection>
           </TabsContent>
 
+          
+<TabsContent value="purchase order requests" className="space-y-6 mt-6">
+  <ProfileSection
+    title="Purchase Order Requests"
+    description="Your submitted purchase order requests"
+  >
+    {purchaseOrdersLoading ? (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading purchase orders...</span>
+      </div>
+    ) : purchaseOrdersError ? (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-center">
+        <p className="text-destructive font-medium">{purchaseOrdersError}</p>
+      </div>
+    ) : purchaseOrders.length === 0 ? (
+      <div className="border border-border/50 rounded-lg bg-card p-10 text-center shadow-sm">
+        <TicketIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h2 className="text-lg font-semibold text-foreground">No Purchase Order Requests</h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          You haven’t created any purchase order requests yet. They’ll show up here once available.
+        </p>
+      </div>
+    ) : (
+      <div className="space-y-4">
+        {purchaseOrders.map((po) => (
+          <div
+            key={po._id }
+            className="p-4 border rounded-lg bg-card shadow-sm hover:shadow-md transition"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+             
+                <p className="text-xs text-muted-foreground">
+                  ID:{ po._id}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => { setSelected(po); setDialogOpen(true); }}>
+                    View
+                  </Button>
+              </div>
+            </div>
+
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+              {po.description || "No description provided."}
+            </p>
+
+            {/* Display attached images */}
+            {Array.isArray(po.req_files) && po.req_files.length > 0 && (
+              <div className="mt-3">
+                <div className="flex gap-2 overflow-x-auto">
+                  {po.req_files.map((url: string, idx: number) => (
+                    <a
+                      key={idx}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-shrink-0"
+                    >
+                      <img
+                        src={url}
+                        alt={`Attachment ${idx + 1}`}
+                        className="w-16 h-16 object-cover rounded-md border border-border hover:border-primary transition-colors"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/placeholder.svg";
+                        }}
+                      />
+                    </a>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {po.req_files.length} attachment{po.req_files.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-3 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">
+                Created: {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : "—"}
+              </span>
+              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                (po.status || "").toLowerCase() === "approved"
+                  ? "bg-green-100 text-green-800"
+                  : (po.status || "").toLowerCase() === "pending"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}>
+                {po.status || "pending"}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </ProfileSection>
+</TabsContent>
         </Tabs>
       </div>
+      
 
       <ConfirmationDialog
         isOpen={showUpdateConfirmation}
         onClose={() => setShowUpdateConfirmation(false)}
         onConfirm={confirmSaveAddress}
         title="Confirm Address Update"
-        description={editingAddressIndex !== null
-          ? "Are you sure you want to update this address?"
-          : "Are you sure you want to add this new address?"
+        description={
+          editingAddressIndex !== null
+            ? "Are you sure you want to update this address?"
+            : "Are you sure you want to add this new address?"
         }
         confirmText="Yes, Save"
+        cancelText="Cancel"
+      />
+      <ConfirmationDialog
+        isOpen={showDeleteVehicleConfirmation}
+        onClose={() => {
+          setShowDeleteVehicleConfirmation(false);
+          setPendingDeleteVehicle(null);
+        }}
+        onConfirm={() => {
+          if (pendingDeleteVehicle) {
+            handleDeleteVehicle(pendingDeleteVehicle);
+            setPendingDeleteVehicle(null);
+          }
+          setShowDeleteVehicleConfirmation(false);
+        }}
+        title="Confirm Vehicle Deletion"
+        description="Are you sure you want to delete this vehicle? This action cannot be undone."
+        confirmText="Yes, Delete"
         cancelText="Cancel"
       />
 
@@ -1521,6 +2139,28 @@ export default function ProfilePage() {
         description="Are you sure you want to delete this address? This action cannot be undone."
         confirmText="Yes, Delete"
         cancelText="Cancel"
+      />
+      <TicketDetailsDialog
+        isOpen={ticketDialogOpen}
+        onClose={() => {
+          setTicketDialogOpen(false);
+          setSelectedTicket(null);
+        }}
+        ticket={selectedTicket}
+      />
+       <PurchaseOrderDialog
+        isOpen={dialogOpen}
+        onClose={() => { setDialogOpen(false); setSelected(null); }}
+        purchaseOrder={selected}
+      />
+      <AddVehicleDialog
+        isOpen={isOpen}
+        onClose={() => {
+          setIsOpen(false);
+          setEditingVehicle(null);
+        }}
+        onSubmit={handleSavedVehicle}
+        editingVehicle={editingVehicle}
       />
     </div>
   );

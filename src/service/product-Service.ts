@@ -3,6 +3,7 @@ import { ApiResponse } from "@/types/apiReponses-Types";
 import { BrandsApiResponse } from "@/types/catalogue-types";
 import type { Category as ProductCategory } from "@/types/product-Types";
 import apiClient from "@/apiClient";
+import { PurchaseOrdersResponse } from "@/types/Ticket-types";
 
 export async function getProducts(): Promise<ProductResponse> {
   try {
@@ -990,6 +991,94 @@ export async function getProductsByFilter(
       return fallbackResponse;
     }
     // For other errors, still throw to let the component handle it
+    throw error;
+  }
+}
+export async function getVehicleDetails(
+  brandId: string,
+  modelId: string,
+  variantId: string
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(
+      `/category/products/v1/getVehicleDetails?brandId=${brandId}&modelId=${modelId}&variantId=${variantId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch vehicle details:", error);
+    throw error;
+  }
+}
+
+export async function addVehicle(
+  userId: string,
+  vehicleData: any
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/users/api/users/${userId}/vehicles`, vehicleData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to add vehicle:", error);
+    throw error;
+  }
+}
+
+export async function deleteVehicle(
+  userId: string,
+  vehicleId: string
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.delete(`/users/api/users/${userId}/vehicles/${vehicleId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete vehicle:", error);
+    throw error;
+  }
+}
+
+export async function editVehicle(
+  userId: string,
+  vehicleId: string,
+  vehicleData: any
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.put(`/users/api/users/${userId}/vehicles/${vehicleId}`, vehicleData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to edit vehicle:", error);
+    throw error;
+  }
+}
+
+export async function getPurchaseOrders(): Promise<PurchaseOrdersResponse> {
+  try{
+    const res = await apiClient.get("/category/api/purchaseOrder")
+    return res.data
+  } catch (error) {
+    console.error("Failed to fetch purchase orders:", error);
+    throw error;
+  }
+}
+export  async function uploadPurchaseOrder(files: File[], description: string, userId: string):Promise<PurchaseOrdersResponse>{
+  try{
+    const formData = new FormData();
+    formData.append('description', description);
+    formData.append('user_id', userId);
+
+    // Append each file with the same field name 'files'
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+
+    const res = await apiClient.post("/category/api/purchaseOrder", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  }
+  catch(error){
+    console.error("Failed to upload purchase order:", error);
     throw error;
   }
 }

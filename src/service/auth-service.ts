@@ -77,3 +77,20 @@ export const checkUserExists = async (phone_Number: string): Promise<boolean> =>
     throw error;
   }
 };
+
+export const registerUserWithPhone = async (firebaseToken:string,role:string):Promise<any> => {
+  try{
+    const response = await apiClient.post("/users/api/users/signup", {
+      firebaseToken,
+      role,
+    }, {
+      withCredentials: true,
+    });
+    return response.data;
+  }
+  catch(error){
+    console.error("Register user with phone failed:", error);
+    throw error;
+  }
+
+}

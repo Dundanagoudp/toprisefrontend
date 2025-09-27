@@ -16,36 +16,13 @@ export interface Ticket {
   assigned: boolean;
   assigned_to: string;
   involved_users: string[];
+  remarks: string;
+  remarks_updated_at: string | null;
+  remarks_updated_by?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
   admin_notes?: string;
-  remarks?: string;
-  remarks_updated_at?: string | null;
-  userDetails?: {
-    [key: string]: {
-      _id: string;
-      username?: string;
-      email: string;
-      role: string;
-    };
-  };
-  userRefDetails?: {
-    _id: string;
-    username?: string;
-    email: string;
-    role: string;
-  };
-  assignedToDetails?: {
-    _id: string;
-    email: string;
-    role: string;
-  };
-  updatedByDetails?: {
-    _id: string;
-    email: string;
-    role: string;
-  };
 }
 
 export type TicketStatus = 
@@ -76,4 +53,23 @@ export interface UpdateTicketPayload {
   assigned_to?: string;
   admin_notes?: string;
   involved_users?: string[];
+}
+
+export interface PurchaseOrder {
+  _id: string;
+  req_files: string[];
+  description: string;
+  status: PurchaseOrderStatus;
+  user_id: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+export type PurchaseOrderStatus = "Pending" | "Approved";
+
+export interface PurchaseOrdersResponse {
+  success: boolean;
+  message: string;
+  data: PurchaseOrder[];
 }

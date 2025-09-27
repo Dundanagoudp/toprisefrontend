@@ -7,12 +7,14 @@ import {
   getBrandsByType,
   getModelsByBrand,
   getVariantsByModel,
+  getVehicleDetails,
 } from "@/service/product-Service";
 import type { Category } from "@/types/product-Types";
 import type { SubCategory } from "@/types/product-Types";
 import type { Brand, Model, Variant } from "@/types/product-Types";
 import { useAppSelector } from "@/store/hooks";
 import { selectVehicleTypeId } from "@/store/slice/vehicle/vehicleSlice";
+import { getUserProfile } from "@/service/user/userService";
 
 type ApiResponse = {
   success?: boolean;
@@ -42,6 +44,12 @@ export default function SubcategoryFilter() {
   const [loadingModels, setLoadingModels] = useState<boolean>(false);
   const [loadingVariants, setLoadingVariants] = useState<boolean>(false);
   const typeId = useAppSelector(selectVehicleTypeId);
+  const userId = useAppSelector((s) => s.auth.user?._id);
+const [savedVehicles, setSavedVehicles] = useState<any[]>([]);
+const [vehiclesLoading, setVehiclesLoading] = useState(false);
+const [tickets, setTickets] = useState<any[]>([]);
+const [ticketsLoading, setTicketsLoading] = useState(false);
+const [ticketsError, setTicketsError] = useState<string | null>(null);
 
   // Build image URL (handles both absolute https and relative paths)
   const buildImageUrl = React.useCallback((path?: string) => {
@@ -55,6 +63,78 @@ export default function SubcategoryFilter() {
   // Get category ID from URL search params (reactive)
   const searchParams = useSearchParams();
   const categoryId = searchParams.get("category") ?? "";
+useEffect(() => {
+  let mounted = true;
+  const loadSavedVehicles = async () => {
+    if (!userId) return;
+    setVehiclesLoading(true);
+    try {
+      const res = await getUserProfile(userId);
+      if (!mounted) return;
+      const raw = Array.isArray(res?.data?.vehicle_details) ? res.data.vehicle_details : [];
+      // fetch readable details in parallel
+      const enriched = await Promise.all(
+        raw.map(async (v: any) => {
+          try {
+            const brandId = v?.brand?._id ?? v?.brand ?? "";
+            const modelId = v?.model?._id ?? v?.model ?? "";
+            const variantId = v?.variant?._id ?? v?.variant ?? "";
+            const det = await getVehicleDetails(String(brandId), String(modelId), String(variantId));
+            const payload = det?.data ?? det;
+            // Handle different response structures - only access properties if payload has them
+            const hasVehicleDetails = payload && typeof payload === 'object' && !('products' in payload);
+            const brandName = (hasVehicleDetails ? payload.brand?.brand_name : undefined) ?? v?.brand?.brand_name ?? (typeof v?.brand === 'string' ? v.brand : "") ?? "";
+            const modelName = (hasVehicleDetails ? payload.model?.model_name : undefined) ?? v?.model?.model_name ?? (typeof v?.model === 'string' ? v.model : "") ?? "";
+            const variantName = (hasVehicleDetails ? payload.variant?.variant_name : undefined) ?? v?.variant?.variant_name ?? (typeof v?.variant === 'string' ? v.variant : "") ?? "";
+            return {
+              _id: v._id ?? `${brandId}_${modelId}_${variantId}`,
+              vehicle_type: v.vehicle_type,
+              brandId,
+              modelId,
+              variantId,
+              brand: brandName,
+              model: modelName,
+              variant: variantName,
+              displayName: [brandName, modelName, variantName].filter(Boolean).join(" "),
+            };
+          } catch (err) {
+            return {
+              _id: v._id ?? "unknown",
+              vehicle_type: v.vehicle_type,
+              brand: v.brand,
+              model: v.model,
+              variant: v.variant,
+              displayName: `${v.brand || ""} ${v.model || ""} ${v.variant || ""}`.trim(),
+            };
+          }
+        })
+      );
+      setSavedVehicles(enriched);
+    } catch (err) {
+      console.error("Failed to load saved vehicles:", err);
+      setSavedVehicles([]);
+    } finally {
+      if (mounted) setVehiclesLoading(false);
+    }
+  };
+
+  loadSavedVehicles();
+  return () => {
+    mounted = false;
+  };
+}, [userId]);
+const handleSavedVehicleSelect = (sv: any) => {
+  // set selects to vehicle ids (if available)
+  if (sv.brandId) setSelectedBrand(String(sv.brandId));
+  if (sv.modelId) {
+    setSelectedModel(String(sv.modelId));
+    fetchVariants(String(sv.modelId)); // load variants for that model
+  }
+  if (sv.variantId) setSelectedVariant(String(sv.variantId));
+  // optionally scroll to selects
+  const el = document.querySelector(".grid.grid-cols-1.gap-4.md\\:grid-cols-3");
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+};
 
   useEffect(() => {
     let isCurrent = true;
@@ -284,6 +364,8 @@ export default function SubcategoryFilter() {
               ))}
             </div>
 
+            
+
             {/* Filter Dropdown Section */}
             {showDropdown && selectedSubcategory && (
               <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -302,7 +384,47 @@ export default function SubcategoryFilter() {
                     <ChevronUp className="h-5 w-5" />
                   </button>
                 </div>
+{savedVehicles.length > 0 && (
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-medium text-foreground">Saved Vehicles</h4>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground"
+            onClick={() => {
+              setSavedVehicles([]); // minimal toggle to hide if user wants
+            }}
+          >
+            Hide
+          </button>
+        </div>
 
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          {vehiclesLoading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25"/></svg>
+              Loading...
+            </div>
+          ) : (
+            savedVehicles.map((sv) => (
+              <button
+                key={sv._id}
+                type="button"
+                onClick={() => handleSavedVehicleSelect(sv)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full border border-input bg-background text-sm font-medium hover:shadow-sm transition"
+                title={sv.displayName}
+              >
+                <div className="whitespace-nowrap">
+                  <span className="font-medium text-foreground">{sv.brand}</span>
+                  <span className="text-muted-foreground ml-1"> {sv.model}</span>
+                  {sv.variant && <span className="text-muted-foreground ml-1">· {sv.variant}</span>}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    )}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   {/* Brand Dropdown */}
                   <div className="space-y-2">
