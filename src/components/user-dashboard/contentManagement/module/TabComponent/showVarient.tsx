@@ -7,27 +7,73 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getvarient } from "@/service/product-Service";
+import { Button } from "@/components/ui/button";
+import { getvarient, getModels } from "@/service/product-Service";
+import { updateVariant } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import UpdateModal from "../UpdateModal";
 
 export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
     const [variants, setVariants] = useState<any[]>([]);
+    const [models, setModels] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [sortField, setSortField] = useState<string>("");
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [updateModalOpen, setUpdateModalOpen] = useState(false);
+    const [selectedVariant, setSelectedVariant] = useState<any>(null);
     const itemPerPage = 10;
 
-    // Filter variants by searchQuery with safe array operations
+    // Filter and sort variants
     const filteredVariants = React.useMemo(() => {
         if (!variants || !Array.isArray(variants)) return [];
-        if (!searchQuery || !searchQuery.trim()) return variants;
         
-        const q = searchQuery.trim().toLowerCase();
-        return variants.filter((item) =>
-            (item?.variant_name?.toLowerCase().includes(q) ||
-                item?.model?.model_name?.toLowerCase().includes(q) ||
-                item?.variant_status?.toLowerCase().includes(q))
-        );
-    }, [variants, searchQuery]);
+        let filtered = variants;
+        
+        // Apply search filter
+        if (searchQuery && searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            filtered = variants.filter((item) =>
+                (item?.variant_name?.toLowerCase().includes(q) ||
+                    item?.model?.model_name?.toLowerCase().includes(q) ||
+                    item?.variant_status?.toLowerCase().includes(q))
+            );
+        }
+        
+        // Apply sorting
+        if (sortField) {
+            filtered = [...filtered].sort((a, b) => {
+                let aValue = "";
+                let bValue = "";
+                
+                switch (sortField) {
+                    case "name":
+                        aValue = a?.variant_name || "";
+                        bValue = b?.variant_name || "";
+                        break;
+                    case "model":
+                        aValue = a?.model?.model_name || "";
+                        bValue = b?.model?.model_name || "";
+                        break;
+                    case "status":
+                        aValue = a?.variant_status || "";
+                        bValue = b?.variant_status || "";
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (sortDirection === "asc") {
+                    return aValue.localeCompare(bValue);
+                } else {
+                    return bValue.localeCompare(aValue);
+                }
+            });
+        }
+        
+        return filtered;
+    }, [variants, searchQuery, sortField, sortDirection]);
 
     // Safe pagination calculations
     const totalPages = Math.ceil((filteredVariants?.length || 0) / itemPerPage);
@@ -39,20 +85,62 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
         );
     }, [filteredVariants, currentPage, itemPerPage]);
 
+    // Function to handle sorting
+    const handleSort = (field: string) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+        } else {
+            setSortField(field);
+            setSortDirection("asc");
+        }
+    };
+
+    // Function to get sort icon
+    const getSortIcon = (field: string) => {
+        if (sortField !== field) {
+            return <ArrowUpDown className="h-4 w-4" />;
+        }
+        return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+    };
+
+    const handleEditVariant = (variant: any) => {
+        setSelectedVariant(variant);
+        setUpdateModalOpen(true);
+    };
+
+    const handleUpdateVariant = async (formData: FormData) => {
+        if (!selectedVariant) return;
+        await updateVariant(selectedVariant._id, formData);
+        // Refresh variants after update
+        fetchData();
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const response = await getvarient();
-                if (!response || !response.data) {
-                    console.error("No data found in response");
+                const [variantsResponse, modelsResponse] = await Promise.all([
+                    getvarient(),
+                    getModels()
+                ]);
+                
+                if (!variantsResponse || !variantsResponse.data) {
+                    console.error("No variants data found in response");
                     setVariants([]);
-                    return;
+                } else {
+                    setVariants(Array.isArray(variantsResponse.data) ? variantsResponse.data : []);
                 }
-                setVariants(Array.isArray(response.data) ? response.data : []);
+
+                if (!modelsResponse || !modelsResponse.data) {
+                    console.error("No models data found in response");
+                    setModels([]);
+                } else {
+                    setModels(Array.isArray(modelsResponse.data) ? modelsResponse.data : []);
+                }
             } catch (err: any) {
                 console.error("Error fetching data:", err);
                 setVariants([]);
+                setModels([]);
             } finally {
                 setLoading(false);
             }
@@ -81,9 +169,37 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Variant Name</TableHead>
-                        <TableHead>Model Name</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>
+                            <Button
+                                variant="ghost"
+                                onClick={() => handleSort("name")}
+                                className="h-auto p-0 font-semibold hover:bg-transparent"
+                            >
+                                Variant Name
+                                {getSortIcon("name")}
+                            </Button>
+                        </TableHead>
+                        <TableHead>
+                            <Button
+                                variant="ghost"
+                                onClick={() => handleSort("model")}
+                                className="h-auto p-0 font-semibold hover:bg-transparent"
+                            >
+                                Model Name
+                                {getSortIcon("model")}
+                            </Button>
+                        </TableHead>
+                        <TableHead>
+                            <Button
+                                variant="ghost"
+                                onClick={() => handleSort("status")}
+                                className="h-auto p-0 font-semibold hover:bg-transparent"
+                            >
+                                Status
+                                {getSortIcon("status")}
+                            </Button>
+                        </TableHead>
+                        <TableHead>Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -105,11 +221,20 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
                                         {item?.variant_status || "No Status"}
                                     </span>
                                 </TableCell>
+                                <TableCell>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => handleEditVariant(item)}
+                                    >
+                                        Edit
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                            <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                                 No variants found
                             </TableCell>
                         </TableRow>
@@ -192,6 +317,16 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
                     </div>
                 </div>
             )}
+
+            {/* Update Modal */}
+            <UpdateModal
+                open={updateModalOpen}
+                onClose={() => setUpdateModalOpen(false)}
+                onUpdate={handleUpdateVariant}
+                item={selectedVariant}
+                type="variant"
+                models={models}
+            />
         </div>
     );
 }

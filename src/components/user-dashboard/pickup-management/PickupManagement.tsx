@@ -165,8 +165,8 @@ export default function PickupManagement() {
       }
     } catch (error) {
       console.error("Error fetching pickup data:", error);
-      setError("Failed to load pickup data");
-      showToast("Failed to load pickup data", "error");
+      setError("Failed to load picklist data");
+      showToast("Failed to load picklist data", "error");
     } finally {
       setLoading(false);
     }
@@ -210,10 +210,10 @@ export default function PickupManagement() {
       
       setIsPackedDialogOpen(false);
       setPackingNotes("");
-      showToast("Pickup marked as packed successfully", "success");
+      showToast("Picklist marked as packed successfully", "success");
     } catch (error) {
       console.error("Error marking pickup as packed:", error);
-      showToast("Failed to mark pickup as packed", "error");
+      showToast("Failed to mark picklist as packed", "error");
     }
   };
 
@@ -222,7 +222,7 @@ export default function PickupManagement() {
     try {
       setIsGeneratingPDF(true);
       
-      const title = `Pickup List Report - ${new Date().toLocaleDateString()}`;
+      const title = `Picklist Management Report - ${new Date().toLocaleDateString()}`;
       const filters = {
         status: statusFilter !== 'all' ? statusFilter : undefined,
         priority: priorityFilter !== 'all' ? priorityFilter : undefined,
@@ -251,10 +251,10 @@ export default function PickupManagement() {
       
       await generateSinglePickupPDF(pickup);
       
-      showToast("Pickup details PDF generated successfully", "success");
+      showToast("Picklist details PDF generated successfully", "success");
     } catch (error) {
       console.error("Error generating single pickup PDF:", error);
-      showToast("Failed to generate pickup details PDF", "error");
+      showToast("Failed to generate picklist details PDF", "error");
     } finally {
       setIsGeneratingSinglePDF(false);
     }
@@ -311,7 +311,7 @@ export default function PickupManagement() {
       <div className="flex items-center justify-center h-96">
         <div className="flex items-center space-x-2">
           <RefreshCw className="h-6 w-6 animate-spin" />
-          <span>Loading pickup data...</span>
+          <span>Loading picklist data...</span>
         </div>
       </div>
     );
@@ -335,9 +335,9 @@ export default function PickupManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pickup Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Picklist Management</h1>
           <p className="text-gray-600 mt-1">
-            Manage pickup requests and mark items as packed
+            Manage picklist requests and mark items as packed
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -373,7 +373,7 @@ export default function PickupManagement() {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="search"
-                  placeholder="Search pickups..."
+                  placeholder="Search picklists..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -435,17 +435,17 @@ export default function PickupManagement() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Package className="h-5 w-5 mr-2" />
-            Pickup Requests ({filteredPickups.length})
+            Picklist Management ({filteredPickups.length})
           </CardTitle>
           <CardDescription>
-            View and manage pickup requests
+            View and manage picklist requests
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Pickup ID</TableHead>
+                <TableHead>Picklist ID</TableHead>
                 <TableHead>Order ID</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Dealer</TableHead>

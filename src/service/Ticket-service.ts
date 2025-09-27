@@ -14,6 +14,17 @@ export const getTickets = async (): Promise<TicketResponse> => {
         throw err
     }
 }
+
+export const getTicketById = async (ticketId: string): Promise<TicketResponse> => {
+    try{
+        const response = await apiClient.get(`/orders/api/tickets/byId/${ticketId}`)
+        return response.data
+    }
+    catch(err:any){
+        console.log("error in get ticket by id",err)
+        throw err
+    }
+}
 export const statusUpdate = async (ticketId: string, statusData: {
     status: string;
     admin_notes: string;
@@ -28,7 +39,3 @@ export const statusUpdate = async (ticketId: string, statusData: {
         throw err
     }
 }
-export const getTicketById = async (id: string) => {
-  const res = await apiClient.get(`/orders/api/tickets/${id}`);
-  return res.data;
-};

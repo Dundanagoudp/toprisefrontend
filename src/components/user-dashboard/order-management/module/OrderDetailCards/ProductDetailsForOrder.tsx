@@ -186,10 +186,10 @@ export default function ProductDetailsForOrder({
           <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[10%]">
             MRP
           </th>
-          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[8%]">
+          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[12%]">
             GST
           </th>
-          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[13%]">
+          <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[15%]">
             Total Price
           </th>
           {isAuthorized && (
@@ -280,10 +280,10 @@ export default function ProductDetailsForOrder({
             <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[10%]">
               ₹{productItem.mrp.toLocaleString()}
             </td>
-            <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[8%]">
+            <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[12%]">
               {productItem.gst}%
             </td>
-            <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[13%]">
+            <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[15%]">
               ₹{productItem.totalPrice.toLocaleString()}
             </td>
             {isAuthorized && (
@@ -423,18 +423,18 @@ export default function ProductDetailsForOrder({
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="min-w-0">
                         <span className="text-xs text-gray-600 block">MRP</span>
-                        <span className="text-xs text-gray-900 font-semibold">₹{productItem.mrp.toLocaleString()}</span>
+                        <span className="text-xs text-gray-900 font-semibold break-words">₹{productItem.mrp.toLocaleString()}</span>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <span className="text-xs text-gray-600 block">GST</span>
-                        <span className="text-xs text-gray-900 font-semibold">{productItem.gst}%</span>
+                        <span className="text-xs text-gray-900 font-semibold break-words">{productItem.gst}%</span>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <span className="text-xs text-gray-600 block">Total Price</span>
-                        <span className="text-xs text-gray-900 font-semibold">₹{productItem.totalPrice.toLocaleString()}</span>
+                        <span className="text-xs text-gray-900 font-semibold break-words">₹{productItem.totalPrice.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

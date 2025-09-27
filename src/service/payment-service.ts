@@ -43,3 +43,13 @@ export async function getPaymentStats(): Promise<{ success: boolean; data: Payme
       };
     }
   }
+
+export async function getComprehensivePaymentStats(): Promise<{ success: boolean; data: any }> {
+    try {
+      const response = await apiClient.get(`orders/api/orders/payment-stats`);
+      return response.data;
+    } catch (error) {
+      console.log("error in comprehensive payment stats service", error);
+      throw error;
+    }
+  }

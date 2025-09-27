@@ -1,7 +1,7 @@
 export interface TicketResponse {
   success: boolean;
   message: string;
-  data: Ticket[];
+  data: Ticket | Ticket[];
 }
 
 export interface Ticket {
@@ -23,21 +23,7 @@ export interface Ticket {
   updatedAt: string;
   __v: number;
   admin_notes?: string;
-  userDetails: Record<string, UserDetail>;
-  userRefDetails: UserDetail;
-  assignedToDetails: UserDetail;
-  updatedByDetails?: UserDetail;
-  remarksUpdatedByDetails?: UserDetail;
 }
-
-export interface UserDetail {
-  _id: string;
-  username?: string;
-  email: string;
-  role: UserRole;
-}
-
-export type UserRole = "User" | "Customer-Support" | "Super-admin" | "Admin";
 
 export type TicketStatus = 
   | "Open" 

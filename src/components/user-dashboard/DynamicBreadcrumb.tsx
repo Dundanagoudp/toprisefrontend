@@ -25,21 +25,15 @@ export function DynamicBreadcrumb({ customLabels = {} }: { customLabels?: Record
         || (/^[0-9a-f]{24}$/i.test(seg) ? "Loading..." : toTitle(seg));
       const href = '/user/dashboard/' + segments.slice(2, 2 + idx + 1).join('/');
       return { label, href };
-    }).filter(item => item.label && item.label.trim() !== '') // Filter out empty labels
+    }).filter(item => item.label && item.label.trim() !== '' && item.label !== 'Loading...') // Filter out empty labels and loading states
   ];
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        <BreadcrumbItem className="hidden md:block">
-          <BreadcrumbLink asChild>
-            <Link href="/user/dashboard">Dashboard</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        {items.length > 1 && <BreadcrumbSeparator className="hidden md:block" />}
-        {items.slice(1).map((item, idx) => (
+        {items.map((item, idx) => (
           <React.Fragment key={item.href}>
             <BreadcrumbItem>
-              {idx === items.length - 2 ? (
+              {idx === items.length - 1 ? (
                 <BreadcrumbPage>{item.label}</BreadcrumbPage>
               ) : (
                 <BreadcrumbLink asChild>
@@ -47,7 +41,7 @@ export function DynamicBreadcrumb({ customLabels = {} }: { customLabels?: Record
                 </BreadcrumbLink>
               )}
             </BreadcrumbItem>
-            {idx < items.length - 2 && <BreadcrumbSeparator className="hidden md:block" />}
+            {idx < items.length - 1 && <BreadcrumbSeparator className="hidden md:block" />}
           </React.Fragment>
         ))}
       </BreadcrumbList>

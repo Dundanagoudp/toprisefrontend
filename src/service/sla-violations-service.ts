@@ -1,211 +1,169 @@
 import apiClient from "@/apiClient";
-import { getDealerIdFromUserId } from "./dealerServices";
+import axios from "axios";
+import Cookies from "js-cookie";
 
-export interface SLAViolation {
-  _id: string;
+// Debug: Check if apiClient is properly imported
+console.log("SLA Service - apiClient:", apiClient);
+console.log("SLA Service - apiClient.post:", apiClient?.post);
+
+// Fallback API client if the main one fails
+const createFallbackClient = () => {
+  const token = Cookies.get("token") || Cookies.get("authToken") || Cookies.get("jwt") || Cookies.get("accessToken");
+  return axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.toprise.in/api",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` })
+    },
+    withCredentials: true,
+    timeout: 10000000,
+  });
+};
+
+// Contact dealer about SLA violation
+export const contactDealerAboutViolation = async (
+  violationId: string,
+  contactData: {
+    contact_method: "notification" | "email" | "phone";
+    custom_message: string;
+  }
+): Promise<any> => {
+  try {
+    console.log("Contacting dealer with violationId:", violationId);
+    console.log("Contact data:", contactData);
+    console.log("apiClient available:", !!apiClient);
+    
+    // Use fallback client if main client is not available
+    const client = apiClient && typeof apiClient.post === 'function' ? apiClient : createFallbackClient();
+    console.log("Using client:", client === apiClient ? "main" : "fallback");
+    
+    const response = await client.post(
+      `/orders/api/sla-violations/${violationId}/contact-dealer`,
+      contactData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error contacting dealer about violation:", error);
+    throw error;
+  }
+};
+
+// Resolve SLA violation
+export const resolveSLAViolation = async (
+  violationId: string, 
+  resolutionData: {
+    resolution_notes: string;
+    resolved_by: string;
+  }
+): Promise<any> => {
+  try {
+    console.log("Resolving violation with ID:", violationId);
+    console.log("Resolution data:", resolutionData);
+    console.log("apiClient available:", !!apiClient);
+    console.log("apiClient.put available:", !!apiClient?.put);
+    
+    // Use fallback client if main client is not available
+    const client = apiClient && typeof apiClient.put === 'function' ? apiClient : createFallbackClient();
+    console.log("Using client:", client === apiClient ? "main" : "fallback");
+    
+    const response = await client.put(
+      `/orders/api/sla-violations/resolve/${violationId}`,
+      resolutionData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error resolving SLA violation:", error);
+    throw error;
+  }
+};
+
+// Get SLA dealer violation summary
+export const getSLADealerViolationSummary = async (
+  dealerId: string,
+  startDate: string,
+  endDate: string
+): Promise<any> => {
+  try {
+    // Use fallback client if main client is not available
+    const client = apiClient && typeof apiClient.get === 'function' ? apiClient : createFallbackClient();
+    
+    const response = await client.get(
+      `/orders/api/sla-violations/dealer/${dealerId}/summary?startDate=${startDate}&endDate=${endDate}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching SLA dealer violation summary:", error);
+    throw error;
+  }
+};
+
+// Get enhanced SLA violations with populated data
+export const getEnhancedSLAViolations = async (): Promise<any> => {
+  try {
+    console.log("Fetching enhanced SLA violations...");
+    console.log("apiClient available:", !!apiClient);
+    
+    // Use fallback client if main client is not available
+    const client = apiClient && typeof apiClient.get === 'function' ? apiClient : createFallbackClient();
+    console.log("Using client:", client === apiClient ? "main" : "fallback");
+    
+    const response = await client.get(
+      `/orders/api/orders/sla/violations/enhanced`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching enhanced SLA violations:", error);
+    throw error;
+  }
+};
+
+// Get SLA violation statistics
+export const getSLAViolationStats = async (): Promise<any> => {
+  try {
+    console.log("Fetching SLA violation statistics...");
+    console.log("apiClient available:", !!apiClient);
+    
+    // Use fallback client if main client is not available
+    const client = apiClient && typeof apiClient.get === 'function' ? apiClient : createFallbackClient();
+    console.log("Using client:", client === apiClient ? "main" : "fallback");
+    
+    const response = await client.get(
+      `/orders/api/sla-violations/stats`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching SLA violation statistics:", error);
+    throw error;
+  }
+};
+
+// Create manual SLA violation
+export const createManualSLAViolation = async (violationData: {
   dealer_id: string;
-  order_id: {
-    _id: string;
-    orderId: string;
-    orderDate: string;
-    customerDetails: {
-      userId: string;
-      name: string;
-      phone: string;
-      address: string;
-      pincode: string;
-      email: string;
-    };
-  };
+  order_id: string;
   expected_fulfillment_time: string;
   actual_fulfillment_time: string;
   violation_minutes: number;
-  violation_hours: number;
-  violation_days: number;
-  resolved: boolean;
   notes: string;
-  created_at: string;
-  severity: string;
-  orderDetails: {
-    _id: string;
-    orderId: string;
-    orderDate: string;
-    customerDetails: {
-      userId: string;
-      name: string;
-      phone: string;
-      address: string;
-      pincode: string;
-      email: string;
-    };
-  };
-}
-
-export interface SLAViolationsSummary {
-  totalViolations: number;
-  totalViolationMinutes: number;
-  averageViolationMinutes: number;
-  resolvedViolations: number;
-  unresolvedViolations: number;
-  maxViolationMinutes: number;
-  minViolationMinutes: number;
-}
-
-export interface SLAViolationsByDate {
-  [date: string]: {
-    count: number;
-    totalMinutes: number;
-    violations: SLAViolation[];
-  };
-}
-
-export interface SLAViolationsPagination {
-  currentPage: number;
-  totalPages: number;
-  totalViolations: number;
-  limit: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  nextPage: number | null;
-  prevPage: number | null;
-}
-
-export interface SLAViolationsFilters {
-  startDate: string | null;
-  endDate: string | null;
-  resolved: boolean | null;
-  sortBy: string;
-  sortOrder: string;
-}
-
-export interface SLAViolationsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    dealerId: string;
-    dealerInfo: any;
-    violations: SLAViolation[];
-    summary: SLAViolationsSummary;
-    violationsByDate: SLAViolationsByDate;
-    pagination: SLAViolationsPagination;
-    filters: SLAViolationsFilters;
-  };
-}
-
-// Get SLA violations for a dealer
-export async function getSLAViolationsByDealer(
-  dealerId?: string,
-  page: number = 1,
-  limit: number = 10,
-  filters?: {
-    startDate?: string;
-    endDate?: string;
-    resolved?: boolean;
-    sortBy?: string;
-    sortOrder?: string;
-  }
-): Promise<SLAViolationsResponse> {
+  created_by: string;
+  contact_dealer?: boolean;
+}): Promise<any> => {
   try {
-    let id = dealerId;
+    console.log("Creating manual SLA violation...");
+    console.log("Violation data:", violationData);
+    console.log("apiClient available:", !!apiClient);
     
-    // If dealerId is not provided, get it from dealer services
-    if (!id) {
-      try {
-        console.log(`[getSLAViolationsByDealer] Getting dealer ID from dealer services`);
-        id = await getDealerIdFromUserId();
-        console.log(`[getSLAViolationsByDealer] Successfully got dealer ID: ${id}`);
-      } catch (dealerServiceError) {
-        console.error("Failed to get dealer ID from dealer services:", dealerServiceError);
-        throw new Error("Unable to determine dealer ID");
-      }
-    }
+    // Use fallback client if main client is not available
+    const client = apiClient && typeof apiClient.post === 'function' ? apiClient : createFallbackClient();
+    console.log("Using client:", client === apiClient ? "main" : "fallback");
     
-    console.log(`[getSLAViolationsByDealer] Fetching SLA violations for dealer ID: ${id}`);
-    
-    // Build query parameters
-    const queryParams = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
-    
-    if (filters) {
-      if (filters.startDate) queryParams.append('startDate', filters.startDate);
-      if (filters.endDate) queryParams.append('endDate', filters.endDate);
-      if (filters.resolved !== undefined) queryParams.append('resolved', filters.resolved.toString());
-      if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
-      if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);
-    }
-    
-    const url = `/orders/api/orders/sla/violations/dealer/${id}?${queryParams.toString()}`;
-    console.log(`[getSLAViolationsByDealer] API URL: ${url}`);
-    
-    const response = await apiClient.get(url);
-    
-    if (response.data && response.data.success) {
-      console.log(`[getSLAViolationsByDealer] Successfully fetched SLA violations for dealer ID: ${id}`);
-      return response.data;
-    } else {
-      throw new Error("Invalid response from SLA violations endpoint");
-    }
+    const response = await client.post(
+      `/orders/api/sla-violations/manual`,
+      violationData
+    );
+    return response.data;
   } catch (error) {
-    console.error("Error fetching SLA violations:", error);
+    console.error("Error creating manual SLA violation:", error);
     throw error;
   }
-}
-
-// Get SLA violations summary for a dealer
-export async function getSLAViolationsSummary(dealerId?: string): Promise<SLAViolationsSummary> {
-  try {
-    const response = await getSLAViolationsByDealer(dealerId, 1, 1);
-    return response.data.summary;
-  } catch (error) {
-    console.error("Error fetching SLA violations summary:", error);
-    throw error;
-  }
-}
-
-// Format violation time for display
-export function formatViolationTime(minutes: number): string {
-  if (minutes === 0) return "0 minutes";
-  
-  const days = Math.floor(minutes / (24 * 60));
-  const hours = Math.floor((minutes % (24 * 60)) / 60);
-  const remainingMinutes = minutes % 60;
-  
-  const parts = [];
-  if (days > 0) parts.push(`${days} day${days > 1 ? 's' : ''}`);
-  if (hours > 0) parts.push(`${hours} hour${hours > 1 ? 's' : ''}`);
-  if (remainingMinutes > 0) parts.push(`${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}`);
-  
-  return parts.join(', ');
-}
-
-// Get severity color for UI
-export function getSeverityColor(severity: string): string {
-  switch (severity.toLowerCase()) {
-    case 'high':
-      return 'bg-red-100 text-red-800 border-red-200';
-    case 'medium':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'low':
-      return 'bg-green-100 text-green-800 border-green-200';
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
-  }
-}
-
-// Format date for display
-export function formatViolationDate(dateString: string): string {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (error) {
-    return 'Invalid Date';
-  }
-}
+};

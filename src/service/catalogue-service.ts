@@ -312,3 +312,74 @@ export const getMockVariants = (): Variant[] => {
     { id: "320i_variant_id", variant_name: "320i", model_id: "3series_model_id" }
   ];
 };
+
+// Content Management Update Functions
+export const updateCategory = async (id: string, formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.put(`https://api.toprise.in/products/api/category/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating category:", error);
+    throw error;
+  }
+};
+
+export const updateSubCategory = async (id: string, formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.put(`https://api.toprise.in/products/api/subcategory/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating subcategory:", error);
+    throw error;
+  }
+};
+
+export const updateBrand = async (id: string, formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.put(`https://api.toprise.in/products/api/brand/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating brand:", error);
+    throw error;
+  }
+};
+
+export const updateModel = async (modelId: string, formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.put(`https://api.toprise.in/products/api/model/${modelId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating model:", error);
+    throw error;
+  }
+};
+
+export const updateVariant = async (id: string, formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.put(`https://api.toprise.in/products/api/variant/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating variant:", error);
+    throw error;
+  }
+};

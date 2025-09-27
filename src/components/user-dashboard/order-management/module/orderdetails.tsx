@@ -559,73 +559,6 @@ export default function OrderDetailsView() {
         </Card>
       </div>
 
-      {/* Order Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="border border-gray-200 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Order Date</p>
-                <p className="font-semibold text-gray-900">
-                  {orderById?.orderDate ? formatDate(orderById.orderDate, { includeTime: true }) : "-"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-gray-200 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CreditCard className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Payment Type</p>
-                <p className="font-semibold text-gray-900">
-                  {orderById?.paymentType || "-"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-gray-200 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Truck className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Delivery Type</p>
-                <p className="font-semibold text-gray-900">
-                  {orderById?.type_of_delivery || "-"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-gray-200 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Package className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Amount</p>
-                <p className="font-semibold text-gray-900">
-                  ₹{orderById?.order_Amount?.toLocaleString() || "-"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
         {/* Left Column */}
@@ -869,6 +802,18 @@ export default function OrderDetailsView() {
         <CancelOrderModal
           isOpen={cancelModalOpen}
           onClose={() => setCancelModalOpen(false)}
+          orderId={orderId || ""}
+          onOrderCancelled={() => {
+            // Refresh order data after cancellation
+            if (orderId) {
+              dispatch(fetchOrderByIdRequest());
+              getOrderById(orderId).then((response) => {
+                dispatch(fetchOrderByIdSuccess(response.data));
+              }).catch((error) => {
+                dispatch(fetchOrderByIdFailure(error));
+              });
+            }
+          }}
         />
       )}
       {/* Product Details Modal */}

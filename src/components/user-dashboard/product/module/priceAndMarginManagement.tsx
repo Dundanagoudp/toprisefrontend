@@ -11,6 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getTokenPayload } from "@/utils/cookies";
+import { 
+  contactDealerAboutViolation, 
+  resolveSLAViolation, 
+  getSLADealerViolationSummary,
+  getEnhancedSLAViolations,
+  getSLAViolationStats,
+  createManualSLAViolation
+} from "@/service/sla-violations-service";
 import {
   Search,
   Filter,
@@ -18,7 +26,6 @@ import {
   Upload,
   Plus,
   MoreHorizontal,
-  FileUp,
   PlusIcon,
   AlertTriangle,
   Clock,
@@ -42,6 +49,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import addSquare from "../../../../../public/assets/addSquare.svg";
 
 import {
@@ -142,30 +156,45 @@ interface DashboardData {
 }
 
 const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "Met":
+  switch (status?.toLowerCase()) {
+    case "active":
       return (
         <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
           <CheckCircle className="w-3 h-3 mr-1" />
-          {status}
+          Active
         </Badge>
       );
-    case "Violated":
+    case "inactive":
+    case "disabled":
       return (
         <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
           <XCircle className="w-3 h-3 mr-1" />
-          {status}
+          Inactive
         </Badge>
       );
-    case "Pending":
+    case "met":
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Met
+        </Badge>
+      );
+    case "violated":
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+          <XCircle className="w-3 h-3 mr-1" />
+          Violated
+        </Badge>
+      );
+    case "pending":
       return (
         <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
           <Clock className="w-3 h-3 mr-1" />
-          {status}
+          Pending
         </Badge>
       );
     default:
-      return <Badge variant="secondary">{status}</Badge>;
+      return <Badge variant="secondary">{status || "Unknown"}</Badge>;
   }
 };
 
@@ -208,6 +237,12 @@ export default function SLAViolationsAndReporting() {
   const [selectedViolationIds, setSelectedViolationIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("tabular");
   
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterRiskLevel, setFilterRiskLevel] = useState("all");
+  const [filterViolations, setFilterViolations] = useState("all");
+  
   // Data states
   const [dashboardData, setDashboardData] = useState<DashboardData | null>({
     quickStats: {
@@ -236,8 +271,9 @@ export default function SLAViolationsAndReporting() {
     },
     lastUpdated: new Date().toISOString(),
   });
-  const [dealersWithViolations, setDealersWithViolations] = useState<DealerWithViolations[]>([]);
+  const [violations, setViolations] = useState<any[]>([]);
   const [topViolators, setTopViolators] = useState<any[]>([]);
+  const [statsData, setStatsData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -246,13 +282,33 @@ export default function SLAViolationsAndReporting() {
   const [selectedDealer, setSelectedDealer] = useState<DealerWithViolations | null>(null);
   const [disableReason, setDisableReason] = useState("");
   const [disableNotes, setDisableNotes] = useState("");
-  const [showBulkDisableModal, setShowBulkDisableModal] = useState(false);
-  const [bulkDisableReason, setBulkDisableReason] = useState("");
-  const [bulkDisableNotes, setBulkDisableNotes] = useState("");
+  
+  // SLA violation action states
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [selectedViolationId, setSelectedViolationId] = useState<string | null>(null);
+  const [contactMethod, setContactMethod] = useState<"notification" | "email" | "phone">("notification");
+  const [customMessage, setCustomMessage] = useState("Please address this SLA violation immediately");
+  const [summaryData, setSummaryData] = useState<any>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState("Violation resolved after dealer contact");
+  
+  // Manual violation creation states
+  const [showCreateViolationModal, setShowCreateViolationModal] = useState(false);
+  const [createViolationData, setCreateViolationData] = useState({
+    dealer_id: "",
+    order_id: "",
+    expected_fulfillment_time: "",
+    actual_fulfillment_time: "",
+    violation_minutes: 0,
+    notes: "",
+    contact_dealer: false
+  });
 
   const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
-      const allViolationIds = dealersWithViolations.map((dealer) => dealer.dealerId);
+      const allViolationIds = violations.map((violation) => violation._id);
       setSelectedViolationIds(allViolationIds);
     } else {
       setSelectedViolationIds([]);
@@ -286,19 +342,89 @@ export default function SLAViolationsAndReporting() {
     }
   };
 
-  // Fetch dealers with violations
-  const fetchDealersWithViolations = async () => {
+  // Fetch enhanced SLA violations
+  const fetchEnhancedViolations = async () => {
     try {
-      const response = await slaViolationsService.getDealersWithViolations();
-      if (response.success && response.data?.dealers) {
-        setDealersWithViolations(response.data.dealers);
+      console.log("Fetching enhanced violations...");
+      const response = await getEnhancedSLAViolations();
+      console.log("Enhanced violations response:", response);
+      
+      if (response.success && response.data?.violations) {
+        console.log("Setting violations:", response.data.violations);
+        setViolations(response.data.violations);
       } else {
-        console.warn("Dealers API response:", response);
-        setDealersWithViolations([]);
+        console.warn("Enhanced violations API response:", response);
+        setViolations([]);
       }
     } catch (error) {
-      console.error("Error fetching dealers with violations:", error);
-      setDealersWithViolations([]);
+      console.error("Error fetching enhanced violations:", error);
+      setViolations([]);
+    }
+  };
+
+  // Fetch SLA violation statistics
+  const fetchSLAStats = async () => {
+    try {
+      console.log("Fetching SLA stats...");
+      const response = await getSLAViolationStats();
+      console.log("SLA stats response:", response);
+      
+      if (response.success && response.data) {
+        console.log("Setting stats data:", response.data);
+        setStatsData(response.data);
+        
+        // Update dashboard data with new stats
+        setDashboardData(prev => ({
+          ...prev,
+          quickStats: {
+            totalViolations: response.data.summary.totalViolations,
+            totalViolationMinutes: response.data.summary.totalViolationMinutes,
+            avgViolationMinutes: response.data.summary.avgViolationMinutes,
+            maxViolationMinutes: response.data.summary.maxViolationMinutes,
+            resolvedViolations: response.data.summary.resolvedViolations,
+            unresolvedViolations: response.data.summary.unresolvedViolations,
+            uniqueDealerCount: response.data.summary.uniqueDealerCount,
+            resolutionRate: response.data.summary.resolutionRate,
+          },
+          dealersWithViolations: {
+            totalDealers: response.data.summary.uniqueDealerCount,
+            highRiskDealers: response.data.data.filter((dealer: any) => dealer.violationRate >= 80).length,
+            mediumRiskDealers: response.data.data.filter((dealer: any) => dealer.violationRate >= 50 && dealer.violationRate < 80).length,
+            eligibleForDisable: response.data.data.filter((dealer: any) => dealer.violationRate >= 90).length,
+          },
+          topViolators: prev?.topViolators || [],
+          trends: prev?.trends || {
+            period: "30d",
+            summary: {
+              totalViolations: 0,
+              avgViolationsPerDay: 0,
+            },
+          },
+          lastUpdated: new Date().toISOString(),
+        }));
+        
+        // Update top violators with new data
+        const topViolatorsData = response.data.data.map((dealer: any, index: number) => ({
+          rank: index + 1,
+          dealerId: dealer.dealerId,
+          dealerInfo: {
+            trade_name: dealer.dealerInfo.trade_name
+          },
+          stats: {
+            totalViolations: dealer.totalViolations,
+            avgViolationMinutes: dealer.avgViolationMinutes
+          }
+        }));
+        
+        console.log("Setting top violators:", topViolatorsData);
+        setTopViolators(topViolatorsData);
+      } else {
+        console.warn("SLA stats API response:", response);
+        setStatsData(null);
+      }
+    } catch (error) {
+      console.error("Error fetching SLA stats:", error);
+      setStatsData(null);
     }
   };
 
@@ -335,7 +461,10 @@ export default function SLAViolationsAndReporting() {
         setDisableNotes("");
         // Refresh data
         fetchDashboardData();
-        fetchDealersWithViolations();
+        fetchSLAStats();
+        fetchSLAStats();
+                fetchSLAStats();
+                fetchEnhancedViolations();
       }
     } catch (error) {
       console.error("Error disabling dealer:", error);
@@ -343,37 +472,148 @@ export default function SLAViolationsAndReporting() {
   };
 
   // Bulk disable dealers
-  const handleBulkDisableDealers = async () => {
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        console.log("Starting data load...");
+        await Promise.all([
+          fetchSLAStats(),
+          fetchEnhancedViolations()
+        ]);
+        console.log("Data load completed successfully");
+      } catch (error) {
+        console.error("Error loading data:", error);
+        setError("Failed to load data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
+  
+
+  // Handle contacting dealer about violation
+  const handleContactDealer = async () => {
+    if (!selectedViolationId) return;
+    
     try {
-      const response = await slaViolationsService.bulkDisableDealers({
-        dealerIds: selectedViolationIds,
-        reason: bulkDisableReason,
-        adminNotes: bulkDisableNotes,
+      setActionLoading(true);
+      await contactDealerAboutViolation(selectedViolationId, {
+        contact_method: contactMethod,
+        custom_message: customMessage
       });
       
-      if (response.success) {
-        setShowBulkDisableModal(false);
-        setSelectedViolationIds([]);
-        setBulkDisableReason("");
-        setBulkDisableNotes("");
+      console.log("Dealer contacted successfully");
+      setShowContactModal(false);
+      setSelectedViolationId(null);
+      setCustomMessage("Please address this SLA violation immediately");
+      
         // Refresh data
-        fetchDashboardData();
-        fetchDealersWithViolations();
-      }
+      fetchSLAStats();
+                fetchSLAStats();
+                fetchEnhancedViolations();
     } catch (error) {
-      console.error("Error bulk disabling dealers:", error);
+      console.error("Error contacting dealer:", error);
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchDealersWithViolations();
-    fetchTopViolators();
-  }, []);
-  
-  const handleExportReport = () => {
-    // Handle export functionality
-    console.log("Exporting SLA violations report");
+  // Handle resolving SLA violation
+  const handleResolveViolation = async () => {
+    if (!selectedViolationId) return;
+    
+    try {
+      setActionLoading(true);
+      
+      // Get current user ID for resolved_by field
+      const currentUser = payload?.id || "admin_user_id";
+      
+      await resolveSLAViolation(selectedViolationId, {
+        resolution_notes: resolutionNotes,
+        resolved_by: currentUser
+      });
+      
+      console.log("SLA violation resolved successfully");
+      setShowResolveModal(false);
+      setSelectedViolationId(null);
+      setResolutionNotes("Violation resolved after dealer contact");
+      
+      // Refresh data
+      fetchSLAStats();
+                fetchSLAStats();
+                fetchEnhancedViolations();
+    } catch (error) {
+      console.error("Error resolving SLA violation:", error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle viewing dealer violation summary
+  const handleViewSummary = async (dealerId: string) => {
+    try {
+      setActionLoading(true);
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 1); // Last 30 days
+      const endDate = new Date();
+      
+      const summary = await getSLADealerViolationSummary(
+        dealerId,
+        startDate.toISOString().split('T')[0],
+        endDate.toISOString().split('T')[0]
+      );
+      
+      setSummaryData(summary);
+      setShowSummaryModal(true);
+    } catch (error) {
+      console.error("Error fetching violation summary:", error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle creating manual SLA violation
+  const handleCreateManualViolation = async () => {
+    try {
+      setActionLoading(true);
+      const payload = getTokenPayload();
+      
+      const violationData = {
+        ...createViolationData,
+        created_by: payload?.id || "unknown"
+      };
+      
+      const response = await createManualSLAViolation(violationData);
+      
+      if (response.success) {
+        // Reset form
+        setCreateViolationData({
+          dealer_id: "",
+          order_id: "",
+          expected_fulfillment_time: "",
+          actual_fulfillment_time: "",
+          violation_minutes: 0,
+          notes: "",
+          contact_dealer: false
+        });
+        setShowCreateViolationModal(false);
+        
+        // Refresh data
+        fetchSLAStats();
+        fetchEnhancedViolations();
+        
+        console.log("Manual SLA violation created successfully");
+      }
+    } catch (error) {
+      console.error("Error creating manual SLA violation:", error);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -393,29 +633,10 @@ export default function SLAViolationsAndReporting() {
             <Button
               variant="outline"
               className="flex items-center gap-2"
-              onClick={() => {
-                fetchDashboardData();
-                fetchDealersWithViolations();
-                fetchTopViolators();
-              }}
-              disabled={loading}
+              onClick={() => setShowCreateViolationModal(true)}
             >
-              <div className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}>
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                ) : (
-                  <TrendingUp className="w-4 h-4" />
-                )}
-              </div>
-              Refresh
-            </Button>
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={handleExportReport}
-            >
-              <FileUp className="h-4 w-4" />
-              Export Report
+              <Plus className="h-4 w-4" />
+              Create Manual Violation
             </Button>
           </div>
         </div>
@@ -433,12 +654,32 @@ export default function SLAViolationsAndReporting() {
             variant="outline"
             size="sm"
             className="mt-2"
-            onClick={() => setError(null)}
+            onClick={() => {
+              setError(null);
+              fetchSLAStats();
+              fetchEnhancedViolations();
+            }}
           >
-            Dismiss
+            Retry
           </Button>
         </div>
       )}
+
+      {/* Debug Information */}
+      {/* {process.env.NODE_ENV === 'development' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-blue-800 font-medium">Debug Info</span>
+          </div>
+          <div className="text-sm text-blue-700 space-y-1">
+            <p>Loading: {loading ? 'Yes' : 'No'}</p>
+            <p>Violations Count: {violations.length}</p>
+            <p>Stats Data: {statsData ? 'Loaded' : 'Not loaded'}</p>
+            <p>Dashboard Data: {dashboardData ? 'Loaded' : 'Not loaded'}</p>
+            <p>Top Violators: {topViolators.length}</p>
+          </div>
+        </div>
+      )} */}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -518,7 +759,7 @@ export default function SLAViolationsAndReporting() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200">
-          <TabsTrigger value="tabular" className="flex items-center gap-2">
+          <TabsTrigger value="tabular" className="flex items-center justify-center gap-2">
             <Table className="h-4 w-4" />
             Tabular View
           </TabsTrigger>
@@ -557,6 +798,7 @@ export default function SLAViolationsAndReporting() {
                     <Button
                       variant="outline"
                       className="flex items-center gap-2 bg-transparent border-gray-300 hover:bg-gray-50 min-w-[100px]"
+                      onClick={() => setShowFilters(true)}
                     >
                       <Filter className="h-4 w-4" />
                       <span className="b3 font-poppins">Filters</span>
@@ -576,25 +818,22 @@ export default function SLAViolationsAndReporting() {
                         <input type="checkbox" onChange={handleSelectAll} />
                       </TableHead>
                       <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left">
-                        Dealer ID
+                        Violation ID
                       </TableHead>
                       <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px]">
                         Dealer Name
                       </TableHead>
                       <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px]">
-                        Total Violations
+                        Order ID
                       </TableHead>
                       <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px]">
-                        Avg Violation Time
+                        Violation Time
                       </TableHead>
                       <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px]">
-                        Unresolved
-                      </TableHead>
-                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
-                        Risk Level
-                      </TableHead>
-                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
                         Status
+                      </TableHead>
+                      <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px]">
+                        Priority
                       </TableHead>
                       <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px]">
                         Action
@@ -607,20 +846,56 @@ export default function SLAViolationsAndReporting() {
                         <TableCell colSpan={9} className="text-center py-8">
                           <div className="flex items-center justify-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <span className="ml-2">Loading dealers with violations...</span>
+                            <span className="ml-2">Loading SLA violations...</span>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : dealersWithViolations.length === 0 ? (
+                    ) : violations.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                          No dealers with violations found
+                          No SLA violations found
                         </TableCell>
                       </TableRow>
                                          ) : (
-                       dealersWithViolations.filter(dealer => dealer && dealer.dealerId).map((dealer, index) => (
+                       violations
+                         .filter(violation => violation && violation._id)
+                         .filter(violation => {
+                           // Search filter
+                           if (searchQuery.trim()) {
+                             const query = searchQuery.toLowerCase();
+                             const matchesSearch = (
+                               violation._id?.toLowerCase().includes(query) ||
+                               violation.dealerDetails?.contact_person?.name?.toLowerCase().includes(query) ||
+                               violation.order_id?.toLowerCase().includes(query) ||
+                               violation._id?.slice(-8).toLowerCase().includes(query)
+                             );
+                             if (!matchesSearch) return false;
+                           }
+                           
+                           // Status filter
+                           if (filterStatus !== "all") {
+                             if (filterStatus === "active" && violation.status !== "Active") return false;
+                             if (filterStatus === "resolved" && violation.status !== "Resolved") return false;
+                           }
+                           
+                           // Priority filter (using priority instead of risk level)
+                           if (filterRiskLevel !== "all") {
+                             if (violation.priority?.toLowerCase() !== filterRiskLevel.toLowerCase()) return false;
+                           }
+                           
+                           // Violations filter (using violation minutes)
+                           if (filterViolations !== "all") {
+                             const violationMinutes = violation.violation_minutes || 0;
+                             if (filterViolations === "high" && violationMinutes < 10) return false;
+                             if (filterViolations === "medium" && (violationMinutes < 5 || violationMinutes >= 10)) return false;
+                             if (filterViolations === "low" && violationMinutes >= 5) return false;
+                           }
+                           
+                           return true;
+                         })
+                         .map((violation, index) => (
                         <TableRow
-                          key={dealer.dealerId}
+                          key={violation._id}
                           className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
                             index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                           }`}
@@ -628,47 +903,44 @@ export default function SLAViolationsAndReporting() {
                           <TableCell className="px-6 py-4">
                             <input 
                               type="checkbox" 
-                              checked={selectedViolationIds.includes(dealer.dealerId)}
-                              onChange={(e) => handleSelectViolation(e, dealer.dealerId)}
+                              checked={selectedViolationIds.includes(violation._id)}
+                              onChange={(e) => handleSelectViolation(e, violation._id)}
                             />
                           </TableCell>
                           <TableCell className="px-6 py-4">
                             <span className="text-gray-700 b2 font-redHat">
-                              {dealer.dealerId.slice(-8)}
+                              {violation._id.slice(-8)}
                             </span>
                           </TableCell>
                           <TableCell className="px-6 py-4">
                             <div>
                               <div className="font-medium text-gray-900 b2 font-redhat">
-                                {dealer.dealerInfo?.trade_name || "Unknown Dealer"}
+                                {violation.dealerDetails?.contact_person?.name || "Unknown Dealer"}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {dealer.dealerInfo?.legal_name || "No legal name"}
+                                {violation.dealerDetails?.contact_person?.email || "No email"}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell className="px-6 py-4">
                             <span className="text-gray-700 b2 font-semibold">
-                              {dealer.violationStats?.totalViolations || 0}
+                              {violation.order_id?.slice(-8) || "N/A"}
                             </span>
                           </TableCell>
                           <TableCell className="px-6 py-4">
                             <span className="text-gray-700 b2">
-                              {dealer.violationStats?.avgViolationMinutes || 0}m
+                              {violation.violation_minutes || 0}m
                             </span>
                           </TableCell>
                           <TableCell className="px-6 py-4">
                             <span className={`text-sm font-medium ${
-                              (dealer.violationStats?.unresolvedViolations || 0) > 0 ? 'text-red-600' : 'text-green-600'
+                              violation.resolved ? 'text-green-600' : 'text-red-600'
                             }`}>
-                              {dealer.violationStats?.unresolvedViolations || 0}
+                              {violation.resolved ? "Resolved" : "Active"}
                             </span>
                           </TableCell>
                           <TableCell className="px-6 py-4">
-                            {getPriorityBadge(dealer.riskLevel || "Unknown")}
-                          </TableCell>
-                          <TableCell className="px-6 py-4">
-                            {getStatusBadge(dealer.dealerInfo?.is_active ? "Active" : "Disabled")}
+                            {getPriorityBadge(violation.priority || "Low")}
                           </TableCell>
                           <TableCell className="px-6 py-4 text-center">
                             <DropdownMenu>
@@ -683,26 +955,32 @@ export default function SLAViolationsAndReporting() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem className="cursor-pointer">
-                                  View Details
+                                <DropdownMenuItem 
+                                  className="cursor-pointer"
+                                  onClick={() => handleViewSummary(violation.dealer_id)}
+                                >
+                                  View Violation Summary
                                 </DropdownMenuItem>
-                                {dealer.eligibleForDisable && (
                                   <DropdownMenuItem 
-                                    className="cursor-pointer text-red-600 hover:text-red-700"
+                                  className="cursor-pointer"
                                     onClick={() => {
-                                      setSelectedDealer(dealer);
-                                      setShowDisableModal(true);
-                                    }}
-                                  >
-                                    Disable Dealer
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem className="cursor-pointer">
-                                  View Violations
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
+                                    setSelectedViolationId(violation._id);
+                                    setShowContactModal(true);
+                                  }}
+                                >
                                   Contact Dealer
                                 </DropdownMenuItem>
+                                {!violation.resolved && (
+                                  <DropdownMenuItem 
+                                    className="cursor-pointer text-green-600 hover:text-green-700"
+                                    onClick={() => {
+                                      setSelectedViolationId(violation._id);
+                                      setShowResolveModal(true);
+                                    }}
+                                  >
+                                    Resolve Violation
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -717,20 +995,8 @@ export default function SLAViolationsAndReporting() {
               <div className="px-6 py-4 border-t border-gray-200 bg-gray-50/30">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <p className="text-sm text-gray-500 order-2 sm:order-1">
-                    Showing {dealersWithViolations.length} dealers with violations
+                    Showing {violations.length} SLA violations
                   </p>
-                  <div className="flex items-center gap-2 order-1 sm:order-2">
-                    {selectedViolationIds.length > 0 && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="min-w-[120px]"
-                        onClick={() => setShowBulkDisableModal(true)}
-                      >
-                        Disable Selected ({selectedViolationIds.length})
-                      </Button>
-                    )}
-                  </div>
                 </div>
               </div>
             </CardContent>
@@ -828,6 +1094,18 @@ export default function SLAViolationsAndReporting() {
                     <span className="text-sm text-gray-600">{dashboardData?.quickStats?.uniqueDealerCount || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Unique Orders</span>
+                    <span className="text-sm text-gray-600">{statsData?.summary?.uniqueOrderCount || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Avg Violations per Order</span>
+                    <span className="text-sm text-gray-600">{statsData?.summary?.avgViolationsPerOrder?.toFixed(2) || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Avg Violations per Dealer</span>
+                    <span className="text-sm text-gray-600">{statsData?.summary?.avgViolationsPerDealer?.toFixed(2) || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Unresolved Violations</span>
                     <span className="text-sm text-gray-600">{dashboardData?.quickStats?.unresolvedViolations || 0}</span>
                   </div>
@@ -874,7 +1152,7 @@ export default function SLAViolationsAndReporting() {
                           {violator.stats?.avgViolationMinutes || 0}m avg
                         </div>
                         <div className="text-xs text-gray-500">
-                          {violator.riskLevel || "Unknown"} Risk
+                          {statsData?.data?.[index]?.violationRate || 0}% violation rate
                         </div>
                       </div>
                     </div>
@@ -947,54 +1225,325 @@ export default function SLAViolationsAndReporting() {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Disable Dealers Modal */}
-      <Dialog open={showBulkDisableModal} onOpenChange={setShowBulkDisableModal}>
+
+      {/* Create Manual Violation Modal */}
+      <Dialog open={showCreateViolationModal} onOpenChange={setShowCreateViolationModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create Manual SLA Violation</DialogTitle>
+            <DialogDescription>
+              Manually create an SLA violation for a specific dealer and order
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="dealer-id">Dealer ID *</Label>
+                <Input
+                  id="dealer-id"
+                  value={createViolationData.dealer_id}
+                  onChange={(e) => setCreateViolationData(prev => ({ ...prev, dealer_id: e.target.value }))}
+                  placeholder="Enter dealer ID"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="order-id">Order ID *</Label>
+                <Input
+                  id="order-id"
+                  value={createViolationData.order_id}
+                  onChange={(e) => setCreateViolationData(prev => ({ ...prev, order_id: e.target.value }))}
+                  placeholder="Enter order ID"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="expected-time">Expected Fulfillment Time *</Label>
+                <Input
+                  id="expected-time"
+                  type="datetime-local"
+                  value={createViolationData.expected_fulfillment_time}
+                  onChange={(e) => setCreateViolationData(prev => ({ ...prev, expected_fulfillment_time: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="actual-time">Actual Fulfillment Time *</Label>
+                <Input
+                  id="actual-time"
+                  type="datetime-local"
+                  value={createViolationData.actual_fulfillment_time}
+                  onChange={(e) => setCreateViolationData(prev => ({ ...prev, actual_fulfillment_time: e.target.value }))}
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="violation-minutes">Violation Minutes *</Label>
+              <Input
+                id="violation-minutes"
+                type="number"
+                value={createViolationData.violation_minutes}
+                onChange={(e) => setCreateViolationData(prev => ({ ...prev, violation_minutes: parseInt(e.target.value) || 0 }))}
+                placeholder="Enter violation minutes"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes *</Label>
+              <Textarea
+                id="notes"
+                value={createViolationData.notes}
+                onChange={(e) => setCreateViolationData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Enter violation notes"
+                rows={3}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="contact-dealer"
+                checked={createViolationData.contact_dealer}
+                onChange={(e) => setCreateViolationData(prev => ({ ...prev, contact_dealer: e.target.checked }))}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="contact-dealer">Contact dealer about this violation</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateViolationModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateManualViolation}
+              disabled={actionLoading || !createViolationData.dealer_id || !createViolationData.order_id || !createViolationData.expected_fulfillment_time || !createViolationData.actual_fulfillment_time || !createViolationData.notes}
+            >
+              {actionLoading ? "Creating..." : "Create Violation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Filter Modal */}
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Bulk Disable Dealers</DialogTitle>
+            <DialogTitle>Filter SLA Violations</DialogTitle>
             <DialogDescription>
-              Are you sure you want to disable {selectedViolationIds.length} dealers? 
-              This action cannot be undone.
+              Apply filters to narrow down the results
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="bulk-reason">Reason for Bulk Disable</Label>
-              <Input
-                id="bulk-reason"
-                value={bulkDisableReason}
-                onChange={(e) => setBulkDisableReason(e.target.value)}
-                placeholder="Enter reason for bulk disabling dealers"
-              />
+              <Label htmlFor="status-filter">Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            
             <div className="grid gap-2">
-              <Label htmlFor="bulk-notes">Admin Notes</Label>
-              <Textarea
-                id="bulk-notes"
-                value={bulkDisableNotes}
-                onChange={(e) => setBulkDisableNotes(e.target.value)}
-                placeholder="Additional notes or context"
-                rows={3}
-              />
+              <Label htmlFor="risk-filter">Risk Level</Label>
+              <Select value={filterRiskLevel} onValueChange={setFilterRiskLevel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select risk level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Risk Levels</SelectItem>
+                  <SelectItem value="high">High Risk</SelectItem>
+                  <SelectItem value="medium">Medium Risk</SelectItem>
+                  <SelectItem value="low">Low Risk</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="bg-red-50 p-3 rounded-lg border border-red-200">
-              <h4 className="font-medium text-sm mb-2 text-red-800">Warning</h4>
-              <div className="text-sm text-red-700">
-                This will disable {selectedViolationIds.length} dealers permanently. 
-                All their unresolved violations will be marked as resolved.
-              </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="violations-filter">Violations Count</Label>
+              <Select value={filterViolations} onValueChange={setFilterViolations}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select violations range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Violations</SelectItem>
+                  <SelectItem value="high">High (10+)</SelectItem>
+                  <SelectItem value="medium">Medium (5-9)</SelectItem>
+                  <SelectItem value="low">Low (0-4)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkDisableModal(false)}>
+            <Button variant="outline" onClick={() => {
+              setFilterStatus("all");
+              setFilterRiskLevel("all");
+              setFilterViolations("all");
+            }}>
+              Clear Filters
+            </Button>
+            <Button onClick={() => setShowFilters(false)}>
+              Apply Filters
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Dealer Modal */}
+      <Dialog open={showContactModal} onOpenChange={setShowContactModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Contact Dealer About SLA Violation</DialogTitle>
+            <DialogDescription>
+              Send a notification to the dealer about their SLA violation
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="contact-method">Contact Method</Label>
+              <Select value={contactMethod} onValueChange={(value: "notification" | "email" | "phone") => setContactMethod(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select contact method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="notification">Notification</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="phone">Phone</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="custom-message">Custom Message</Label>
+              <Textarea
+                id="custom-message"
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Enter your message to the dealer"
+                rows={3}
+              />
+            </div>
+              </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowContactModal(false)}>
               Cancel
             </Button>
             <Button 
-              variant="destructive" 
-              onClick={handleBulkDisableDealers}
-              disabled={!bulkDisableReason.trim()}
+              onClick={handleContactDealer}
+              disabled={actionLoading || !customMessage.trim()}
             >
-              Disable {selectedViolationIds.length} Dealers
+              {actionLoading ? "Sending..." : "Send Message"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resolve Violation Modal */}
+      <Dialog open={showResolveModal} onOpenChange={setShowResolveModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Resolve SLA Violation</DialogTitle>
+            <DialogDescription>
+              Mark this SLA violation as resolved and add resolution notes
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="resolution-notes">Resolution Notes</Label>
+              <Textarea
+                id="resolution-notes"
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                placeholder="Enter resolution notes..."
+                rows={3}
+              />
+            </div>
+            <p className="text-sm text-gray-600">
+              This action will mark the violation as resolved and update the dealer's violation status.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResolveModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleResolveViolation}
+              disabled={actionLoading || !resolutionNotes.trim()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {actionLoading ? "Resolving..." : "Resolve Violation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Violation Summary Modal */}
+      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Dealer Violation Summary</DialogTitle>
+            <DialogDescription>
+              Detailed summary of SLA violations for the selected dealer
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {actionLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2">Loading summary...</span>
+              </div>
+            ) : summaryData ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Total Violations</p>
+                    <p className="text-2xl font-bold text-red-600">{summaryData.totalViolations || 0}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Resolved Violations</p>
+                    <p className="text-2xl font-bold text-green-600">{summaryData.resolvedViolations || 0}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Unresolved Violations</p>
+                    <p className="text-2xl font-bold text-orange-600">{summaryData.unresolvedViolations || 0}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Average Resolution Time</p>
+                    <p className="text-2xl font-bold text-blue-600">{summaryData.avgResolutionTime || "N/A"}</p>
+                  </div>
+                </div>
+                {summaryData.violations && summaryData.violations.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Recent Violations</h4>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {summaryData.violations.map((violation: any, index: number) => (
+                        <div key={index} className="p-2 border rounded text-sm">
+                          <p><strong>Date:</strong> {violation.date}</p>
+                          <p><strong>Type:</strong> {violation.type}</p>
+                          <p><strong>Status:</strong> 
+                            <span className={`ml-1 px-2 py-1 rounded text-xs ${
+                              violation.status === 'resolved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {violation.status}
+                            </span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 py-8">No summary data available</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowSummaryModal(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
