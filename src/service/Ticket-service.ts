@@ -28,3 +28,7 @@ export const statusUpdate = async (ticketId: string, statusData: {
         throw err
     }
 }
+export const getTicketById = async (id: string) => {
+  const res = await apiClient.get(`/orders/api/tickets/${id}`);
+  return res.data;
+};

@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { paymentCreation } from "@/service/user/payment-service";
+import {useRazorpay} from "react-razorpay";
 import {
   addAddress,
   createOrders,
@@ -64,7 +66,8 @@ export default function CheckoutPage() {
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
   const quantityUpdateTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
-
+  const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ;
+    const { Razorpay } = useRazorpay();
   const checkoutSteps: Step[] = [
     { id: "address", label: "Address", icon: User },
     { id: "delivery", label: "Delivery", icon: Package },
@@ -186,6 +189,72 @@ export default function CheckoutPage() {
       setIsLoading(false);
     }
   };
+  const handlePayment = async () => {
+    try {
+      if (!user || !cart || !selectedAddress) {
+        showToast("Missing required data for payment", "error");
+        return;
+      }
+
+      const response = await paymentCreation({
+        userId: user._id,
+        amount: Math.round(cart.grandTotal || 0),
+        orderType: "Online",
+        orderSource: "Web",
+        customerDetails: {
+            userId: user._id,
+            name: user.username || "",
+            phone: user.phone_Number || "",
+            address: `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.country || ""}`.trim(),
+            pincode: selectedAddress.pincode || "",
+            email: user.email || ""
+        }
+      })
+
+      const order = await response.data;
+      console.log(order)
+
+      const options : any = {
+        key: RAZORPAY_KEY_ID,
+        amount: order.payment.amount,
+        currency: "INR"  as string,
+        name: "Toprise",
+        description: `Payment for order - ₹${Math.round(cart.grandTotal || 0)}`,
+        order_id: order.payment.razorpay_order_id,
+
+        prefill: {
+          name: user.username || "",
+          email: user.email || "",
+          contact: user.phone_Number || "",
+        },
+        notes: {
+          address: `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}`.trim(),
+        },
+        theme: {
+          color: "#C72920",
+        },
+        handler: function (response: any) {
+          // Handle successful payment
+          console.log("Payment successful:", response);
+          showToast("Payment successful! Creating your order...", "success");
+
+          // After successful payment, create the actual order
+          handlePlaceOrder(true);
+        },
+        modal: {
+          ondismiss: function() {
+            console.log("Payment modal dismissed");
+            showToast("Payment cancelled", "warning");
+          }
+        }
+      };
+      const rzpay = new Razorpay(options as any );
+
+      rzpay.open();
+    } catch (err:any) {
+      alert("Error creating order: " + err.message);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -280,18 +349,16 @@ export default function CheckoutPage() {
     }
   };
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = async (isAfterPayment = false) => {
     console.log("=== HANDLE PLACE ORDER DEBUG ===");
-    console.log("User:", user);
-    console.log("Cart:", cart);
-    console.log("Selected address:", selectedAddress);
-    console.log("Is placing order:", isPlacingOrder);
-    
+    console.log("Payment method:", selectedPaymentMethod);
+    console.log("Is after payment:", isAfterPayment);
+
     if (isPlacingOrder) {
       console.log("Order placement already in progress, ignoring click");
       return;
     }
-    
+
     if (!user || !cart) {
       console.log("Missing user or cart data");
       showToast("User or cart data is not available", "error");
@@ -304,32 +371,41 @@ export default function CheckoutPage() {
       return;
     }
 
+    // For online payments, redirect to payment processing unless this is called after successful payment
+    if (selectedPaymentMethod === 'online' && !isAfterPayment) {
+      console.log("Online payment selected, redirecting to payment processing");
+      await handlePayment();
+      return;
+    }
+
     setIsPlacingOrder(true);
     const orderBody = prepareOrderBody(user, cart);
 
     try {
       console.log("=== MAKING API CALL ===");
       console.log("Calling createOrders with body:", orderBody);
-      
+
       const response = await createOrders(orderBody);
       console.log("Order creation response:", response);
-      
-      setOrderId(response.data.orderId || response.data._id); 
+
+      setOrderId(response.data.orderId || response.data._id);
       setIsOrderConfirmed(true);
-      
+
       // Clear cart from Redux after successful order
       dispatch(clearCart());
 
-      showToast("Order created successfully", "success");
-      
+      const successMessage = isAfterPayment
+        ? "Order placed successfully! Payment completed."
+        : "Order placed successfully!";
+
+      showToast(successMessage, "success");
+
       // Navigate to shop page after successful order placement
       setTimeout(() => {
         router.push('/');
       }, 2000);
     } catch (error: any) {
-      console.error("Full Error Object:", error);
-      console.error("Error response:", error.response);
-      console.error("Error message:", error.message);
+     
       
       if (error.response?.status === 403) {
         showToast("Access denied. Please check your login status.", "error");

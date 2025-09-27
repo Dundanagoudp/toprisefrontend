@@ -1,18 +1,22 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+"use client";
+
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCwNik4xmNLgKkwzMuPAGExlcUH_zViTaM",
-  authDomain: "toprise-c2515.firebaseapp.com",
-  projectId: "toprise-c2515",
-  storageBucket: "toprise-c2515.firebasestorage.app",
-  messagingSenderId: "627943781783",
-  appId: "1:627943781783:web:dbf2547274fd3a223f00d2",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase Authentication and get a reference to the service
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export default app;
+
+console.log("🔥 firebase app.options:", app.options);
+console.log("🔥 auth object keys:", Object.keys(auth).slice(0,40));
