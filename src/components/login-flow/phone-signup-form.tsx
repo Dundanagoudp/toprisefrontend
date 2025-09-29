@@ -16,7 +16,7 @@ import {
 } from "firebase/auth";
 
 import { auth } from "@/lib/firebase";
-import { registerUser } from "@/service/auth-service";
+import { registerUser, registerUserWithPhone } from "@/service/auth-service";
 
 export function PhoneSignUpForm({
   className,
@@ -331,15 +331,13 @@ export function PhoneSignUpForm({
       );
 
       if (result.user) {
+        const firebaseIdToken = await result.user.getIdToken();
         const registerData = {
-          name: name.trim(),
-          email: `${phoneNumber}@phone.local`,
-          password: "phone_auth",
-          phone_Number: phoneNumber,
+          firebase_token: firebaseIdToken,
           role: "User",
         };
 
-        await registerUser(registerData);
+        await registerUserWithPhone(firebaseIdToken,"user");
 
         showToast("Account created successfully!", "success");
         router.replace("/login");

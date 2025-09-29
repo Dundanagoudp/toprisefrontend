@@ -94,3 +94,17 @@ export const registerUserWithPhone = async (firebaseToken:string,role:string):Pr
   }
 
 }
+export const resetPassword = async (email: string): Promise<any> => {
+  try {
+    const response = await apiClient.post("/users/api/users/user/send-reset/paswordmail", {
+      email,
+    }, {
+      withCredentials: true,
+    });
+    return response.data;
+  }
+  catch(error){
+    console.error("Reset password failed:", error);
+    throw error;
+  }
+}
