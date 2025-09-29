@@ -74,7 +74,6 @@ export function PhoneSignUpForm({
         delete (window as any).recaptchaVerifier;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cooldownEndTime]);
 
   // ensure only digits in phone input
@@ -82,60 +81,211 @@ export function PhoneSignUpForm({
     const value = e.target.value.replace(/\D/g, "");
     setPhoneNumber(value.slice(0, 10));
   };
-useEffect(() => {
-  return () => {
+
+  useEffect(() => {
+    return () => {
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch {}
+        delete (window as any).recaptchaVerifier;
+      }
+    };
+  }, []);
+
+  const loadRecaptchaScript = () =>
+    new Promise<void>((resolve, reject) => {
+      if (typeof window !== "undefined" && (window as any).grecaptcha) {
+        return resolve();
+      }
+
+      const existing = document.querySelector(
+        'script[src^="https://www.google.com/recaptcha/"]'
+      );
+      if (existing) {
+        const waitMax = 10000;
+        const start = Date.now();
+        const tick = () => {
+          if ((window as any).grecaptcha) return resolve();
+          if (Date.now() - start > waitMax)
+            return reject(new Error("grecaptcha did not load in time"));
+          setTimeout(tick, 200);
+        };
+        return tick();
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        const start = Date.now();
+        const waitMax = 10000;
+        const tick = () => {
+          if ((window as any).grecaptcha) return resolve();
+          if (Date.now() - start > waitMax)
+            return reject(
+              new Error("grecaptcha did not become available after script loaded")
+            );
+          setTimeout(tick, 200);
+        };
+        tick();
+      };
+      script.onerror = () => {
+        reject(
+          new Error(
+            "Failed to load reCAPTCHA script (network/CSP/adblock?)."
+          )
+        );
+      };
+      document.head.appendChild(script);
+    });
+
+  const createVerifierAndSend = async (phoneE164: string, visible = false) => {
+    if (typeof window === "undefined")
+      throw new Error("Window required for reCAPTCHA");
+
+    // Use the imported auth instance
+    const authInstance = auth;
+    if (!authInstance) throw new Error("Auth instance is undefined.");
+
+    // ✅ CRITICAL FIX: Initialize auth.settings if it doesn't exist
+    if (!(authInstance as any).settings) {
+      console.log("Initializing auth.settings...");
+      (authInstance as any).settings = {
+        appVerificationDisabledForTesting: false,
+      };
+    }
+
+    // Load grecaptcha script
+    try {
+      await loadRecaptchaScript();
+    } catch (loadErr) {
+      console.error("Failed to load grecaptcha:", loadErr);
+      throw new Error(
+        "reCAPTCHA script unavailable. Check AdBlock/CSP/network. Error: " +
+          (loadErr as any)?.message
+      );
+    }
+
+    if (!(window as any).grecaptcha) {
+      throw new Error(
+        "reCAPTCHA (grecaptcha) not available on window. Possibly blocked."
+      );
+    }
+
+    // Clear previous verifier if exists
     if ((window as any).recaptchaVerifier) {
-      try { (window as any).recaptchaVerifier.clear(); } catch {}
+      try {
+        (window as any).recaptchaVerifier.clear();
+      } catch (e) {
+        console.warn("Warning clearing previous recaptcha verifier:", e);
+      }
       delete (window as any).recaptchaVerifier;
     }
+
+    // Create RecaptchaVerifier - Use 'invisible' for automatic verification
+    let verifier: RecaptchaVerifier;
+    try {
+      verifier = new RecaptchaVerifier(
+        authInstance,
+        "recaptcha-container",
+        {
+          size: "invisible", // Changed to invisible for automatic verification
+          callback: (response: any) => {
+            console.log("reCAPTCHA solved:", response);
+          },
+          "expired-callback": () => {
+            console.log("reCAPTCHA expired");
+          },
+        }
+      );
+    } catch (err) {
+      console.error("Failed to construct RecaptchaVerifier:", err);
+      throw new Error("Failed to create reCAPTCHA verifier: " + (err as any)?.message);
+    }
+
+    // Store verifier globally
+    (window as any).recaptchaVerifier = verifier;
+
+    // Render the widget and wait for it
+    try {
+      const widgetId = await verifier.render();
+      console.log("reCAPTCHA widget rendered with ID:", widgetId);
+    } catch (renderErr) {
+      console.error("Failed to render reCAPTCHA:", renderErr);
+      throw new Error("Failed to render reCAPTCHA widget: " + (renderErr as any)?.message);
+    }
+
+    // Sign in with phone number
+    try {
+      console.log("Attempting to send OTP to:", phoneE164);
+      const confirmation = await signInWithPhoneNumber(
+        authInstance,
+        phoneE164,
+        verifier
+      );
+      console.log("OTP sent successfully");
+      return confirmation;
+    } catch (err: any) {
+      console.error("signInWithPhoneNumber error:", err);
+      // Clear the verifier on error
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch {}
+        delete (window as any).recaptchaVerifier;
+      }
+      throw err;
+    }
   };
-}, []);
 
-const createVerifier = (visible = false): RecaptchaVerifier => {
-  if (typeof window === "undefined") throw new Error("Window required for reCAPTCHA");
+  const sendOtp = async () => {
+    setLoading(true);
+    setError(null);
 
-  // basic runtime validation of auth
-  if (!auth || !(auth as any).app || !(auth as any).app.options) {
-    throw new Error("Firebase Auth not initialized correctly (auth.app.options missing). Check lib/firebase.");
-  }
-  if ((auth as any).settings === undefined) {
-    // this indicates the object is not the expected Auth instance
-    throw new Error("Firebase Auth instance is invalid (auth.settings is undefined). Check for duplicate firebase installs or wrong import.");
-  }
+    try {
+      if (!/^\d{10}$/.test(phoneNumber)) {
+        throw new Error("Enter a valid 10-digit phone number");
+      }
 
-  // clear stale verifier
-  if ((window as any).recaptchaVerifier) {
-    try { (window as any).recaptchaVerifier.clear(); } catch {}
-    delete (window as any).recaptchaVerifier;
-  }
+      const phoneE164 = `+91${phoneNumber}`;
 
-  const verifier = new RecaptchaVerifier(
-    auth,
-    "recaptcha-container",
-    { size: visible ? "normal" : "invisible" }
-  );
+      // Create and render the verifier first
+      const confirmation = await createVerifierAndSend(phoneE164, true);
 
-  (window as any).recaptchaVerifier = verifier;
-  if (visible) {
-    // show widget for debugging
-    verifier.render().catch(() => {});
-  }
-  return verifier;
-};
+      setConfirmationResult(confirmation);
+      setStep("verify");
+      setRequestCount((p) => p + 1);
+      showToast("OTP sent to +91" + phoneNumber, "success");
+    } catch (err: any) {
+      console.error("sendOtp error", err);
+      
+      // More specific error handling
+      if (err?.code === "auth/invalid-app-credential") {
+        showToast("Please complete the reCAPTCHA verification", "error");
+      } else if (err?.code === "auth/too-many-requests") {
+        setCooldownEndTime(Date.now() + COOLDOWN_DURATION_MS);
+        setRequestCount(MAX_REQUESTS_PER_HOUR);
+        showToast("Too many requests — try again later.", "error");
+      } else if (err?.code === "auth/captcha-check-failed") {
+        showToast("reCAPTCHA verification failed. Please try again.", "error");
+      } else {
+        showToast(err?.message || "Failed to send OTP", "error");
+      }
+      
+      // Clean up verifier on error
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch {}
+        delete (window as any).recaptchaVerifier;
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const sendOtp = async () => {
-  try {
-    const verifier = createVerifier(false); // set true while debugging
-    const e164 = `+91${phoneNumber}`;
-    const confirmation = await signInWithPhoneNumber(auth, e164, verifier);
-    setConfirmationResult(confirmation);
-    setStep("verify");
-    showToast("OTP sent", "success");
-  } catch (err: any) {
-    console.error("sendOtp error", err);
-    showToast(err?.message || "Failed to send OTP", "error");
-  }
-};
   const handleSendCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -189,7 +339,6 @@ const sendOtp = async () => {
           role: "User",
         };
 
-        // call backend to create user record
         await registerUser(registerData);
 
         showToast("Account created successfully!", "success");
@@ -231,7 +380,6 @@ const sendOtp = async () => {
       return;
     }
 
-    // reset local verification state and re-send
     setVerificationCode("");
     setConfirmationResult(null);
     setError(null);
@@ -379,184 +527,8 @@ const sendOtp = async () => {
         </CardContent>
       </Card>
 
-      {/* reCAPTCHA container */}
+      {/* reCAPTCHA container - hidden for invisible mode */}
       <div id="recaptcha-container" />
     </div>
   );
 }
-
-// "use client";
-// import { cn } from "@/lib/utils";
-// import { Button } from "@/components/ui/button";
-// import { Card, CardContent } from "@/components/ui/card";
-// import { Input } from "@/components/ui/input";
-// import { Label } from "@/components/ui/label";
-// import { useState } from "react";
-// import { useRouter } from "next/navigation";
-// import { useToast } from "@/components/ui/toast";
-// import {
-//   RecaptchaVerifier,
-//   signInWithPhoneNumber,
-//   ConfirmationResult,
-// } from "firebase/auth";
-// import { auth } from "@/lib/firebase";
-
-// export function PhoneSignUpForm({
-//   className,
-//   ...props
-// }: React.ComponentProps<"div">) {
-//   const router = useRouter();
-//   const { showToast } = useToast();
-
-//   const [name, setName] = useState("");
-//   const [phoneNumber, setPhoneNumber] = useState("");
-//   const [verificationCode, setVerificationCode] = useState("");
-//   const [loading, setLoading] = useState(false);
-//   const [step, setStep] = useState<"phone" | "verify">("phone");
-//   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-
-//   // Setup reCAPTCHA once
-//   const setupRecaptcha = () => {
-//     if (!(window as any).recaptchaVerifier) {
-//       (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-//         size: "invisible",
-//       });
-//     }
-//     return (window as any).recaptchaVerifier;
-//   };
-
-//   // Step 1: send OTP
-//   const handleSendCode = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     if (!name.trim() || !phoneNumber.trim()) {
-//       showToast("Please enter name and phone number", "error");
-//       return;
-//     }
-
-//     try {
-//       setLoading(true);
-//       const verifier = setupRecaptcha();
-//       const formatted = phoneNumber.startsWith("+") ? phoneNumber : `+91${phoneNumber}`;
-//       const result = await signInWithPhoneNumber(auth, formatted, verifier);
-//       setConfirmationResult(result);
-//       setStep("verify");
-//       showToast("OTP sent successfully", "success");
-//     } catch (err: any) {
-//       console.error("OTP error:", err);
-//       showToast(err?.message || "Failed to send OTP", "error");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // Step 2: verify OTP + call backend signup
-//   const handleVerifyCode = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     if (!confirmationResult) {
-//       showToast("Please request a code first", "error");
-//       return;
-//     }
-
-//     try {
-//       setLoading(true);
-//       await confirmationResult.confirm(verificationCode);
-
-//       // ✅ get Firebase token
-//       const firebaseToken = await auth.currentUser?.getIdToken();
-//       if (!firebaseToken) throw new Error("Failed to get Firebase token");
-
-//       // ✅ Call backend signup API
-//       const res = await fetch("http://localhost:3000/api/users/api/users/signupto", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           firebaseToken,
-//           role: "User",
-//           name: name.trim(),
-//         }),
-//       });
-
-//       if (!res.ok) throw new Error("Signup failed");
-//       showToast("Signup successful!", "success");
-//       router.replace("/login");
-//     } catch (err: any) {
-//       console.error("Verification error:", err);
-//       showToast(err?.message || "Verification failed", "error");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <div className={cn("flex flex-col gap-6", className)} {...props}>
-//       <Card className="overflow-hidden p-0">
-//         <CardContent className="grid p-0 md:grid-cols-2">
-//           <form
-//             className="p-6 md:p-8"
-//             onSubmit={step === "phone" ? handleSendCode : handleVerifyCode}
-//           >
-//             <div className="flex flex-col gap-6">
-//               <div className="flex flex-col items-center text-center">
-//                 <h1 className="text-2xl font-bold">Sign Up</h1>
-//                 <p className="text-muted-foreground text-sm">
-//                   {step === "phone"
-//                     ? "Sign up with your phone number"
-//                     : "Enter the verification code"}
-//                 </p>
-//               </div>
-
-//               {step === "phone" ? (
-//                 <>
-//                   <div className="grid gap-3">
-//                     <Label htmlFor="name">Name</Label>
-//                     <Input
-//                       id="name"
-//                       type="text"
-//                       value={name}
-//                       onChange={(e) => setName(e.target.value)}
-//                       required
-//                     />
-//                   </div>
-//                   <div className="grid gap-3">
-//                     <Label htmlFor="phone">Phone</Label>
-//                     <Input
-//                       id="phone"
-//                       type="tel"
-//                       value={phoneNumber}
-//                       onChange={(e) => setPhoneNumber(e.target.value)}
-//                       required
-//                     />
-//                   </div>
-//                   <Button type="submit" className="w-full" disabled={loading}>
-//                     {loading ? "Sending..." : "Send OTP"}
-//                   </Button>
-//                 </>
-//               ) : (
-//                 <>
-//                   <div className="grid gap-3">
-//                     <Label htmlFor="otp">OTP</Label>
-//                     <Input
-//                       id="otp"
-//                       type="text"
-//                       value={verificationCode}
-//                       onChange={(e) => setVerificationCode(e.target.value)}
-//                       required
-//                     />
-//                   </div>
-//                   <Button type="submit" className="w-full" disabled={loading}>
-//                     {loading ? "Verifying..." : "Verify & Sign Up"}
-//                   </Button>
-//                 </>
-//               )}
-//             </div>
-//           </form>
-//           <div className="bg-muted relative hidden md:block">
-//             <img src="/login/login.png" alt="Image" className="absolute inset-0 h-full w-full object-cover" />
-//           </div>
-//         </CardContent>
-//       </Card>
-//       {/* reCAPTCHA container */}
-//       <div id="recaptcha-container"></div>
-//     </div>
-//   );
-// }

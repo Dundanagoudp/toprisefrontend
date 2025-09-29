@@ -6,7 +6,7 @@ export default function Signup() {
       <div className="w-full max-w-sm md:max-w-3xl">
         <PhoneSignUpForm/>
       </div>
-      <div id="recaptcha-container"></div>
+      <div id="recaptcha-container" />
     </div>
   )
 }
