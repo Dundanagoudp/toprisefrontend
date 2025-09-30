@@ -32,26 +32,37 @@ export function UserLoginForm({
   /**
    * Send OTP to phone number
    */
+  const normalizePhone = (raw: string): string => {
+    const digitsOnly = raw.replace(/\D/g, ""); 
+  
+    if (raw.startsWith("+")) {
+      // already has country code
+      return `+${digitsOnly}`;
+    }
+  
+    if (digitsOnly.length === 10) {
+      // assume India default
+      return `+91${digitsOnly}`;
+    }
+  
+    // fallback (let Firebase error out if invalid)
+    return `+${digitsOnly}`;
+  };
+  
   const handleSendOTP = async () => {
     if (!phoneNumber.trim()) {
       showToast("Please enter your phone number", "error");
       return;
     }
-
+  
+    const phoneE164 = normalizePhone(phoneNumber);
+  
     setOtpLoading(true);
     try {
-      // Check if user exists first
-      const userExists = await checkUserExists(phoneNumber);
-      if (!userExists) {
-        showToast("User not found. Please create a new account.", "error");
-        return;
-      }
-
-      // User exists, proceed with OTP
-      const result = await firebasePhoneAuth.sendOTP(phoneNumber);
+      const result = await firebasePhoneAuth.sendOTP(phoneE164);
       setConfirmationResult(result);
       setOtpSent(true);
-      showToast("OTP sent successfully to your phone", "success");
+      showToast(`OTP sent to ${phoneE164}`, "success");
     } catch (err: any) {
       showToast(err.message || "Failed to send OTP", "error");
     } finally {
@@ -158,15 +169,15 @@ export function UserLoginForm({
                     <div className="grid gap-3">
                       <Label htmlFor="phone">Phone Number</Label>
                       <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+91 9876543210"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-500">
-                        Enter your phone number with country code
-                      </p>
+  id="phone"
+  type="tel"
+  placeholder="9876543210"
+  value={phoneNumber}
+  onChange={(e) => setPhoneNumber(e.target.value)}
+/>
+<p className="text-xs text-gray-500">
+  Enter 10-digit number (we'll add +91) or full international number
+</p>
                     </div>
                     <Button
                       type="button"

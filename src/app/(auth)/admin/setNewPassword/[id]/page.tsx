@@ -1,5 +1,5 @@
 import NewPassowrd from '@/components/user-auth/passward-reset/NewPassowrd'
-import VerifyPassword from '@/components/user-auth/passward-reset/VerifyPassword/VerifyPassword'
+
 import React from 'react'
 
 function page() {

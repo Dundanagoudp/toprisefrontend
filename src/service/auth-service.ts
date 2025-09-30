@@ -107,4 +107,30 @@ export const resetPassword = async (email: string): Promise<any> => {
     console.error("Reset password failed:", error);
     throw error;
   }
+};
+
+
+  export const verifyPassword = async (token: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/users/api/users/user/reset/password-verify/${token}`);
+      return response.data;
+    }
+    catch(error){
+      console.error("Verify password failed:", error);
+      throw error;
+    }
+  }
+
+
+export const createNewPassword = async (token: string, newPassword: string): Promise<any> => {
+  try {
+    const response = await apiClient.post(`/users/api/users/user/reset/password/${token}`, {
+      newPassword,
+    });
+    return response.data;
+  }
+  catch(error){
+    console.error("Create new password failed:", error);
+    throw error;
+  }
 }
