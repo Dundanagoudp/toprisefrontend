@@ -72,6 +72,7 @@ import {
   Ticket as TicketIcon,
   MoreVertical,
   NotepadText,
+  Redo2,
 } from "lucide-react";
 import Link from "next/link";
 import { ca } from "date-fns/locale";
@@ -79,7 +80,9 @@ import { getTickets } from "@/service/Ticket-service";
 import TicketDetailsDialog from "./popup/TicketDialogBox";
 import { PurchaseOrder, TicketResponse, Ticket } from "@/types/Ticket-types";
 import PurchaseOrderDialog from "./popup/PurchaseOrderRequest";
-
+import { RefreshCw } from "lucide-react";
+import ReturnRequestList from "./porfilepage/ReturnRequest";
+import { ScrollArea } from "@/components/ui/scroll-area";
 interface Address {
   id: string;
   type: "home" | "work" | "other";
@@ -119,6 +122,9 @@ export default function ProfilePage() {
   const [removingFromWishlist, setRemovingFromWishlist] = useState<string[]>(
     []
   );
+
+// fetch data from API in useEffect
+
   const [tickets, setTickets] = useState<any[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
@@ -136,6 +142,7 @@ export default function ProfilePage() {
   const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
     null
   );
+  
     const [selected, setSelected] = useState<any | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState<number | null>(null);
@@ -1031,6 +1038,13 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
               <NotepadText className="mr-2 h-4 w-4" />
               Purchase Order Requests
             </TabsTrigger>
+            <TabsTrigger
+              value="return requests"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+            >
+              <Redo2 className="mr-2 h-4 w-4" />
+              Return Requests
+            </TabsTrigger>
           </TabsList>
 
           {/* Profile Tab */}
@@ -1300,23 +1314,24 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
               title="Order History"
               description="View and track all your orders"
             >
-              {ordersLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                  <span className="ml-2">Loading orders...</span>
-                </div>
-              ) : userOrders.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No orders found</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {userOrders.map((order) => (
-                    <div
-                      key={order._id}
-                      className="p-4 rounded-lg border border-border/50 hover:shadow-md transition-all"
-                    >
+              <ScrollArea className="h-[600px] pr-4">
+                {ordersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <span className="ml-2">Loading orders...</span>
+                  </div>
+                ) : userOrders.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No orders found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userOrders.map((order) => (
+                      <div
+                        key={order._id}
+                        className="p-4 rounded-lg border border-border/50 hover:shadow-md transition-all"
+                      >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -1334,7 +1349,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-foreground">
-                            {formatCurrency(order.order_Amount)}
+                          ₹{(order.order_Amount + order.GST + order.deliveryCharges)?.toLocaleString() || '0'}
                           </p>
                           <Badge className={getStatusBadgeColor(order.status)}>
                             {order.status.charAt(0).toUpperCase() +
@@ -1373,7 +1388,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
                     </div>
                   ))}
                 </div>
-              )}
+              )}</ScrollArea>
             </ProfileSection>
           </TabsContent>
 
@@ -1914,7 +1929,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
             <ProfileSection
               title="Tickets"
               description="Support tickets and event tickets"
-            >
+            > <ScrollArea className="h-[600px] pr-4">
               {ticketsLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin" />
@@ -1991,7 +2006,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
                     </div>
                   ))}
                 </div>
-              )}
+              )}</ScrollArea>
             </ProfileSection>
           </TabsContent>
 
@@ -2000,7 +2015,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
   <ProfileSection
     title="Purchase Order Requests"
     description="Your submitted purchase order requests"
-  >
+  > <ScrollArea className="h-[600px] pr-4">
     {purchaseOrdersLoading ? (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -2089,9 +2104,26 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
           </div>
         ))}
       </div>
+    )} </ScrollArea>
+  </ProfileSection>
+</TabsContent>
+
+
+<TabsContent value="return requests" className="space-y-6 mt-6">
+  <ProfileSection
+    title="Return Requests"
+    description="Your submitted return requests"
+  >
+    {userProfile && userProfile._id ? (
+      <ReturnRequestList userId={userProfile._id} />
+    ) : (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Please log in to view return requests</p>
+      </div>
     )}
   </ProfileSection>
 </TabsContent>
+
         </Tabs>
       </div>
       

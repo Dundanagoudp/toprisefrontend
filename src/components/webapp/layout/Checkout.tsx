@@ -40,6 +40,8 @@ import { useCart } from "@/hooks/use-cart";
 import BillingAddressForm, { AddressFormValues } from "./BillingAddressForm";
 import { StepProgressBar } from "@/components/common/StepProgressBar";
 import type { Step } from "@/components/common/StepProgressBar";
+import { createOrderOnline } from "@/service/user/orderService";
+import { prepareOrderBody, preparePaymentBody } from "../common/PaymentBodyType";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -59,7 +61,7 @@ export default function CheckoutPage() {
   // Delivery type state - express delivery has two options: fast and regular
   const [deliveryType, setDeliveryType] = useState<'Standard' | 'express-fast' | 'express-regular'>('express-fast');
   const [pincode, setPincode] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'online'>('cod');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'COD' | 'Prepaid'>('COD');
   const [pincodeData, setPincodeData] = useState<any>(null);
   const [checkingPincode, setCheckingPincode] = useState(false);
   const [expressAvailable, setExpressAvailable] = useState(false);
@@ -278,42 +280,7 @@ export default function CheckoutPage() {
     }
   }, [selectedAddress]);
 
-  // Use currently selected delivery type in the order body
-  const prepareOrderBody = (user: AppUser, cart: Cart) => {
-    const address = selectedAddress || user.address?.[0] || {};
 
-    const orderBody = {
-      orderId: `ORD${Math.floor(Math.random() * 100000)}`,
-      orderType: "Online",
-      orderSource: "Web",
-      order_Amount: (Math.round(cart.total_mrp || 0)).toString(),
-      skus: cart.items.map((item) => ({
-        sku: item.sku || "",
-        quantity: item.quantity,
-        productId: item.productId || item._id,
-        productName: item.product_name,
-        mrp: item.mrp || item.selling_price || 0,
-        mrp_gst_amount: item.mrp_gst_amount || 0,
-        gst_percentage: item.gst_percentage || "0",
-        gst_amount: item.gst_amount || 0,
-        product_total: item.product_total || item.selling_price * item.quantity,
-        totalPrice: item.totalPrice || item.selling_price * item.quantity,
-      })),
-      customerDetails: {
-        userId: user._id,
-        name: user.username || "",
-        phone: user.phone_Number || "",
-        address: `${address.street || ""}, ${address.city || ""}, ${address.state || ""}, ${address.country || ""}`.trim(),
-        pincode: address.pincode || "",
-        email: user.email || "",
-      },
-      paymentType: selectedPaymentMethod === 'cod' ? 'COD' : 'Online',
-      delivery_type: deliveryType.startsWith('express') ? 'express' : deliveryType.toLowerCase(), // map granular types to API format
-      deliveryCharges: deliveryType.startsWith('express') ? (pincodeData?.delivery_charges || cart.deliveryCharge || 0) : (cart.deliveryCharge || 0),
-      GST: cart.total_mrp_gst_amount || 0,
-    };
-    return orderBody;
-  };
 
   const handleProceed = async () => {
     console.log("=== HANDLE PROCEED DEBUG ===");
@@ -336,7 +303,7 @@ export default function CheckoutPage() {
         return;
       }
       // if express selected ensure PIN checked/available when applicable
-      if (deliveryType.startsWith('express') && !expressAvailable) {
+      if (deliveryType.startsWith('Express') && !expressAvailable) {
         setDeliveryError("Express delivery not available for selected pincode");
         return;
       }
@@ -372,38 +339,48 @@ export default function CheckoutPage() {
     }
 
     // For online payments, redirect to payment processing unless this is called after successful payment
-    if (selectedPaymentMethod === 'online' && !isAfterPayment) {
+    if (selectedPaymentMethod === 'Prepaid' && !isAfterPayment) {
       console.log("Online payment selected, redirecting to payment processing");
       await handlePayment();
       return;
     }
 
     setIsPlacingOrder(true);
-    const orderBody = prepareOrderBody(user, cart);
+    const codbody = prepareOrderBody(user, cart, deliveryType, selectedPaymentMethod, selectedAddress, pincodeData);
+    const onlineBody =preparePaymentBody(user, cart, deliveryType, selectedAddress);
 
     try {
       console.log("=== MAKING API CALL ===");
-      console.log("Calling createOrders with body:", orderBody);
+      console.log("Calling createOrders with body:", codbody);
+      let response;
+      if (selectedPaymentMethod === 'Prepaid') {
+        response = await createOrderOnline(onlineBody);
+        console.log("Order creation response:", response);
+      } else {
+        response = await createOrders(codbody);
+        console.log("Order creation response:", response);
+      }
 
-      const response = await createOrders(orderBody);
-      console.log("Order creation response:", response);
+      // Only proceed if response is successful
+      if (response.success) {
+        setOrderId(response.data.orderId || response.data._id);
+        setIsOrderConfirmed(true);
 
-      setOrderId(response.data.orderId || response.data._id);
-      setIsOrderConfirmed(true);
+        finalizeOrder(response.data, isAfterPayment ? "Order placed successfully! Payment completed." : "Order placed successfully!");
 
-      // Clear cart from Redux after successful order
-      dispatch(clearCart());
+        const successMessage = isAfterPayment
+          ? "Order placed successfully! Payment completed."
+          : "Order placed successfully!";
 
-      const successMessage = isAfterPayment
-        ? "Order placed successfully! Payment completed."
-        : "Order placed successfully!";
+        showToast(successMessage, "success");
 
-      showToast(successMessage, "success");
-
-      // Navigate to shop page after successful order placement
-      setTimeout(() => {
-        router.push('/');
-      }, 2000);
+        // Navigate to shop page after successful order placement
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
+      } else {
+        throw new Error(response.message || "Order creation failed");
+      }
     } catch (error: any) {
      
       
@@ -615,6 +592,27 @@ export default function CheckoutPage() {
       showToast("Failed to add address", "error");
     }
   };
+
+const finalizeOrder = (responseData: any, successMessage = "Order placed successfully!") => {
+
+  dispatch(clearCart());
+
+
+  try {
+    localStorage.removeItem("cart"); // adapt key if different
+  } catch (e) {
+   
+  }
+
+  showToast(successMessage, "success");
+  setOrderId(responseData.orderId || responseData._id);
+  setIsOrderConfirmed(true);
+
+  setTimeout(() => {
+    router.push("/");
+  }, 1500);
+};
+
 
   return (
     <div className="bg-gray-50">
@@ -1061,11 +1059,11 @@ export default function CheckoutPage() {
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <RadioGroup
                         value={selectedPaymentMethod}
-                        onValueChange={(value) => setSelectedPaymentMethod(value as 'cod' | 'online')}
+                        onValueChange={(value) => setSelectedPaymentMethod(value as 'COD' | 'Prepaid')}
                         className="space-y-3"
                       >
                         <div className="flex items-center space-x-3">
-                          <RadioGroupItem value="cod" id="cod" />
+                          <RadioGroupItem value="COD" id="COD" />
                           <Label htmlFor="cod" className="flex-1 cursor-pointer">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -1080,7 +1078,7 @@ export default function CheckoutPage() {
                         </div>
 
                         <div className="flex items-center space-x-3">
-                          <RadioGroupItem value="online" id="online" />
+                          <RadioGroupItem value="Prepaid" id="Prepaid" />
                           <Label htmlFor="online" className="flex-1 cursor-pointer">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -1112,10 +1110,10 @@ export default function CheckoutPage() {
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Payment Method
                     </h3>
-                    <div className={`${selectedPaymentMethod === 'cod' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border p-4 rounded-lg`}>
+                    <div className={`${selectedPaymentMethod === 'COD' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border p-4 rounded-lg`}>
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 ${selectedPaymentMethod === 'cod' ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
-                          {selectedPaymentMethod === 'cod' ? (
+                        <div className={`w-12 h-12 ${selectedPaymentMethod === 'COD' ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
+                          {selectedPaymentMethod === 'COD' ? (
                             <Package className="w-6 h-6 text-green-600" />
                           ) : (
                             <CreditCard className="w-6 h-6 text-blue-600" />
@@ -1123,10 +1121,10 @@ export default function CheckoutPage() {
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">
-                            {selectedPaymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment'}
+                            {selectedPaymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'Online Payment'}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {selectedPaymentMethod === 'cod'
+                            {selectedPaymentMethod === 'COD'
                               ? `Pay ₹${Math.round(cart?.grandTotal || 0)} when your order is delivered`
                               : 'Pay securely online with card, UPI, or net banking'
                             }

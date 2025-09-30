@@ -1,39 +1,63 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  Calendar, 
-  CreditCard, 
-  Truck, 
-  Package, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  User, 
-  CheckCircle, 
-  Clock, 
+import {
+  Calendar,
+  CreditCard,
+  Truck,
+  Package,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  CheckCircle,
+  Clock,
   XCircle,
   ExternalLink,
   ArrowLeft,
   Download,
-  Printer
+  Printer,
+  RotateCcw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { getProductById } from '@/service/product-Service'
 import formatDate from '@/utils/formateDate'
 import { Header } from './layout/Header'
 import Footer from '../landingPage/module/Footer'
+import { downloadInvoice } from './common/InvoiceDownloader'
 
 interface OrderDetailsPageProps {
   order: any
 }
 
 export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
+  console.log('Order data:', order)
+
+  // Calculate and log the breakdown
+  const subtotal = (order.order_Amount || 0) - (order.GST || 0) - (order.deliveryCharges || 0)
+  const gst = order.GST || 0
+  const deliveryCharges = order.deliveryCharges || 0
+  const grandTotal = order.order_Amount || 0
+
+  console.log('Order breakdown:', {
+    subtotal,
+    gst,
+    deliveryCharges,
+    grandTotal,
+    verification: subtotal + gst + deliveryCharges === grandTotal
+  })
+
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [returnModalOpen, setReturnModalOpen] = useState(false)
+  const [returnReason, setReturnReason] = useState('')
+  const [returnLoading, setReturnLoading] = useState(false)
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -130,32 +154,52 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     return `${filesOrigin}${path.startsWith("/") ? "" : "/"}${path}`
   }
 
-  const handlePrint = () => {
-    window.print()
-  }
+
 
   const handleDownload = () => {
-    // Create a downloadable version of the order details
-    const orderData = {
-      orderId: order.orderId,
-      orderDate: order.orderDate,
-      status: order.status,
-      customer: order.customerDetails,
-      products: products,
-      total: order.order_Amount,
-      subtotal: order.order_Amount - (order.GST || 0) - (order.deliveryCharges || 0),
-      gst: order.GST || 0,
-      deliveryCharges: order.deliveryCharges || 0
+    downloadInvoice(order, products)
+  }
+
+  const isReturnEligible = (order: any) => {
+    // Check if order is delivered and within return window (assuming 30 days)
+    const deliveredStatus = ['delivered', 'completed'].includes(order.status?.toLowerCase())
+    if (!deliveredStatus) return false
+
+    // Check if order has a delivery date and is within return window
+    if (order.timestamps?.deliveredAt) {
+      const deliveredDate = new Date(order.timestamps.deliveredAt)
+      const currentDate = new Date()
+      const daysSinceDelivery = Math.floor((currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24))
+      return daysSinceDelivery <= 30 // Assuming 30-day return window
     }
-    
-    const dataStr = JSON.stringify(orderData, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `order-${order.orderId}.json`
-    link.click()
-    URL.revokeObjectURL(url)
+
+    return false
+  }
+
+  const handleReturnProduct = () => {
+    setReturnModalOpen(true)
+  }
+
+  const handleSubmitReturn = async () => {
+    if (!returnReason.trim()) {
+      alert('Please provide a reason for return')
+      return
+    }
+
+    setReturnLoading(true)
+    try {
+      // Here you would typically call an API to create the return request
+      // For now, we'll just simulate the process
+      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
+
+      alert('Return request submitted successfully! Our team will contact you shortly.')
+      setReturnModalOpen(false)
+      setReturnReason('')
+    } catch (error) {
+      alert('Failed to submit return request. Please try again.')
+    } finally {
+      setReturnLoading(false)
+    }
   }
 
   return (
@@ -172,13 +216,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
             >
               Home
             </Link>
-            <span>/</span>
-            <Link 
-              href="/shop" 
-              className="hover:text-primary cursor-pointer transition-colors"
-            >
-              Shop
-            </Link>
+            
             <span>/</span>
             <span className="text-foreground">Order Details</span>
           </div>
@@ -189,7 +227,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <Link href="/shop">
+            <Link href="/profile">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Shop
@@ -211,10 +249,19 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
               <Download className="w-4 h-4 mr-2" />
               Download
             </Button>
-            <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReturnProduct}
+              disabled={!isReturnEligible(order)}
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Return Product
+            </Button>
+            {/* <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="w-4 h-4 mr-2" />
               Print
-            </Button>
+            </Button> */}
           </div>
         </div>
 
@@ -277,7 +324,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 <div>
                   <p className="text-sm text-gray-600">Total Amount</p>
                   <p className="font-semibold text-gray-900 text-lg">
-                    ₹{order.order_Amount?.toLocaleString() || '0'}
+                    ₹{(order.order_Amount + order.GST + order.deliveryCharges)?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
@@ -441,21 +488,21 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">
-                    ₹{((order.order_Amount || 0) - (order.GST || 0) - (order.deliveryCharges || 0)).toLocaleString()}
+                    ₹{order.order_Amount?.toLocaleString() || '0'}
                   </span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">GST</span>
                   <span className="font-medium">
-                    ₹{(order.GST || 0).toLocaleString()}
+                    ₹{order.GST?.toLocaleString() || '0'}
                   </span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Charges</span>
                   <span className="font-medium">
-                    ₹{(order.deliveryCharges || 0).toLocaleString()}
+                    ₹{order.deliveryCharges?.toLocaleString() || '0'}
                   </span>
                 </div>
                 
@@ -463,7 +510,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total</span>
-                  <span>₹{(order.order_Amount || 0).toLocaleString()}</span>
+                  <span>₹{(order.order_Amount + order.GST + order.deliveryCharges)?.toLocaleString() || '0'}</span>
                 </div>
               </CardContent>
             </Card>
@@ -540,6 +587,43 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
       </div>
     </div>
     <Footer/>
+
+    {/* Return Product Modal */}
+    <Dialog open={returnModalOpen} onOpenChange={setReturnModalOpen}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Return Product</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="return-reason">Reason for Return</Label>
+            <Textarea
+              id="return-reason"
+              placeholder="Please describe why you want to return this product..."
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              rows={4}
+              className="mt-2"
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setReturnModalOpen(false)}
+              disabled={returnLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitReturn}
+              disabled={returnLoading || !returnReason.trim()}
+            >
+              {returnLoading ? 'Submitting...' : 'Submit Return Request'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     </div>
   )
 }

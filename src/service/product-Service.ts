@@ -4,6 +4,7 @@ import { BrandsApiResponse } from "@/types/catalogue-types";
 import type { Category as ProductCategory } from "@/types/product-Types";
 import apiClient from "@/apiClient";
 import { PurchaseOrdersResponse } from "@/types/Ticket-types";
+import { ReturnRequestsResponse } from "@/types/return-Types";
 
 export async function getProducts(): Promise<ProductResponse> {
   try {
@@ -1079,6 +1080,17 @@ export  async function uploadPurchaseOrder(files: File[], description: string, u
   }
   catch(error){
     console.error("Failed to upload purchase order:", error);
+    throw error;
+  }
+}
+
+export async function getReturnRequests(userId: string): Promise<ReturnRequestsResponse> {
+  try{
+    const res = await apiClient.get(`/orders/api/returns/user/${userId}`);
+    return res.data;
+  }
+  catch(error){
+    console.error("Failed to fetch return requests:", error);
     throw error;
   }
 }
