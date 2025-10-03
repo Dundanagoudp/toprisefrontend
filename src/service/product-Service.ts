@@ -6,6 +6,7 @@ import apiClient from "@/apiClient";
 import { PurchaseOrdersResponse } from "@/types/Ticket-types";
 import { ReturnRequestsResponse } from "@/types/return-Types";
 
+
 export async function getProducts(): Promise<ProductResponse> {
   try {
     const response = await apiClient.get(`/category/products/v1`);
@@ -911,15 +912,15 @@ export async function getRandomBanners(vehicleTypeId: string): Promise<ApiRespon
 
 
 export async function getProductsByFilter(
-  productType: string,
+  product_type: string,
   brand: string,
   model: string,
   variant: string,
-  subcategory: string,
+  sub_category: string,
   query: string,
-  sortBy: string,
-  minPrice: number,
-  maxPrice: number,
+  sort_by: string,
+  min_price: number,
+  max_price: number,
   page: number = 1,
   limit: number = 10
 ): Promise<ProductResponse> {
@@ -928,7 +929,7 @@ export async function getProductsByFilter(
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
 
-    let url = `/category/products/v1?productType=${encodeURIComponent(productType)}`;
+    let url = `/category/products/v1?product_type=${encodeURIComponent(product_type)}`;
     if (brand && brand.trim() !== "") {
       url += `&brand=${encodeURIComponent(brand.trim())}`;
     }
@@ -938,8 +939,8 @@ export async function getProductsByFilter(
     if (variant && variant.trim() !== "") {
       url += `&variant=${encodeURIComponent(variant.trim())}`;
     }
-    if (subcategory && subcategory.trim() !== "") {
-      url += `&subCategory=${encodeURIComponent(subcategory.trim())}`;
+    if (sub_category && sub_category.trim() !== "") {
+      url += `&sub_category=${encodeURIComponent(sub_category.trim())}`;
     }
     if (query && query.trim() !== "") {
       const sanitizedQuery = query.trim().replace(/[<>]/g, "");
@@ -947,14 +948,14 @@ export async function getProductsByFilter(
         url += `&query=${encodeURIComponent(sanitizedQuery)}`;
       }
     }
-    if (sortBy && sortBy.trim() !== "") {
-      url += `&sort_by=${encodeURIComponent(sortBy.trim())}`;
+    if (sort_by && sort_by.trim() !== "") {
+      url += `&sort_by=${encodeURIComponent(sort_by.trim())}`;
     }
-    if (minPrice) {
-      url += `&min_price=${encodeURIComponent(minPrice.toString())}`;
+    if (min_price) {
+      url += `&min_price=${encodeURIComponent(min_price.toString())}`;
     }
-    if (maxPrice) {
-      url += `&max_price=${encodeURIComponent(maxPrice.toString())}`;
+    if (max_price) {
+      url += `&max_price=${encodeURIComponent(max_price.toString())}`;
     }
     // Removed page and limit parameters as they're causing issues
     // url += `&page=${page}&limit=${limit}`;
@@ -1060,6 +1061,7 @@ export async function getPurchaseOrders(): Promise<PurchaseOrdersResponse> {
     throw error;
   }
 }
+
 export  async function uploadPurchaseOrder(files: File[], description: string, userId: string):Promise<PurchaseOrdersResponse>{
   try{
     const formData = new FormData();
@@ -1094,3 +1096,16 @@ export async function getReturnRequests(userId: string): Promise<ReturnRequestsR
     throw error;
   }
 }
+
+
+export async function getPurchaseOrderById(userId: string): Promise<PurchaseOrdersResponse> {
+  try{
+    const res = await apiClient.get(`/category/api/purchaseOrder/get/by-userId/${userId}`)
+    return res.data
+  }
+  catch(error: any){
+    console.error("Failed to fetch purchase order:", error);
+    throw error;
+  }
+}
+

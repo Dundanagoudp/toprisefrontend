@@ -19,12 +19,13 @@ interface PaymentCreationPayload {
 
 export async function paymentCreation(paymentData: PaymentCreationPayload): Promise<any> {
   try {
-    const response = await apiClient.post(`/orders/api/payments`, paymentData, {
-      withCredentials: true,
-    });
+    const response = await apiClient.post(`/orders/api/payments`, paymentData);
     return response.data;
   } catch (error) {
     console.error("Failed to create payment:", error);
     throw error;
   }
 }
+
+
+

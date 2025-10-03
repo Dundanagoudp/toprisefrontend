@@ -17,7 +17,9 @@ const addressSchema = z.object({
   addressLine2: z.string().optional(),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
-  pinCode: z.string().min(1, "Pin Code is required"),
+  pinCode: z.string()
+    .min(1, "Pin Code is required")
+    .regex(/^\d{6}$/, "Pin Code must be exactly 6 digits"),
   country: z.string().min(1, "Country is required"),
   notes: z.string().optional(),
 });
@@ -372,6 +374,7 @@ export default function BillingAddressForm({
                   {...register("pinCode")}
                   placeholder="Pin Code"
                   className="mt-1"
+                  maxLength={6}
                 />
                 {errors.pinCode && (
                   <p className="text-red-600 text-sm">

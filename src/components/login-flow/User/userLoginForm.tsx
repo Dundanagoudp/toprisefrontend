@@ -24,7 +24,8 @@ export function UserLoginForm({
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [confirmationResult, setConfirmationResult] =
+    useState<ConfirmationResult | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
@@ -33,30 +34,30 @@ export function UserLoginForm({
    * Send OTP to phone number
    */
   const normalizePhone = (raw: string): string => {
-    const digitsOnly = raw.replace(/\D/g, ""); 
-  
+    const digitsOnly = raw.replace(/\D/g, "");
+
     if (raw.startsWith("+")) {
       // already has country code
       return `+${digitsOnly}`;
     }
-  
+
     if (digitsOnly.length === 10) {
       // assume India default
       return `+91${digitsOnly}`;
     }
-  
+
     // fallback (let Firebase error out if invalid)
     return `+${digitsOnly}`;
   };
-  
+
   const handleSendOTP = async () => {
     if (!phoneNumber.trim()) {
       showToast("Please enter your phone number", "error");
       return;
     }
-  
+
     const phoneE164 = normalizePhone(phoneNumber);
-  
+
     setOtpLoading(true);
     try {
       const result = await firebasePhoneAuth.sendOTP(phoneE164);
@@ -88,24 +89,32 @@ export function UserLoginForm({
     try {
       // Verify OTP with Firebase
       await firebasePhoneAuth.verifyOTP(confirmationResult, otpCode);
-      
+
       // Get Firebase token
       const firebaseToken = await firebasePhoneAuth.getFirebaseToken();
-      
+
       // Login with backend using Firebase token
       const response = await loginWithFirebaseToken(firebaseToken);
-      
+
       if (response.success && response.data) {
         const { token, user } = response.data;
         const { role, last_login, _id } = user;
 
         // Convert role to lowercase for case-insensitive comparison
-        const userRole = typeof role === 'string' ? role.toLowerCase() : role;
-        const adminRoles = ["fulfillment-admin", "fullfillment-staff", "admin", "super-admin"];
+        const userRole = typeof role === "string" ? role.toLowerCase() : role;
+        const adminRoles = [
+          "fulfillment-admin",
+          "fullfillment-staff",
+          "admin",
+          "super-admin",
+        ];
 
         // Check if role is in adminRoles array
         if (adminRoles.includes(userRole)) {
-          showToast("Access denied. This login is for users only. Please use the admin login portal.", "error");
+          showToast(
+            "Access denied. This login is for users only. Please use the admin login portal.",
+            "error"
+          );
           return;
         }
 
@@ -126,7 +135,10 @@ export function UserLoginForm({
           router.replace("/");
           showToast("Successfully logged in with phone", "success");
         } else {
-          showToast("Your account type is not allowed to log in here.", "error");
+          showToast(
+            "Your account type is not allowed to log in here.",
+            "error"
+          );
         }
       } else {
         showToast("Login failed", "error");
@@ -166,18 +178,29 @@ export function UserLoginForm({
               <div className="flex flex-col gap-6">
                 {!otpSent ? (
                   <>
+                    <div className="flex items-center gap-2 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => window.history.back()}
+                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back
+                      </button>
+                    </div>
                     <div className="grid gap-3">
                       <Label htmlFor="phone">Phone Number</Label>
                       <Input
-  id="phone"
-  type="tel"
-  placeholder="9876543210"
-  value={phoneNumber}
-  onChange={(e) => setPhoneNumber(e.target.value)}
-/>
-<p className="text-xs text-gray-500">
-  Enter 10-digit number (we'll add +91) or full international number
-</p>
+                        id="phone"
+                        type="tel"
+                        placeholder="9876543210"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Enter 10-digit number (we'll add +91) or full
+                        international number
+                      </p>
                     </div>
                     <Button
                       type="button"
