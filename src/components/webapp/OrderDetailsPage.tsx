@@ -166,14 +166,17 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
 
   const handleDownload = () => {
     const invoiceUrl = order.invoiceUrl
-    if (!invoiceUrl) return;
+    console.log('invoiceUrl', invoiceUrl)
+    if (!invoiceUrl) return;  
 
     const link = document.createElement("a");
     link.href = invoiceUrl;
     link.download = invoiceUrl.split("/").pop() || "invoice.pdf";
+    console.log('link', link)
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    console.log('link clicked')
   };
   const isReturnEligible = (order: any) => {
     // Check if order is delivered and within return window (assuming 30 days)

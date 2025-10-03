@@ -33,7 +33,7 @@ export const prepareOrderBody = (
   return {
     orderType: "Online",
     orderSource: "Web",
-    order_Amount: Math.round(cart.total_mrp || 0),
+    order_Amount: Math.round(cart.grandTotal || 0),
     skus: cart.items.map((item) => ({
       sku: item.sku || "",
       quantity: item.quantity,
@@ -61,7 +61,7 @@ export const prepareOrderBody = (
       ? pincodeData?.delivery_charges ?? cart.deliveryCharge ?? 0
       : cart.deliveryCharge ?? 0,
     GST: cart.total_mrp_gst_amount ?? 0,
-    type_of_delivery: isOnline
+    typeOfDelivery: isOnline
       ? "Express"
       : deliveryType === "Standard"
       ? "Standard"

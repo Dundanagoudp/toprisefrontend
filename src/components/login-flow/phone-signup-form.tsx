@@ -338,7 +338,7 @@ export function PhoneSignUpForm({
           role: "User",
         };
 
-        await registerUserWithPhone(firebaseIdToken,"user");
+        await registerUserWithPhone(firebaseIdToken,"User");
 
         showToast("Account created successfully!", "success");
         router.replace("/login");
