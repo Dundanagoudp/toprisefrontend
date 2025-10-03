@@ -28,7 +28,7 @@ const VehicleProductsPage: React.FC = () => {
   const [products, setProducts] = React.useState<Product[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [sortBy, setSortBy] = React.useState<string>('name-asc');
+  const [sortBy, setSortBy] = React.useState<string>('A-Z');
   const [minPrice, setMinPrice] = React.useState<number>(DEFAULT_MIN_PRICE);
   const [maxPrice, setMaxPrice] = React.useState<number>(DEFAULT_MAX_PRICE);
   const [isFilterOpen, setIsFilterOpen] = React.useState<boolean>(false);
@@ -160,12 +160,12 @@ React.useEffect(() => {
 
   const handleReset = () => {
     // reset to defaults
-    setLocalSortBy('name-asc');
+    setLocalSortBy('A-Z');
     setLocalMin(DEFAULT_MIN_PRICE);
     setLocalMax(DEFAULT_MAX_PRICE);
 
     // immediately reset parent too so results update
-    setSortBy('name-asc');
+    setSortBy('A-Z');
     setMinPrice(DEFAULT_MIN_PRICE);
     setMaxPrice(DEFAULT_MAX_PRICE);
   };
@@ -195,8 +195,8 @@ React.useEffect(() => {
             <input
               type="radio"
               name="sort"
-              value="name-asc"
-              checked={localSortBy === 'name-asc'}
+              value="A-Z"
+              checked={localSortBy === 'A-Z'}
               onChange={(e) => setLocalSortBy(e.target.value)}
             />
             <span className="text-sm">Name (A-Z)</span>
@@ -205,8 +205,8 @@ React.useEffect(() => {
             <input
               type="radio"
               name="sort"
-              value="name-desc"
-              checked={localSortBy === 'name-desc'}
+              value="Z-A"
+              checked={localSortBy === 'Z-A'}
               onChange={(e) => setLocalSortBy(e.target.value)}
             />
             <span className="text-sm">Name (Z-A)</span>
@@ -215,8 +215,8 @@ React.useEffect(() => {
             <input
               type="radio"
               name="sort"
-              value="price-asc"
-              checked={localSortBy === 'price-asc'}
+              value="L-H"
+              checked={localSortBy === 'L-H'}
               onChange={(e) => setLocalSortBy(e.target.value)}
             />
             <span className="text-sm">Price (Low to High)</span>
@@ -225,8 +225,8 @@ React.useEffect(() => {
             <input
               type="radio"
               name="sort"
-              value="price-desc"
-              checked={localSortBy === 'price-desc'}
+              value="H-L"
+              checked={localSortBy === 'H-L'}
               onChange={(e) => setLocalSortBy(e.target.value)}
             />
             <span className="text-sm">Price (High to Low)</span>
