@@ -121,3 +121,14 @@ export const refundInitiate = async (
 
 
 
+export const createReturnRequest = async (
+  data: any,
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.post(`/orders/api/returns/create`, data);
+    return response.data;
+  } catch (error: any) {
+    throw error;
+  }
+};
+

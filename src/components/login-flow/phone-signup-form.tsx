@@ -17,6 +17,7 @@ import {
 
 import { auth } from "@/lib/firebase";
 import { registerUser, registerUserWithPhone } from "@/service/auth-service";
+import { ArrowLeft } from "lucide-react";
 
 export function PhoneSignUpForm({
   className,
@@ -415,6 +416,16 @@ export function PhoneSignUpForm({
               {step === "phone" ? (
                 <>
                   <div className="grid gap-3">
+                  <div className="flex items-center gap-2 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => window.history.back()}
+                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back
+                      </button>
+                    </div>
                     <Label htmlFor="name">Name</Label>
                     <Input
                       id="name"

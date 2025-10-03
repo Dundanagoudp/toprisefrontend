@@ -48,6 +48,7 @@ import {
   deleteVehicle,
   editVehicle,
   getPurchaseOrders,
+  getPurchaseOrderById,
 } from "@/service/product-Service";
 import {
   User,
@@ -76,7 +77,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ca } from "date-fns/locale";
-import { getTickets } from "@/service/Ticket-service";
+import { getTicketByUser, getTickets } from "@/service/Ticket-service";
 import TicketDetailsDialog from "./popup/TicketDialogBox";
 import { PurchaseOrder, TicketResponse, Ticket } from "@/types/Ticket-types";
 import PurchaseOrderDialog from "./popup/PurchaseOrderRequest";
@@ -177,25 +178,30 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
       setPurchaseOrdersLoading(true);
       setPurchaseOrdersError(null);
       try {
-        const res = await getPurchaseOrders();
-        // defensive: expect res.data as array or res as array
-        const items = Array.isArray(res) ? res : (res?.data || []);
+        console.log("Fetching purchase orders for userId:", userId);
+        const res = await getPurchaseOrderById(userId);
+        // Handle the response structure properly
+        console.log("Purchase orders response:", res);
+        const items = res?.data || [];
+        console.log("Purchase orders items:", items);
         if (!mounted) return;
         setPurchaseOrders(Array.isArray(items) ? items : []);
-        console.log("Fetched purchase orders:", items);
+        console.log("Set purchase orders state:", Array.isArray(items) ? items : []);
       } catch (err: any) {
         console.error("Failed fetching purchase orders", err);
         if (!mounted) return;
-        setPurchaseOrdersError(err?.message || "Failed to load");
+        setPurchaseOrdersError(err?.message || "Failed to load purchase orders");
       } finally {
         if (!mounted) return;
         setPurchaseOrdersLoading(false);
       }
     };
 
-    fetch();
+    if (userId) {
+      fetch();
+    }
     return () => { mounted = false; };
-  }, []);
+  }, [userId]);
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!userId) return;
@@ -571,7 +577,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
       try {
         setTicketsLoading(true);
         setTicketsError(null);
-        const res = await getTickets();
+        const res = await getTicketByUser(userId || "");
         // defensive check for response shape
         const data = res?.data || [];
         setTickets(Array.isArray(data) ? data : []);
@@ -1349,7 +1355,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-foreground">
-                          ₹{(order.order_Amount + order.GST + order.deliveryCharges)?.toLocaleString() || '0'}
+                          ₹{(order.order_Amount)?.toLocaleString() || '0'}
                           </p>
                           <Badge className={getStatusBadgeColor(order.status)}>
                             {order.status.charAt(0).toUpperCase() +
@@ -1924,87 +1930,158 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
             </ProfileSection>
           </TabsContent>
 
-          {/* Tickets Tab - minimal, shows empty state for now */}
+          {/* Tickets Tab - Enhanced Minimalist Design */}
           <TabsContent value="tickets" className="space-y-6 mt-6">
             <ProfileSection
               title="Tickets"
               description="Support tickets and event tickets"
             > <ScrollArea className="h-[600px] pr-4">
               {ticketsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                  <span className="ml-2">Loading tickets...</span>
-                </div>
-              ) : ticketsError ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-center">
-                  <p className="text-destructive font-medium">{ticketsError}</p>
-                </div>
-              ) : tickets.length === 0 ? (
-                <div className="text-center py-12">
-                  <TicketIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No tickets found</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    You have no open support tickets or event tickets at the
-                    moment.
-                  </p>
-                  <div className="mt-4">
-                    <Link href="/support">
-                      <Button size="sm" className="bg-gradient-primary">
-                        Contact Support
-                      </Button>
-                    </Link>
+                <div className="flex items-center justify-center py-16">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                      <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+                      <div className="absolute inset-0 rounded-full border-2 border-red-100 animate-pulse"></div>
+                    </div>
+                    <span className="text-sm text-muted-foreground font-medium">Loading tickets...</span>
                   </div>
                 </div>
+              ) : ticketsError ? (
+                <div className="rounded-xl border border-red-200/50 bg-gradient-to-br from-red-50/50 to-red-100/20 p-8 text-center backdrop-blur-sm">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                    <X className="h-6 w-6 text-red-600" />
+                  </div>
+                  <p className="text-red-800 font-medium">{ticketsError}</p>
+                  <p className="text-sm text-red-600/80 mt-1">Please try refreshing the page</p>
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 shadow-sm">
+                    <TicketIcon className="h-8 w-8 text-gray-400" />
+                    <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-red-500 flex items-center justify-center">
+                      <Plus className="h-3 w-3 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No tickets yet</h3>
+                  <p className="text-sm text-gray-600 max-w-sm mx-auto mb-6">
+                    When you have support tickets or event tickets, they'll appear here with a clean, organized view.
+                  </p>
+                  <Link href="/support">
+                    <Button className="bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md transition-all duration-200">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Contact Support
+                    </Button>
+                  </Link>
+                </div>
               ) : (
-                <div className="space-y-3">
-                  {tickets.map((t: any) => (
-                    <div
-                      key={t._id || t.ticketId || t.id}
-                      className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:shadow-sm transition"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-3">
-                          <TicketIcon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                          <div className="truncate">
-                            {/* <p className="font-medium text-foreground truncate">
-                              {t.subject || t.title || "Untitled Ticket"}
-                            </p> */}
-                            <p className="text-xs text-muted-foreground truncate">
-                              ID:{t.ticket_number || t._id || t.id} •{" "}
-                              {new Date(
-                                t.created_at ||
-                                  t.createdAt ||
-                                  t.created ||
-                                  Date.now()
-                              ).toLocaleDateString()}
-                            </p>
+                <div className="space-y-4">
+                  {tickets.map((t: any) => {
+                    const status = (t.status || "").toLowerCase();
+                    const statusConfigs: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+                      open: {
+                        bg: "bg-amber-50 border-amber-200/50",
+                        text: "text-amber-700",
+                        dot: "bg-amber-400",
+                        label: "OPEN"
+                      },
+                      "in progress": {
+                        bg: "bg-blue-50 border-blue-200/50",
+                        text: "text-blue-700",
+                        dot: "bg-blue-400",
+                        label: "IN PROGRESS"
+                      },
+                      closed: {
+                        bg: "bg-green-50 border-green-200/50",
+                        text: "text-green-700",
+                        dot: "bg-green-400",
+                        label: "CLOSED"
+                      },
+                      resolved: {
+                        bg: "bg-emerald-50 border-emerald-200/50",
+                        text: "text-emerald-700",
+                        dot: "bg-emerald-400",
+                        label: "RESOLVED"
+                      },
+                      pending: {
+                        bg: "bg-gray-50 border-gray-200/50",
+                        text: "text-gray-700",
+                        dot: "bg-gray-400",
+                        label: "PENDING"
+                      }
+                    };
+
+                    const statusConfig = statusConfigs[status] || {
+                      bg: "bg-gray-50 border-gray-200/50",
+                      text: "text-gray-700",
+                      dot: "bg-gray-400",
+                      label: (t.status || "UNKNOWN").toUpperCase()
+                    };
+
+                    return (
+                      <div
+                        key={t._id || t.ticketId || t.id}
+                        className="group relative overflow-hidden rounded-xl border border-gray-200/60 bg-white/50 backdrop-blur-sm hover:bg-white hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300 hover:border-gray-300/60"
+                      >
+                        {/* Subtle gradient overlay on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-50/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                        <div className="relative p-5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 min-w-0 flex-1">
+                              {/* Status Indicator */}
+                              <div className="flex-shrink-0">
+                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusConfig.bg} ${statusConfig.text} text-xs font-semibold`}>
+                                  <div className={`h-2 w-2 rounded-full ${statusConfig.dot} animate-pulse`}></div>
+                                  {statusConfig.label}
+                                </div>
+                              </div>
+
+                              {/* Content */}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <TicketIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                  <span className="text-xs font-mono text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
+                                    #{t.ticket_number || t._id || t.id}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                                  <span>
+                                    {new Date(
+                                      t.created_at ||
+                                        t.createdAt ||
+                                        t.created ||
+                                        Date.now()
+                                    ).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Button */}
+                            <div className="flex-shrink-0 ml-4">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleView(t)}
+                                className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-sm"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                                View Details
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium ${
-                            (t.status || "").toLowerCase() === "open"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : (t.status || "").toLowerCase() === "closed"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {(t.status || "unknown").toString().toUpperCase()}
-                        </span>
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleView(t)}
-                        >
-                          View
-                        </Button>
+                        {/* Bottom accent line */}
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-500 via-red-600 to-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}</ScrollArea>
             </ProfileSection>

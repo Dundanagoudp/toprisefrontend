@@ -5,9 +5,151 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertTriangle, Package, Search, Truck, Eye, FileCheck } from "lucide-react";
 import { getReturnRequests } from "@/service/product-Service";
 import type { ReturnRequest, ReturnRequestsResponse } from "@/types/User/retrurn-Types";
+
+interface StatusStep {
+  label: string;
+  description: string;
+  timestamp?: string | null;
+  status: "completed" | "pending" | "current";
+  icon: React.ReactNode;
+}
+
+interface ReturnStatusTimelineProps {
+  returnRequest: ReturnRequest;
+}
+
+function ReturnStatusTimeline({ returnRequest }: ReturnStatusTimelineProps) {
+  const steps: StatusStep[] = [
+    {
+      label: "Return Requested",
+      description: returnRequest.timestamps?.requestedAt 
+        ? `We've received your return request`
+        : "Processing has not started yet.",
+      timestamp: returnRequest.timestamps?.requestedAt,
+      status: returnRequest.timestamps?.requestedAt ? "completed" : "pending",
+      icon: <Package className="h-4 w-4" />,
+    },
+    {
+      label: "Request Validation",
+      description: returnRequest.isEligible 
+        ? "Your request has been validated" 
+        : "Processing has not started yet.",
+      timestamp: returnRequest.timestamps?.validatedAt,
+      status: returnRequest.timestamps?.validatedAt ? "completed" : 
+              returnRequest.timestamps?.requestedAt ? "current" : "pending",
+      icon: <FileCheck className="h-4 w-4" />,
+    },
+    {
+      label: "Pickup Scheduled",
+      description: returnRequest.pickupRequest?.scheduledDate
+        ? "Pickup has been scheduled"
+        : "Processing has not started yet.",
+      timestamp: returnRequest.pickupRequest?.scheduledDate,
+      status: returnRequest.pickupRequest?.scheduledDate ? "completed" :
+              returnRequest.timestamps?.validatedAt ? "current" : "pending",
+      icon: <Truck className="h-4 w-4" />,
+    },
+    {
+      label: "Pickup Completed",
+      description: returnRequest.pickupRequest?.completedDate
+        ? "Item has been picked up"
+        : "Processing has not started yet.",
+      timestamp: returnRequest.pickupRequest?.completedDate,
+      status: returnRequest.pickupRequest?.completedDate ? "completed" :
+              returnRequest.pickupRequest?.scheduledDate ? "current" : "pending",
+      icon: <Truck className="h-4 w-4" />,
+    },
+    {
+      label: "Inspection",
+      description: returnRequest.inspection?.inspectedAt
+        ? "Item inspection completed"
+        : "Processing has not started yet.",
+      timestamp: returnRequest.inspection?.inspectedAt,
+      status: returnRequest.inspection?.inspectedAt ? "completed" :
+              returnRequest.pickupRequest?.completedDate ? "current" : "pending",
+      icon: <Search className="h-4 w-4" />,
+    },
+    {
+      label: "Refund Processing",
+      description: returnRequest.refund?.refundStatus === "Processed"
+        ? "Refund has been processed"
+        : returnRequest.refund?.refundStatus === "Pending"
+        ? "Refund is being processed"
+        : "Processing has not started yet.",
+      timestamp: returnRequest.refund?.refundStatus === "Processed" 
+        ? returnRequest.timestamps?.inspectionCompletedAt 
+        : undefined,
+      status: returnRequest.refund?.refundStatus === "Processed" ? "completed" :
+              returnRequest.inspection?.inspectedAt ? "current" : "pending",
+      icon: <Eye className="h-4 w-4" />,
+    },
+  ];
+
+  return (
+    <div className="relative py-2">
+      {steps.map((step, index) => (
+        <div key={index} className="relative flex gap-4 pb-8 last:pb-0">
+          {/* Timeline line */}
+          {index !== steps.length - 1 && (
+            <div 
+              className={`absolute left-[15px] top-[32px] h-full w-[2px] ${
+                step.status === "completed" ? "bg-green-500" : "bg-gray-200"
+              }`}
+            />
+          )}
+          
+          {/* Icon */}
+          <div className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${
+            step.status === "completed"
+              ? "border-green-500 bg-green-500 text-white"
+              : step.status === "current"
+              ? "border-blue-500 bg-blue-50 text-blue-600 animate-pulse"
+              : "border-gray-300 bg-white text-gray-400"
+          }`}>
+            {step.status === "completed" ? (
+              <CheckCircle className="h-4 w-4" />
+            ) : (
+              step.icon
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 pt-0.5">
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className={`text-sm font-medium ${
+                step.status === "completed" ? "text-green-700" :
+                step.status === "current" ? "text-blue-700" :
+                "text-gray-500"
+              }`}>
+                {step.label}
+              </h4>
+              {step.status === "current" && (
+                <Badge variant="outline" className="text-xs border-blue-500 text-blue-600">
+                  In Progress
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">{step.description}</p>
+            {step.timestamp && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {new Date(step.timestamp).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface ReturnRequestListProps {
   userId: string;
@@ -130,7 +272,14 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
             </AccordionTrigger>
 
             <AccordionContent className="pb-4">
-              <div className="space-y-4">
+              <div className="space-y-6">
+              {/* Status Timeline */}
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <ReturnStatusTimeline returnRequest={req} />
+              </div>
+
+              <Separator />
+
               {/* Return Reason */}
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-1">Return Reason</h4>
@@ -155,18 +304,25 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
 
               {/* Refund Information */}
               {req.refund && (
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Refund Amount</span>
-                    <span className="text-lg font-bold text-primary">
-                      ₹{req.refund.refundAmount?.toLocaleString() || '0'}
-                    </span>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <span className="text-xs text-muted-foreground uppercase tracking-wide">Refund Amount</span>
+                      <div className="text-2xl font-bold text-green-700 dark:text-green-400 mt-1">
+                        ₹{req.refund.refundAmount?.toLocaleString() || '0'}
+                      </div>
+                    </div>
+                    <Badge className={`${
+                      req.refund.refundStatus === 'Processed' ? 'bg-green-600' :
+                      req.refund.refundStatus === 'Pending' ? 'bg-yellow-500' :
+                      'bg-gray-500'
+                    } text-white`}>
+                      {req.refund.refundStatus || 'Unknown'}
+                    </Badge>
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Method: {req.refund.refundMethod || 'N/A'}</span>
-                    <span className={getRefundStatusColor(req.refund.refundStatus || 'Unknown')}>
-                      Status: {req.refund.refundStatus || 'Unknown'}
-                    </span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="font-medium">Method:</span>
+                    <span>{req.refund.refundMethod || 'Original Payment Method'}</span>
                   </div>
                 </div>
               )}
@@ -180,30 +336,40 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
 
               {/* Inspection Status */}
               {req.inspection && (
-                <div className="border-t pt-3">
-                  <h4 className="text-sm font-medium mb-2">Inspection Details</h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">SKU Match:</span>{" "}
-                      <span className={req.inspection.skuMatch ? 'text-green-600' : 'text-red-600'}>
-                        {req.inspection.skuMatch ? 'Yes' : 'No'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Approved:</span>{" "}
-                      <span className={req.inspection.isApproved ? 'text-green-600' : 'text-red-600'}>
-                        {req.inspection.isApproved ? 'Yes' : 'No'}
-                      </span>
-                    </div>
-                    {req.inspection.condition && (
-                      <div className="col-span-2">
-                        <span className="text-muted-foreground">Condition:</span> {req.inspection.condition}
+                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    Inspection Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 rounded-md">
+                      <div className={`h-2 w-2 rounded-full ${req.inspection.skuMatch ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <div>
+                        <div className="text-xs text-muted-foreground">SKU Match</div>
+                        <div className={`text-sm font-medium ${req.inspection.skuMatch ? 'text-green-600' : 'text-red-600'}`}>
+                          {req.inspection.skuMatch ? 'Verified' : 'Mismatch'}
+                        </div>
                       </div>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 rounded-md">
+                      <div className={`h-2 w-2 rounded-full ${req.inspection.isApproved ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <div>
+                        <div className="text-xs text-muted-foreground">Status</div>
+                        <div className={`text-sm font-medium ${req.inspection.isApproved ? 'text-green-600' : 'text-red-600'}`}>
+                          {req.inspection.isApproved ? 'Approved' : 'Rejected'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                  {req.inspection.condition && (
+                    <div className="p-2 bg-white dark:bg-gray-900 rounded-md mb-2">
+                      <span className="text-xs text-muted-foreground">Condition:</span>
+                      <span className="text-sm font-medium ml-2">{req.inspection.condition}</span>
+                    </div>
+                  )}
                   {req.inspection.inspectedByUser && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Inspected by: {req.inspection.inspectedByUser.name}
+                    <p className="text-xs text-muted-foreground">
+                      Inspected by: <span className="font-medium">{req.inspection.inspectedByUser.name}</span>
                     </p>
                   )}
                 </div>
@@ -261,32 +427,35 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
 
                 {/* Pickup Information */}
                 {req.pickupRequest && (
-                  <div className="mt-3 pt-3 border-t">
-                    <h4 className="text-sm font-medium mb-2">Pickup Details</h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Pickup ID:</span>
-                        <br />
-                        {req.pickupRequest.pickupId}
+                  <div className="mt-3 bg-purple-50 dark:bg-purple-950 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Pickup Details
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-2 bg-white dark:bg-gray-900 rounded-md">
+                        <div className="text-xs text-muted-foreground mb-1">Pickup ID</div>
+                        <div className="text-sm font-mono font-medium">{req.pickupRequest.pickupId}</div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Partner:</span>
-                        <br />
-                        {req.pickupRequest.logisticsPartner || 'N/A'}
+                      <div className="p-2 bg-white dark:bg-gray-900 rounded-md">
+                        <div className="text-xs text-muted-foreground mb-1">Partner</div>
+                        <div className="text-sm font-medium">{req.pickupRequest.logisticsPartner || 'N/A'}</div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Scheduled:</span>
-                        <br />
-                        {req.pickupRequest.scheduledDate
-                          ? new Date(req.pickupRequest.scheduledDate).toLocaleDateString()
-                          : 'N/A'}
+                      <div className="p-2 bg-white dark:bg-gray-900 rounded-md">
+                        <div className="text-xs text-muted-foreground mb-1">Scheduled</div>
+                        <div className="text-sm font-medium">
+                          {req.pickupRequest.scheduledDate
+                            ? new Date(req.pickupRequest.scheduledDate).toLocaleDateString()
+                            : 'Not scheduled'}
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Completed:</span>
-                        <br />
-                        {req.pickupRequest.completedDate
-                          ? new Date(req.pickupRequest.completedDate).toLocaleDateString()
-                          : 'Pending'}
+                      <div className="p-2 bg-white dark:bg-gray-900 rounded-md">
+                        <div className="text-xs text-muted-foreground mb-1">Completed</div>
+                        <div className={`text-sm font-medium ${req.pickupRequest.completedDate ? 'text-green-600' : 'text-yellow-600'}`}>
+                          {req.pickupRequest.completedDate
+                            ? new Date(req.pickupRequest.completedDate).toLocaleDateString()
+                            : 'Pending'}
+                        </div>
                       </div>
                     </div>
                   </div>

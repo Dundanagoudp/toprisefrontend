@@ -39,3 +39,14 @@ export const statusUpdate = async (ticketId: string, statusData: {
         throw err
     }
 }
+
+export async function getTicketByUser(userRef: string): Promise<TicketResponse> {
+    try{
+        const response = await apiClient.get(`/orders/api/tickets/byUser/${userRef}`)
+        return response.data
+    }
+    catch(err:any){
+        console.log("error in get ticket by user",err)
+        throw err
+    }
+}
