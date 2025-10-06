@@ -84,6 +84,8 @@ import PurchaseOrderDialog from "./popup/PurchaseOrderRequest";
 import { RefreshCw } from "lucide-react";
 import ReturnRequestList from "./porfilepage/ReturnRequest";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DynamicButton } from "@/components/common/button";
+import RiseTicket from "../orderDetailpage/popups/RiseTicket";
 interface Address {
   id: string;
   type: "home" | "work" | "other";
@@ -260,7 +262,15 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
 
     fetchUserOrders();
   }, [userId, activeTab, showToast]);
-
+  useEffect (()=>{
+    const getOrders = async () => {
+      const response = await getUserOrders(userId);
+      if (response.success && response.data) {
+        setUserOrders(response.data);
+      }
+    }
+    getOrders();
+  })
   useEffect(() => {
     const fetchUserWishlist = async () => {
       if (!userId || activeTab !== "wishlists") return;
@@ -1935,7 +1945,13 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
             <ProfileSection
               title="Tickets"
               description="Support tickets and event tickets"
-            > <ScrollArea className="h-[600px] pr-4">
+            >
+              <DynamicButton
+                text="Rise Ticket"
+                className="bg-red-600 hover:bg-red-700 text-white mb-4"
+                onClick={() => setIsOpen(true)}
+              />
+               <ScrollArea className="h-[600px] pr-4">
               {ticketsLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <div className="flex flex-col items-center gap-4">
@@ -2270,6 +2286,10 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         }}
         onSubmit={handleSavedVehicle}
         editingVehicle={editingVehicle}
+      />
+      <RiseTicket
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
       />
     </div>
   );

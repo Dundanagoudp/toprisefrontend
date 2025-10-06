@@ -3,7 +3,7 @@ import { ApiResponse } from "@/types/apiReponses-Types";
 import { BrandsApiResponse } from "@/types/catalogue-types";
 import type { Category as ProductCategory } from "@/types/product-Types";
 import apiClient from "@/apiClient";
-import { PurchaseOrdersResponse } from "@/types/Ticket-types";
+import { PurchaseOrdersResponse, TicketResponse } from "@/types/Ticket-types";
 import { ReturnRequestsResponse } from "@/types/return-Types";
 
 
@@ -1109,3 +1109,14 @@ export async function getPurchaseOrderById(userId: string): Promise<PurchaseOrde
   }
 }
 
+
+export async function riseTicket(data: any): Promise<TicketResponse> {
+  try{
+    const res = await apiClient.post(`/orders/api/tickets/`, data)
+    return res.data
+  }
+  catch(error: any){
+    console.error("Failed to rise ticket:", error);
+    throw error;
+  }
+}

@@ -18,7 +18,8 @@ import {
   Download,
   Printer,
   RotateCcw,
-  Upload
+  Upload,
+  Ticket
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,11 +30,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { getProductById } from '@/service/product-Service'
 import formatDate from '@/utils/formateDate'
-import { Header } from './layout/Header'
-import Footer from '../landingPage/module/Footer'
-import { downloadInvoice } from './common/InvoiceDownloader'
+import { Header } from '../../layout/Header'
+import Footer from '../../../landingPage/module/Footer'
+import { downloadInvoice } from '../../common/InvoiceDownloader'
 import { createReturnRequest } from '@/service/return-service'
-import { useToast } from '../ui/toast'
+import { useToast } from '../../../ui/toast'
+import { DynamicButton } from '../../../common/button'
+import RiseTicket from './popups/RiseTicket'
 
 
 interface OrderDetailsPageProps {
@@ -65,7 +68,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
   const [returnImages, setReturnImages] = useState<string[]>([])
   const [returnQuantity, setReturnQuantity] = useState(1)
   const [returnLoading, setReturnLoading] = useState(false)
-
+  const [riseTicketModalOpen, setRiseTicketModalOpen] = useState(false)
   useEffect(() => {
     const fetchProducts = async () => {
       if (!order?.skus) {
@@ -238,6 +241,10 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     }
   }
 
+  const handleRiseTicket = () => {
+    setRiseTicketModalOpen(true)
+  }
+
   return (
     <div> 
       <Header/>
@@ -281,9 +288,17 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 {order.status}
               </div>
             </Badge>
+            <DynamicButton
+              variant="outline"
+              size="sm"
+              onClick={handleRiseTicket}
+            >
+              <Ticket className="w-4 h-4 mr-2" />
+             Rise Ticket
+            </DynamicButton>
             <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="w-4 h-4 mr-2" />
-              Download
+              Download Invoice
             </Button>
             <Button
               variant="outline"
@@ -724,6 +739,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
         </div>
       </DialogContent>
     </Dialog>
+    <RiseTicket open={riseTicketModalOpen} onClose={() => setRiseTicketModalOpen(false)} orderId={order._id} showOrderSelection={false} />
     </div>
   )
 }
