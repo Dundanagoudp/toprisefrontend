@@ -8,12 +8,14 @@ import {
   Search,
   Trash2,
   Loader2,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   addAddress,
@@ -22,6 +24,8 @@ import {
   removeProductFromCart,
   checkPincode,
   updateDeliveryType,
+  increaseCartQuantity,
+  decreaseCartQuantity,
 } from "@/service/user/cartService";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { clearCart } from "@/store/slice/cart/cartSlice";
@@ -58,6 +62,8 @@ export default function CheckoutPage() {
   const [checkingPincode, setCheckingPincode] = useState(false);
   const [expressAvailable, setExpressAvailable] = useState(false);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
+  const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
+  const quantityUpdateTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const checkoutSteps: Step[] = [
     { id: "address", label: "Address", icon: User },
@@ -184,6 +190,16 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchData();
   }, [userId, fetchCart]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      quantityUpdateTimeouts.current.forEach((timeout) => {
+        clearTimeout(timeout);
+      });
+      quantityUpdateTimeouts.current.clear();
+    };
+  }, []);
 
   // Auto-check pincode when address is selected
   useEffect(() => {
@@ -345,7 +361,149 @@ export default function CheckoutPage() {
       showToast("Failed to remove item from cart", "error");
     }
   }
+  const updateItemQuantity = async (productId: string, quantity: number) => {
+    if (!userId) {
+      showToast("Unable to update quantity: user not available", "error");
+      return;
+    }
+  
+    try {
+  
+      await fetchCart(); // optimistic refresh - replace with API call for production
+    } catch (err) {
+      console.error("Failed to update quantity:", err);
+      showToast("Failed to update quantity", "error");
+    }
+  };
+  const changeItemQuantity = async (productId: string, newQty: number, setLocalLoading?: (v: boolean) => void) => {
+    if (newQty < 1) return;
+    if (setLocalLoading) setLocalLoading(true);
 
+    try {
+      await updateItemQuantity(productId, newQty);
+      showToast("Quantity updated", "success");
+      // Ensure fresh data
+      await fetchCart();
+    } catch (err) {
+      console.error("Error changing quantity:", err);
+      showToast("Could not update quantity", "error");
+    } finally {
+      if (setLocalLoading) setLocalLoading(false);
+    }
+  };
+
+  const handleIncreaseQuantity = async (productId: string) => {
+    setUpdatingQuantities(prev => new Set(prev).add(productId));
+    try {
+      await increaseCartQuantity(userId!, productId);
+      await fetchCart();
+
+    } catch (error) {
+      console.error("Failed to increase quantity:", error);
+
+    } finally {
+      setUpdatingQuantities(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleDecreaseQuantity = async (productId: string, currentQuantity: number) => {
+    if (currentQuantity <= 1) return; // Don't allow quantity to go below 1
+    setUpdatingQuantities(prev => new Set(prev).add(productId));
+    try {
+      await decreaseCartQuantity(userId!, productId);
+      await fetchCart();
+   
+    } catch (error) {
+      console.error("Failed to decrease quantity:", error);
+  
+    } finally {
+      setUpdatingQuantities(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
+
+  // const handleDirectQuantityChange = async (productId: string, newQuantity: number) => {
+  //   if (newQuantity < 1 || newQuantity > 99 || !userId) return;
+
+  //   // Clear any existing timeout for this product
+  //   const existingTimeout = quantityUpdateTimeouts.current.get(productId);
+  //   if (existingTimeout) {
+  //     clearTimeout(existingTimeout);
+  //   }
+
+  //   // Set a timeout to debounce the API call
+  //   const timeout = setTimeout(async () => {
+  //     setUpdatingQuantities(prev => new Set(prev).add(productId));
+
+  //     try {
+  //       const currentItem = cart?.items.find(item => item.productId === productId);
+  //       if (!currentItem) return;
+
+  //       const difference = newQuantity - currentItem.quantity;
+  //       let originalQuantity = currentItem.quantity;
+
+  //       try {
+  //         if (difference > 0) {
+  //           // Need to increase - make API calls sequentially
+  //           for (let i = 0; i < difference; i++) {
+  //             await increaseCartQuantity(userId, productId);
+  //           }
+  //         } else if (difference < 0) {
+  //           // Need to decrease - make API calls sequentially
+  //           for (let i = 0; i < Math.abs(difference); i++) {
+  //             await decreaseCartQuantity(userId, productId);
+  //           }
+  //         }
+
+  //         await fetchCart();
+  //       } catch (apiError) {
+  //         console.error("API call failed during quantity update:", apiError);
+
+  //         // Try to revert to original quantity if possible
+  //         try {
+  //           const currentCart = await getCart(userId);
+  //           const currentItemInCart = currentCart.data.items.find((item: any) => item.productId === productId);
+
+  //           if (currentItemInCart) {
+  //             const revertDifference = originalQuantity - currentItemInCart.quantity;
+  //             if (revertDifference > 0) {
+  //               for (let i = 0; i < revertDifference; i++) {
+  //                 await increaseCartQuantity(userId, productId);
+  //               }
+  //             } else if (revertDifference < 0) {
+  //               for (let i = 0; i < Math.abs(revertDifference); i++) {
+  //                 await decreaseCartQuantity(userId, productId);
+  //               }
+  //             }
+  //             await fetchCart();
+  //           }
+  //         } catch (revertError) {
+  //           console.error("Failed to revert quantity:", revertError);
+  //         }
+
+  //         showToast("Failed to update quantity", "error");
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to update quantity:", error);
+  //       showToast("Failed to update quantity", "error");
+  //     } finally {
+  //       setUpdatingQuantities(prev => {
+  //         const newSet = new Set(prev);
+  //         newSet.delete(productId);
+  //         return newSet;
+  //       });
+  //     }
+  //   }, 500); // 500ms debounce
+
+  //   quantityUpdateTimeouts.current.set(productId, timeout);
+  // };
   const onSubmit = async (data: AddressFormValues) => {
     try {
       const addressData = {
@@ -727,9 +885,9 @@ export default function CheckoutPage() {
                         {cart.items.map((item: any) => (
                           <div
                             key={item._id}
-                            className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg"
+                            className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 border border-gray-200 rounded-lg"
                           >
-                            <div className="w-16 h-16 bg-gray-100 rounded-md flex-shrink-0">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-md flex-shrink-0 mx-auto sm:mx-0">
                               {item.product_image && item.product_image[0] && (
                                 <img
                                   src={item.product_image[0]}
@@ -738,24 +896,57 @@ export default function CheckoutPage() {
                                 />
                               )}
                             </div>
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">
+                            <div className="flex-1 min-w-0 text-center sm:text-left">
+                              <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                                 {item.product_name}
                               </h4>
-                              <p className="text-sm text-gray-500">
+                              <p className="text-xs sm:text-sm text-gray-500">
                                 SKU: {item.sku}
                               </p>
-                              <p className="text-sm text-gray-500">
-                                Quantity: {item.quantity}
-                              </p>
+                              <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
+  <span className="text-xs sm:text-sm text-gray-500 font-medium">Qty:</span>
+  <div className="flex items-center border border-gray-300 rounded-md bg-white h-7 sm:h-8">
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 rounded-l-md border-r border-gray-300"
+      onClick={() => handleDecreaseQuantity(item.productId, item.quantity)}
+      disabled={item.quantity <= 1 || updatingQuantities.has(item.productId)}
+    >
+      {updatingQuantities.has(item.productId) ? (
+        <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
+      ) : (
+        <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+      )}
+    </Button>
+    <span className="w-8 sm:w-10 h-7 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-medium">
+      {item.quantity}
+    </span>
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 rounded-r-md border-l border-gray-300"
+      onClick={() => handleIncreaseQuantity(item.productId)}
+      disabled={updatingQuantities.has(item.productId)}
+    >
+      {updatingQuantities.has(item.productId) ? (
+        <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
+      ) : (
+        <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+      )}
+    </Button>
+  </div>
+</div>
+
+
                             </div>
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
+                            <div className="flex items-center justify-between sm:justify-end gap-3 sm:flex-col sm:items-end sm:gap-1">
+                              <div className="text-center sm:text-right flex-1 sm:flex-initial">
                                 {item.mrp && item.mrp > item.selling_price ? (
                                   <>
-                                    <div className="flex items-center gap-1 justify-end">
-                                      <span className="text-sm text-gray-500 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</span>
-                                      <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                                    <div className="flex items-center gap-1 justify-center sm:justify-end">
+                                      <span className="text-xs sm:text-sm text-gray-500 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</span>
+                                      <span className="font-medium text-gray-900 text-sm sm:text-base">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
                                     </div>
                                     <p className="text-xs text-gray-500">
                                       <span className="line-through">₹{item.mrp}</span> ₹{item.selling_price} each
@@ -763,10 +954,10 @@ export default function CheckoutPage() {
                                   </>
                                 ) : (
                                   <>
-                                    <p className="font-medium text-gray-900">
+                                    <p className="font-medium text-gray-900 text-sm sm:text-base">
                                       ₹{(item.selling_price * item.quantity).toFixed(2)}
                                     </p>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-xs sm:text-sm text-gray-500">
                                       ₹{item.selling_price} each
                                     </p>
                                   </>
@@ -775,10 +966,10 @@ export default function CheckoutPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 flex-shrink-0"
                                 onClick={() => removeItem(item.productId)}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                               </Button>
                             </div>
                           </div>
@@ -942,44 +1133,69 @@ export default function CheckoutPage() {
                     {cart.items.map((item: any) => (
                       <div
                         key={item._id}
-                        className="flex items-center gap-3 p-2 border-b border-gray-100 last:border-b-0"
+                        className="p-2 border-b border-gray-100 last:border-b-0"
                       >
-                        <div className="w-12 h-12 bg-gray-100 rounded-md flex-shrink-0">
-                          {item.product_image && item.product_image[0] && (
-                            <img
-                              src={item.product_image[0]}
-                              alt={item.product_name}
-                              className="w-full h-full object-cover rounded-md"
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">
-                            {item.product_name}
-                          </h4>
-                          <p className="text-xs text-gray-500">
-                            Qty: {item.quantity}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm">
-                            {item.mrp && item.mrp > item.selling_price ? (
-                              <div className="flex items-center gap-1">
-                                <span className="text-gray-500 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</span>
-                                <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-md flex-shrink-0">
+                              {item.product_image && item.product_image[0] && (
+                                <img
+                                  src={item.product_image[0]}
+                                  alt={item.product_name}
+                                  className="w-full h-full object-cover rounded-md"
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                                {item.product_name}
+                              </h4>
+                              <div className="text-xs text-gray-600">
+                                {item.mrp && item.mrp > item.selling_price ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-500 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</span>
+                                    <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                                  </div>
+                                ) : (
+                                  <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                                )}
                               </div>
-                            ) : (
-                              <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
-                            )}
+                            </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => removeItem(item._id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-gray-500 font-medium">Qty:</span>
+                            <div className="flex items-center border border-gray-300 rounded-md bg-white h-6">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 hover:bg-gray-50 rounded-l border-r border-gray-200"
+                                onClick={() => handleDecreaseQuantity(item.productId, item.quantity)}
+                                disabled={item.quantity <= 1 || updatingQuantities.has(item.productId)}
+                              >
+                                {updatingQuantities.has(item.productId) ? (
+                                  <Loader2 className="h-2 w-2 animate-spin" />
+                                ) : (
+                                  <Minus className="h-2 w-2" />
+                                )}
+                              </Button>
+                              <span className="w-6 sm:w-8 h-6 flex items-center justify-center text-xs font-medium">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 hover:bg-gray-50 rounded-r border-l border-gray-200"
+                                onClick={() => handleIncreaseQuantity(item.productId)}
+                                disabled={updatingQuantities.has(item.productId)}
+                              >
+                                {updatingQuantities.has(item.productId) ? (
+                                  <Loader2 className="h-2 w-2 animate-spin" />
+                                ) : (
+                                  <Plus className="h-2 w-2" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}

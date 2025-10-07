@@ -133,14 +133,14 @@ export const CartSidebar = ({
                         </Button>
                       </div>
                       
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
                         onClick={() => removeFromCart(item._id)}
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 ))}

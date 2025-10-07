@@ -55,7 +55,7 @@ export function LoginForm({
     setError(null);
     try {
       const response = await loginUser({ email, password });
-
+      console.log("Login response:", response);
       if (response.data) {
         const { token, user } = response.data;
         const { role, last_login, _id } = user;
