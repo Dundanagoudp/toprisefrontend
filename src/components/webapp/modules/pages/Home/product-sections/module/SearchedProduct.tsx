@@ -1,14 +1,23 @@
-"use client"
-import React, { useEffect, useState, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+"use client";
+import React, { useEffect, useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
-import { Search as SearchIcon, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
-import { smartSearch, smartSearchWithCategory } from '@/service/user/smartSearchService';
-import { getVariantsByModel } from '@/service/product-Service';
-import { Product, Brand } from '@/types/User/Search-Types';
-import { useAppSelector } from '@/store/hooks';
-import { selectVehicleType } from '@/store/slice/vehicle/vehicleSlice';
+import {
+  Search as SearchIcon,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  X,
+} from "lucide-react";
+import {
+  smartSearch,
+  smartSearchWithCategory,
+} from "@/service/user/smartSearchService";
+import { getVariantsByModel } from "@/service/product-Service";
+import { Product, Brand } from "@/types/User/Search-Types";
+import { useAppSelector } from "@/store/hooks";
+import { selectVehicleType } from "@/store/slice/vehicle/vehicleSlice";
 
 // Model interface for API response
 interface Model {
@@ -26,9 +35,9 @@ interface Model {
 }
 
 // Import components
-import ModelListing from '@/components/webapp/modules/pages/Home/category/module/ModelListing';
-import VariantListing from '@/components/webapp/modules/pages/Home/category/module/VariantListing';
-import ProductListing from '@/components/webapp/modules/pages/Home/category/module/ProductListing';
+import ModelListing from "@/components/webapp/modules/pages/Home/category/module/ModelListing";
+import VariantListing from "@/components/webapp/modules/pages/Home/category/module/VariantListing";
+import ProductListing from "@/components/webapp/modules/pages/Home/category/module/ProductListing";
 
 // Variant interface for API response
 interface Variant {
@@ -49,19 +58,13 @@ interface Variant {
 
 // Brand display component - no longer using lazy loading
 
-
-
-
-
-
-
 const SearchResults = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const query = searchParams.get('query'); // Support both 'searchQuery' and 'query'
-  const category = searchParams.get('category');
-  const categoryName = searchParams.get('categoryName');
-  const vehicleTypeId = searchParams.get('vehicleTypeId');
+  const query = searchParams.get("query"); // Support both 'searchQuery' and 'query'
+  const category = searchParams.get("category");
+  const categoryName = searchParams.get("categoryName");
+  const vehicleTypeId = searchParams.get("vehicleTypeId");
   const vehicleType = useAppSelector(selectVehicleType);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -75,11 +78,13 @@ const SearchResults = () => {
   const [brandData, setBrandData] = useState<Brand[]>([]);
   const [modelData, setModelData] = useState<Model[]>([]);
   const [variantData, setVariantData] = useState<Variant[]>([]);
-  const [searchValue, setSearchValue] = useState<string>(query || categoryName || '');
+  const [searchValue, setSearchValue] = useState<string>(
+    query || categoryName || ""
+  );
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
 
   // Filter states
-  const [sortBy, setSortBy] = useState<string>('name-asc');
+  const [sortBy, setSortBy] = useState<string>("A-Z");
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(100000);
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
@@ -97,7 +102,7 @@ const SearchResults = () => {
 
   // Filtered and sorted products
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = products.filter(product => {
+    let filtered = products.filter((product) => {
       const price = product.selling_price || 0;
       return price >= minPrice && price <= maxPrice;
     });
@@ -105,13 +110,13 @@ const SearchResults = () => {
     // Sort products
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'name-asc':
-          return (a.product_name || '').localeCompare(b.product_name || '');
-        case 'name-desc':
-          return (b.product_name || '').localeCompare(a.product_name || '');
-        case 'price-asc':
+        case "A-Z":
+          return (a.product_name || "").localeCompare(b.product_name || "");
+        case "Z-A":
+          return (b.product_name || "").localeCompare(a.product_name || "");
+        case "L-H":
           return (a.selling_price || 0) - (b.selling_price || 0);
-        case 'price-desc':
+        case "H-L":
           return (b.selling_price || 0) - (a.selling_price || 0);
         default:
           return 0;
@@ -129,7 +134,12 @@ const SearchResults = () => {
       setSearchValue(categoryName);
       setIsCategory(true);
     }
-    console.log('Search params:', { query, category, categoryName, vehicleTypeId });
+    console.log("Search params:", {
+      query,
+      category,
+      categoryName,
+      vehicleTypeId,
+    });
   }, [query, category, categoryName, vehicleTypeId]);
 
   // Handle category-based search - fetch brands within category
@@ -140,12 +150,15 @@ const SearchResults = () => {
         setError(null);
         try {
           // Use smartSearch to get brands for the category
-          const response = await smartSearch(categoryName || '', vehicleTypeId || undefined);
-          console.log('Category search response:', response);
-          
+          const response = await smartSearch(
+            categoryName || "",
+            vehicleTypeId || undefined
+          );
+          console.log("Category search response:", response);
+
           // Validate response structure
-          if (!response || typeof response !== 'object') {
-            throw new Error('Invalid response format from category search');
+          if (!response || typeof response !== "object") {
+            throw new Error("Invalid response format from category search");
           }
 
           // Set category flag and extract brand data
@@ -160,7 +173,11 @@ const SearchResults = () => {
           const apiResponse = response as any;
           if (apiResponse.results?.brand) {
             brands = [apiResponse.results.brand];
-          } else if (apiResponse.results && Array.isArray(apiResponse.results) && apiResponse.results.length > 0) {
+          } else if (
+            apiResponse.results &&
+            Array.isArray(apiResponse.results) &&
+            apiResponse.results.length > 0
+          ) {
             brands = apiResponse.results;
           } else if (apiResponse.brands && Array.isArray(apiResponse.brands)) {
             brands = apiResponse.brands;
@@ -171,7 +188,6 @@ const SearchResults = () => {
           setModelData([]);
           setVariantData([]);
           setProducts([]);
-
         } catch (err) {
           console.error("Category search error:", err);
           setError("Failed to load brands for this category");
@@ -187,7 +203,7 @@ const SearchResults = () => {
   // Handle brand click - update search query and trigger new search
   const handleBrandClick = async (brandName: string) => {
     let newQuery: string;
-    
+
     if (categoryName) {
       // If we're in category mode, combine category and brand
       newQuery = `${categoryName} ${brandName}`.trim();
@@ -195,15 +211,15 @@ const SearchResults = () => {
       // If we're in regular search mode, combine existing query with brand
       newQuery = `${query} ${brandName}`.trim();
     }
-    
-    console.log('Brand clicked:', brandName, 'New query:', newQuery);
+
+    console.log("Brand clicked:", brandName, "New query:", newQuery);
 
     // Update URL with new query
     const newSearchParams = new URLSearchParams(searchParams.toString());
-    newSearchParams.set('query', newQuery);
+    newSearchParams.set("query", newQuery);
     // Remove category parameters since we're now doing a query search
-    newSearchParams.delete('category');
-    newSearchParams.delete('categoryName');
+    newSearchParams.delete("category");
+    newSearchParams.delete("categoryName");
     router.push(`?${newSearchParams.toString()}`);
   };
 
@@ -215,7 +231,7 @@ const SearchResults = () => {
 
       const model = modelData.find((m) => m.model_name === modelName);
       if (!model) {
-        throw new Error('Selected model not found');
+        throw new Error("Selected model not found");
       }
 
       // Store selected model
@@ -243,14 +259,14 @@ const SearchResults = () => {
         setProducts([]);
       } else {
         // No variants - fall back to search
-        const newQuery = `${query || ''} ${modelName}`.trim();
+        const newQuery = `${query || ""} ${modelName}`.trim();
         const newSearchParams = new URLSearchParams(searchParams.toString());
-        newSearchParams.set('query', newQuery);
+        newSearchParams.set("query", newQuery);
         router.push(`?${newSearchParams.toString()}`);
       }
     } catch (err) {
-      console.error('Error fetching variants by model:', err);
-      setError('Failed to load variants for this model');
+      console.error("Error fetching variants by model:", err);
+      setError("Failed to load variants for this model");
     } finally {
       setLoading(false);
     }
@@ -259,21 +275,23 @@ const SearchResults = () => {
   // Handle variant click - update search query and trigger new search
   const handleVariantClick = async (variantName: string) => {
     const newQuery = `${query} ${variantName}`.trim();
-    console.log('Variant clicked:', variantName, 'New query:', newQuery);
+    console.log("Variant clicked:", variantName, "New query:", newQuery);
 
     // If we have a category context, use the category-specific API
     if (category && categoryName) {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Use the new API with category parameter
         const response = await smartSearchWithCategory(newQuery, categoryName);
-        console.log('Variant search with category response:', response);
-        
+        console.log("Variant search with category response:", response);
+
         // Validate response structure
-        if (!response || typeof response !== 'object') {
-          throw new Error('Invalid response format from variant search with category');
+        if (!response || typeof response !== "object") {
+          throw new Error(
+            "Invalid response format from variant search with category"
+          );
         }
 
         // Set product flag and extract product data
@@ -286,18 +304,39 @@ const SearchResults = () => {
         // Extract products from response
         let extractedProducts: Product[] = [];
         const apiResponse = response as any;
-        
-        if (apiResponse.results?.products && Array.isArray(apiResponse.results.products)) {
+
+        if (
+          apiResponse.results?.products &&
+          Array.isArray(apiResponse.results.products)
+        ) {
           extractedProducts = apiResponse.results.products;
-          console.log('Variant products found in response.results.products:', extractedProducts.length, 'products');
-        } else if (apiResponse.products && Array.isArray(apiResponse.products)) {
+          console.log(
+            "Variant products found in response.results.products:",
+            extractedProducts.length,
+            "products"
+          );
+        } else if (
+          apiResponse.products &&
+          Array.isArray(apiResponse.products)
+        ) {
           extractedProducts = apiResponse.products;
-          console.log('Variant products found in response.products:', extractedProducts.length, 'products');
-        } else if (apiResponse.data?.products && Array.isArray(apiResponse.data.products)) {
+          console.log(
+            "Variant products found in response.products:",
+            extractedProducts.length,
+            "products"
+          );
+        } else if (
+          apiResponse.data?.products &&
+          Array.isArray(apiResponse.data.products)
+        ) {
           extractedProducts = apiResponse.data.products;
-          console.log('Variant products found in response.data.products:', extractedProducts.length, 'products');
+          console.log(
+            "Variant products found in response.data.products:",
+            extractedProducts.length,
+            "products"
+          );
         } else {
-          console.log('No products found for variant with category');
+          console.log("No products found for variant with category");
         }
 
         setProducts(extractedProducts);
@@ -309,9 +348,8 @@ const SearchResults = () => {
 
         // Update URL with new query
         const newSearchParams = new URLSearchParams(searchParams.toString());
-        newSearchParams.set('query', newQuery);
+        newSearchParams.set("query", newQuery);
         router.push(`?${newSearchParams.toString()}`);
-
       } catch (err) {
         console.error("Variant search with category error:", err);
         setError("Failed to load products for this variant");
@@ -321,7 +359,7 @@ const SearchResults = () => {
     } else {
       // Regular search flow
       const newSearchParams = new URLSearchParams(searchParams.toString());
-      newSearchParams.set('query', newQuery);
+      newSearchParams.set("query", newQuery);
       router.push(`?${newSearchParams.toString()}`);
     }
   };
@@ -329,11 +367,11 @@ const SearchResults = () => {
   // Handle product click - update search query and trigger new search
   const handleProductClick = async (productName: string) => {
     const newQuery = `${query} ${productName}`.trim();
-    console.log('Product clicked:', productName, 'New query:', newQuery);
+    console.log("Product clicked:", productName, "New query:", newQuery);
 
     // Update URL with new query
     const newSearchParams = new URLSearchParams(searchParams.toString());
-    newSearchParams.set('query', newQuery);
+    newSearchParams.set("query", newQuery);
     router.push(`?${newSearchParams.toString()}`);
   };
 
@@ -344,7 +382,7 @@ const SearchResults = () => {
     setIsModel(true);
     setIsVariant(false);
     setIsProduct(false);
-    
+
     setVariantData([]);
     setProducts([]);
   };
@@ -356,15 +394,16 @@ const SearchResults = () => {
         setError(null);
         try {
           // Send both query and vehicleTypeId to smartSearch
-          const response = await smartSearch(query, vehicleTypeId || undefined);
-          console.log('smartSearch response:', response);
-          
+          const response = await smartSearch(query, vehicleTypeId || undefined, sortBy, sortBy, minPrice, maxPrice);
+          console.log("smartSearch response:", response);
+
           // Validate response structure
-          if (!response || typeof response !== 'object') {
-            throw new Error('Invalid response format from smartSearch');
+          if (!response || typeof response !== "object") {
+            throw new Error("Invalid response format from smartSearch");
           }
 
           // Check is_brand, is_model, is_variant, and is_product flags
+ 
           const brandFlag = response.is_brand || false;
           const modelFlag = response.is_model || false;
           const variantFlag = response.is_variant || false;
@@ -373,10 +412,10 @@ const SearchResults = () => {
           setIsModel(modelFlag);
           setIsVariant(variantFlag);
           setIsProduct(productFlag);
-          console.log('is_brand flag:', brandFlag);
-          console.log('is_model flag:', modelFlag);
-          console.log('is_variant flag:', variantFlag);
-          console.log('is_product flag:', productFlag);
+          console.log("is_brand flag:", brandFlag);
+          console.log("is_model flag:", modelFlag);
+          console.log("is_variant flag:", variantFlag);
+          console.log("is_product flag:", productFlag);
 
           // Extract all brand data if available
           let brands: Brand[] = [];
@@ -385,16 +424,31 @@ const SearchResults = () => {
           const apiResponse = response as any;
           if (apiResponse.results?.brand) {
             brands = [apiResponse.results.brand];
-            console.log('Brand found in response.results.brand:', brands.length, 'brand');
-          } else if (apiResponse.results && Array.isArray(apiResponse.results) && apiResponse.results.length > 0) {
+            console.log(
+              "Brand found in response.results.brand:",
+              brands.length,
+              "brand"
+            );
+          } else if (
+            apiResponse.results &&
+            Array.isArray(apiResponse.results) &&
+            apiResponse.results.length > 0
+          ) {
             // Fallback for array format
             brands = apiResponse.results;
-            console.log('Brands found in response.results (array):', brands.length, 'brands');
+            console.log(
+              "Brands found in response.results (array):",
+              brands.length,
+              "brands"
+            );
           } else {
-            console.log('Brand data not found. Response structure:', response);
-            console.log('Available keys in response:', Object.keys(response));
+            console.log("Brand data not found. Response structure:", response);
+            console.log("Available keys in response:", Object.keys(response));
             if (apiResponse.results) {
-              console.log('Available keys in results:', Object.keys(apiResponse.results));
+              console.log(
+                "Available keys in results:",
+                Object.keys(apiResponse.results)
+              );
             }
           }
 
@@ -402,12 +456,25 @@ const SearchResults = () => {
 
           // Extract models data if available
           let models: Model[] = [];
-          if (apiResponse.results?.models && Array.isArray(apiResponse.results.models) && apiResponse.results.models.length > 0) {
+          if (
+            apiResponse.results?.models &&
+            Array.isArray(apiResponse.results.models) &&
+            apiResponse.results.models.length > 0
+          ) {
             models = apiResponse.results.models;
-            console.log('Models found in response.results.models:', models.length, 'models');
+            console.log(
+              "Models found in response.results.models:",
+              models.length,
+              "models"
+            );
           } else {
-            console.log('No models found in response');
-            console.log('Available keys in results:', apiResponse.results ? Object.keys(apiResponse.results) : 'No results object');
+            console.log("No models found in response");
+            console.log(
+              "Available keys in results:",
+              apiResponse.results
+                ? Object.keys(apiResponse.results)
+                : "No results object"
+            );
           }
 
           setModelData(models);
@@ -416,17 +483,28 @@ const SearchResults = () => {
           let variants: Variant[] = [];
           let modelData: any = null;
 
-          if (apiResponse.results?.variants && Array.isArray(apiResponse.results.variants) && apiResponse.results.variants.length > 0) {
+          if (
+            apiResponse.results?.variants &&
+            Array.isArray(apiResponse.results.variants) &&
+            apiResponse.results.variants.length > 0
+          ) {
             variants = apiResponse.results.variants;
-            console.log('Variants found in response.results.variants:', variants.length, 'variants');
+            console.log(
+              "Variants found in response.results.variants:",
+              variants.length,
+              "variants"
+            );
 
             // Extract model data for variants (when is_variant is true, we get single model)
             if (apiResponse.results.model) {
               modelData = apiResponse.results.model;
-              console.log('Model data found for variants:', modelData.model_name);
+              console.log(
+                "Model data found for variants:",
+                modelData.model_name
+              );
             }
           } else {
-            console.log('No variants found in response');
+            console.log("No variants found in response");
           }
 
           setVariantData(variants);
@@ -439,17 +517,38 @@ const SearchResults = () => {
           let extractedProducts: Product[] = [];
 
           // Try different possible locations for products
-          if (apiResponse.results?.products && Array.isArray(apiResponse.results.products)) {
+          if (
+            apiResponse.results?.products &&
+            Array.isArray(apiResponse.results.products)
+          ) {
             extractedProducts = apiResponse.results.products;
-            console.log('Products found in response.results.products:', extractedProducts.length, 'products');
-          } else if (apiResponse.products && Array.isArray(apiResponse.products)) {
+            console.log(
+              "Products found in response.results.products:",
+              extractedProducts.length,
+              "products"
+            );
+          } else if (
+            apiResponse.products &&
+            Array.isArray(apiResponse.products)
+          ) {
             extractedProducts = apiResponse.products;
-            console.log('Products found in response.products:', extractedProducts.length, 'products');
-          } else if (response.data?.products && Array.isArray(response.data.products)) {
+            console.log(
+              "Products found in response.products:",
+              extractedProducts.length,
+              "products"
+            );
+          } else if (
+            response.data?.products &&
+            Array.isArray(response.data.products)
+          ) {
             extractedProducts = response.data.products;
-            console.log('Products found in response.data.products:', extractedProducts.length, 'products');
+            console.log(
+              "Products found in response.data.products:",
+              extractedProducts.length,
+              "products"
+            );
           } else {
-            console.log('No products found in expected locations');
+            console.log("No products found in expected locations");
           }
 
           setProducts(extractedProducts);
@@ -466,35 +565,33 @@ const SearchResults = () => {
 
   // Log rendering decision
   useEffect(() => {
-    console.log(`BrandListing component will ${isBrand ? '' : 'not '}be rendered`);
+    console.log(
+      `BrandListing component will ${isBrand ? "" : "not "}be rendered`
+    );
   }, [isBrand]);
 
   // Log model, variant, and product flags
   useEffect(() => {
     if (isModel) {
-      console.log('is_model is true - model search detected');
+      console.log("is_model is true - model search detected");
     }
   }, [isModel]);
 
   useEffect(() => {
     if (isVariant) {
-      console.log('is_variant is true - variant search detected');
+      console.log("is_variant is true - variant search detected");
     }
   }, [isVariant]);
 
   useEffect(() => {
     if (isProduct) {
-      console.log('is_product is true - product search detected');
+      console.log("is_product is true - product search detected");
     }
   }, [isProduct]);
 
-
-
   const handleLoadMore = () => {
-    setDisplayLimit(prev => prev + 10);
+    setDisplayLimit((prev) => prev + 10);
   };
-
-
 
   const displayedProducts = filteredAndSortedProducts.slice(0, displayLimit);
   const hasMoreProducts = displayLimit < filteredAndSortedProducts.length;
@@ -533,8 +630,8 @@ const SearchResults = () => {
             <input
               type="radio"
               name="sort"
-              value="name-asc"
-              checked={sortBy === 'name-asc'}
+              value="A-Z"
+              checked={sortBy === "A-Z"}
               onChange={(e) => setSortBy(e.target.value)}
               className="text-primary"
             />
@@ -544,8 +641,8 @@ const SearchResults = () => {
             <input
               type="radio"
               name="sort"
-              value="name-desc"
-              checked={sortBy === 'name-desc'}
+              value="Z-A"
+              checked={sortBy === "Z-A"}
               onChange={(e) => setSortBy(e.target.value)}
               className="text-primary"
             />
@@ -555,8 +652,8 @@ const SearchResults = () => {
             <input
               type="radio"
               name="sort"
-              value="price-asc"
-              checked={sortBy === 'price-asc'}
+              value="L-H"
+              checked={sortBy === "L-H"}
               onChange={(e) => setSortBy(e.target.value)}
               className="text-primary"
             />
@@ -566,8 +663,8 @@ const SearchResults = () => {
             <input
               type="radio"
               name="sort"
-              value="price-desc"
-              checked={sortBy === 'price-desc'}
+              value="H-L"
+              checked={sortBy === "H-L"}
               onChange={(e) => setSortBy(e.target.value)}
               className="text-primary"
             />
@@ -581,7 +678,9 @@ const SearchResults = () => {
         <h4 className="font-medium text-foreground">Price Range</h4>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-muted-foreground mb-2">Min Price</label>
+            <label className="block text-sm text-muted-foreground mb-2">
+              Min Price
+            </label>
             <input
               type="range"
               min="0"
@@ -591,10 +690,14 @@ const SearchResults = () => {
               onChange={(e) => setMinPrice(Number(e.target.value))}
               className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
             />
-            <div className="text-sm text-foreground mt-1">Rs {minPrice.toLocaleString()}</div>
+            <div className="text-sm text-foreground mt-1">
+              Rs {minPrice.toLocaleString()}
+            </div>
           </div>
           <div>
-            <label className="block text-sm text-muted-foreground mb-2">Max Price</label>
+            <label className="block text-sm text-muted-foreground mb-2">
+              Max Price
+            </label>
             <input
               type="range"
               min="0"
@@ -604,7 +707,9 @@ const SearchResults = () => {
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
             />
-            <div className="text-sm text-foreground mt-1">Rs {maxPrice.toLocaleString()}</div>
+            <div className="text-sm text-foreground mt-1">
+              Rs {maxPrice.toLocaleString()}
+            </div>
           </div>
         </div>
       </div>
@@ -612,7 +717,8 @@ const SearchResults = () => {
       {/* Results Count */}
       <div className="pt-4 border-t border-border">
         <p className="text-sm text-muted-foreground">
-          Showing {displayedProducts.length} of {filteredAndSortedProducts.length} products
+          Showing {displayedProducts.length} of{" "}
+          {filteredAndSortedProducts.length} products
         </p>
       </div>
     </div>
@@ -621,104 +727,150 @@ const SearchResults = () => {
   return (
     <>
       <style jsx>{`
-        .slider::-webkit-slider-thumb {
+        .slider {
+          -webkit-appearance: none;
           appearance: none;
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: hsl(var(--primary));
-          cursor: pointer;
-          border: 2px solid hsl(var(--background));
-          box-shadow: 0 0 2px rgba(0,0,0,0.2);
+          width: 100%;
+          height: 6px;
+          border-radius: 3px;
+          background: linear-gradient(
+            to right,
+            #3b82f6 0%,
+            #3b82f6 ${minPrice / 1000}%,
+            #e5e7eb ${minPrice / 1000}%,
+            #e5e7eb 100%
+          );
+          outline: none;
         }
+
+        .slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #3b82f6;
+          border: 3px solid white;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          cursor: grab;
+          transition: transform 0.1s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+          transform: scale(1.15);
+        }
+
+        .slider::-webkit-slider-thumb:active {
+          cursor: grabbing;
+          transform: scale(1.1);
+        }
+
         .slider::-moz-range-thumb {
-          height: 20px;
-          width: 20px;
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
-          background: hsl(var(--primary));
-          cursor: pointer;
-          border: 2px solid hsl(var(--background));
-          box-shadow: 0 0 2px rgba(0,0,0,0.2);
+          background: #3b82f6;
+          border: 3px solid white;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          cursor: grab;
+          transition: transform 0.1s ease;
         }
-        .slider::-webkit-slider-track {
-          height: 4px;
-          background: hsl(var(--muted));
-          border-radius: 2px;
+
+        .slider::-moz-range-thumb:hover {
+          transform: scale(1.15);
         }
+
+        .slider::-moz-range-thumb:active {
+          cursor: grabbing;
+          transform: scale(1.1);
+        }
+
+        .slider::-webkit-slider-runnable-track {
+          width: 100%;
+          height: 6px;
+          border-radius: 3px;
+        }
+
         .slider::-moz-range-track {
-          height: 4px;
-          background: hsl(var(--muted));
-          border-radius: 2px;
+          width: 100%;
+          height: 6px;
+          border-radius: 3px;
+          background: #e5e7eb;
         }
       `}</style>
       <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="max-w-screen-2xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link
-              href="/"
-              className="hover:text-primary cursor-pointer transition-colors"
-            >
-              Home
-            </Link>
-            <span>/</span>
-            <span className="text-foreground">
-              {isCategory && categoryName 
-                ? `Category: ${categoryName}` 
-                : query 
-                  ? `Search: ${query}` 
-                  : 'Search Results'
-              }
-            </span>
-            {vehicleType && (
-              <span className="text-xs text-muted-foreground ml-2">
-                Vehicle Type: {vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1)}
+        {/* Header */}
+        <div className="border-b border-border bg-card">
+          <div className="max-w-screen-2xl mx-auto px-4 py-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Link
+                href="/"
+                className="hover:text-primary cursor-pointer transition-colors"
+              >
+                Home
+              </Link>
+              <span>/</span>
+              <span className="text-foreground">
+                {isCategory && categoryName
+                  ? `Category: ${categoryName}`
+                  : query
+                  ? `Search: ${query}`
+                  : "Search Results"}
               </span>
-            )}
+              {vehicleType && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  Vehicle Type:{" "}
+                  {vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-      {/* Main Content */}
-      <div className="max-w-screen-2xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Mobile Filter Button */}
-          <button
-            onClick={() => setIsFilterOpen(true)}
-            className="lg:hidden fixed bottom-4 right-4 z-50 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors"
-          >
-            <Filter className="w-5 h-5" />
-          </button>
+        {/* Main Content */}
+        <div className="max-w-screen-2xl mx-auto px-4 py-6">
+          <div className="flex gap-6">
+            {/* Mobile Filter Button */}
+            <button
+              onClick={() => setIsFilterOpen(true)}
+              className="lg:hidden fixed bottom-4 right-4 z-50 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors"
+            >
+              <Filter className="w-5 h-5" />
+            </button>
 
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
-            <FilterSidebar />
-          </div>
-
-          {/* Mobile Sidebar Overlay */}
-          {isFilterOpen && (
-            <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsFilterOpen(false)}>
-              <div className="absolute left-0 top-0 h-full" onClick={(e) => e.stopPropagation()}>
-                <FilterSidebar />
-              </div>
+            {/* Desktop Sidebar */}
+            <div className="hidden lg:block">
+              <FilterSidebar />
             </div>
-          )}
 
-          {/* Main Content Area */}
-          <div className="flex-1">
-            {/* Product Grid */}
-            <main>
-            {/* Page Header */}
-            <div className="mb-6 flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-foreground mb-4">
-                {isCategory && categoryName 
-                  ? `Brands in "${categoryName}" Category` 
-                  : `Search Results for "${query}"`
-                }
-              </h1>
+            {/* Mobile Sidebar Overlay */}
+            {isFilterOpen && (
+              <div
+                className="lg:hidden fixed inset-0 z-40 bg-black/50"
+                onClick={() => setIsFilterOpen(false)}
+              >
+                <div
+                  className="absolute left-0 top-0 h-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <FilterSidebar />
+                </div>
+              </div>
+            )}
 
-              {/* Search Bar */}
-              {/* <div className="relative max-w-md ml-4">
+            {/* Main Content Area */}
+            <div className="flex-1">
+              {/* Product Grid */}
+              <main>
+                {/* Page Header */}
+                <div className="mb-6 flex items-center justify-between">
+                  <h1 className="text-2xl font-bold text-foreground mb-4">
+                    {isCategory && categoryName
+                      ? `Brands in "${categoryName}" Category`
+                      : `Search Results for "${query}"`}
+                  </h1>
+
+                  {/* Search Bar */}
+                  {/* <div className="relative max-w-md ml-4">
                 <div className="relative">
                   <input
                     type="text"
@@ -732,215 +884,234 @@ const SearchResults = () => {
                   </div>
                 </div>
               </div> */}
-            </div>
-            {/* Brand Display - grid of all brands */}
-            {(isBrand || isCategory) && brandData.length > 0 && (
-              <div className="mb-6">
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {brandData.length} Brand{brandData.length !== 1 ? 's' : ''} Found
-                  </h2>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {brandData.map((brand) => (
-                    <div
-                      key={brand._id}
-                      className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
-                      onClick={() => handleBrandClick(brand.brand_name)}
-                    >
-                      <div className="flex flex-col items-center gap-3">
-                        <img
-                          src={brand.brand_logo || "/placeholder.svg"}
-                          alt={brand.brand_name}
-                          className="w-16 h-16 object-contain rounded-lg"
-                        />
-                        <h4 className="text-sm font-medium text-foreground text-center line-clamp-2 leading-tight">
-                          {brand.brand_name}
-                        </h4>
+                {/* Brand Display - grid of all brands */}
+                {(isBrand || isCategory) && brandData.length > 0 && (
+                  <div className="mb-6">
+                    <div className="mb-4">
+                      <h2 className="text-lg font-semibold text-foreground">
+                        {brandData.length} Brand
+                        {brandData.length !== 1 ? "s" : ""} Found
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      {brandData.map((brand) => (
+                        <div
+                          key={brand._id}
+                          className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
+                          onClick={() => handleBrandClick(brand.brand_name)}
+                        >
+                          <div className="flex flex-col items-center gap-3">
+                            <img
+                              src={brand.brand_logo || "/placeholder.svg"}
+                              alt={brand.brand_name}
+                              className="w-16 h-16 object-contain rounded-lg"
+                            />
+                            <h4 className="text-sm font-medium text-foreground text-center line-clamp-2 leading-tight">
+                              {brand.brand_name}
+                            </h4>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* No brands found message */}
+                {(isBrand || isCategory) &&
+                  brandData.length === 0 &&
+                  !loading && (
+                    <div className="text-center py-12">
+                      <div className="text-gray-500 text-lg mb-4">
+                        <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          No Brands Found
+                        </h3>
+                        <p className="text-gray-500">
+                          {isCategory && categoryName
+                            ? `No brands are available in the "${categoryName}" category at the moment.`
+                            : "No brands match your search criteria. Try adjusting your search terms."}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  )}
 
-            {/* No brands found message */}
-            {(isBrand || isCategory) && brandData.length === 0 && !loading && (
-              <div className="text-center py-12">
-                <div className="text-gray-500 text-lg mb-4">
-                  <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No Brands Found</h3>
-                  <p className="text-gray-500">
-                    {isCategory && categoryName 
-                      ? `No brands are available in the "${categoryName}" category at the moment.`
-                      : "No brands match your search criteria. Try adjusting your search terms."
-                    }
-                  </p>
-                </div>
-              </div>
-            )}
+                {/* Model Display - grid of all models */}
+                {isModel && modelData.length > 0 && (
+                  <div className="mb-6">
+                    <div className="mb-4">
+                      <h2 className="text-lg font-semibold text-foreground">
+                        {modelData.length} Model
+                        {modelData.length !== 1 ? "s" : ""} Found
+                      </h2>
+                    </div>
+                    <ModelListing
+                      models={modelData}
+                      onModelSelect={handleModelClick}
+                    />
+                  </div>
+                )}
 
-            {/* Model Display - grid of all models */}
-            {isModel && modelData.length > 0 && (
-              <div className="mb-6">
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {modelData.length} Model{modelData.length !== 1 ? 's' : ''} Found
-                  </h2>
-                </div>
-                <ModelListing
-                  models={modelData}
-                  onModelSelect={handleModelClick}
-                />
-              </div>
-            )}
+                {/* Variant Display - grid of all variants or direct products */}
+                {isVariant &&
+                  variantData.length > 0 &&
+                  products.length === 0 && (
+                    <div className="mb-6">
+                      <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-foreground">
+                          {variantData.length} Variant
+                          {variantData.length !== 1 ? "s" : ""} Found
+                          {selectedModel && (
+                            <span className="text-sm text-muted-foreground ml-2">
+                              for {selectedModel.model_name}
+                            </span>
+                          )}
+                        </h2>
+                        <button
+                          onClick={handleBackToModel}
+                          className="px-4 py-2 text-sm border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+                        >
+                          ← Back to Models
+                        </button>
+                      </div>
+                      <VariantListing
+                        variants={variantData}
+                        models={modelData.length > 0 ? modelData[0] : null}
+                        onVariantSelect={handleVariantClick}
+                      />
+                    </div>
+                  )}
 
-            {/* Variant Display - grid of all variants or direct products */}
-            {isVariant && variantData.length > 0 && products.length === 0 && (
-              <div className="mb-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {variantData.length} Variant{variantData.length !== 1 ? 's' : ''} Found
-                    {selectedModel && (
-                      <span className="text-sm text-muted-foreground ml-2">
-                        for {selectedModel.model_name}
-                      </span>
+                {/* Direct Product Display for variants that have products */}
+                {isVariant && filteredAndSortedProducts.length > 0 && (
+                  <div className="mb-6">
+                    <div className="mb-4">
+                      <h2 className="text-lg font-semibold text-foreground">
+                        {filteredAndSortedProducts.length} Product
+                        {filteredAndSortedProducts.length !== 1 ? "s" : ""}{" "}
+                        Found
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {displayedProducts.map((product) => (
+                        <div
+                          key={product._id}
+                          className="bg-card rounded-lg border border-border p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+                        >
+                          <div className="aspect-square bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
+                            <img
+                              src={buildImageUrl(product.images?.[0])}
+                              alt={product.product_name || "Product"}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <h3 className="font-medium text-foreground text-sm mb-2 line-clamp-2">
+                            {product.product_name}
+                          </h3>
+                          <div className="flex items-center justify-between">
+                            <span className="text-primary font-semibold">
+                              Rs {product.selling_price?.toLocaleString() || 0}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Load More */}
+                    {hasMoreProducts && displayedProducts.length > 0 && (
+                      <div className="flex justify-center mt-8">
+                        <button
+                          onClick={handleLoadMore}
+                          className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+                        >
+                          Load More Products (
+                          {filteredAndSortedProducts.length - displayLimit}{" "}
+                          remaining)
+                        </button>
+                      </div>
                     )}
-                  </h2>
-                  <button
-                    onClick={handleBackToModel}
-                    className="px-4 py-2 text-sm border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    ← Back to Models
-                  </button>
-                </div>
-                <VariantListing
-                  variants={variantData}
-                  models={modelData.length > 0 ? modelData[0] : null}
-                  onVariantSelect={handleVariantClick}
-                />
-              </div>
-            )}
-
-            {/* Direct Product Display for variants that have products */}
-            {isVariant && filteredAndSortedProducts.length > 0 && (
-              <div className="mb-6">
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {filteredAndSortedProducts.length} Product{filteredAndSortedProducts.length !== 1 ? 's' : ''} Found
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {displayedProducts.map((product) => (
-                    <div
-                      key={product._id}
-                      className="bg-card rounded-lg border border-border p-4 hover:shadow-lg transition-shadow cursor-pointer group"
-                    >
-                      <div className="aspect-square bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
-                        <img
-                          src={buildImageUrl(product.images?.[0])}
-                          alt={product.product_name || "Product"}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <h3 className="font-medium text-foreground text-sm mb-2 line-clamp-2">
-                        {product.product_name}
-                      </h3>
-                      <div className="flex items-center justify-between">
-                        <span className="text-primary font-semibold">
-                          Rs {product.selling_price?.toLocaleString() || 0}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* Load More */}
-                {hasMoreProducts && displayedProducts.length > 0 && (
-                  <div className="flex justify-center mt-8">
-                    <button
-                      onClick={handleLoadMore}
-                      className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      Load More Products ({filteredAndSortedProducts.length - displayLimit} remaining)
-                    </button>
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Product Display - grid of all products */}
-            {isProduct && filteredAndSortedProducts.length > 0 && (
-              <div className="mb-6">
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {filteredAndSortedProducts.length} Product{filteredAndSortedProducts.length !== 1 ? 's' : ''} Found
-                  </h2>
-                </div>
-                <ProductListing
-                  products={filteredAndSortedProducts}
-                  onProductSelect={handleProductClick}
-                />
-              </div>
-            )}
-
-
-            {/* Products Grid - only show when not in product listing mode */}
-            {!isProduct && products.length > 0 && (
-              <>
-                {displayedProducts.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {displayedProducts.map((product) => (
-                    <div
-                      key={product._id}
-                      className="bg-card rounded-lg border border-border p-4 hover:shadow-lg transition-shadow cursor-pointer group"
-                    >
-                      <div className="aspect-square bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
-                        <img
-                          src={buildImageUrl(product.images?.[0])}
-                          alt={product.product_name || "Product"}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <h3 className="font-medium text-foreground text-sm mb-2 line-clamp-2">
-                        {product.product_name}
-                      </h3>
-                      <div className="flex items-center justify-between">
-                        <span className="text-primary font-semibold">
-                          Rs {product.selling_price?.toLocaleString() || 0}
-                        </span>
-                      </div>
+                {/* Product Display - grid of all products */}
+                {isProduct && filteredAndSortedProducts.length > 0 && (
+                  <div className="mb-6">
+                    <div className="mb-4">
+                      <h2 className="text-lg font-semibold text-foreground">
+                        {filteredAndSortedProducts.length} Product
+                        {filteredAndSortedProducts.length !== 1 ? "s" : ""}{" "}
+                        Found
+                      </h2>
                     </div>
-                  ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="text-gray-500 text-lg mb-4">
-                      <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <h3 className="text-xl font-semibold text-gray-700 mb-2">No Products Found</h3>
-                      <p className="text-gray-500">
-                        No products match your search criteria. Try adjusting your search terms.
-                      </p>
-                    </div>
+                    <ProductListing
+                      products={filteredAndSortedProducts}
+                      onProductSelect={handleProductClick}
+                    />
                   </div>
                 )}
-                {/* Load More */}
-                {hasMoreProducts && displayedProducts.length > 0 && (
-                  <div className="flex justify-center mt-8">
-                    <button
-                      onClick={handleLoadMore}
-                      className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      Load More Products ({filteredAndSortedProducts.length - displayLimit} remaining)
-                    </button>
-                  </div>
+
+                {/* Products Grid - only show when not in product listing mode */}
+                {!isProduct && products.length > 0 && (
+                  <>
+                    {displayedProducts.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {displayedProducts.map((product) => (
+                          <div
+                            key={product._id}
+                            className="bg-card rounded-lg border border-border p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+                          >
+                            <div className="aspect-square bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
+                              <img
+                                src={buildImageUrl(product.images?.[0])}
+                                alt={product.product_name || "Product"}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <h3 className="font-medium text-foreground text-sm mb-2 line-clamp-2">
+                              {product.product_name}
+                            </h3>
+                            <div className="flex items-center justify-between">
+                              <span className="text-primary font-semibold">
+                                Rs{" "}
+                                {product.selling_price?.toLocaleString() || 0}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="text-gray-500 text-lg mb-4">
+                          <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                            No Products Found
+                          </h3>
+                          <p className="text-gray-500">
+                            No products match your search criteria. Try
+                            adjusting your search terms.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {/* Load More */}
+                    {hasMoreProducts && displayedProducts.length > 0 && (
+                      <div className="flex justify-center mt-8">
+                        <button
+                          onClick={handleLoadMore}
+                          className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+                        >
+                          Load More Products (
+                          {filteredAndSortedProducts.length - displayLimit}{" "}
+                          remaining)
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-            </main>
+              </main>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 };

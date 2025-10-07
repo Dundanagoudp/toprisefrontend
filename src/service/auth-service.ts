@@ -77,3 +77,60 @@ export const checkUserExists = async (phone_Number: string): Promise<boolean> =>
     throw error;
   }
 };
+
+export const registerUserWithPhone = async (firebaseToken:string,role:string):Promise<any> => {
+  try{
+    const response = await apiClient.post("/users/api/users/signup", {
+      firebaseToken,
+      role,
+    }, {
+      withCredentials: true,
+    });
+    return response.data;
+  }
+  catch(error){
+    console.error("Register user with phone failed:", error);
+    throw error;
+  }
+
+}
+export const resetPassword = async (email: string): Promise<any> => {
+  try {
+    const response = await apiClient.post("/users/api/users/user/send-reset/paswordmail", {
+      email,
+    }, {
+      withCredentials: true,
+    });
+    return response.data;
+  }
+  catch(error){
+    console.error("Reset password failed:", error);
+    throw error;
+  }
+};
+
+
+  export const verifyPassword = async (token: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/users/api/users/user/reset/password-verify/${token}`);
+      return response.data;
+    }
+    catch(error){
+      console.error("Verify password failed:", error);
+      throw error;
+    }
+  }
+
+
+export const createNewPassword = async (token: string, newPassword: string): Promise<any> => {
+  try {
+    const response = await apiClient.post(`/users/api/users/user/reset/password/${token}`, {
+      newPassword,
+    });
+    return response.data;
+  }
+  catch(error){
+    console.error("Create new password failed:", error);
+    throw error;
+  }
+}

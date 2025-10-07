@@ -1,40 +1,74 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  Calendar, 
-  CreditCard, 
-  Truck, 
-  Package, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  User, 
-  CheckCircle, 
-  Clock, 
+import {
+  Calendar,
+  CreditCard,
+  Truck,
+  Package,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  CheckCircle,
+  Clock,
   XCircle,
   ExternalLink,
   ArrowLeft,
   Download,
-  Printer
+  Printer,
+  RotateCcw,
+  Upload,
+  Ticket
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { getProductById } from '@/service/product-Service'
 import formatDate from '@/utils/formateDate'
-import { Header } from './layout/Header'
-import Footer from '../landingPage/module/Footer'
+import { Header } from '../../layout/Header'
+import Footer from '../../../landingPage/module/Footer'
+import { downloadInvoice } from '../../common/InvoiceDownloader'
+import { createReturnRequest } from '@/service/return-service'
+import { useToast } from '../../../ui/toast'
+import { DynamicButton } from '../../../common/button'
+import RiseTicket from './popups/RiseTicket'
+
 
 interface OrderDetailsPageProps {
   order: any
 }
 
 export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
+  console.log('Order data:', order)
+
+  // Calculate and log the breakdown
+  const subtotal = (order.order_Amount || 0) - (order.GST || 0) - (order.deliveryCharges || 0)
+  const gst = order.GST || 0
+  const deliveryCharges = order.deliveryCharges || 0
+  const grandTotal = order.order_Amount || 0
+
+  console.log('Order breakdown:', {
+    subtotal,
+    gst,
+    deliveryCharges,
+    grandTotal,
+    verification: subtotal + gst + deliveryCharges === grandTotal
+  })
+  const { showToast } = useToast()
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-
+  const [returnModalOpen, setReturnModalOpen] = useState(false)
+  const [returnReason, setReturnReason] = useState('')
+  const [returnDescription, setReturnDescription] = useState('')
+  const [returnImages, setReturnImages] = useState<string[]>([])
+  const [returnQuantity, setReturnQuantity] = useState(1)
+  const [returnLoading, setReturnLoading] = useState(false)
+  const [riseTicketModalOpen, setRiseTicketModalOpen] = useState(false)
   useEffect(() => {
     const fetchProducts = async () => {
       if (!order?.skus) {
@@ -46,11 +80,12 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
         const productPromises = order.skus.map(async (sku: any) => {
           try {
             const response = await getProductById(sku.productId)
+            const product = response.data.products[0] // Get the first product from the array
             return {
-              ...response.data,
+              ...product,
               quantity: sku.quantity,
               sku: sku.sku,
-              totalPrice: sku.totalPrice || (response.data.selling_price * sku.quantity)
+              totalPrice: sku.totalPrice || (product.selling_price * sku.quantity)
             }
           } catch (error) {
             console.error(`Failed to fetch product ${sku.productId}:`, error)
@@ -130,32 +165,84 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     return `${filesOrigin}${path.startsWith("/") ? "" : "/"}${path}`
   }
 
-  const handlePrint = () => {
-    window.print()
-  }
+
 
   const handleDownload = () => {
-    // Create a downloadable version of the order details
-    const orderData = {
-      orderId: order.orderId,
-      orderDate: order.orderDate,
-      status: order.status,
-      customer: order.customerDetails,
-      products: products,
-      total: order.order_Amount,
-      subtotal: order.order_Amount - (order.GST || 0) - (order.deliveryCharges || 0),
-      gst: order.GST || 0,
-      deliveryCharges: order.deliveryCharges || 0
+    const invoiceUrl = order.invoiceUrl
+    console.log('invoiceUrl', invoiceUrl)
+    if (!invoiceUrl) return;  
+
+    const link = document.createElement("a");
+    link.href = invoiceUrl;
+    link.download = invoiceUrl.split("/").pop() || "invoice.pdf";
+    console.log('link', link)
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    console.log('link clicked')
+  };
+  const isReturnEligible = (order: any) => {
+    // Check if order is delivered and within return window (assuming 30 days)
+    const deliveredStatus = ['delivered', 'completed'].includes(order.status?.toLowerCase())
+    if (!deliveredStatus) return false
+
+    // Check if order has a delivery date and is within return window
+    if (order.timestamps?.deliveredAt) {
+      const deliveredDate = new Date(order.timestamps.deliveredAt)
+      const currentDate = new Date()
+      const daysSinceDelivery = Math.floor((currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24))
+      return daysSinceDelivery <= 30 // Assuming 30-day return window
     }
-    
-    const dataStr = JSON.stringify(orderData, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `order-${order.orderId}.json`
-    link.click()
-    URL.revokeObjectURL(url)
+
+    return false
+  }
+
+  const handleReturnProduct = () => {
+    setReturnModalOpen(true)
+  }
+
+  const handleSubmitReturn = async () => {
+    if (!returnReason.trim()) {
+      showToast('Please provide a reason for return', 'error')
+
+      return
+    }
+    if (!returnDescription.trim()) {
+      showToast('Please provide a description for return', 'error')
+  
+      return
+    }
+
+    setReturnLoading(true)
+    try {
+      const response = await createReturnRequest({
+        orderId: order._id,
+        sku: order.skus[0].sku,
+        customerId: order.customerDetails.userId,
+        quantity: returnQuantity,
+        returnReason: returnReason,
+        returnDescription: returnDescription,
+        returnImages: returnImages
+      })
+
+      console.log(response)
+      showToast('Return request submitted successfully! Our team will contact you shortly.', 'success')
+
+      setReturnModalOpen(false)
+      setReturnReason('')
+      setReturnDescription('')
+      setReturnImages([])
+      setReturnQuantity(1)
+    } catch (error) {
+      console.error('Failed to submit return request:', error)
+      showToast('Failed to submit return request. Please try again.', 'error')
+    } finally {
+      setReturnLoading(false)
+    }
+  }
+
+  const handleRiseTicket = () => {
+    setRiseTicketModalOpen(true)
   }
 
   return (
@@ -172,13 +259,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
             >
               Home
             </Link>
-            <span>/</span>
-            <Link 
-              href="/shop" 
-              className="hover:text-primary cursor-pointer transition-colors"
-            >
-              Shop
-            </Link>
+            
             <span>/</span>
             <span className="text-foreground">Order Details</span>
           </div>
@@ -189,7 +270,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <Link href="/shop">
+            <Link href="/profile">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Shop
@@ -207,14 +288,31 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 {order.status}
               </div>
             </Badge>
+            <DynamicButton
+              variant="outline"
+              size="sm"
+              onClick={handleRiseTicket}
+            >
+              <Ticket className="w-4 h-4 mr-2" />
+             Rise Ticket
+            </DynamicButton>
             <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="w-4 h-4 mr-2" />
-              Download
+              Download Invoice
             </Button>
-            <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReturnProduct}
+              disabled={!isReturnEligible(order)}
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Return Product
+            </Button>
+            {/* <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="w-4 h-4 mr-2" />
               Print
-            </Button>
+            </Button> */}
           </div>
         </div>
 
@@ -277,7 +375,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 <div>
                   <p className="text-sm text-gray-600">Total Amount</p>
                   <p className="font-semibold text-gray-900 text-lg">
-                    ₹{order.order_Amount?.toLocaleString() || '0'}
+                    ₹{(order.order_Amount)?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
@@ -441,21 +539,21 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">
-                    ₹{((order.order_Amount || 0) - (order.GST || 0) - (order.deliveryCharges || 0)).toLocaleString()}
+                    ₹{ (order.order_Amount || 0) - (order.GST || 0) - (order.deliveryCharges || 0).toLocaleString() || '0'}
                   </span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">GST</span>
                   <span className="font-medium">
-                    ₹{(order.GST || 0).toLocaleString()}
+                    ₹{order.GST?.toLocaleString() || '0'}
                   </span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Charges</span>
                   <span className="font-medium">
-                    ₹{(order.deliveryCharges || 0).toLocaleString()}
+                    ₹{order.deliveryCharges?.toLocaleString() || '0'}
                   </span>
                 </div>
                 
@@ -463,7 +561,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total</span>
-                  <span>₹{(order.order_Amount || 0).toLocaleString()}</span>
+                  <span>₹{(order.order_Amount)?.toLocaleString() || '0'}</span>
                 </div>
               </CardContent>
             </Card>
@@ -540,6 +638,108 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
       </div>
     </div>
     <Footer/>
+
+    {/* Return Product Modal */}
+    <Dialog open={returnModalOpen} onOpenChange={setReturnModalOpen}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Return Product</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="quantity">Quantity to Return *</Label>
+            <input
+              id="quantity"
+              type="number"
+              min={1}
+              max={order.skus[0]?.quantity || 1}
+              value={returnQuantity}
+              onChange={(e) => setReturnQuantity(Math.min(order.skus[0]?.quantity || 1, Math.max(1, parseInt(e.target.value) || 1)))}
+              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Max: {order.skus[0]?.quantity || 1}</p>
+          </div>
+
+          <div>
+            <Label htmlFor="reason">Reason for Return *</Label>
+            <input
+              id="reason"
+              placeholder="e.g., Defective, Wrong item, Not as described"
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              maxLength={100}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description *</Label>
+            <Textarea
+              id="description"
+              placeholder="Please provide detailed information about why you're returning this product..."
+              value={returnDescription}
+              onChange={(e) => setReturnDescription(e.target.value)}
+              rows={4}
+              className="mt-2"
+            />
+          </div>
+
+          <div>
+            <Label>Images (Optional)</Label>
+            <div className="mt-2 space-y-2">
+              {returnImages.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {returnImages.map((img, idx) => (
+                    <div key={idx} className="relative w-20 h-20 border rounded">
+                      <img src={img} alt={`Return ${idx + 1}`} className="w-full h-full object-cover rounded" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newImages = returnImages.filter((_, i) => i !== idx)
+                          setReturnImages(newImages)
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <XCircle className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {returnImages.length < 5 && (
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer hover:bg-gray-50">
+                  <Upload className="w-4 h-4" />
+                  <span className="text-sm text-gray-600">Upload Images ({returnImages.length}/5)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || [])
+                      const imageUrls = files.map(file => URL.createObjectURL(file))
+                      setReturnImages(prev => [...prev, ...imageUrls].slice(0, 5))
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setReturnModalOpen(false)} disabled={returnLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitReturn} disabled={returnLoading || !returnReason.trim() || !returnDescription.trim()}>
+              {returnLoading ? "Submitting..." : "Submit Return Request"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    <RiseTicket open={riseTicketModalOpen} onClose={() => setRiseTicketModalOpen(false)} orderId={order._id} showOrderSelection={false} />
     </div>
   )
 }

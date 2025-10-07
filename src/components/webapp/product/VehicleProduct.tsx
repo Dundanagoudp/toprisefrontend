@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { getProductsByFilter } from "@/service/product-Service"
 import type { Product } from "@/types/product-Types"
 import { Filter, X } from 'lucide-react';
+import { cn } from "@/lib/utils"
+
+// Simple alias for compatibility with existing code
+
 
 const DEFAULT_MIN_PRICE = 0
 const DEFAULT_MAX_PRICE = 1000000
@@ -24,7 +28,7 @@ const VehicleProductsPage: React.FC = () => {
   const [products, setProducts] = React.useState<Product[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [sortBy, setSortBy] = React.useState<string>('name-asc');
+  const [sortBy, setSortBy] = React.useState<string>('A-Z');
   const [minPrice, setMinPrice] = React.useState<number>(DEFAULT_MIN_PRICE);
   const [maxPrice, setMaxPrice] = React.useState<number>(DEFAULT_MAX_PRICE);
   const [isFilterOpen, setIsFilterOpen] = React.useState<boolean>(false);
@@ -51,72 +55,67 @@ const VehicleProductsPage: React.FC = () => {
     [filesOrigin]
   )
 
-  React.useEffect(() => {
-    let ignore = false
-    const fetchProducts = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        console.log("Fetching products with parameters:", {
-          productType,
-          brand,
-          model,
-          variant,
-          id,
-          sortBy,
-          minPrice,
-          maxPrice,
-        })
-        const response = await getProductsByFilter(
-          productType,
-          brand,
-          model,
-          variant,
-          subcategory,
-          id,
-          sortBy,
-          minPrice,
-          maxPrice
-        )
-        if (!ignore) {
-          const items = response?.data.products ?? []
-          console.log("Fetched products:", items)
-          console.log("Total products found:", items.length)
-          console.log("Product IDs:", items.map(p => p._id))
-          setProducts(items)
-        }
-      } catch (err: any) {
-        if (!ignore) {
-          const message = err?.message || "Failed to load products. Please try again later."
-          console.error("Error fetching products:", {
-            error: err,
-            message,
-            parameters: {
-              productType,
-              brand,
-              model,
-              variant,
-              id,
-              sortBy,
-              minPrice,
-              maxPrice,
-            }
-          })
-          setError(message)
-          setProducts([])
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false)
-        }
-      }
-    }
-    fetchProducts()
-    return () => {
-      ignore = true
-    }
-  }, [productType, brand, model, variant, subcategory, id, sortBy, minPrice, maxPrice])
+ const fetchProducts = React.useCallback(
+  async (opts?: {
+    productType?: string;
+    brand?: string;
+    model?: string;
+    variant?: string;
+    subcategory?: string;
+    id?: string;
+    sortBy?: string;
+    minPrice?: number;
+    maxPrice?: number;
+  }) => {
+    setLoading(true);
+    setError(null);
+    const {
+      productType: pType = productType,
+      brand: b = brand,
+      model: m = model,
+      variant: v = variant,
+      subcategory: sc = subcategory,
+      id: pid = id,
+      sortBy: s = sortBy,
+      minPrice: min = minPrice,
+      maxPrice: max = maxPrice,
+    } = opts || {};
 
+    let ignore = false;
+    try {
+      const response = await getProductsByFilter(
+        pType,
+        b,
+        m,
+        v,
+        sc,
+        pid,
+        s,
+        min,
+        max
+      );
+      if (ignore) return;
+      const items = response?.data?.products ?? [];
+      setProducts(items);
+    } catch (err: any) {
+      console.error("Error fetching products:", err);
+      setError(err?.message || "Failed to load products. Please try again.");
+      setProducts([]);
+    } finally {
+      if (!ignore) setLoading(false);
+    }
+
+    // return a cancellable token if you wish (not used here)
+    return () => {
+      ignore = true;
+    };
+  },
+  [productType, brand, model, variant, subcategory, id, sortBy, minPrice, maxPrice]
+);
+React.useEffect(() => {
+  fetchProducts();
+
+}, [fetchProducts]);
   const handleViewProduct = React.useCallback(
     (productId: string) => {
       router.push(`/shop/product/${productId}`)
@@ -134,7 +133,44 @@ const VehicleProductsPage: React.FC = () => {
     return parts.join(" • ")
   }, [vehicleType, vehicleName, brand, model, variant])
 
-  const FilterSidebar = () => (
+ const FilterSidebar = () => {
+  // local copies so user can tweak without immediately triggering fetch
+  const [localSortBy, setLocalSortBy] = React.useState<string>(sortBy);
+  const [localMin, setLocalMin] = React.useState<number>(minPrice);
+  const [localMax, setLocalMax] = React.useState<number>(maxPrice);
+
+  // keep local in sync if parent changes (e.g. due to deep-link)
+  React.useEffect(() => {
+    setLocalSortBy(sortBy);
+    setLocalMin(minPrice);
+    setLocalMax(maxPrice);
+  }, [sortBy, minPrice, maxPrice]);
+
+  const isDirty =
+    localSortBy !== sortBy || localMin !== minPrice || localMax !== maxPrice;
+
+  const handleApply = () => {
+    // update parent state -> triggers fetch effect
+    setSortBy(localSortBy);
+    setMinPrice(localMin);
+    setMaxPrice(localMax);
+    setIsFilterOpen(false); // close sidebar on apply (optional)
+    // you could also preserve open state if you prefer
+  };
+
+  const handleReset = () => {
+    // reset to defaults
+    setLocalSortBy('A-Z');
+    setLocalMin(DEFAULT_MIN_PRICE);
+    setLocalMax(DEFAULT_MAX_PRICE);
+
+    // immediately reset parent too so results update
+    setSortBy('A-Z');
+    setMinPrice(DEFAULT_MIN_PRICE);
+    setMaxPrice(DEFAULT_MAX_PRICE);
+  };
+
+  return (
     <div className="w-80 bg-card border-r border-border p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -145,10 +181,12 @@ const VehicleProductsPage: React.FC = () => {
         <button
           onClick={() => setIsFilterOpen(false)}
           className="lg:hidden p-1 hover:bg-muted rounded-md"
+          aria-label="Close filters"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
+
       {/* Sort By */}
       <div className="space-y-3">
         <h4 className="font-medium text-foreground">Sort By</h4>
@@ -157,10 +195,9 @@ const VehicleProductsPage: React.FC = () => {
             <input
               type="radio"
               name="sort"
-              value="name-asc"
-              checked={sortBy === 'name-asc'}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-primary"
+              value="A-Z"
+              checked={localSortBy === 'A-Z'}
+              onChange={(e) => setLocalSortBy(e.target.value)}
             />
             <span className="text-sm">Name (A-Z)</span>
           </label>
@@ -168,10 +205,9 @@ const VehicleProductsPage: React.FC = () => {
             <input
               type="radio"
               name="sort"
-              value="name-desc"
-              checked={sortBy === 'name-desc'}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-primary"
+              value="Z-A"
+              checked={localSortBy === 'Z-A'}
+              onChange={(e) => setLocalSortBy(e.target.value)}
             />
             <span className="text-sm">Name (Z-A)</span>
           </label>
@@ -179,10 +215,9 @@ const VehicleProductsPage: React.FC = () => {
             <input
               type="radio"
               name="sort"
-              value="price-asc"
-              checked={sortBy === 'price-asc'}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-primary"
+              value="L-H"
+              checked={localSortBy === 'L-H'}
+              onChange={(e) => setLocalSortBy(e.target.value)}
             />
             <span className="text-sm">Price (Low to High)</span>
           </label>
@@ -190,15 +225,15 @@ const VehicleProductsPage: React.FC = () => {
             <input
               type="radio"
               name="sort"
-              value="price-desc"
-              checked={sortBy === 'price-desc'}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-primary"
+              value="H-L"
+              checked={localSortBy === 'H-L'}
+              onChange={(e) => setLocalSortBy(e.target.value)}
             />
             <span className="text-sm">Price (High to Low)</span>
           </label>
         </div>
       </div>
+
       {/* Price Range */}
       <div className="space-y-3">
         <h4 className="font-medium text-foreground">Price Range</h4>
@@ -210,11 +245,11 @@ const VehicleProductsPage: React.FC = () => {
               min="0"
               max="100000"
               step="1000"
-              value={minPrice}
-              onChange={(e) => setMinPrice(Number(e.target.value))}
+              value={localMin}
+              onChange={(e) => setLocalMin(Number(e.target.value))}
               className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
             />
-            <div className="text-sm text-foreground mt-1">Rs {minPrice.toLocaleString()}</div>
+            <div className="text-sm text-foreground mt-1">Rs {localMin.toLocaleString()}</div>
           </div>
           <div>
             <label className="block text-sm text-muted-foreground mb-2">Max Price</label>
@@ -223,22 +258,50 @@ const VehicleProductsPage: React.FC = () => {
               min="0"
               max="100000"
               step="1000"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              value={localMax}
+              onChange={(e) => setLocalMax(Number(e.target.value))}
               className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
             />
-            <div className="text-sm text-foreground mt-1">Rs {maxPrice.toLocaleString()}</div>
+            <div className="text-sm text-foreground mt-1">Rs {localMax.toLocaleString()}</div>
           </div>
         </div>
       </div>
-      {/* Results Count */}
+
+      {/* Action Row: only visible when dirty */}
       <div className="pt-4 border-t border-border">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mb-3">
           Showing {products.length} products
         </p>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleReset}
+            className={cn(
+              "flex-1 rounded-md px-3 py-2 text-sm font-medium border",
+              isDirty ? "border-border bg-white text-foreground hover:shadow-sm" : "border-muted text-muted-foreground opacity-60 cursor-not-allowed"
+            )}
+            disabled={!isDirty}
+          >
+            Reset
+          </button>
+
+          <button
+            type="button"
+            onClick={handleApply}
+            className={cn(
+              "flex-1 rounded-md px-3 py-2 text-sm font-medium",
+              isDirty ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-primary/50 text-primary-foreground opacity-70 cursor-not-allowed"
+            )}
+            disabled={!isDirty}
+          >
+            Apply
+          </button>
+        </div>
       </div>
     </div>
   );
+};
 
   return (
     <div className="min-h-screen bg-background">
@@ -408,3 +471,5 @@ const VehicleProductsPage: React.FC = () => {
 }
 
 export default VehicleProductsPage
+
+

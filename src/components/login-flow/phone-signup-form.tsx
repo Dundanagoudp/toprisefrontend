@@ -1,4 +1,5 @@
 "use client";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,93 +12,232 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
-  UserCredential
+  UserCredential,
 } from "firebase/auth";
+
 import { auth } from "@/lib/firebase";
-import { registerUser } from "@/service/auth-service";
+import { registerUser, registerUserWithPhone } from "@/service/auth-service";
+import { ArrowLeft } from "lucide-react";
 
 export function PhoneSignUpForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
+  const { showToast } = useToast();
+
+  // form state
   const [name, setName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(""); // only digits, 10
   const [verificationCode, setVerificationCode] = useState("");
+
+  // flow + UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<"phone" | "verify">("phone");
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [confirmationResult, setConfirmationResult] =
+    useState<ConfirmationResult | null>(null);
+
+  // rate limiting state
   const [cooldownEndTime, setCooldownEndTime] = useState<number | null>(null);
   const [requestCount, setRequestCount] = useState(0);
-  const { showToast } = useToast();
 
   // Rate limiting constants
   const MAX_REQUESTS_PER_HOUR = 5;
-  const COOLDOWN_DURATION_MS = 5 * 60 * 1000; // 5 minutes cooldown
-  const REQUEST_WINDOW_MS = 60 * 60 * 1000; // 1 hour window
+  const COOLDOWN_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+  const REQUEST_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-  // Check if user is in cooldown period
-  const isInCooldown = (): boolean => {
-    return cooldownEndTime ? Date.now() < cooldownEndTime : false;
-  };
-
-  // Get remaining cooldown time in seconds
+  // Helpers
+  const isInCooldown = (): boolean =>
+    cooldownEndTime ? Date.now() < cooldownEndTime : false;
   const getCooldownRemaining = (): number => {
     if (!cooldownEndTime) return 0;
     const remaining = Math.ceil((cooldownEndTime - Date.now()) / 1000);
     return Math.max(0, remaining);
   };
+  const hasExceededRateLimit = (): boolean =>
+    requestCount >= MAX_REQUESTS_PER_HOUR;
 
-  // Check if user has exceeded rate limit
-  const hasExceededRateLimit = (): boolean => {
-    // Simple check: if more than MAX_REQUESTS_PER_HOUR in the last hour
-    return requestCount >= MAX_REQUESTS_PER_HOUR;
-  };
-
-  // Cleanup reCAPTCHA on component unmount and reset request count periodically
+  // reset requestCount every hour and cleanup recaptcha on unmount
   useEffect(() => {
     const interval = setInterval(() => {
-      // Reset request count every hour
       setRequestCount(0);
-      // Clear cooldown if expired
-      if (cooldownEndTime && Date.now() > cooldownEndTime) {
+      if (cooldownEndTime && Date.now() > cooldownEndTime)
         setCooldownEndTime(null);
-      }
     }, REQUEST_WINDOW_MS);
 
     return () => {
       clearInterval(interval);
       if ((window as any).recaptchaVerifier) {
-        (window as any).recaptchaVerifier.clear();
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch {}
         delete (window as any).recaptchaVerifier;
       }
     };
-  }, [cooldownEndTime, REQUEST_WINDOW_MS]);
+  }, [cooldownEndTime]);
 
-  // Helper function to handle phone number input - only allow digits
+  // ensure only digits in phone input
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-    setPhoneNumber(value);
+    const value = e.target.value.replace(/\D/g, "");
+    setPhoneNumber(value.slice(0, 10));
   };
 
-  // Initialize reCAPTCHA verifier
-  const setupRecaptcha = () => {
-    if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: (response: any) => {
-          console.log("reCAPTCHA solved");
-        },
-        'expired-callback': () => {
-          console.log("reCAPTCHA expired");
-          // Reset reCAPTCHA on expiry
-          if ((window as any).recaptchaVerifier) {
-            (window as any).recaptchaVerifier.clear();
-            delete (window as any).recaptchaVerifier;
-          }
+  useEffect(() => {
+    return () => {
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch {}
+        delete (window as any).recaptchaVerifier;
+      }
+    };
+  }, []);
+
+  const loadRecaptchaScript = () =>
+    new Promise<void>((resolve, reject) => {
+      if (typeof window !== "undefined" && (window as any).grecaptcha) {
+        return resolve();
+      }
+
+      const existing = document.querySelector(
+        'script[src^="https://www.google.com/recaptcha/"]'
+      );
+      if (existing) {
+        const waitMax = 10000;
+        const start = Date.now();
+        const tick = () => {
+          if ((window as any).grecaptcha) return resolve();
+          if (Date.now() - start > waitMax)
+            return reject(new Error("grecaptcha did not load in time"));
+          setTimeout(tick, 200);
+        };
+        return tick();
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        const start = Date.now();
+        const waitMax = 10000;
+        const tick = () => {
+          if ((window as any).grecaptcha) return resolve();
+          if (Date.now() - start > waitMax)
+            return reject(
+              new Error("grecaptcha did not become available after script loaded")
+            );
+          setTimeout(tick, 200);
+        };
+        tick();
+      };
+      script.onerror = () => {
+        reject(
+          new Error(
+            "Failed to load reCAPTCHA script (network/CSP/adblock?)."
+          )
+        );
+      };
+      document.head.appendChild(script);
+    });
+
+  const createVerifierAndSend = async (phoneE164: string, visible = false) => {
+    if (typeof window === "undefined")
+      throw new Error("Window required for reCAPTCHA");
+
+    // Use the imported auth instance
+    const authInstance = auth;
+    if (!authInstance) throw new Error("Auth instance is undefined.");
+
+    // ✅ CRITICAL FIX: Initialize auth.settings if it doesn't exist
+    if (!(authInstance as any).settings) {
+      console.log("Initializing auth.settings...");
+      (authInstance as any).settings = {
+        appVerificationDisabledForTesting: false,
+      };
+    }
+
+    // Load grecaptcha script
+    try {
+      await loadRecaptchaScript();
+    } catch (loadErr) {
+      console.error("Failed to load grecaptcha:", loadErr);
+      throw new Error(
+        "reCAPTCHA script unavailable. Check AdBlock/CSP/network. Error: " +
+          (loadErr as any)?.message
+      );
+    }
+
+    if (!(window as any).grecaptcha) {
+      throw new Error(
+        "reCAPTCHA (grecaptcha) not available on window. Possibly blocked."
+      );
+    }
+
+    // Clear previous verifier if exists
+    if ((window as any).recaptchaVerifier) {
+      try {
+        (window as any).recaptchaVerifier.clear();
+      } catch (e) {
+        console.warn("Warning clearing previous recaptcha verifier:", e);
+      }
+      delete (window as any).recaptchaVerifier;
+    }
+
+    // Create RecaptchaVerifier - Use 'invisible' for automatic verification
+    let verifier: RecaptchaVerifier;
+    try {
+      verifier = new RecaptchaVerifier(
+        authInstance,
+        "recaptcha-container",
+        {
+          size: "invisible", // Changed to invisible for automatic verification
+          callback: (response: any) => {
+            console.log("reCAPTCHA solved:", response);
+          },
+          "expired-callback": () => {
+            console.log("reCAPTCHA expired");
+          },
         }
-      });
+      );
+    } catch (err) {
+      console.error("Failed to construct RecaptchaVerifier:", err);
+      throw new Error("Failed to create reCAPTCHA verifier: " + (err as any)?.message);
+    }
+
+    // Store verifier globally
+    (window as any).recaptchaVerifier = verifier;
+
+    // Render the widget and wait for it
+    try {
+      const widgetId = await verifier.render();
+      console.log("reCAPTCHA widget rendered with ID:", widgetId);
+    } catch (renderErr) {
+      console.error("Failed to render reCAPTCHA:", renderErr);
+      throw new Error("Failed to render reCAPTCHA widget: " + (renderErr as any)?.message);
+    }
+
+    // Sign in with phone number
+    try {
+      console.log("Attempting to send OTP to:", phoneE164);
+      const confirmation = await signInWithPhoneNumber(
+        authInstance,
+        phoneE164,
+        verifier
+      );
+      console.log("OTP sent successfully");
+      return confirmation;
+    } catch (err: any) {
+      console.error("signInWithPhoneNumber error:", err);
+      // Clear the verifier on error
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch {}
+        delete (window as any).recaptchaVerifier;
+      }
+      throw err;
     }
   };
 
@@ -106,42 +246,42 @@ export function PhoneSignUpForm({
     setError(null);
 
     try {
-      // Setup reCAPTCHA
-      setupRecaptcha();
-
-      // Format phone number for Firebase (add +91 for India)
-      const formattedPhone = `+91${phoneNumber}`;
-
-      // Send verification code
-      const result = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
-      setConfirmationResult(result);
-      setStep("verify");
-      showToast("Verification code sent to your phone", "success");
-
-    } catch (err: any) {
-      console.error("SMS sending error:", err);
-      let message = err?.message || "Failed to send verification code. Please try again.";
-
-      // Handle specific Firebase Auth errors
-      if (err?.code === 'auth/invalid-phone-number') {
-        message = "Invalid phone number format";
-      } else if (err?.code === 'auth/too-many-requests') {
-        message = "Too many requests. Please try again later.";
-      } else if (err?.code === 'auth/invalid-app-credential') {
-        message = "Authentication configuration error. Please check Firebase settings.";
-      } else if (err?.code === 'auth/missing-phone-number') {
-        message = "Phone number is required";
-      } else if (err?.code === 'auth/quota-exceeded') {
-        message = "SMS quota exceeded. Please try again later.";
-      } else if (err?.code === 'auth/captcha-check-failed') {
-        message = "reCAPTCHA verification failed. Please refresh and try again.";
-      } else if (err?.code === 'auth/missing-app-credential') {
-        message = "Firebase app not properly configured. Please check your setup.";
+      if (!/^\d{10}$/.test(phoneNumber)) {
+        throw new Error("Enter a valid 10-digit phone number");
       }
 
-      setError(message);
-      showToast(message, "error");
-      throw err; // Re-throw to allow caller to handle
+      const phoneE164 = `+91${phoneNumber}`;
+
+      // Create and render the verifier first
+      const confirmation = await createVerifierAndSend(phoneE164, true);
+
+      setConfirmationResult(confirmation);
+      setStep("verify");
+      setRequestCount((p) => p + 1);
+      showToast("OTP sent to +91" + phoneNumber, "success");
+    } catch (err: any) {
+      console.error("sendOtp error", err);
+      
+      // More specific error handling
+      if (err?.code === "auth/invalid-app-credential") {
+        showToast("Please complete the reCAPTCHA verification", "error");
+      } else if (err?.code === "auth/too-many-requests") {
+        setCooldownEndTime(Date.now() + COOLDOWN_DURATION_MS);
+        setRequestCount(MAX_REQUESTS_PER_HOUR);
+        showToast("Too many requests — try again later.", "error");
+      } else if (err?.code === "auth/captcha-check-failed") {
+        showToast("reCAPTCHA verification failed. Please try again.", "error");
+      } else {
+        showToast(err?.message || "Failed to send OTP", "error");
+      }
+      
+      // Clean up verifier on error
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch {}
+        delete (window as any).recaptchaVerifier;
+      }
     } finally {
       setLoading(false);
     }
@@ -150,11 +290,15 @@ export function PhoneSignUpForm({
   const handleSendCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Check rate limiting
     if (isInCooldown()) {
       const remaining = getCooldownRemaining();
       const minutes = Math.ceil(remaining / 60);
-      showToast(`Please wait ${minutes} minute${minutes > 1 ? 's' : ''} before requesting another code`, "error");
+      showToast(
+        `Please wait ${minutes} minute${
+          minutes > 1 ? "s" : ""
+        } before requesting another code`,
+        "error"
+      );
       return;
     }
 
@@ -163,80 +307,50 @@ export function PhoneSignUpForm({
       return;
     }
 
-    // Basic validation
-    if (!name.trim()) {
-      showToast("Please enter your name", "error");
-      return;
-    }
+    if (!name.trim()) return showToast("Please enter your name", "error");
+    if (!phoneNumber.trim())
+      return showToast("Please enter your phone number", "error");
+    if (!/^\d{10}$/.test(phoneNumber))
+      return showToast("Please enter a valid 10-digit phone number", "error");
 
-    if (!phoneNumber.trim()) {
-      showToast("Please enter your phone number", "error");
-      return;
-    }
-
-    // Phone number validation - exactly 10 digits
-    const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-      showToast("Please enter a valid 10-digit phone number", "error");
-      return;
-    }
-
-    try {
-      await sendOtp();
-      // Increment request count on successful request
-      setRequestCount(prev => prev + 1);
-    } catch (error) {
-      // If too many requests error, set cooldown
-      if (error instanceof Error && error.message.includes('too-many-requests')) {
-        setCooldownEndTime(Date.now() + COOLDOWN_DURATION_MS);
-        setRequestCount(MAX_REQUESTS_PER_HOUR); // Prevent further requests
-      }
-    }
+    await sendOtp();
   };
 
   const handleVerifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!verificationCode.trim()) {
-      showToast("Please enter the verification code", "error");
-      return;
-    }
-
-    if (!confirmationResult) {
-      showToast("Please request a new verification code", "error");
-      return;
-    }
+    if (!verificationCode.trim())
+      return showToast("Please enter the verification code", "error");
+    if (!confirmationResult)
+      return showToast("Please request a new verification code", "error");
 
     setLoading(true);
     setError(null);
 
     try {
-      // Verify the code
-      const result: UserCredential = await confirmationResult.confirm(verificationCode);
+      const result: UserCredential = await confirmationResult.confirm(
+        verificationCode
+      );
 
       if (result.user) {
-        // Create user account in your backend
+        const firebaseIdToken = await result.user.getIdToken();
         const registerData = {
-          name: name.trim(),
-          email: `${phoneNumber}@phone.local`, // Dummy email for backend compatibility
-          password: "phone_auth", // Dummy password
-          phone_Number: phoneNumber,
-          role: "User"
+          firebase_token: firebaseIdToken,
+          role: "User",
         };
 
-        await registerUser(registerData);
+        await registerUserWithPhone(firebaseIdToken,"User");
 
         showToast("Account created successfully!", "success");
-        router.replace("/login"); // Redirect to login
+        router.replace("/login");
       }
-
     } catch (err: any) {
       console.error("Verification error:", err);
-      let message = err?.message || "Invalid verification code. Please try again.";
+      let message =
+        err?.message || "Invalid verification code. Please try again.";
 
-      if (err?.code === 'auth/invalid-verification-code') {
+      if (err?.code === "auth/invalid-verification-code") {
         message = "Invalid verification code";
-      } else if (err?.code === 'auth/code-expired') {
+      } else if (err?.code === "auth/code-expired") {
         message = "Verification code has expired. Please request a new one.";
       }
 
@@ -248,11 +362,15 @@ export function PhoneSignUpForm({
   };
 
   const handleResendCode = async () => {
-    // Check rate limiting for resend
     if (isInCooldown()) {
       const remaining = getCooldownRemaining();
       const minutes = Math.ceil(remaining / 60);
-      showToast(`Please wait ${minutes} minute${minutes > 1 ? 's' : ''} before requesting another code`, "error");
+      showToast(
+        `Please wait ${minutes} minute${
+          minutes > 1 ? "s" : ""
+        } before requesting another code`,
+        "error"
+      );
       return;
     }
 
@@ -261,28 +379,17 @@ export function PhoneSignUpForm({
       return;
     }
 
-    setStep("phone");
     setVerificationCode("");
     setConfirmationResult(null);
     setError(null);
-
-    // Reset reCAPTCHA verifier for resend
     if ((window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier.clear();
+      try {
+        (window as any).recaptchaVerifier.clear();
+      } catch {}
       delete (window as any).recaptchaVerifier;
     }
 
-    try {
-      await sendOtp();
-      // Increment request count on successful resend
-      setRequestCount(prev => prev + 1);
-    } catch (error) {
-      // If too many requests error, set cooldown
-      if (error instanceof Error && error.message.includes('too-many-requests')) {
-        setCooldownEndTime(Date.now() + COOLDOWN_DURATION_MS);
-        setRequestCount(MAX_REQUESTS_PER_HOUR);
-      }
-    }
+    await sendOtp();
   };
 
   return (
@@ -296,19 +403,29 @@ export function PhoneSignUpForm({
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-2xl font-bold">
-                  Welcome <span className="text-primary-red">to</span> our platform
+                  Welcome <span className="text-primary-red">to</span> our
+                  platform
                 </h1>
                 <p className="text-muted-foreground text-balance text-sm">
                   {step === "phone"
                     ? "Sign up with your phone number"
-                    : "Enter the verification code sent to your phone"
-                  }
+                    : "Enter the verification code sent to your phone"}
                 </p>
               </div>
 
               {step === "phone" ? (
                 <>
                   <div className="grid gap-3">
+                  <div className="flex items-center gap-2 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => window.history.back()}
+                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back
+                      </button>
+                    </div>
                     <Label htmlFor="name">Name</Label>
                     <Input
                       id="name"
@@ -337,30 +454,12 @@ export function PhoneSignUpForm({
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={loading || isInCooldown() || hasExceededRateLimit()}
+                    disabled={
+                      loading || isInCooldown() || hasExceededRateLimit()
+                    }
                   >
                     {loading ? (
                       <span className="flex items-center justify-center gap-2">
-                        <svg
-                          className="animate-spin h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v8z"
-                          ></path>
-                        </svg>
                         Sending Code...
                       </span>
                     ) : isInCooldown() ? (
@@ -382,7 +481,9 @@ export function PhoneSignUpForm({
                       placeholder="123456"
                       required
                       value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) =>
+                        setVerificationCode(e.target.value.replace(/\D/g, ""))
+                      }
                       maxLength={6}
                     />
                     <p className="text-xs text-muted-foreground">
@@ -390,50 +491,20 @@ export function PhoneSignUpForm({
                     </p>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg
-                          className="animate-spin h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v8z"
-                          ></path>
-                        </svg>
-                        Verifying...
-                      </span>
-                    ) : (
-                      "Verify & Sign Up"
-                    )}
+                    {loading ? "Verifying..." : "Verify & Sign Up"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full"
                     onClick={handleResendCode}
-                    disabled={loading || isInCooldown() || hasExceededRateLimit()}
+                    disabled={
+                      loading || isInCooldown() || hasExceededRateLimit()
+                    }
                   >
-                    {loading ? (
-                      "Sending..."
-                    ) : isInCooldown() ? (
-                      `Wait ${Math.ceil(getCooldownRemaining() / 60)}m`
-                    ) : hasExceededRateLimit() ? (
-                      "Too Many Requests"
-                    ) : (
-                      "Resend Code"
-                    )}
+                    {isInCooldown()
+                      ? `Wait ${Math.ceil(getCooldownRemaining() / 60)}m`
+                      : "Resend Code"}
                   </Button>
                 </>
               )}
@@ -454,6 +525,7 @@ export function PhoneSignUpForm({
               </div>
             </div>
           </form>
+
           <div className="bg-muted relative hidden md:block">
             <img
               src="/login/login.png"
@@ -463,8 +535,9 @@ export function PhoneSignUpForm({
           </div>
         </CardContent>
       </Card>
-      {/* reCAPTCHA container */}
-      <div id="recaptcha-container"></div>
+
+      {/* reCAPTCHA container - hidden for invisible mode */}
+      <div id="recaptcha-container" />
     </div>
   );
 }

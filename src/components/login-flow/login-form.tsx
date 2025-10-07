@@ -152,7 +152,7 @@ export function LoginForm({
                   </button>
                 </div>
                 <a
-                  href="#"
+                  href="/admin/resetpassword"
                   className="ml-auto text-sm underline-offset-2 hover:underline"
                 >
                   Forgot your password?

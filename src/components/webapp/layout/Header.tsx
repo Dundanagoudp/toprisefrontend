@@ -27,13 +27,16 @@ import { useToast } from "@/components/ui/toast";
 import LogoNoname from "../../../../public/assets/logo.png";
 import Image from "next/image";
 import { LogOut } from "@/store/slice/auth/authSlice";
-import SearchInput from "@/components/common/search/SearchInput";
+import SearchInputWithVehicles from "@/components/common/search/SearchInputWithVehicles";
+import { UserVehicleDetails } from "@/service/user/userService";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { selectVehicleType, selectVehicleTypeId, toggleVehicleType } from "@/store/slice/vehicle/vehicleSlice";
+import PurchaseOrderDialog from "../modules/UserSetting/popup/PurchaseOrderBox";
+
 
 export const Header = () => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const vehicleType = useAppSelector(selectVehicleType);
   const typeId = useAppSelector(selectVehicleTypeId);
   const [cartOpen, setCartOpen] = useState(false);
@@ -42,6 +45,7 @@ export const Header = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { showToast } = useToast();
+    const [poOpen, setPoOpen] = useState(false);
   const {
     cartData: cart,
     fetchCart,
@@ -97,6 +101,25 @@ export const Header = () => {
     setSearchValue("");
   };
 
+  const handleVehicleSelect = (vehicle: UserVehicleDetails) => {
+    // You can customize this behavior based on your needs
+    // For example, you might want to search for parts for this specific vehicle
+    const searchQuery = `${vehicle.brand} ${vehicle.model} ${vehicle.variant || ''}`.trim();
+    setSearchValue(searchQuery);
+
+    // Optionally trigger search immediately
+    if (searchQuery) {
+      const params = new URLSearchParams({
+        query: searchQuery,
+        vehicleTypeId: typeId,
+        brand: vehicle.brand || '',
+        model: vehicle.model || '',
+        variant: vehicle.variant || '',
+      });
+      router.push(`/shop/search-results/?${params.toString()}`);
+    }
+  };
+
   const handleToggle = () => {
     dispatch(toggleVehicleType());
   };
@@ -146,11 +169,12 @@ export const Header = () => {
           {/* Desktop Search Bar */}
           <div className="hidden lg:flex flex-grow justify-center">
             <div className="w-full max-w-md">
-              <SearchInput
+              <SearchInputWithVehicles
                 value={searchValue}
                 onChange={handleSearchChange}
                 onClear={handleSearchClear}
                 onSubmit={handleSearchSubmit}
+                onVehicleSelect={handleVehicleSelect}
                 placeholder="Search products..."
               />
             </div>
@@ -182,12 +206,18 @@ export const Header = () => {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="w-48 p-2">
-                      <NavigationMenuLink
+                        <button
+            onClick={() => setPoOpen(true)}
+            className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+          >
+            Upload Purchase Request
+          </button>
+                      {/* <NavigationMenuLink
                         href="/services/upload-parts"
                         className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                       >
                         Upload Required Parts List
-                      </NavigationMenuLink>
+                      </NavigationMenuLink> */}
                       <NavigationMenuLink
                         href="/services/upcoming"
                         className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
@@ -329,11 +359,12 @@ export const Header = () => {
 
         {/* Mobile Search Bar */}
         <div className="lg:hidden pb-4">
-          <SearchInput
+          <SearchInputWithVehicles
             value={searchValue}
             onChange={handleSearchChange}
             onClear={handleSearchClear}
             onSubmit={handleSearchSubmit}
+            onVehicleSelect={handleVehicleSelect}
             placeholder="Search products..."
           />
         </div>
@@ -347,6 +378,15 @@ export const Header = () => {
               <div className="px-4 py-2">
                 <h3 className="text-sm font-medium text-gray-900 mb-2">Services</h3>
                 <div className="space-y-1 ml-4">
+                  <button
+                    onClick={() => {
+                      setPoOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left py-2 text-sm text-gray-700 hover:text-gray-900"
+                  >
+                    Upload Purchase Request
+                  </button>
                   <a
                     href="/services/upload-parts"
                     className="block py-2 text-sm text-gray-700 hover:text-gray-900"
@@ -446,6 +486,17 @@ export const Header = () => {
             </div>
           </div>
         )}
+        <PurchaseOrderDialog
+        isOpen={poOpen}
+        onClose={() => setPoOpen(false)}
+        userId={user?._id}
+        onSubmit={async ({ files, description }) => {
+          // Minimal placeholder: log and close dialog
+          console.log("PurchaseRequest payload:", { files, description });
+          // If you want to keep open on failure, return false
+          return true;
+        }}
+      />
       </div>
     </header>
   );
