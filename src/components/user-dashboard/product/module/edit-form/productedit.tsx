@@ -32,7 +32,7 @@ import {
   getProductById,
 } from "@/service/product-Service";
 import { getDealersByCategory } from "@/service/dealerServices";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Product } from "@/types/product-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 
@@ -106,6 +106,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function ProductEdit() {
+  const router = useRouter();
   // State for dropdown options
     const auth = useAppSelector((state) => state.auth.user);
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
@@ -547,6 +548,11 @@ export default function ProductEdit() {
         const response = await editProduct(id.id, formData);
         showToast("Product updated successfully", "success");
         setApiError("");
+        
+        // Navigate back to products page after successful update
+        setTimeout(() => {
+          router.push("/user/dashboard/product");
+        }, 1500); // Wait 1.5 seconds to show the success toast before navigating
       } catch (error: any) {
         console.error("Failed to edit product (FormData):", error);
         showToast("Failed to update product", "error");

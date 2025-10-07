@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -71,11 +71,13 @@ export default function ApprovedProduct({
   selectedTab,
   categoryFilter,
   subCategoryFilter,
+  refreshKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
   categoryFilter?: string;
   subCategoryFilter?: string;
+  refreshKey?: number;
 }) {
   const dispatch = useAppDispatch();
   // Use the correct state for products with live status
@@ -107,62 +109,62 @@ export default function ApprovedProduct({
   }>>([]);
   const [assigningDealers, setAssigningDealers] = useState(false);
 
+  // Extract fetchProducts function so it can be called from multiple places
+  const fetchProducts = useCallback(async () => {
+    setLoadingProducts(true);
+    try {
+      console.log("🔍 ApprovedProduct: Fetching products with status: Approved");
+      console.log("🔍 ApprovedProduct: searchQuery received:", searchQuery);
+      console.log("🔍 ApprovedProduct: categoryFilter:", categoryFilter);
+      console.log("🔍 ApprovedProduct: subCategoryFilter:", subCategoryFilter);
+      console.log("🔍 ApprovedProduct: API call params:", {
+        currentPage,
+        itemsPerPage,
+        status: "Approved",
+        searchQuery,
+        categoryFilter,
+        subCategoryFilter
+      });
+      
+      const res = await getProductsByPage(
+        currentPage,
+        itemsPerPage,
+        "Approved",
+        searchQuery,
+        categoryFilter,
+        subCategoryFilter
+      );
+      
+      console.log("🔍 ApprovedProduct: API response received:", res);
+      
+      const data = res.data;
+      console.log("ApprovedProduct: API response received:", res);
+      console.log("ApprovedProduct: API response data:", data);
+      console.log("ApprovedProduct: Products in response:", data?.products);
+      console.log("ApprovedProduct: Number of products returned:", data?.products?.length);
+      
+      if (data?.products) {
+        setPaginatedProducts(data.products);
+        setTotalProducts(data.pagination.totalItems);
+        setTotalPages(data.pagination.totalPages);
+        console.log("ApprovedProduct: Products set successfully, count:", data.products.length);
+        console.log("ApprovedProduct: Pagination data:", data.pagination);
+        console.log("ApprovedProduct: Total items from API:", data.pagination.totalItems);
+        console.log("ApprovedProduct: Total pages from API:", data.pagination.totalPages);
+      } else {
+        console.error("Unexpected API response structure:", res.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter]);
+
   // Fetch products on component mount
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoadingProducts(true);
-      try {
-        console.log("🔍 ApprovedProduct: useEffect triggered");
-        console.log("🔍 ApprovedProduct: Fetching products with status: Approved");
-        console.log("🔍 ApprovedProduct: searchQuery received:", searchQuery);
-        console.log("🔍 ApprovedProduct: categoryFilter:", categoryFilter);
-        console.log("🔍 ApprovedProduct: subCategoryFilter:", subCategoryFilter);
-        console.log("🔍 ApprovedProduct: API call params:", {
-          currentPage,
-          itemsPerPage,
-          status: "Approved",
-          searchQuery,
-          categoryFilter,
-          subCategoryFilter
-        });
-        
-        const res = await getProductsByPage(
-          currentPage,
-          itemsPerPage,
-          "Approved",
-          searchQuery,
-          categoryFilter,
-          subCategoryFilter
-        );
-        
-        console.log("🔍 ApprovedProduct: API response received:", res);
-        
-        const data = res.data;
-        console.log("ApprovedProduct: API response received:", res);
-        console.log("ApprovedProduct: API response data:", data);
-        console.log("ApprovedProduct: Products in response:", data?.products);
-        console.log("ApprovedProduct: Number of products returned:", data?.products?.length);
-        
-        if (data?.products) {
-          setPaginatedProducts(data.products);
-          setTotalProducts(data.pagination.totalItems);
-          setTotalPages(data.pagination.totalPages);
-          console.log("ApprovedProduct: Products set successfully, count:", data.products.length);
-          console.log("ApprovedProduct: Pagination data:", data.pagination);
-          console.log("ApprovedProduct: Total items from API:", data.pagination.totalItems);
-          console.log("ApprovedProduct: Total pages from API:", data.pagination.totalPages);
-        } else {
-          console.error("Unexpected API response structure:", res.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-
     fetchProducts();
-  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter]);
+  }, [fetchProducts, refreshKey]);
 
   // Reset to first page when search or filters change
   useEffect(() => {
@@ -336,6 +338,9 @@ export default function ApprovedProduct({
           updateProductLiveStatus({ id: productId, liveStatus: "Pending" })
         );
       }
+      
+      // Refresh the product list after status change
+      await fetchProducts();
     } catch (error) {
       console.error("Failed to update product status:", error);
       showToast("Failed to update product status", "error");

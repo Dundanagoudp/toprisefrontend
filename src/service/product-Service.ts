@@ -339,14 +339,16 @@ export async function approveSingleProduct(
 
 export async function rejectSingleProduct(
   productId: string,
-  rejectionReason?: string
+  reason?: string
 ): Promise<ProductResponse> {
   try {
-    const data = rejectionReason ? { rejectionReason } : {};
+    const data = reason ? { reason } : {};
+    console.log("Rejecting product:", productId, "with payload:", data);
     const response = await apiClient.patch(
       `/category/products/v1/reject/${productId}`,
       data
     );
+    console.log("Reject response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Failed to reject product:", error);
@@ -442,6 +444,18 @@ export async function createModel(data: FormData): Promise<any> {
   }
 }
 export async function createBrand(data: FormData): Promise<any> {
+  try {
+    const response = await apiClient.post(`/category/api/brands`, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (err: any) {
+    console.error("Failed to create category:", err);
+    throw err;
+  }
+}export async function updateBrand(data: FormData): Promise<any> {
   try {
     const response = await apiClient.post(`/category/api/brands`, data, {
       headers: {

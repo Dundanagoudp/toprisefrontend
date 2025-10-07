@@ -1,18 +1,35 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { useToast as useGlobalToast } from "@/components/ui/toast"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-import { X, Image as ImageIcon } from 'lucide-react'
-import { createBrand, createSubCategory, getCategories, getTypes } from '@/service/product-Service'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { type } from 'os'
-import { useAppSelector } from '@/store/hooks'
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import { X, Image as ImageIcon } from "lucide-react";
+import {
+  createBrand,
+  createSubCategory,
+  getCategories,
+  getTypes,
+} from "@/service/product-Service";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { type } from "os";
+import { useAppSelector } from "@/store/hooks";
 
 // Validation schema for brand creation
 const brandSchema = z.object({
@@ -21,14 +38,20 @@ const brandSchema = z.object({
     .min(1, "Brand name is required")
     .min(2, "Brand name must be at least 2 characters")
     .max(100, "Brand name must not exceed 100 characters")
-    .regex(/^[a-zA-Z0-9\s-_]+$/, "Brand name can only contain letters, numbers, spaces, hyphens, and underscores"),
+    .regex(
+      /^[a-zA-Z0-9\s-_]+$/,
+      "Brand name can only contain letters, numbers, spaces, hyphens, and underscores"
+    ),
 
   brand_code: z
     .string()
     .min(1, "Brand code is required")
     .min(1, "Brand code must be at least 1 character")
     .max(20, "Brand code must not exceed 20 characters")
-    .regex(/^[A-Z0-9-_]+$/, "Brand code must be uppercase letters, numbers, hyphens, or underscores only"),
+    .regex(
+      /^[A-Z0-9-_]+$/,
+      "Brand code must be uppercase letters, numbers, hyphens, or underscores only"
+    ),
 
   brand_description: z
     .string()
@@ -46,29 +69,37 @@ const brandSchema = z.object({
       "Image size must be less than 5MB"
     )
     .refine(
-      (file) => !file || ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type),
+      (file) =>
+        !file ||
+        ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(
+          file.type
+        ),
       "Only JPEG, PNG, WebP, and GIF images are allowed"
     ),
-})
+});
 
-type BrandFormValues = z.infer<typeof brandSchema>
+type BrandFormValues = z.infer<typeof brandSchema>;
 
 interface CreateBrandProps {
-  open: boolean
-  onClose: () => void
-  onSuccess?: (brand: any) => void
+  open: boolean;
+  onClose: () => void;
+  onSuccess?: (brand: any) => void;
 }
 
-export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandProps) {
-  const { showToast } = useGlobalToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [dragActive, setDragActive] = useState(false)
-  const [types, setTypes] = useState<any[]>([])
-  const [typeLoading, setTypeLoading] = useState(false)
-  const auth = useAppSelector((state) => state.auth)
+export default function CreateBrand({
+  open,
+  onClose,
+  onSuccess,
+}: CreateBrandProps) {
+  const { showToast } = useGlobalToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [types, setTypes] = useState<any[]>([]);
+  const [typeLoading, setTypeLoading] = useState(false);
+  const auth = useAppSelector((state) => state.auth);
 
-  const { 
+  const {
     register,
     handleSubmit,
     reset,
@@ -79,152 +110,169 @@ export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandPro
   } = useForm<BrandFormValues>({
     resolver: zodResolver(brandSchema),
     defaultValues: {
-      brand_name: '',
-      brand_code: '',
-      brand_description: '',
-      type_ref: '',
+      brand_name: "",
+      brand_code: "",
+      brand_description: "",
+      type_ref: "",
       brand_logo: undefined,
-    }
-  })
+    },
+  });
 
-  const watchedImage = watch('brand_logo')
-    useEffect(() => {
-      const fetchTypes = async () => {
-        setTypeLoading(true);
-        try {
-          const response = await getTypes();
-          const items = response.data;
-          setTypes(items);
-        } catch (err: any) {
-          console.error("Failed to fetch vehicle types:", err);
-          showToast("Failed to fetch vehicle types. Please try again.", "error");
-        } finally {
-          setTypeLoading(false);
-        }
-      };
-      
-      fetchTypes();
-    }, [])
+  const watchedImage = watch("brand_logo");
+  useEffect(() => {
+    const fetchTypes = async () => {
+      setTypeLoading(true);
+      try {
+        const response = await getTypes();
+        const items = response.data;
+        setTypes(items);
+      } catch (err: any) {
+        console.error("Failed to fetch vehicle types:", err);
+        showToast("Failed to fetch vehicle types. Please try again.", "error");
+      } finally {
+        setTypeLoading(false);
+      }
+    };
+
+    fetchTypes();
+  }, []);
 
   // Handle form submission
-  const handleFormSubmit = useCallback(async (data: BrandFormValues) => {
-    try {
-      console.log("Brand form data:", data)
-      
-      // Create FormData for file upload
-      const formData = new FormData()
-      formData.append('brand_name', data.brand_name)
-      formData.append('brand_code', data.brand_code)
-      formData.append('brand_description', data.brand_description)
-      formData.append('type', data.type_ref)
-      formData.append("created_by", auth.user._id); 
-      formData.append("updated_by", auth.user._id); 
-      // Status will be set to "Created" by default on the backend
+  const handleFormSubmit = useCallback(
+    async (data: BrandFormValues) => {
+      try {
+        console.log("Brand form data:", data);
 
-      if (data.brand_logo) {
-        formData.append('file', data.brand_logo)
-      }
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append("brand_name", data.brand_name);
+        formData.append("brand_code", data.brand_code);
+        formData.append("brand_description", data.brand_description);
+        formData.append("type", data.type_ref);
+        formData.append("created_by", auth.user._id);
+        formData.append("updated_by", auth.user._id);
+        // Status will be set to "Created" by default on the backend
 
-     await createBrand(formData)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      showToast("Brand created successfully!", "success")
-      
-      // Reset form and close dialog
-      reset()
-      setImagePreview(null)
-      onClose()
-      
-      // Call success callback if provided
-      if (onSuccess) {
-        onSuccess(data)
+        if (data.brand_logo) {
+          formData.append("file", data.brand_logo);
+        }
+
+        await createBrand(formData);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        showToast("Brand created successfully!", "success");
+        window.location.reload();
+
+        // Reset form and close dialog
+        reset();
+        setImagePreview(null);
+        onClose();
+
+        // Call success callback if provided
+        if (onSuccess) {
+          onSuccess(data);
+        }
+      } catch (err: any) {
+        console.error("Error creating brand:", err);
+        showToast("Failed to create brand. Please try again.", "error");
       }
-      
-    } catch (err: any) {
-      console.error("Error creating brand:", err)
-      showToast("Failed to create brand. Please try again.", "error")
-    }
-  }, [showToast, reset, onClose, onSuccess])
+    },
+    [showToast, reset, onClose, onSuccess]
+  );
 
   // Handle file selection
-  const handleFileSelect = useCallback((file: File) => {
-    setValue('brand_logo', file, { shouldValidate: true })
-    
-    // Create preview
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string)
-    }
-    reader.readAsDataURL(file)
-  }, [setValue])
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      setValue("brand_logo", file, { shouldValidate: true });
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    },
+    [setValue]
+  );
 
   // Handle file input change
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      handleFileSelect(file)
-    }
-  }, [handleFileSelect])
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        handleFileSelect(file);
+      }
+    },
+    [handleFileSelect]
+  );
 
   // Handle drag and drop
   const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true)
+      setDragActive(true);
     } else if (e.type === "dragleave") {
-      setDragActive(false)
+      setDragActive(false);
     }
-  }, [])
+  }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-    
-    const file = e.dataTransfer.files?.[0]
-    if (file) {
-      handleFileSelect(file)
-    }
-  }, [handleFileSelect])
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+
+      const file = e.dataTransfer.files?.[0];
+      if (file) {
+        handleFileSelect(file);
+      }
+    },
+    [handleFileSelect]
+  );
 
   // Remove selected image
   const removeImage = useCallback(() => {
-    setValue('brand_logo', undefined, { shouldValidate: true })
-    setImagePreview(null)
+    setValue("brand_logo", undefined, { shouldValidate: true });
+    setImagePreview(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = "";
     }
-  }, [setValue])
+  }, [setValue]);
 
   // Auto-generate brand code from name
-  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value
-    const code = name
-      .toUpperCase()
-      .replace(/[^A-Z0-9\s]/g, '')
-      .replace(/\s+/g, '_')
-      .substring(0, 20)
+  const handleNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const name = e.target.value;
+      const code = name
+        .toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, "")
+        .replace(/\s+/g, "_")
+        .substring(0, 20);
 
-    setValue('brand_code', code, { shouldValidate: true })
-  }, [setValue])
+      setValue("brand_code", code, { shouldValidate: true });
+    },
+    [setValue]
+  );
 
   // Handle dialog close
   const handleClose = useCallback(() => {
-    reset()
-    setImagePreview(null)
-    onClose()
-  }, [reset, onClose])
+    reset();
+    setImagePreview(null);
+    onClose();
+  }, [reset, onClose]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Create New Brand</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            Create New Brand
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-               <div className="space-y-2">
+          <div className="space-y-2">
             <Label className="text-sm font-medium">
               Type <span className="text-red-500">*</span>
             </Label>
@@ -232,36 +280,39 @@ export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandPro
               name="type_ref"
               control={control}
               render={({ field }) => (
-                <Select 
-                  onValueChange={field.onChange} 
+                <Select
+                  onValueChange={field.onChange}
                   defaultValue={field.value}
                   disabled={typeLoading}
                 >
                   <SelectTrigger className="bg-gray-50 border-gray-200 rounded-lg">
-                    <SelectValue 
+                    <SelectValue
                       placeholder={
                         typeLoading
                           ? "Loading types..."
-                          : (!types || !Array.isArray(types) || types.length === 0)
-                            ? "No types available"
-                            : "Select a type"
-                      } 
+                          : !types ||
+                            !Array.isArray(types) ||
+                            types.length === 0
+                          ? "No types available"
+                          : "Select a type"
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {types && Array.isArray(types) && types.length > 0 ? (
-                      types.map((option: any) => (
-                        <SelectItem key={option?._id || Math.random()} value={option?._id || ""}>
-                          {option?.type_name || "Unknown Type"}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      !typeLoading && (
-                        <SelectItem value="no-data" disabled>
-                          No types available
-                        </SelectItem>
-                      )
-                    )}
+                    {types && Array.isArray(types) && types.length > 0
+                      ? types.map((option: any) => (
+                          <SelectItem
+                            key={option?._id || Math.random()}
+                            value={option?._id || ""}
+                          >
+                            {option?.type_name || "Unknown Type"}
+                          </SelectItem>
+                        ))
+                      : !typeLoading && (
+                          <SelectItem value="no-data" disabled>
+                            No types available
+                          </SelectItem>
+                        )}
                   </SelectContent>
                 </Select>
               )}
@@ -307,7 +358,8 @@ export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandPro
               </span>
             )}
             <p className="text-xs text-gray-500">
-              Code is independent and can be set manually. Use uppercase letters, numbers, hyphens, or underscores.
+              Code is independent and can be set manually. Use uppercase
+              letters, numbers, hyphens, or underscores.
             </p>
           </div>
 
@@ -331,16 +383,14 @@ export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandPro
 
           {/* Image Upload */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Brand Logo
-            </Label>
-            
+            <Label className="text-sm font-medium">Brand Logo</Label>
+
             {!imagePreview ? (
               <div
                 className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                  dragActive 
-                    ? 'border-blue-400 bg-blue-50' 
-                    : 'border-gray-300 hover:border-gray-400'
+                  dragActive
+                    ? "border-blue-400 bg-blue-50"
+                    : "border-gray-300 hover:border-gray-400"
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -350,7 +400,10 @@ export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandPro
               >
                 <ImageIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium text-blue-600">Click to upload</span> or drag and drop
+                  <span className="font-medium text-blue-600">
+                    Click to upload
+                  </span>{" "}
+                  or drag and drop
                 </p>
                 <p className="text-xs text-gray-500">
                   PNG, JPG, WebP or GIF (max. 5MB)
@@ -379,7 +432,7 @@ export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandPro
                 </button>
               </div>
             )}
-            
+
             {errors.brand_logo && (
               <span className="text-red-500 text-sm">
                 {errors.brand_logo.message}
@@ -407,12 +460,12 @@ export default function CreateBrand({ open, onClose, onSuccess }: CreateBrandPro
                   Creating...
                 </>
               ) : (
-                'Create Brand'
+                "Create Brand"
               )}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

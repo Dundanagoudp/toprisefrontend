@@ -56,11 +56,13 @@ export default function RejectedProduct({
   selectedTab,
   categoryFilter,
   subCategoryFilter,
+  refreshKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
   categoryFilter?: string;
   subCategoryFilter?: string;
+  refreshKey?: number;
 }) {
   const dispatch = useAppDispatch();
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
@@ -116,7 +118,7 @@ export default function RejectedProduct({
     };
 
     fetchProducts();
-  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter]);
+  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter, refreshKey]);
 
   // Reset to first page when search or filters change
   useEffect(() => {

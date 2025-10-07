@@ -1,4 +1,4 @@
-import ProductInformation from '@/components/user-dashboard/products/ProductInformation'
+import ViewProductDetails from '@/components/user-dashboard/product/module/productDetails'
 import React from 'react'
 
 interface PageProps {
@@ -10,7 +10,7 @@ interface PageProps {
 export default function ProductDetailsPage({ params }: PageProps) {
   return (
     <div>
-      <ProductInformation productId={params.id} />
+      <ViewProductDetails />
     </div>
   )
 }
