@@ -50,6 +50,7 @@ export default function ProductManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [selectedTab, setSelectedTab] = useState("Approved");
+  const [refreshKey, setRefreshKey] = useState(0);
 const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState<"upload" | "edit" | "uploadDealer">(
     "upload"
@@ -186,7 +187,10 @@ const getStatusColor = (status: string) => {
     console.log("ProductManagement: Subcategory Name filter changed to:", selectedSubCategoryName);
     console.log("ProductManagement: Categories data:", categories);
     console.log("ProductManagement: Subcategories data:", subCategories);
-  }, [selectedCategoryId, selectedCategoryName, selectedSubCategoryId, selectedSubCategoryName, categories, subCategories]);
+    
+    // Trigger refresh when filters change
+    setRefreshKey(prev => prev + 1);
+  }, [selectedCategoryId, selectedSubCategoryId]);
 
   const handleUploadBulk = () => {
     setBulkMode("upload");
@@ -229,6 +233,9 @@ const getStatusColor = (status: string) => {
         dispatch(updateProductLiveStatus({ id, liveStatus: "Approved" }));
       });
       showToast("Approved successfully", "success");
+      
+      // Trigger refresh in child components
+      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error("Bulk approve failed:", error);
       showToast("Approved failed", "error");
@@ -260,7 +267,8 @@ const handleBulkReject = useCallback(() => {
            dispatch(updateProductLiveStatus({ id, liveStatus: "Pending" }));
          });
          
-    
+      // Trigger refresh in child components
+      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error("Bulk deactivate failed:", error);
     }
@@ -310,9 +318,10 @@ const handleBulkReject = useCallback(() => {
         selectedTab={selectedTab}
         categoryFilter={selectedCategoryId || undefined}
         subCategoryFilter={selectedSubCategoryId || undefined}
+        refreshKey={refreshKey}
       />
     );
-  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryId, selectedSubCategoryId, activeTab]);
+  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryId, selectedSubCategoryId, activeTab, refreshKey]);
 
   return (
     <div className="w-full ">
@@ -593,9 +602,9 @@ const handleBulkReject = useCallback(() => {
               isOpen={isRejectDialogOpen}
               onClose={() => setIsRejectDialogOpen(false)}
               onSubmit={(data) => {
-             
                 setIsRejectDialogOpen(false);
-           
+                // Trigger refresh after bulk rejection
+                setRefreshKey(prev => prev + 1);
               }}
             />
             

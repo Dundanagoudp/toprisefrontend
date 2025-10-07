@@ -210,7 +210,7 @@ export const getProductById = async (productId: string): Promise<any> => {
   try {
     console.log("Fetching product by ID:", productId);
     // Uses authenticated apiClient
-    const response = await apiClient.get(`https://api.toprise.in/products/api/products/${productId}`);
+    const response = await apiClient.get(`https://api.toprise.in/products/products/v1/get-ProductById/${productId}`);
     console.log("Product API response for ID:", productId, response.data);
     return response.data;
   } catch (error) {

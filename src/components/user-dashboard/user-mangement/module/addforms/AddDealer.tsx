@@ -105,12 +105,26 @@ export default function AddDealer() {
     setIsLoadingData(true)
     try {
       const usersResponse = await getAllUsers()
+      console.log("All users response:", usersResponse)
       if (usersResponse.success) {
+        const allUsersData = usersResponse.data || []
+        console.log("All users data:", allUsersData)
+        
         // Keep only Fulfillment-Staff employees
-        const fulfillmentStaff = (usersResponse.data || []).filter((u: any) => u?.role === "Fulfillment-Staff")
+        const fulfillmentStaff = allUsersData.filter((u: any) => {
+          console.log(`User: ${u?.email}, Role: ${u?.role}`)
+          return u?.role === "Fulfillment-Staff"
+        })
+        
+        console.log("Filtered fulfillment staff:", fulfillmentStaff)
         setUsers(fulfillmentStaff)
+        
+        if (fulfillmentStaff.length === 0) {
+          showToast("No Fulfillment Staff found. Please add fulfillment staff first.", "warning");
+        }
       }
     } catch (error) {
+      console.error("Error fetching users:", error)
       showToast("Failed to load users. Please refresh the page.", "error");
     } finally {
       setIsLoadingData(false)
@@ -579,24 +593,37 @@ export default function AddDealer() {
                 name="assigned_Toprise_employee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assigned Toprise Employee</FormLabel>
+                    <FormLabel>Assigned Fulfilment Staff</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange([{ assigned_user: value, status: "Active" }])
                       }}
-                      value={field.value?.[0]?.assigned_user || ""} 
+                      value={field.value?.[0]?.assigned_user || ""}
+                      disabled={isLoadingData}
                     >
                       <FormControl>
                         <SelectTrigger className="bg-gray-50 border-gray-200">
-                          <SelectValue placeholder="Select an employee" />
+                          <SelectValue placeholder={
+                            isLoadingData 
+                              ? "Loading fulfillment staff..." 
+                              : users.length === 0 
+                              ? "No fulfillment staff available" 
+                              : "Select a fulfillment staff"
+                          } />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {users.map((user) => (
-                          <SelectItem key={user._id} value={user._id}>
-                            {user.email} ({user.role})
+                        {users.length === 0 ? (
+                          <SelectItem value="no-users" disabled>
+                            No fulfillment staff found
                           </SelectItem>
-                        ))}
+                        ) : (
+                          users.map((user) => (
+                            <SelectItem key={user._id} value={user._id}>
+                              {user.First_name || user.email} - {user.email}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -288,10 +288,10 @@ export default function CreateCategory({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
                    {/* VehicleType Dropdown */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">
+            <Label htmlFor="vehicleType_id" className="text-sm font-medium">
               Vehicle Type <span className="text-red-500">*</span>
             </Label>
             <Controller
@@ -303,7 +303,7 @@ export default function CreateCategory({
                   defaultValue={field.value}
                   disabled={typeLoading}
                 >
-                  <SelectTrigger className="bg-gray-50 border-gray-200 rounded-lg">
+                  <SelectTrigger className="w-full bg-gray-50 border-gray-200 rounded-lg">
                     <SelectValue 
                       placeholder={
                         typeLoading 
@@ -347,7 +347,7 @@ export default function CreateCategory({
             <Input
               id="category_name"
               placeholder="Enter category name"
-              className="bg-gray-50 border-gray-200 rounded-lg"
+              className="w-full bg-gray-50 border-gray-200 rounded-lg"
               {...register("category_name")}
             />
             {errors.category_name && (
@@ -365,7 +365,7 @@ export default function CreateCategory({
             <Input
               id="category_code"
               placeholder="AUTO_GENERATED"
-              className="bg-gray-50 border-gray-200 rounded-lg"
+              className="w-full bg-gray-50 border-gray-200 rounded-lg"
               {...register("category_code")}
             />
             {errors.category_code && (
@@ -389,7 +389,7 @@ export default function CreateCategory({
             <Textarea
               id="category_description"
               placeholder="Enter detailed description of the category"
-              className="bg-gray-50 border-gray-200 rounded-lg min-h-[100px] resize-none"
+              className="w-full bg-gray-50 border-gray-200 rounded-lg min-h-[100px] resize-none"
               {...register("category_description")}
             />
             {errors.category_description && (

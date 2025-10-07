@@ -31,6 +31,8 @@ export interface User {
   email: string
   phone_Number: string
   role: string
+  First_name?: string
+  Last_name?: string
 }
 
 // New interface for Category based on your provided JSON structure
@@ -90,7 +92,7 @@ export interface CreateDealerRequest {
   last_fulfillment_date: string
   assigned_Toprise_employee: AssignedEmployee[]
   SLA_type: string
-  dealer_dispatch_time: number
+  dealer_dispatch_time?: number
   onboarding_date: string
   remarks: string
 }

@@ -29,7 +29,7 @@ interface RejectReasonProps {
   onSubmit: (data: RejectReasonFormData) => void;
 }
 
-export default function RejectReason({ isOpen, onClose }: RejectReasonProps) {
+export default function RejectReason({ isOpen, onClose, onSubmit }: RejectReasonProps) {
   const { showToast } = useGlobalToast();
   const auth = useAppSelector((state) => state.auth);
   const selectedProducts = useAppSelector(
@@ -57,34 +57,39 @@ export default function RejectReason({ isOpen, onClose }: RejectReasonProps) {
     async (data: RejectReasonFormData) => {
       try {
         const productIds = Object.keys(selectedProducts);
-        // Create FormData for file upload
-        const payload: any = {
-          reason: data.reason,
-          rejectedBy: auth.user._id,
-          productIds: Object.values(selectedProducts),
-        };
-        if (payload) {
+        
+        // Check if this is bulk rejection (from product list) or single product rejection (from details page)
+        if (productIds.length > 0) {
+          // Bulk rejection mode
+          const payload: any = {
+            reason: data.reason,
+            rejectedBy: auth.user._id,
+            productIds: Object.values(selectedProducts),
+          };
+          
           await rejectBulkProducts(payload);
-           productIds.forEach((id) => {
+          productIds.forEach((id) => {
             dispatch(updateProductLiveStatus({ id, liveStatus: "Rejected" }));
           });
-          showToast("Rejected successfully", "success");
-         
+          showToast("Products rejected successfully", "success");
+          
           await new Promise((resolve) => setTimeout(resolve, 1000));
+          
+          // Reset form and close dialog
+          reset();
+          onClose();
+        } else {
+          // Single product rejection mode - call the provided onSubmit callback
+          console.log("Single product rejection mode - calling onSubmit callback");
+          reset();
+          onSubmit(data); // This will be handled by the parent component (productDetails.tsx)
         }
-
-        // Reset form and close dialog
-        reset();
-
-        onClose();
-
-        // Call success callback if provided
       } catch (err: any) {
-        console.error("Error creating brand:", err);
-        showToast("Failed to create brand. Please try again.", "error");
+        console.error("Error rejecting product:", err);
+        showToast("Failed to reject product. Please try again.", "error");
       }
     },
-    [showToast, reset, onClose, auth.user._id]
+    [showToast, reset, onClose, auth.user._id, selectedProducts, dispatch, onSubmit]
   );
 
   return (

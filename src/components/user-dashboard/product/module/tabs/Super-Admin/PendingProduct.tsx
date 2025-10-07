@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -65,11 +65,13 @@ export default function PendingProduct({
   selectedTab,
   categoryFilter,
   subCategoryFilter,
+  refreshKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
   categoryFilter?: string;
   subCategoryFilter?: string;
+  refreshKey?: number;
 }) {
   const dispatch = useAppDispatch();
   const { showToast } = useGlobalToast();
@@ -85,66 +87,67 @@ export default function PendingProduct({
   const itemsPerPage = 10;
   const route = useRouter();
 
-  // Fetch products when component mounts or when pagination changes
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoadingProducts(true);
-      try {
-        console.log("🔍 PendingProduct: useEffect triggered");
-        console.log("🔍 PendingProduct: searchQuery received:", searchQuery);
-        console.log("🔍 PendingProduct: API call params:", {
-          currentPage,
-          itemsPerPage,
-          status: "Pending",
-          searchQuery,
-          categoryFilter,
-          subCategoryFilter
-        });
+  // Extract fetchProducts function so it can be called from multiple places
+  const fetchProducts = useCallback(async () => {
+    setLoadingProducts(true);
+    try {
+      console.log("🔍 PendingProduct: Fetching products");
+      console.log("🔍 PendingProduct: searchQuery received:", searchQuery);
+      console.log("🔍 PendingProduct: API call params:", {
+        currentPage,
+        itemsPerPage,
+        status: "Pending",
+        searchQuery,
+        categoryFilter,
+        subCategoryFilter
+      });
+      
+      const response = await getProductsByPage(
+        currentPage,
+        itemsPerPage,
+        "Pending",
+        searchQuery,
+        categoryFilter,
+        subCategoryFilter
+      );
+      
+      console.log("🔍 PendingProduct: API response received:", response);
+      
+      // Handle response safely
+      if (response && response.data) {
+        const products = Array.isArray(response.data.products) ? response.data.products : [];
+        const pagination = response.data.pagination || {};
         
-        const response = await getProductsByPage(
-          currentPage,
-          itemsPerPage,
-          "Pending",
-          searchQuery,
-          categoryFilter,
-          subCategoryFilter
-        );
-        
-        console.log("🔍 PendingProduct: API response received:", response);
-        
-        // Handle response safely
-        if (response && response.data) {
-          const products = Array.isArray(response.data.products) ? response.data.products : [];
-          const pagination = response.data.pagination || {};
-          
-          setPaginatedProducts(products);
-          setTotalProducts(pagination.totalItems || 0);
-          setTotalPages(pagination.totalPages || 0);
-        } else {
-          console.error("Unexpected API response structure:", response);
-          setPaginatedProducts([]);
-          setTotalProducts(0);
-          setTotalPages(0);
-          showToast("No products found", "info");
-        }
-      } catch (error: any) {
-        console.error("Failed to fetch products:", error);
-        
-        // Set safe fallback values
+        setPaginatedProducts(products);
+        setTotalProducts(pagination.totalItems || 0);
+        setTotalPages(pagination.totalPages || 0);
+      } else {
+        console.error("Unexpected API response structure:", response);
         setPaginatedProducts([]);
         setTotalProducts(0);
         setTotalPages(0);
-        
-        // Show appropriate error message
-        const errorMessage = error.message || "Failed to fetch products";
-        showToast(errorMessage, "error");
-      } finally {
-        setLoadingProducts(false);
+        showToast("No products found", "info");
       }
-    };
+    } catch (error: any) {
+      console.error("Failed to fetch products:", error);
+      
+      // Set safe fallback values
+      setPaginatedProducts([]);
+      setTotalProducts(0);
+      setTotalPages(0);
+      
+      // Show appropriate error message
+      const errorMessage = error.message || "Failed to fetch products";
+      showToast(errorMessage, "error");
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter, showToast]);
 
+  // Fetch products when component mounts or when dependencies change
+  useEffect(() => {
     fetchProducts();
-  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter]);
+  }, [fetchProducts, refreshKey]);
 
   // Reset to first page when search or filters change
   useEffect(() => {
@@ -226,29 +229,16 @@ export default function PendingProduct({
           updateProductLiveStatus({ id: productId, liveStatus: "Approved" })
         );
         showToast("Product activated successfully", "success");
-        // Update local state
-        setPaginatedProducts((prev) =>
-          prev.map((product) =>
-            product._id === productId
-              ? { ...product, live_status: "Approved" }
-              : product
-          )
-        );
       } else if (newStatus === "Inactive") {
         await deactivateProduct(productId);
         dispatch(
           updateProductLiveStatus({ id: productId, liveStatus: "Pending" })
         );
         showToast("Product deactivated successfully", "success");
-        // Update local state
-        setPaginatedProducts((prev) =>
-          prev.map((product) =>
-            product._id === productId
-              ? { ...product, live_status: "Pending" }
-              : product
-          )
-        );
       }
+      
+      // Refresh the product list after status change
+      await fetchProducts();
     } catch (error) {
       console.error("Failed to update product status:", error);
       showToast("Failed to update product status", "error");

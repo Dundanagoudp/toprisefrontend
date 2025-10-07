@@ -51,15 +51,21 @@ export default function UpdateModal({
 
   useEffect(() => {
     if (open && item) {
+      console.log("UpdateModal - Loading item:", item);
       setFormData({
         name: item.category_name || item.subcategory_name || item.brand_name || item.model_name || item.variant_name || '',
         code: item.category_code || item.subcategory_code || item.brand_code || item.model_code || item.variant_code || '',
-        description: item.description || '',
-        status: item.category_Status || item.subcategory_Status || item.brand_Status || item.model_Status || item.variant_Status || 'Active',
+        description: item.category_description || item.subcategory_description || item.brand_description || item.model_description || item.variant_Description || item.description || '',
+        status: item.category_Status || item.subcategory_status || item.brand_Status || item.status || item.model_Status || item.variant_status || 'Active',
         vehicleType: item.type || item.vehicleType_id || '',
-        category: item.category_id || '',
-        brand: item.brand_id || '',
-        model: item.model_id || ''
+        category: item.category_ref || item.category_id || '',
+        brand: item.brand_ref || item.brand_id || (typeof item.brand === 'object' ? item.brand?._id : item.brand) || '',
+        model: item.model || item.model_id || ''
+      });
+      console.log("UpdateModal - Form data set:", {
+        name: item.category_name || item.subcategory_name || item.brand_name || item.model_name || item.variant_name || '',
+        description: item.category_description || item.subcategory_description || item.brand_description || item.model_description || item.variant_Description || item.description || '',
+        brand: item.brand_ref || item.brand_id || (typeof item.brand === 'object' ? item.brand?._id : item.brand) || ''
       });
       setImagePreview(item.category_image || item.subcategory_image || item.brand_logo || item.model_image || item.variant_image || '');
       setImageFile(null);
@@ -84,7 +90,7 @@ export default function UpdateModal({
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      showToast("Error", "Name is required", "destructive");
+      showToast("Name is required", "error");
       return;
     }
 
@@ -92,41 +98,61 @@ export default function UpdateModal({
     try {
       const submitFormData = new FormData();
       
-      // Add common fields
-      submitFormData.append('name', formData.name);
-      if (formData.code) submitFormData.append('code', formData.code);
-      if (formData.description) submitFormData.append('description', formData.description);
-      submitFormData.append('status', formData.status);
+      console.log("Submitting update for", type, "with data:", formData);
       
-      // Add type-specific fields
-      if (type === 'category' && formData.vehicleType) {
-        submitFormData.append('vehicleType', formData.vehicleType);
-      }
-      if (type === 'subcategory' && formData.category) {
-        submitFormData.append('category', formData.category);
-      }
-      if (type === 'model' && formData.brand) {
-        submitFormData.append('brand', formData.brand);
-      }
-      if (type === 'variant' && formData.model) {
-        submitFormData.append('model', formData.model);
+      // Add type-specific name fields
+      if (type === 'category') {
+        submitFormData.append('category_name', formData.name);
+        if (formData.code) submitFormData.append('category_code', formData.code);
+        if (formData.description) submitFormData.append('category_description', formData.description);
+        if (formData.vehicleType) submitFormData.append('type', formData.vehicleType);
+        submitFormData.append('category_Status', formData.status);
+      } else if (type === 'subcategory') {
+        submitFormData.append('subcategory_name', formData.name);
+        if (formData.code) submitFormData.append('subcategory_code', formData.code);
+        if (formData.description) submitFormData.append('subcategory_description', formData.description);
+        if (formData.category) submitFormData.append('category_ref', formData.category);
+        submitFormData.append('subcategory_status', formData.status);
+      } else if (type === 'brand') {
+        submitFormData.append('brand_name', formData.name);
+        if (formData.code) submitFormData.append('brand_code', formData.code);
+        if (formData.description) submitFormData.append('brand_description', formData.description);
+        submitFormData.append('status', formData.status);
+      } else if (type === 'model') {
+        submitFormData.append('model_name', formData.name);
+        if (formData.code) submitFormData.append('model_code', formData.code);
+        if (formData.description) submitFormData.append('model_description', formData.description);
+        if (formData.brand) submitFormData.append('brand_ref', formData.brand);
+        submitFormData.append('status', formData.status);
+      } else if (type === 'variant') {
+        submitFormData.append('variant_name', formData.name);
+        if (formData.code) submitFormData.append('variant_code', formData.code);
+        if (formData.description) submitFormData.append('variant_Description', formData.description);
+        if (formData.model) submitFormData.append('model', formData.model);
+        submitFormData.append('variant_status', formData.status);
       }
       
       // Add image if selected
       if (imageFile) {
-        const imageFieldName = type === 'category' ? 'category_image' : 
-                              type === 'subcategory' ? 'subcategory_image' :
+        const imageFieldName = type === 'category' ? 'file' : 
+                              type === 'subcategory' ? 'file' :
                               type === 'brand' ? 'file' :
                               type === 'model' ? 'model_image' : 'file';
         submitFormData.append(imageFieldName, imageFile);
       }
 
+      // Log FormData contents
+      console.log("FormData contents:");
+      for (let pair of submitFormData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+
       await onUpdate(submitFormData);
-      showToast("Success", `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully`);
+      showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully`, "success");
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error updating ${type}:`, error);
-      showToast("Error", `Failed to update ${type}`, "destructive");
+      showToast(error?.response?.data?.message || `Failed to update ${type}`, "error");
     } finally {
       setLoading(false);
     }
@@ -157,12 +183,9 @@ export default function UpdateModal({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogOverlay className="bg-transparent" />
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-row items-center justify-between">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" key={item?._id}>
+        <DialogHeader>
           <DialogTitle className="text-xl font-semibold">{getTitle()}</DialogTitle>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X className="h-5 w-5" />
-          </Button>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
@@ -193,11 +216,16 @@ export default function UpdateModal({
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder={`Enter ${type} description`}
               className="min-h-[80px]"
             />
+            {formData.description && (
+              <p className="text-xs text-gray-500">
+                {formData.description.length} characters
+              </p>
+            )}
           </div>
 
           {/* Vehicle Type Field (for categories) */}
@@ -290,39 +318,41 @@ export default function UpdateModal({
             </Select>
           </div>
 
-          {/* Image Upload Field */}
-          <div className="grid gap-2">
-            <Label htmlFor="image">{getImageFieldName()}</Label>
-            <div className="flex items-center gap-4">
-              <Input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => document.getElementById('image')?.click()}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
-              </Button>
-            </div>
-            {imagePreview && (
-              <div className="mt-2">
-                <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+          {/* Image Upload Field - Hide for Variants */}
+          {type !== 'variant' && (
+            <div className="grid gap-2">
+              <Label htmlFor="image">{getImageFieldName()}</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('image')?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload
+                </Button>
               </div>
-            )}
-          </div>
+              {imagePreview && (
+                <div className="mt-2">
+                  <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">

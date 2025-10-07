@@ -14,11 +14,12 @@ import { Productcard } from "./productCard";
 import { getProductById, getProducts } from "@/service/product-Service";
 import { useParams, useRouter } from "next/navigation";
 import { Product } from "@/types/product-Types";
-import { aproveProduct, deactivateProduct } from "@/service/product-Service";
+import { aproveProduct, deactivateProduct, rejectSingleProduct } from "@/service/product-Service";
 import DynamicButton from "../../../common/button/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchProductByIdSuccess, fetchProductByIdRequest, fetchProductByIdFailure } from "@/store/slice/product/productByIdSlice";
 import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
+import { useToast as GlobalToast } from "@/components/ui/toast";
 import SuperAdminDealersModal from "./SuperAdminDealersModal";
 import {
   Sheet,
@@ -29,6 +30,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ViewProductDetails() {
+  const { showToast } = GlobalToast();
   const [status, setStatus] = React.useState<string>("Created");
   const [product, setProduct] = React.useState<Product | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -61,11 +63,61 @@ export default function ViewProductDetails() {
     setStatus(newStatus);
     if (newStatus === "Approved") {
       await aproveProduct(id.id);
+      // Refresh product data after status change
+      await refreshProductData();
     } else if (newStatus === "Pending") {
       await deactivateProduct(id.id);
+      // Refresh product data after status change
+      await refreshProductData();
     }
     else if (newStatus === "Rejected") {
       setIsRejectDialogOpen(true);
+    }
+  };
+
+  // Function to refresh product data
+  const refreshProductData = async () => {
+    try {
+      dispatch(fetchProductByIdRequest());
+      const response = await getProductById(id.id);
+      const data = response.data;
+      let prod: Product | null = null;
+      if (Array.isArray(data) && data.length > 0) {
+        prod = data[0];
+      } else if (
+        typeof data === "object" &&
+        data !== null &&
+        !Array.isArray(data)
+      ) {
+        prod = data as any;
+      }
+      setProduct(prod);
+      dispatch(fetchProductByIdSuccess(prod));
+      if (prod && prod.live_status) {
+        setStatus(prod.live_status);
+      }
+      console.log("Product data refreshed:", response);
+    } catch (error) {
+      console.error("Error refreshing product data:", error);
+      dispatch(fetchProductByIdFailure(error as string));
+    }
+  };
+
+  // Function to handle product rejection
+  const handleRejectProduct = async (data: { reason: string }) => {
+    try {
+      console.log("Rejecting product with reason:", data.reason);
+      await rejectSingleProduct(id.id, data.reason);
+      setIsRejectDialogOpen(false);
+      
+      // Show success message
+      showToast("Product rejected successfully", "success");
+      
+      // Refresh product data after rejection
+      await refreshProductData();
+    } catch (error) {
+      console.error("Error rejecting product:", error);
+      showToast("Failed to reject product", "error");
     }
   };
   const handleEdit = (idObj: { id: string }) => {
@@ -526,11 +578,7 @@ export default function ViewProductDetails() {
            <RejectReason
                     isOpen={isRejectDialogOpen}
                     onClose={() => setIsRejectDialogOpen(false)}
-                    onSubmit={(data) => {
-                   
-                      setIsRejectDialogOpen(false);
-                 
-                    }}
+                    onSubmit={handleRejectProduct}
                   />
       
              {/* Super Admin Dealers Modal */}

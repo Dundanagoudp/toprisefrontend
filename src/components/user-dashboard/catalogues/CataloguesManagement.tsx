@@ -22,6 +22,7 @@ import {
   getVariants, 
   getMockVariants,
   createCatalog,
+  updateCatalog,
   deleteCatalog
 } from "@/service/catalogue-service";
 
@@ -38,6 +39,18 @@ export default function CataloguesManagement() {
   // Create catalog form state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateCatalogRequest>({
+    catalog_name: "",
+    catalog_description: "",
+    catalog_image: "",
+    catalog_brands: [],
+    catalog_models: [],
+    catalog_variants: []
+  });
+
+  // Update catalog form state
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [selectedCatalogForUpdate, setSelectedCatalogForUpdate] = useState<Catalog | null>(null);
+  const [updateForm, setUpdateForm] = useState<CreateCatalogRequest>({
     catalog_name: "",
     catalog_description: "",
     catalog_image: "",
@@ -76,7 +89,8 @@ export default function CataloguesManagement() {
   useEffect(() => {
     fetchCatalogs();
     fetchBrands();
-    // Don't fetch models/variants initially - they will be fetched when brands/models are selected
+    fetchAllModels(); // Fetch all models for filter dropdown
+    fetchAllVariants(); // Fetch all variants for filter dropdown
   }, []);
 
   // Debug logging for brands, models, variants
@@ -106,17 +120,26 @@ export default function CataloguesManagement() {
   }, [catalogs, searchTerm, selectedBrand, selectedModel, selectedVariant]);
 
   useEffect(() => {
-    // Fetch and filter models based on selected brands
+    // Fetch and filter models based on selected brands in CREATE form
     if (createForm.catalog_brands.length > 0) {
-      console.log("Brands selected, fetching models for:", createForm.catalog_brands);
-      // Fetch models for the selected brands
+      console.log("CREATE: Brands selected, fetching models for:", createForm.catalog_brands);
       fetchModels(createForm.catalog_brands);
     } else {
-      console.log("No brands selected, clearing models");
-      setModels([]);
+      console.log("CREATE: No brands selected, clearing filtered models");
       setFilteredModels([]);
     }
   }, [createForm.catalog_brands]);
+
+  useEffect(() => {
+    // Fetch and filter models based on selected brands in UPDATE form
+    if (updateForm.catalog_brands.length > 0) {
+      console.log("UPDATE: Brands selected, fetching models for:", updateForm.catalog_brands);
+      fetchModels(updateForm.catalog_brands);
+    } else {
+      console.log("UPDATE: No brands selected, clearing filtered models");
+      setFilteredModels([]);
+    }
+  }, [updateForm.catalog_brands]);
 
   // Separate useEffect to filter models when models array changes
   useEffect(() => {
@@ -131,17 +154,26 @@ export default function CataloguesManagement() {
   }, [models, createForm.catalog_brands]);
 
   useEffect(() => {
-    // Fetch and filter variants based on selected models
+    // Fetch and filter variants based on selected models in CREATE form
     if (createForm.catalog_models.length > 0) {
-      console.log("Models selected, fetching variants for:", createForm.catalog_models);
-      // Fetch variants for the selected models
+      console.log("CREATE: Models selected, fetching variants for:", createForm.catalog_models);
       fetchVariants(createForm.catalog_models);
     } else {
-      console.log("No models selected, clearing variants");
-      setVariants([]);
+      console.log("CREATE: No models selected, clearing filtered variants");
       setFilteredVariants([]);
     }
   }, [createForm.catalog_models]);
+
+  useEffect(() => {
+    // Fetch and filter variants based on selected models in UPDATE form
+    if (updateForm.catalog_models.length > 0) {
+      console.log("UPDATE: Models selected, fetching variants for:", updateForm.catalog_models);
+      fetchVariants(updateForm.catalog_models);
+    } else {
+      console.log("UPDATE: No models selected, clearing filtered variants");
+      setFilteredVariants([]);
+    }
+  }, [updateForm.catalog_models]);
 
   // Separate useEffect to filter variants when variants array changes
   useEffect(() => {
@@ -250,6 +282,26 @@ export default function CataloguesManagement() {
     }
   };
   
+  // Fetch all models for filter dropdown (not filtered by brand)
+  const fetchAllModels = async () => {
+    try {
+      console.log("Fetching all models for filter dropdown");
+      const response = await getModels(); // Fetch without brand filter
+      console.log("All Models API response:", response);
+      if (response.success && Array.isArray(response.data)) {
+        const normalizedModels = response.data.map((m: any, i: number) => ({
+          id: normalizeId(m._id || m.id, i),
+          model_name: m.model_name,
+          brand_id: normalizeId(m.brand_ref?._id || m.brand_id || m.brand?._id, "")
+        }));
+        console.log("Normalized all models for filter:", normalizedModels);
+        setModels(normalizedModels);
+      }
+    } catch (error) {
+      console.error("Error fetching all models:", error);
+    }
+  };
+
   const fetchModels = async (brandIds?: string[]) => {
     try {
       console.log("Fetching models for brand IDs:", brandIds);
@@ -262,7 +314,7 @@ export default function CataloguesManagement() {
           brand_id: normalizeId(m.brand_ref?._id || m.brand_id || m.brand?._id, "")
         }));
         console.log("Normalized models:", normalizedModels);
-        setModels(normalizedModels);
+        setFilteredModels(normalizedModels); // Use filteredModels for create form
       } else {
         console.log("Models API failed, using mock data");
         const mockData = getMockModels().map((m: any, i: number) => ({
@@ -270,7 +322,7 @@ export default function CataloguesManagement() {
           model_name: m.model_name,
           brand_id: normalizeId(m.brand_ref?._id || m.brand_id || m.brand?._id, "")
         }));
-        setModels(mockData);
+        setFilteredModels(mockData);
       }
     } catch (error) {
       console.error("Error fetching models:", error);
@@ -279,10 +331,30 @@ export default function CataloguesManagement() {
         model_name: m.model_name,
         brand_id: normalizeId(m.brand_ref?._id || m.brand_id || m.brand?._id, "")
       }));
-      setModels(mockData);
+      setFilteredModels(mockData);
     }
   };
   
+  // Fetch all variants for filter dropdown (not filtered by model)
+  const fetchAllVariants = async () => {
+    try {
+      console.log("Fetching all variants for filter dropdown");
+      const response = await getVariants(); // Fetch without model filter
+      console.log("All Variants API response:", response);
+      if (response.success && Array.isArray(response.data)) {
+        const normalizedVariants = response.data.map((v: any, i: number) => ({
+          id: String(v._id || v.id || i),
+          variant_name: v.variant_name,
+          model_id: String(v.model?._id || v.model_id || "")
+        }));
+        console.log("Normalized all variants for filter:", normalizedVariants);
+        setVariants(normalizedVariants);
+      }
+    } catch (error) {
+      console.error("Error fetching all variants:", error);
+    }
+  };
+
   const fetchVariants = async (modelIds?: string[]) => {
     try {
       console.log("Fetching variants for model IDs:", modelIds);
@@ -294,8 +366,8 @@ export default function CataloguesManagement() {
           variant_name: v.variant_name,
           model_id: String(v.model?._id || v.model_id || "")
         }));
-        console.log("Normalized variants:", normalizedVariants);
-        setVariants(normalizedVariants);
+        console.log("Normalized variants for create form:", normalizedVariants);
+        setFilteredVariants(normalizedVariants); // Use filteredVariants for create form
       } else {
         console.log("Variants API failed, using mock data");
         const mockData = getMockVariants().map((v: any, i: number) => ({
@@ -303,7 +375,7 @@ export default function CataloguesManagement() {
           variant_name: v.variant_name,
           model_id: String(v.model?._id || v.model_id || "")
         }));
-        setVariants(mockData);
+        setFilteredVariants(mockData);
       }
     } catch (error) {
       console.error("Error fetching variants:", error);
@@ -312,7 +384,7 @@ export default function CataloguesManagement() {
         variant_name: v.variant_name,
         model_id: String(v.model?._id || v.model_id || "")
       }));
-      setVariants(mockData);
+      setFilteredVariants(mockData);
     }
   };
   
@@ -359,6 +431,49 @@ export default function CataloguesManagement() {
     setSelectedBrand("all");
     setSelectedModel("all");
     setSelectedVariant("all");
+  };
+
+  const handleEditCatalog = (catalog: Catalog) => {
+    console.log("Opening edit dialog for catalog:", catalog);
+    setSelectedCatalogForUpdate(catalog);
+    setUpdateForm({
+      catalog_name: catalog.catalog_name,
+      catalog_description: catalog.catalog_description,
+      catalog_image: catalog.catalog_image,
+      catalog_brands: catalog.catalog_brands,
+      catalog_models: catalog.catalog_models,
+      catalog_variants: catalog.catalog_variants
+    });
+    setIsUpdateDialogOpen(true);
+  };
+
+  const handleUpdateCatalog = async () => {
+    if (!selectedCatalogForUpdate) return;
+    
+    try {
+      console.log("Updating catalog:", selectedCatalogForUpdate.id);
+      console.log("Update form data:", updateForm);
+      
+      const response = await updateCatalog(selectedCatalogForUpdate.id, updateForm);
+      if (response.success) {
+        console.log("Catalog updated successfully");
+        fetchCatalogs(); // Refresh the list
+        setIsUpdateDialogOpen(false);
+        setSelectedCatalogForUpdate(null);
+        setUpdateForm({
+          catalog_name: "",
+          catalog_description: "",
+          catalog_image: "",
+          catalog_brands: [],
+          catalog_models: [],
+          catalog_variants: []
+        });
+      } else {
+        console.error("Failed to update catalog:", response.message);
+      }
+    } catch (error) {
+      console.error("Error updating catalog:", error);
+    }
   };
 
   const handleCreateCatalog = async () => {
@@ -486,7 +601,7 @@ export default function CataloguesManagement() {
               </DialogHeader>
               <div key={formKey} className="space-y-4">
                 <div>
-                  <Label htmlFor="catalog_name">Catalog Name</Label>
+                  <Label htmlFor="catalog_name" className="text-sm font-medium py-2">Catalog Name</Label>
                   <Input
                     id="catalog_name"
                     value={createForm.catalog_name}
@@ -496,7 +611,7 @@ export default function CataloguesManagement() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="catalog_description">Description</Label>
+                  <Label htmlFor="catalog_description" className="text-sm font-medium py-2">Description</Label>
                   <Textarea
                     id="catalog_description"
                     value={createForm.catalog_description}
@@ -507,7 +622,7 @@ export default function CataloguesManagement() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="catalog_image">Image URL (Optional)</Label>
+                  <Label htmlFor="catalog_image" className="text-sm font-medium py-2">Image URL (Optional)</Label>
                   <Input
                     id="catalog_image"
                     value={createForm.catalog_image}
@@ -680,6 +795,184 @@ export default function CataloguesManagement() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Update Catalog Dialog */}
+          <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Update Catalog</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="update_catalog_name" className="text-sm font-medium py-2">Catalog Name</Label>
+                  <Input
+                    id="update_catalog_name"
+                    value={updateForm.catalog_name}
+                    onChange={(e) => setUpdateForm({...updateForm, catalog_name: e.target.value})}
+                    placeholder="e.g., Honda Civic Parts Catalog"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="update_catalog_description" className="text-sm font-medium py-2">Description</Label>
+                  <Textarea
+                    id="update_catalog_description"
+                    value={updateForm.catalog_description}
+                    onChange={(e) => setUpdateForm({...updateForm, catalog_description: e.target.value})}
+                    placeholder="Describe what this catalog contains..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="update_catalog_image" className="text-sm font-medium py-2">Image URL (Optional)</Label>
+                  <Input
+                    id="update_catalog_image"
+                    value={updateForm.catalog_image}
+                    onChange={(e) => setUpdateForm({...updateForm, catalog_image: e.target.value})}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+
+                <div>
+                  <Label>Brands</Label>
+                  <div className="text-xs text-gray-500 mb-2">
+                    Selected: {updateForm.catalog_brands.length}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                    {brands.map((brand) => {
+                      const isChecked = updateForm.catalog_brands.includes(brand.id);
+                      return (
+                        <label key={`update-brand-${brand.id}`} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setUpdateForm({
+                                  ...updateForm,
+                                  catalog_brands: [...updateForm.catalog_brands, brand.id]
+                                });
+                              } else {
+                                setUpdateForm({
+                                  ...updateForm,
+                                  catalog_brands: updateForm.catalog_brands.filter(id => id !== brand.id),
+                                  catalog_models: updateForm.catalog_models.filter(modelId => 
+                                    !models.find(m => m.id === modelId && m.brand_id === brand.id)
+                                  ),
+                                  catalog_variants: updateForm.catalog_variants.filter(variantId => {
+                                    const variant = variants.find(v => v.id === variantId);
+                                    const model = models.find(m => m.id === variant?.model_id);
+                                    return model?.brand_id !== brand.id;
+                                  })
+                                });
+                              }
+                            }}
+                          />
+                          <span className="text-sm">{brand.brand_name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {updateForm.catalog_brands.length > 0 && filteredModels.length > 0 && (
+                  <div>
+                    <Label>Models (Optional)</Label>
+                    <div className="text-xs text-gray-500 mb-2">
+                      Selected: {updateForm.catalog_models.length}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                      {filteredModels.map((model) => {
+                        const isChecked = updateForm.catalog_models.includes(model.id);
+                        return (
+                          <label key={`update-model-${model.id}`} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setUpdateForm({
+                                    ...updateForm,
+                                    catalog_models: [...updateForm.catalog_models, model.id]
+                                  });
+                                } else {
+                                  setUpdateForm({
+                                    ...updateForm,
+                                    catalog_models: updateForm.catalog_models.filter(id => id !== model.id),
+                                    catalog_variants: updateForm.catalog_variants.filter(variantId => 
+                                      !variants.find(v => v.id === variantId && v.model_id === model.id)
+                                    )
+                                  });
+                                }
+                              }}
+                            />
+                            <span className="text-sm">{model.model_name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {updateForm.catalog_models.length > 0 && filteredVariants.length > 0 && (
+                  <div>
+                    <Label>Variants (Optional)</Label>
+                    <div className="text-xs text-gray-500 mb-2">
+                      Selected: {updateForm.catalog_variants.length}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                      {filteredVariants.map((variant) => {
+                        const isChecked = updateForm.catalog_variants.includes(variant.id);
+                        return (
+                          <label key={`update-variant-${variant.id}`} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setUpdateForm({
+                                    ...updateForm,
+                                    catalog_variants: [...updateForm.catalog_variants, variant.id]
+                                  });
+                                } else {
+                                  setUpdateForm({
+                                    ...updateForm,
+                                    catalog_variants: updateForm.catalog_variants.filter(id => id !== variant.id)
+                                  });
+                                }
+                              }}
+                            />
+                            <span className="text-sm">{variant.variant_name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => {
+                    setIsUpdateDialogOpen(false);
+                    setSelectedCatalogForUpdate(null);
+                    setUpdateForm({
+                      catalog_name: "",
+                      catalog_description: "",
+                      catalog_image: "",
+                      catalog_brands: [],
+                      catalog_models: [],
+                      catalog_variants: []
+                    });
+                  }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleUpdateCatalog} disabled={!updateForm.catalog_name} className="bg-red-600 hover:bg-red-700 text-white">
+                    Update Catalog
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
             </div>
           </div>
         </div>
@@ -731,7 +1024,7 @@ export default function CataloguesManagement() {
               </div>
 
               {/* Model Filter */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Model</label>
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
                   <SelectTrigger className="h-12 rounded-xl border-gray-300 focus:border-red-500 focus:ring-red-500/20 bg-gray-50 focus:bg-white">
@@ -746,25 +1039,25 @@ export default function CataloguesManagement() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
 
               {/* Variant Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Variant</label>
-                <Select value={selectedVariant} onValueChange={setSelectedVariant}>
-                  <SelectTrigger className="h-12 rounded-xl border-gray-300 focus:border-red-500 focus:ring-red-500/20 bg-gray-50 focus:bg-white">
-                    <SelectValue placeholder="Select Variant" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-gray-200 shadow-lg">
-                    <SelectItem value="all" className="rounded-lg">All Variants</SelectItem>
-                    {variants.map((variant) => (
-                      <SelectItem key={variant.id} value={variant.id} className="rounded-lg">
-                        {variant.variant_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Variant</label>
+                  <Select value={selectedVariant} onValueChange={setSelectedVariant}>
+                    <SelectTrigger className="h-12 rounded-xl border-gray-300 focus:border-red-500 focus:ring-red-500/20 bg-gray-50 focus:bg-white">
+                      <SelectValue placeholder="Select Variant" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-gray-200 shadow-lg">
+                      <SelectItem value="all" className="rounded-lg">All Variants</SelectItem>
+                      {variants.map((variant) => (
+                        <SelectItem key={variant.id} value={variant.id} className="rounded-lg">
+                          {variant.variant_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div> */}
             </div>
 
             <div className="flex justify-end pt-4 border-t border-gray-200">
@@ -917,6 +1210,14 @@ export default function CataloguesManagement() {
                 {/* Action Buttons */}
                 <div className="space-y-3">
                   <Button 
+                    variant="outline"
+                    className="w-full border-blue-300 hover:border-blue-500 hover:text-blue-600 rounded-xl py-3 font-semibold transition-all duration-200"
+                    onClick={() => handleEditCatalog(catalog)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Catalog
+                  </Button>
+                  <Button 
                     className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl py-3 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                     onClick={() => handleViewProducts(catalog)}
                   >
@@ -926,6 +1227,7 @@ export default function CataloguesManagement() {
                   <Button 
                     variant="outline" 
                     className="w-full border-gray-300 hover:border-red-500 hover:text-red-600 rounded-xl py-3 font-semibold transition-all duration-200"
+                    onClick={() => router.push(`/user/dashboard/catalogues/${catalog.id}/products`)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Manage Products

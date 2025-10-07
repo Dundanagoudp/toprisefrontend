@@ -36,6 +36,7 @@ import {
 import { getAllDealers } from "@/service/dealerServices";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store/hooks";
+import { useRouter } from "next/navigation";
 // Helper to decode JWT and extract user id
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import DynamicButton from "../../../common/button/button";
@@ -112,6 +113,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function AddProducts() {
+  const router = useRouter();
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
   const auth = useAppSelector((state) => state.auth);
   const [subCategoryOptions, setSubCategoryOptions] = useState<any[]>([]);
@@ -339,6 +341,11 @@ export default function AddProducts() {
       setImageFiles([]);
       setImagePreviews([]);
       reset(); // Reset the form after successful submission
+      
+      // Navigate back to products page after successful creation
+      setTimeout(() => {
+        router.push("/user/dashboard/product");
+      }, 1500); // Wait 1.5 seconds to show the success toast before navigating
     } catch (error) {
       console.error("Failed to submit product:", error);
       showToast("Failed to create product", "error");
