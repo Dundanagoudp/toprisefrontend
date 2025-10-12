@@ -66,6 +66,10 @@ export default function ReturnClaims() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
+  
+  // Advanced filter states from modal
+  const [advancedFilterStatus, setAdvancedFilterStatus] = useState<string | null>(null);
+  const [advancedFilterClaimType, setAdvancedFilterClaimType] = useState<string | null>(null);
 
   // Validation dialog state
   const [validationDialog, setValidationDialog] = useState<{
@@ -297,18 +301,40 @@ export default function ReturnClaims() {
       .filter(
         (request) =>
           filterStatus === "All" || request.returnStatus === filterStatus
+      )
+      .filter(
+        (request) =>
+          !advancedFilterStatus || request.returnStatus === advancedFilterStatus
+      )
+      .filter(
+        (request) =>
+          !advancedFilterClaimType || request.returnReason === advancedFilterClaimType
       );
-  }, [returnRequests, searchTerm, filterStatus]);
+  }, [returnRequests, searchTerm, filterStatus, advancedFilterStatus, advancedFilterClaimType]);
 
   const paginatedReturnRequests = filteredReturnRequests.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
+  // Handle advanced filter apply
+  const handleApplyAdvancedFilters = (status: string, claimType: string) => {
+    setAdvancedFilterStatus(status);
+    setAdvancedFilterClaimType(claimType);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  // Handle advanced filter reset
+  const handleResetAdvancedFilters = () => {
+    setAdvancedFilterStatus(null);
+    setAdvancedFilterClaimType(null);
+    setCurrentPage(1);
+  };
+
   // Reset selection when page or filters change
   useEffect(() => {
     setSelectedClaims([]);
-  }, [currentPage, searchTerm, filterStatus]);
+  }, [currentPage, searchTerm, filterStatus, advancedFilterStatus, advancedFilterClaimType]);
 
  const getStatusBadge = (status: string) => {
   const baseClasses =
@@ -406,8 +432,17 @@ export default function ReturnClaims() {
                   >
                     <Filter className="h-4 w-4 mr-2" />
                     Filters
+                    {(advancedFilterStatus || advancedFilterClaimType) && (
+                      <span className="ml-2 px-2 py-0.5 bg-red-600 text-white text-xs rounded-full">
+                        {[advancedFilterStatus, advancedFilterClaimType].filter(Boolean).length}
+                      </span>
+                    )}
                   </Button>
                 }
+                currentStatus={advancedFilterStatus || ""}
+                currentClaimType={advancedFilterClaimType || ""}
+                onApplyFilters={handleApplyAdvancedFilters}
+                onResetFilters={handleResetAdvancedFilters}
               />
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-full sm:w-40 h-10 bg-white border-gray-200">

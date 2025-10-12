@@ -4,6 +4,26 @@ import { BrandsApiResponse } from "@/types/catalogue-types";
 import type { Category as ProductCategory } from "@/types/product-Types";
 import apiClient from "@/apiClient";
 
+// Banner types
+export interface Banner {
+  _id: string;
+  title: string;
+  brand_id: string;
+  vehicle_type: string;
+  is_active: boolean;
+  web?: string;
+  mobile?: string;
+  tablet?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface BannerResponse {
+  success: boolean;
+  message: string;
+  data: Banner[];
+}
+
 export async function getProducts(): Promise<ProductResponse> {
   try {
     const response = await apiClient.get(`/category/products/v1`);
@@ -1004,6 +1024,55 @@ export async function getProductsByFilter(
       return fallbackResponse;
     }
     // For other errors, still throw to let the component handle it
+    throw error;
+  }
+}
+
+// Banner Management Functions
+export async function getBanners(): Promise<BannerResponse> {
+  try {
+    const response = await apiClient.get(`/products/api/banner`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch banners:", error);
+    throw error;
+  }
+}
+
+export async function createBanner(bannerData: FormData): Promise<ApiResponse<Banner>> {
+  try {
+    const response = await apiClient.post(`/products/api/banner`, bannerData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create banner:", error);
+    throw error;
+  }
+}
+
+export async function updateBanner(bannerId: string, bannerData: FormData): Promise<ApiResponse<Banner>> {
+  try {
+    const response = await apiClient.put(`/products/api/banner/${bannerId}`, bannerData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update banner:", error);
+    throw error;
+  }
+}
+
+export async function deleteBanner(bannerId: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(`/products/api/banner/${bannerId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete banner:", error);
     throw error;
   }
 }

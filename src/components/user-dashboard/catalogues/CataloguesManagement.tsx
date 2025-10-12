@@ -221,7 +221,14 @@ export default function CataloguesManagement() {
           catalog_variants: cat.catalog_variants?.map((v: any) => v._id) || [],
           catalog_products: cat.catalog_products?.map((p: any) => p._id) || [],
           created_at: cat.catalog_created_at,
-          updated_at: cat.catalog_updated_at
+          updated_at: cat.catalog_updated_at,
+          statistics: {
+            total_products: cat.catalog_products?.length || 0,
+            total_brands: cat.catalog_brands?.length || 0,
+            total_models: cat.catalog_models?.length || 0,
+            total_variants: cat.catalog_variants?.length || 0,
+            last_updated: cat.catalog_updated_at || new Date().toISOString()
+          }
         }));
         console.log("Normalized catalogs:", normalizedCatalogs);
         setCatalogs(normalizedCatalogs);
@@ -229,7 +236,17 @@ export default function CataloguesManagement() {
       } else if (response.success && Array.isArray(response.data)) {
         // Fallback for direct array structure
         console.log("Setting catalogs from direct array:", response.data);
-        setCatalogs(response.data);
+        const normalizedDirectCatalogs = response.data.map((cat: any) => ({
+          ...cat,
+          statistics: cat.statistics || {
+            total_products: cat.catalog_products?.length || 0,
+            total_brands: cat.catalog_brands?.length || 0,
+            total_models: cat.catalog_models?.length || 0,
+            total_variants: cat.catalog_variants?.length || 0,
+            last_updated: cat.updated_at || cat.catalog_updated_at || new Date().toISOString()
+          }
+        }));
+        setCatalogs(normalizedDirectCatalogs);
         console.log("Catalogs set successfully");
       } else {
         console.log("Catalogs API failed or data is not array, using mock data");
@@ -1172,7 +1189,7 @@ export default function CataloguesManagement() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 font-medium">Products</p>
-                      <p className="text-lg font-bold text-gray-900">{catalog.statistics?.total_products || 0}</p>
+                      <p className="text-lg font-bold text-gray-900">{catalog.statistics?.total_products || catalog.catalog_products?.length || 0}</p>
                     </div>
                   </div>
                   

@@ -51,9 +51,9 @@ export default function OrdersFilters({
 
   const statuses = useMemo(() => {
     const allowedOrder = [
-      "Pending",
       "Confirmed",
       "Assigned",
+      "Scanning",
       "Packed",
       "Shipped",
       "Delivered",
@@ -158,9 +158,9 @@ export default function OrdersFilters({
                   }}
                 />
                 <div className="flex gap-2 pt-2">
-                  <button className="flex-1 h-9 rounded-md bg-black text-white text-sm" onClick={applyDraft}>Apply</button>
+                  <button className="flex-1 h-9 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm" onClick={applyDraft}>Apply</button>
                   <button
-                    className="flex-1 h-9 rounded-md border text-sm"
+                    className="flex-1 h-9 rounded-md border text-sm hover:bg-gray-50"
                     onClick={() => {
                       setDraftStatus("all")
                       setDraftPayment("all")
@@ -198,9 +198,9 @@ export default function OrdersFilters({
                 />
               </div>
               <div className="p-4 border-t flex gap-2">
-                <button className="flex-1 h-10 rounded-md bg-black text-white" onClick={applyDraft}>Apply</button>
+                <button className="flex-1 h-10 rounded-md bg-blue-600 hover:bg-blue-700 text-white" onClick={applyDraft}>Apply</button>
                 <button
-                  className="flex-1 h-10 rounded-md border"
+                  className="flex-1 h-10 rounded-md border hover:bg-gray-50"
                   onClick={() => {
                     setDraftStatus("all")
                     setDraftPayment("all")
@@ -276,9 +276,9 @@ function RadioList({ name, value, onChange, options, labelAll, includeAll = true
       <ul className="max-h-40 overflow-auto p-1">
         {cleaned.map((opt) => (
           <li key={opt}>
-            <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-              <input type="radio" name={name} checked={value === opt} onChange={() => onChange(opt)} />
-              <span className="text-sm">{opt === "all" ? labelAll : opt}</span>
+            <label className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted ${value === opt ? 'bg-blue-50 border border-blue-200' : ''}`}>
+              <input type="radio" name={name} checked={value === opt} onChange={() => onChange(opt)} className="accent-blue-600" />
+              <span className={`text-sm ${value === opt ? 'text-blue-700 font-medium' : ''}`}>{opt === "all" ? labelAll : opt}</span>
             </label>
           </li>
         ))}

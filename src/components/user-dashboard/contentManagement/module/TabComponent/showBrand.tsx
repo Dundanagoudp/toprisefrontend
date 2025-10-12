@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { getCategories, getBrand } from "@/service/product-Service";
+import { getCategories, getBrand, getTypes } from "@/service/product-Service";
 import { updateBrand } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -16,6 +16,7 @@ import UpdateModal from "../UpdateModal";
 
 export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
     const [brands, setBrands] = useState<any[]>([]);
+    const [vehicleTypes, setVehicleTypes] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [sortField, setSortField] = useState<string>("");
@@ -109,22 +110,45 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
 
     const handleUpdateBrand = async (formData: FormData) => {
         if (!selectedBrand) return;
-        await updateBrand(selectedBrand._id, formData);
-        // Refresh brands after update
-        fetchData();
+        
+        try {
+            const response = await updateBrand(selectedBrand._id, formData);
+            
+            // Refresh brands after successful update
+            const brandsResponse = await getBrand();
+            if (brandsResponse && brandsResponse.data) {
+                setBrands(Array.isArray(brandsResponse.data) ? brandsResponse.data : []);
+            }
+            
+            // Close modal after successful update
+            setUpdateModalOpen(false);
+            setSelectedBrand(null);
+        } catch (error: any) {
+            console.error("Error updating brand:", error);
+            // Re-throw error so UpdateModal can handle it
+            throw error;
+        }
     };
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const response = await getBrand();
-                if (!response || !response.data) {
+                const [brandsResponse, typesResponse] = await Promise.all([
+                    getBrand(),
+                    getTypes()
+                ]);
+                
+                if (!brandsResponse || !brandsResponse.data) {
                     console.error("No data found in response");
                     setBrands([]);
-                    return;
+                } else {
+                    setBrands(Array.isArray(brandsResponse.data) ? brandsResponse.data : []);
                 }
-                setBrands(Array.isArray(response.data) ? response.data : []);
+                
+                if (typesResponse && typesResponse.data) {
+                    setVehicleTypes(Array.isArray(typesResponse.data) ? typesResponse.data : []);
+                }
             } catch (err: any) {
                 console.error("Error fetching data:", err);
                 setBrands([]);
@@ -312,6 +336,7 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
                 onUpdate={handleUpdateBrand}
                 item={selectedBrand}
                 type="brand"
+                vehicleTypes={vehicleTypes}
             />
         </div>
     );

@@ -146,7 +146,12 @@ export default function CreateSubCategory({ open, onClose, onSuccess }: CreateSu
       
     } catch (err: any) {
       console.error("Error creating subcategory:", err)
-      showToast("Failed to create subcategory. Please try again.", "error")
+      // Extract error message from API response
+      const errorMessage = err.response?.data?.message || 
+                         err.response?.data?.error || 
+                         err.message || 
+                         "Failed to create subcategory. Please try again."
+      showToast(errorMessage, "error")
     }
   }, [showToast, reset, onClose, onSuccess])
 

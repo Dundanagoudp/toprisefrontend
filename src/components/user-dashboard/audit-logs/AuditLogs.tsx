@@ -486,10 +486,10 @@ export default function AuditLogs() {
       if (searchValue) {
         const searchLower = searchValue.toLowerCase();
         return (
-          log.action.toLowerCase().includes(searchLower) ||
-          log.actorName.toLowerCase().includes(searchLower) ||
-          log.targetId.toLowerCase().includes(searchLower) ||
-          log.ipAddress.toLowerCase().includes(searchLower)
+          log.action?.toLowerCase().includes(searchLower) ||
+          log.actorName?.toLowerCase().includes(searchLower) ||
+          log.targetId?.toLowerCase().includes(searchLower) ||
+          log.ipAddress?.toLowerCase().includes(searchLower)
         );
       }
 

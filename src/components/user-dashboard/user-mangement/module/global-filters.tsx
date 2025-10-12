@@ -200,10 +200,8 @@ export default function GlobalFilters({
                   <button
                     className="flex-1 h-9 rounded-md border text-sm"
                     onClick={() => {
-                      setDraftSearch("");
-                      setDraftRole("all");
-                      setDraftStatus("all");
-                      setDraftRegion("all");
+                      clearAll();
+                      setOpen(false);
                     }}
                   >
                     Reset
@@ -248,10 +246,8 @@ export default function GlobalFilters({
                 <button
                   className="flex-1 h-10 rounded-md border"
                   onClick={() => {
-                    setDraftSearch("");
-                    setDraftRole("all");
-                    setDraftStatus("all");
-                    setDraftRegion("all");
+                    clearAll();
+                    setOpen(false);
                   }}
                 >
                   Reset

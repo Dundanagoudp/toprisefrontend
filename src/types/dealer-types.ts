@@ -33,6 +33,10 @@ export interface User {
   role: string
   First_name?: string
   Last_name?: string
+  username?: string
+  employee_id?: string
+  assigned_dealers?: any[]
+  assigned_regions?: string[]
 }
 
 // New interface for Category based on your provided JSON structure

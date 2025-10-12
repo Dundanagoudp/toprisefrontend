@@ -14,6 +14,8 @@ import ShowBrand from "./TabComponent/showBrand";
 import CreateBrand from "./TabComponent/handelTabForm/CreateBrand";
 import ShowVariant from "./TabComponent/showVarient";
 import CreateVarient from "./TabComponent/handelTabForm/createVarient";
+import ShowBanner from "./TabComponent/showBanner";
+import CreateBanner from "./TabComponent/handelTabForm/CreateBanner";
 import SearchInput from "@/components/common/search/SearchInput";
 import useDebounce from "@/utils/useDebounce";
 import ContentMangementBulk from "./uploadbulkpopup/contentMangementBulk";
@@ -22,7 +24,7 @@ import { getContentStats } from "@/service/product-Service";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Tab types
-type TabType = "Model" | "Brand" | "Variant" | "Category" | "Subcategory";
+type TabType = "Model" | "Brand" | "Variant" | "Category" | "Subcategory" | "Banner";
 
 // Tab configuration interface for scalability
 interface TabConfig {
@@ -50,6 +52,7 @@ export default function ShowContent() {
   const [openModel, setOpenModel] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
   const [openVariant, setOpenVariant] = useState(false);
+  const [openBanner, setOpenBanner] = useState(false);
   const [openBulkUpload, setOpenBulkUpload] = useState(false);
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false);
   const { showToast } = useGlobalToast();
@@ -116,6 +119,7 @@ export default function ShowContent() {
     Variant: "Search Variants...",
     Category: "Search Categories...",
     Subcategory: "Search Subcategories...",
+    Banner: "Search Banners...",
   };
 
   // Add your subcategory-specific logic here
@@ -128,6 +132,10 @@ export default function ShowContent() {
   }, []);
   const handleVariantAction = useCallback(() => {
     setOpenVariant(true);
+  }, []);
+  
+  const handleBannerAction = useCallback(() => {
+    setOpenBanner(true);
   }, []);
 
   const handleUploadBulk = useCallback(() => {
@@ -200,12 +208,22 @@ export default function ShowContent() {
           action: handleSubcategoryAction,
         },
       },
+      {
+        id: "Banner",
+        label: "Banner",
+        component: ShowBanner,
+        buttonConfig: {
+          text: "Add Banner",
+          action: handleBannerAction,
+        },
+      },
     ],
     [
       handleCategoryAction,
       handleSubcategoryAction,
       handleModelAction,
       handleBrandAction,
+      handleBannerAction,
     ]
   );
 
@@ -331,6 +349,7 @@ export default function ShowContent() {
       <CreateModelForm open={openModel} onClose={() => setOpenModel(false)} />
       <CreateBrand open={openBrand} onClose={() => setOpenBrand(false)} />
       <CreateVarient open={openVariant} onClose={() => setOpenVariant(false)} />
+      <CreateBanner open={openBanner} onClose={() => setOpenBanner(false)} />
       <ContentMangementBulk
         isOpen={openBulkUpload}
         onClose={() => setOpenBulkUpload(false)}

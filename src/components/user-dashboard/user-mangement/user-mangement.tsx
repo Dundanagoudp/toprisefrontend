@@ -95,9 +95,9 @@ export default function Usermangement() {
 
   // Handle filter changes from GlobalFilters
   const handleSearchChange = (search: string) => setSearch(search);
-  const handleRoleChange = (role: string) => setRole(role);
-  const handleStatusChange = (status: string) => setStatus(status);
-  const handleRegionChange = (region: string) => setRegion(region);
+  const handleRoleChange = (role: string) => setRole(role === "all" ? "" : role);
+  const handleStatusChange = (status: string) => setStatus(status === "all" ? "" : status);
+  const handleRegionChange = (region: string) => setRegion(region === "all" ? "" : region);
   const handleResetFilters = () => {
     setSearch("");
     setRole("");

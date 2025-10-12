@@ -51,7 +51,7 @@ export async function getEmployeeById(id: string): Promise<ApiResponse<Employee>
     console.log("API Response:", response);
     console.log("==========================");
     return response.data
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Failed to fetch employee with id ${id}:`, error)
     console.error("Error details:", {
       status: error.response?.status,
@@ -234,5 +234,29 @@ export async function getAvailableRegions(): Promise<string[]> {
     console.error("Failed to fetch available regions:", error);
     // Return default regions if API fails
     return ["North", "South", "East", "West", "Central", "Northeast", "Northwest", "Southeast", "Southwest"];
+  }
+}
+
+/**
+ * Fetches all fulfillment staff with their details including assigned dealers and regions
+ * @param filters Optional filters (page, limit, sortBy, sortOrder)
+ * @returns A Promise that resolves to the API response containing fulfillment staff data
+ */
+export async function getAllFulfillmentStaff(
+  filters: { page?: number; limit?: number; sortBy?: string; sortOrder?: string } = {}
+): Promise<ApiResponse<any>> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (filters.page) queryParams.append('page', filters.page.toString());
+    if (filters.limit) queryParams.append('limit', filters.limit.toString());
+    if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
+    if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);
+
+    const url = `/users/api/users/fulfillment-staff${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch fulfillment staff:", error);
+    throw error;
   }
 }

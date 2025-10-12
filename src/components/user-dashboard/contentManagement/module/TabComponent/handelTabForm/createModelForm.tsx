@@ -143,7 +143,12 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
       
     } catch (err: any) {
       console.error("Error creating model:", err)
-      showToast("Failed to create model. Please try again.", "error")
+      // Extract error message from API response
+      const errorMessage = err.response?.data?.message || 
+                         err.response?.data?.error || 
+                         err.message || 
+                         "Failed to create model. Please try again."
+      showToast(errorMessage, "error")
     }
   }, [showToast, reset, onClose, onSuccess])
 

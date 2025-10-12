@@ -100,8 +100,8 @@ export default function Dealertable({
       dealer.contact_person.name.toLowerCase().includes(searchLower) ||
       dealer.contact_person.email.toLowerCase().includes(searchLower)
 
-    const matchesRole = !role || dealer.user_id.role?.toLowerCase() === role.toLowerCase()
-    const matchesStatus = !status || (status === "active" ? dealer.is_active : !dealer.is_active)
+    const matchesRole = !role || role.toLowerCase() === "all" || dealer.user_id.role?.toLowerCase() === role.toLowerCase()
+    const matchesStatus = !status || status.toLowerCase() === "all" || (status.toLowerCase() === "active" ? dealer.is_active : !dealer.is_active)
 
     return matchesSearch && matchesRole && matchesStatus
   })
