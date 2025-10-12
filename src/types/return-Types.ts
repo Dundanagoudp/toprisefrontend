@@ -6,6 +6,7 @@ export interface ReturnRequestsResponse {
   data: {
     returnRequests: ReturnRequest[];
     pagination: ReturnPagination;
+    userStats: UserStats;
   };
 }
 
@@ -17,30 +18,37 @@ export interface SingleReturnResponse {
 
 export interface ReturnRequest {
   _id: string;
-  orderId: OrderInfo | null;
+  orderId: string | null;
   customerId: string;
   sku: string;
   quantity: number;
   returnReason: string;
-  returnDescription: string;
+  returnDescription?: string | null;
   returnImages: string[];
   isEligible: boolean;
-  eligibilityReason: string;
-  returnWindowDays: number;
-  returnStatus: ReturnStatus;
-  actionTaken: ReturnAction;
-  originalOrderDate: string;
+  eligibilityReason?: string | null;
+  returnWindowDays?: number | null;
+  returnStatus?: string | null;
+  inspection?: InspectionDetails | null;
+  refund?: RefundDetails | null;
+  actionTaken?: string | null;
+  timestamps?: ReturnTimestamps | null;
+  originalOrderDate?: string | null;
   dealerId?: string;
-  notes: string[];
-  pickupRequest: PickupRequest;
-  inspection: InspectionDetails;
-  refund: RefundDetails;
-  timestamps: ReturnTimestamps;
-  isProductReturnable: boolean;
-  isWithinReturnWindow: boolean;
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
+  notes?: any[];
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  isProductReturnable?: boolean;
+  isWithinReturnWindow?: boolean;
+  pickupRequest?: PickupRequest | null;
+  orderSku?: any | null;
+  productDetails?: ProductDetails | null;
+  timeSinceRequest?: number | null;
+  processingTime?: number | null;
+  isOverdue?: boolean;
+  daysSinceRequest?: number | null;
+  statusDisplay?: string | null;
 }
 
 export interface OrderInfo {
@@ -77,20 +85,23 @@ export interface Address {
 }
 
 export interface InspectionDetails {
-  skuMatch: boolean;
-  inspectionImages: string[];
-  isApproved: boolean;
-  condition: InspectionCondition;
-  conditionNotes: string;
-  rejectionReason?: string;
-  inspectedAt?: string;
-  inspectedBy?: string;
+  skuMatch?: boolean;
+  inspectionImages?: string[];
+  isApproved?: boolean;
+  inspectedAt?: string | null;
+  inspectedBy?: string | null;
+  inspectedByUser?: InspectedByUser | null;
+  condition?: string | null;
+  conditionNotes?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface RefundDetails {
-  refundAmount: number;
-  refundMethod: RefundMethod;
-  refundStatus: RefundStatus;
+  refundAmount?: number | null;
+  refundMethod?: string | null;
+  refundStatus?: string | null;
+  refund_id?: string | null;
+  processedByUser?: any | null;
 }
 
 export interface ReturnTimestamps {
@@ -107,6 +118,32 @@ export interface ReturnPagination {
   limit: number;
   total: number;
   pages: number;
+}
+
+export interface UserStats {
+  totalReturns: number;
+  totalRefundAmount: number;
+  averageProcessingTime?: number | null;
+  statusBreakdown: {
+    [status: string]: number;
+  };
+}
+
+export interface InspectedByUser {
+  id: string;
+  name: string;
+  role?: string | null;
+}
+
+export interface ProductDetails {
+  sku?: string | null;
+  productName?: string | null;
+  brand?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
+  images?: string[];
+  isReturnable?: boolean;
+  returnPolicy?: string | null;
 }
 
 // Enums and Type Unions

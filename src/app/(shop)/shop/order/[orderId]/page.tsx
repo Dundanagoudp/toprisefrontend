@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { getOrderById } from '@/service/order-service'
-import OrderDetailsPage from '@/components/webapp/OrderDetailsPage'
+import OrderDetailsPage from '@/components/webapp/modules/orderDetailpage/OrderDetailsPage'
 
 export default function ShopOrderDetailsPage() {
   const params = useParams<{ orderId: string }>()

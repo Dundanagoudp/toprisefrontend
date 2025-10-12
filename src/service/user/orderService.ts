@@ -238,6 +238,17 @@ export async function moveToCart(data: { userId: string; productId: string }): P
   }
 }
 
-
+export async function createOrderOnline(data: any): Promise<ApiResponse<any>> {
+  try {
+    const res = await apiClient.post(
+      `/orders/api/payments`,
+      data
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Failed to create order online:", err);
+    throw err;
+  }
+}
 
 

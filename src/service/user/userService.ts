@@ -20,6 +20,7 @@ export interface UserBankDetails {
 }
 
 export interface UserVehicleDetails {
+  _id?: string;
   brand?: string;
   vehicle_type?: string;
   model?: string;
