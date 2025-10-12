@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Badge } from "@/components/ui/badge"
 import { Plus, X } from "lucide-react"
-import { createDealer, getAllUsers, getAllCategories } from "@/service/dealerServices"
+import { createDealer, getAllCategories } from "@/service/dealerServices"
+import { getAllFulfillmentStaff } from "@/service/employeeServices"
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useState, useEffect, Fragment, useRef } from "react"
 import type { User, Category } from "@/types/dealer-types"
@@ -104,28 +105,35 @@ export default function AddDealer() {
   const fetchUsers = async () => {
     setIsLoadingData(true)
     try {
-      const usersResponse = await getAllUsers()
-      console.log("All users response:", usersResponse)
-      if (usersResponse.success) {
-        const allUsersData = usersResponse.data || []
-        console.log("All users data:", allUsersData)
+      const fulfillmentStaffResponse = await getAllFulfillmentStaff()
+      console.log("Fulfillment staff API response:", fulfillmentStaffResponse)
+      
+      if (fulfillmentStaffResponse.success && fulfillmentStaffResponse.data?.data) {
+        const fulfillmentStaffData = fulfillmentStaffResponse.data.data || []
+        console.log("Fulfillment staff data:", fulfillmentStaffData)
         
-        // Keep only Fulfillment-Staff employees
-        const fulfillmentStaff = allUsersData.filter((u: any) => {
-          console.log(`User: ${u?.email}, Role: ${u?.role}`)
-          return u?.role === "Fulfillment-Staff"
-        })
+        // Transform the data to match the expected User type
+        const transformedStaff = fulfillmentStaffData.map((staff: any) => ({
+          _id: staff._id,
+          email: staff.email,
+          username: staff.First_name,
+          phone_Number: staff.mobile_number,
+          role: staff.role,
+          employee_id: staff.employee_id,
+          assigned_dealers: staff.assigned_dealers || [],
+          assigned_regions: staff.assigned_regions || [],
+        }))
         
-        console.log("Filtered fulfillment staff:", fulfillmentStaff)
-        setUsers(fulfillmentStaff)
+        console.log("Transformed fulfillment staff:", transformedStaff)
+        setUsers(transformedStaff)
         
-        if (fulfillmentStaff.length === 0) {
+        if (transformedStaff.length === 0) {
           showToast("No Fulfillment Staff found. Please add fulfillment staff first.", "warning");
         }
       }
     } catch (error) {
-      console.error("Error fetching users:", error)
-      showToast("Failed to load users. Please refresh the page.", "error");
+      console.error("Error fetching fulfillment staff:", error)
+      showToast("Failed to load fulfillment staff. Please refresh the page.", "error");
     } finally {
       setIsLoadingData(false)
     }
@@ -620,7 +628,7 @@ export default function AddDealer() {
                         ) : (
                           users.map((user) => (
                             <SelectItem key={user._id} value={user._id}>
-                              {user.First_name || user.email} - {user.email}
+                              {user.username || user.email} ({user.employee_id}) - {user.email}
                             </SelectItem>
                           ))
                         )}

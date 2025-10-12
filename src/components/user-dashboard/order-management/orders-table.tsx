@@ -92,7 +92,7 @@ interface Order {
   value: string;
   skus: number;
   dealers: number;
-  status: "Pending" | "Approved";
+  status: "Confirmed" | "Assigned" | "Scanning" | "Packed" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
 }
 
 export default function OrdersTable() {
@@ -434,20 +434,29 @@ export default function OrdersTable() {
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 rounded text-xs font-medium";
     const s = (status || "").toLowerCase();
-    if (s === "pending" || s === "created") {
-      return `${baseClasses} text-yellow-700 bg-yellow-100`;
-    }
-    if (s === "approved" || s === "confirmed") {
+    if (s === "confirmed") {
       return `${baseClasses} text-green-700 bg-green-100`;
     }
-    if (s === "packed") {
+    if (s === "assigned") {
       return `${baseClasses} text-blue-700 bg-blue-100`;
+    }
+    if (s === "scanning") {
+      return `${baseClasses} text-purple-700 bg-purple-100`;
+    }
+    if (s === "packed") {
+      return `${baseClasses} text-indigo-700 bg-indigo-100`;
+    }
+    if (s === "shipped") {
+      return `${baseClasses} text-cyan-700 bg-cyan-100`;
     }
     if (s === "delivered" || s === "completed") {
       return `${baseClasses} text-emerald-700 bg-emerald-100`;
     }
     if (s === "cancelled" || s === "canceled") {
       return `${baseClasses} text-red-700 bg-red-100`;
+    }
+    if (s === "returned") {
+      return `${baseClasses} text-orange-700 bg-orange-100`;
     }
     return `${baseClasses} text-gray-700 bg-gray-100`;
   };

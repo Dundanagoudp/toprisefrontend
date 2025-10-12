@@ -148,7 +148,7 @@ export default function EnhancedOrderFilters({
               <SlidersHorizontal className="h-5 w-5" />
               <span>Order Filters</span>
               {activeFiltersCount > 0 && (
-                <Badge variant="secondary" className="ml-2">
+                <Badge className="ml-2 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   {activeFiltersCount} active
                 </Badge>
               )}
@@ -212,9 +212,10 @@ export default function EnhancedOrderFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="assigned">Assigned</SelectItem>
+                <SelectItem value="scanning">Scanning</SelectItem>
+                <SelectItem value="packed">Packed</SelectItem>
                 <SelectItem value="shipped">Shipped</SelectItem>
                 <SelectItem value="delivered">Delivered</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -232,7 +233,7 @@ export default function EnhancedOrderFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Payment Methods</SelectItem>
-                <SelectItem value="cash">Cash on Delivery</SelectItem>
+                <SelectItem value="COD">COD</SelectItem>
                 <SelectItem value="card">Credit/Debit Card</SelectItem>
                 <SelectItem value="upi">UPI</SelectItem>
                 <SelectItem value="netbanking">Net Banking</SelectItem>
@@ -250,11 +251,9 @@ export default function EnhancedOrderFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Sources</SelectItem>
-                <SelectItem value="website">Website</SelectItem>
-                <SelectItem value="mobile_app">Mobile App</SelectItem>
-                <SelectItem value="phone">Phone</SelectItem>
-                <SelectItem value="walk_in">Walk-in</SelectItem>
-                <SelectItem value="dealer">Dealer</SelectItem>
+                <SelectItem value="Web">Web</SelectItem>
+                <SelectItem value="Mobile">Mobile</SelectItem>
+                <SelectItem value="POS">POS</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -397,7 +396,7 @@ export default function EnhancedOrderFilters({
             </div>
             <div className="flex flex-wrap gap-2">
               {filters.search && (
-                <Badge variant="secondary" className="flex items-center space-x-1">
+                <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>Search: {filters.search}</span>
                   <X
                     className="h-3 w-3 cursor-pointer"
@@ -406,7 +405,7 @@ export default function EnhancedOrderFilters({
                 </Badge>
               )}
               {filters.status !== "all" && (
-                <Badge variant="secondary" className="flex items-center space-x-1">
+                <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>Status: {filters.status}</span>
                   <X
                     className="h-3 w-3 cursor-pointer"
@@ -415,7 +414,7 @@ export default function EnhancedOrderFilters({
                 </Badge>
               )}
               {filters.paymentMethod !== "all" && (
-                <Badge variant="secondary" className="flex items-center space-x-1">
+                <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>Payment: {filters.paymentMethod}</span>
                   <X
                     className="h-3 w-3 cursor-pointer"
@@ -424,7 +423,7 @@ export default function EnhancedOrderFilters({
                 </Badge>
               )}
               {filters.orderSource !== "all" && (
-                <Badge variant="secondary" className="flex items-center space-x-1">
+                <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>Source: {filters.orderSource}</span>
                   <X
                     className="h-3 w-3 cursor-pointer"
@@ -433,7 +432,7 @@ export default function EnhancedOrderFilters({
                 </Badge>
               )}
               {(filters.dateRange.from || filters.dateRange.to) && (
-                <Badge variant="secondary" className="flex items-center space-x-1">
+                <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>
                     Date: {filters.dateRange.from ? format(filters.dateRange.from, "MMM dd") : "Start"} -{" "}
                     {filters.dateRange.to ? format(filters.dateRange.to, "MMM dd") : "End"}
@@ -445,7 +444,7 @@ export default function EnhancedOrderFilters({
                 </Badge>
               )}
               {(filters.orderValue.min || filters.orderValue.max) && (
-                <Badge variant="secondary" className="flex items-center space-x-1">
+                <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>
                     Value: {filters.orderValue.min || "0"} - {filters.orderValue.max || "∞"}
                   </span>

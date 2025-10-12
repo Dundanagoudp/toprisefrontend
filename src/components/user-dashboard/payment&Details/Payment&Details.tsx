@@ -650,6 +650,7 @@ export default function PaymentDetails() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="razorpay">Razorpay</SelectItem>
                   <SelectItem value="card">Card</SelectItem>
                   <SelectItem value="upi">UPI</SelectItem>
                   <SelectItem value="netbanking">Net Banking</SelectItem>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -72,7 +72,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useEffect } from "react";
 import Image from "next/image";
 import { getProducts } from "@/service/product-Service";
 import slaViolationsService from "@/service/slaViolations-Service";
@@ -167,7 +166,7 @@ const getStatusBadge = (status: string) => {
     case "inactive":
     case "disabled":
       return (
-        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+        <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100">
           <XCircle className="w-3 h-3 mr-1" />
           Inactive
         </Badge>
@@ -208,7 +207,7 @@ const getPriorityBadge = (priority: string) => {
       );
     case "High":
       return (
-        <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
           {priority}
         </Badge>
       );
@@ -220,13 +219,28 @@ const getPriorityBadge = (priority: string) => {
       );
     case "Low":
       return (
-        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
           {priority}
         </Badge>
       );
     default:
       return <Badge variant="secondary">{priority}</Badge>;
   }
+};
+
+const getViolationStatusBadge = (resolved: boolean) => {
+  if (resolved) {
+    return (
+      <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100">
+        Inactive
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+      Active
+    </Badge>
+  );
 };
 
 export default function SLAViolationsAndReporting() {
@@ -495,6 +509,46 @@ export default function SLAViolationsAndReporting() {
     loadData();
   }, []);
   
+  // Calculate filtered violations based on search and filters
+  const filteredViolations = useMemo(() => {
+    return violations
+      .filter(violation => violation && violation._id)
+      .filter(violation => {
+        // Search filter
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase();
+          const matchesSearch = (
+            violation._id?.toLowerCase().includes(query) ||
+            violation.dealerDetails?.contact_person?.name?.toLowerCase().includes(query) ||
+            violation.order_id?.toLowerCase().includes(query) ||
+            violation._id?.slice(-8).toLowerCase().includes(query)
+          );
+          if (!matchesSearch) return false;
+        }
+        
+        // Status filter
+        if (filterStatus !== "all") {
+          if (filterStatus === "active" && violation.resolved) return false;
+          if (filterStatus === "inactive" && !violation.resolved) return false;
+          if (filterStatus === "resolved" && !violation.resolved) return false;
+        }
+        
+        // Priority filter (using priority instead of risk level)
+        if (filterRiskLevel !== "all") {
+          if (violation.priority?.toLowerCase() !== filterRiskLevel.toLowerCase()) return false;
+        }
+        
+        // Violations filter (using violation minutes)
+        if (filterViolations !== "all") {
+          const violationMinutes = violation.violation_minutes || 0;
+          if (filterViolations === "high" && violationMinutes < 10) return false;
+          if (filterViolations === "medium" && (violationMinutes < 5 || violationMinutes >= 10)) return false;
+          if (filterViolations === "low" && violationMinutes >= 5) return false;
+        }
+        
+        return true;
+      });
+  }, [violations, searchQuery, filterStatus, filterRiskLevel, filterViolations]);
 
   // Handle contacting dealer about violation
   const handleContactDealer = async () => {
@@ -856,44 +910,14 @@ export default function SLAViolationsAndReporting() {
                           No SLA violations found
                         </TableCell>
                       </TableRow>
-                                         ) : (
-                       violations
-                         .filter(violation => violation && violation._id)
-                         .filter(violation => {
-                           // Search filter
-                           if (searchQuery.trim()) {
-                             const query = searchQuery.toLowerCase();
-                             const matchesSearch = (
-                               violation._id?.toLowerCase().includes(query) ||
-                               violation.dealerDetails?.contact_person?.name?.toLowerCase().includes(query) ||
-                               violation.order_id?.toLowerCase().includes(query) ||
-                               violation._id?.slice(-8).toLowerCase().includes(query)
-                             );
-                             if (!matchesSearch) return false;
-                           }
-                           
-                           // Status filter
-                           if (filterStatus !== "all") {
-                             if (filterStatus === "active" && violation.status !== "Active") return false;
-                             if (filterStatus === "resolved" && violation.status !== "Resolved") return false;
-                           }
-                           
-                           // Priority filter (using priority instead of risk level)
-                           if (filterRiskLevel !== "all") {
-                             if (violation.priority?.toLowerCase() !== filterRiskLevel.toLowerCase()) return false;
-                           }
-                           
-                           // Violations filter (using violation minutes)
-                           if (filterViolations !== "all") {
-                             const violationMinutes = violation.violation_minutes || 0;
-                             if (filterViolations === "high" && violationMinutes < 10) return false;
-                             if (filterViolations === "medium" && (violationMinutes < 5 || violationMinutes >= 10)) return false;
-                             if (filterViolations === "low" && violationMinutes >= 5) return false;
-                           }
-                           
-                           return true;
-                         })
-                         .map((violation, index) => (
+                    ) : filteredViolations.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                          No violations match the selected filters
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredViolations.map((violation, index) => (
                         <TableRow
                           key={violation._id}
                           className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
@@ -933,11 +957,7 @@ export default function SLAViolationsAndReporting() {
                             </span>
                           </TableCell>
                           <TableCell className="px-6 py-4">
-                            <span className={`text-sm font-medium ${
-                              violation.resolved ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {violation.resolved ? "Resolved" : "Active"}
-                            </span>
+                            {getViolationStatusBadge(violation.resolved)}
                           </TableCell>
                           <TableCell className="px-6 py-4">
                             {getPriorityBadge(violation.priority || "Low")}
@@ -995,7 +1015,7 @@ export default function SLAViolationsAndReporting() {
               <div className="px-6 py-4 border-t border-gray-200 bg-gray-50/30">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <p className="text-sm text-gray-500 order-2 sm:order-1">
-                    Showing {violations.length} SLA violations
+                    Showing {filteredViolations.length} of {violations.length} SLA violations
                   </p>
                 </div>
               </div>

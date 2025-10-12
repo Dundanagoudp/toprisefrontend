@@ -66,11 +66,23 @@ const getStatusBadgeClasses = (status: string) => {
   if (s === "cancelled" || s === "canceled") {
     return "bg-red-100 text-red-800 hover:bg-red-100";
   }
-  if (s === "pending" || s === "created") {
-    return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
-  }
-  if (s === "approved" || s === "confirmed") {
+  if (s === "confirmed") {
     return "bg-green-100 text-green-800 hover:bg-green-100";
+  }
+  if (s === "assigned") {
+    return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+  }
+  if (s === "scanning") {
+    return "bg-purple-100 text-purple-800 hover:bg-purple-100";
+  }
+  if (s === "packed") {
+    return "bg-indigo-100 text-indigo-800 hover:bg-indigo-100";
+  }
+  if (s === "shipped") {
+    return "bg-cyan-100 text-cyan-800 hover:bg-cyan-100";
+  }
+  if (s === "returned") {
+    return "bg-orange-100 text-orange-800 hover:bg-orange-100";
   }
   return "bg-gray-100 text-gray-800 hover:bg-gray-100";
 };
@@ -433,7 +445,7 @@ export default function OrderDetailsView() {
       totalPrice: sku.totalPrice || sku.quantity * (sku.mrp || 0), // Calculate if not provided
       _id: sku._id,
       // Add tracking information
-      tracking_info: sku.tracking_info || { status: "Pending" },
+      tracking_info: sku.tracking_info || { status: "Confirmed" },
       return_info: sku.return_info || { is_returned: false, return_id: null },
       dealerMapped: sku.dealerMapped || [],
       gst_percentage: sku.gst_percentage || "0",

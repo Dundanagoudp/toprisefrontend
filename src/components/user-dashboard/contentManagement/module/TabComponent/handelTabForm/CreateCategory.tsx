@@ -180,18 +180,12 @@ export default function CreateCategory({
       } catch (err: any) {
         console.error("Error creating category:", err);
         
-        // Enhanced error handling
-        if (err?.response?.status === 401) {
-          showToast("Authentication failed. Please log in again.", "error");
-        } else if (err?.response?.status === 403) {
-          showToast("You don't have permission to create categories.", "error");
-        } else if (err?.response?.data?.message) {
-          showToast(err.response.data.message, "error");
-        } else if (err?.message) {
-          showToast("Error: " + err.message, "error");
-        } else {
-          showToast("Failed to create category. Please try again.", "error");
-        }
+        // Extract error message from API response
+        const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           err.message || 
+                           "Failed to create category. Please try again.";
+        showToast(errorMessage, "error");
       }
     },
     [showToast, reset, onClose, onSuccess, auth?.user?._id]

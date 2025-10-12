@@ -83,16 +83,11 @@ export default function EmployeeTable({
       setIsLoading(true);
       await revokeRole(employeeId, {});
       
-      // Update the local state to reflect the role change
-      setEmployees(prevEmployees => 
-        prevEmployees.map(emp => 
-          emp._id === employeeId 
-            ? { ...emp, role: "User" }
-            : emp
-        )
-      );
+      // Show success toast
+      showToast(`Role revoked successfully for ${employeeName}`, "success");
       
-      // showToast(`Role revoked successfully for ${employeeName}`, "success");
+      // Refresh the employee list to reflect the changes
+      await fetchEmployees();
     } catch (error: any) {
       showToast(`Failed to revoke role: ${error.message || "Unknown error"}`, "error");
     } finally {
@@ -236,16 +231,16 @@ export default function EmployeeTable({
       }
     }
     
-    // Handle role filtering - only filter if role is provided and not empty
+    // Handle role filtering - only filter if role is provided and not empty/all
     let matchesRole = true;
-    if (role && role.trim() !== "") {
+    if (role && role.trim() !== "" && role.toLowerCase() !== "all") {
       const employeeRole = employee.role || "User";
       matchesRole = employeeRole.toLowerCase() === role.toLowerCase();
     }
     
-    // Handle status filtering - only filter if status is provided and not empty
+    // Handle status filtering - only filter if status is provided and not empty/all
     let matchesStatus = true;
-    if (status && status.trim() !== "") {
+    if (status && status.trim() !== "" && status.toLowerCase() !== "all") {
       const employeeStatus = employee.status || "Active";
       matchesStatus = employeeStatus.toLowerCase() === status.toLowerCase();
     }

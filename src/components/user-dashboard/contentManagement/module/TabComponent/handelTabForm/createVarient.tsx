@@ -182,7 +182,12 @@ export default function CreateVariant({
         if (err.response) {
           console.error("API error response:", err.response);
         }
-        showToast("Failed to create variant. Please try again.", "error");
+        // Extract error message from API response
+        const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           err.message || 
+                           "Failed to create variant. Please try again.";
+        showToast(errorMessage, "error");
       }
     },
     [showToast, reset, onClose, onSuccess, auth.user]

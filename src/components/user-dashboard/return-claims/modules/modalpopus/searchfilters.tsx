@@ -1,33 +1,71 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface SearchFiltersModalProps {
   trigger?: React.ReactNode
+  currentStatus?: string
+  currentClaimType?: string
+  onApplyFilters?: (status: string, claimType: string) => void
+  onResetFilters?: () => void
 }
 
-export default function SearchFiltersModal({ trigger }: SearchFiltersModalProps) {
-  const [returnStatus, setReturnStatus] = useState("Approved")
-  const [claimType, setClaimType] = useState("Not Compatible")
+export default function SearchFiltersModal({ 
+  trigger, 
+  currentStatus = "", 
+  currentClaimType = "",
+  onApplyFilters,
+  onResetFilters 
+}: SearchFiltersModalProps) {
+  const [returnStatus, setReturnStatus] = useState(currentStatus || "")
+  const [claimType, setClaimType] = useState(currentClaimType || "")
   const [isOpen, setIsOpen] = useState(false)
 
-  const returnStatusOptions = ["Pending", "Approved", "Rejected", "In_Progress", "Pickup_Scheduled", "Pickup_Completed", "Completed"]
+  const returnStatusOptions = [
+    "Requested",
+    "Pending", 
+    "Approved", 
+    "Rejected", 
+    "In_Progress", 
+    "Pickup_Scheduled", 
+    "Pickup_Completed", 
+    "Under_Inspection",
+    "Completed",
+    "Refund_Processed"
+  ]
   const claimTypeOptions = ["Defective", "Wrong Item", "Not Compatible", "Others"]
 
+  // Helper function to format status display name
+  const formatStatusName = (status: string) => {
+    return status.replace(/_/g, " ")
+  }
+
+  // Sync local state when props change (when modal opens)
+  useEffect(() => {
+    if (isOpen) {
+      setReturnStatus(currentStatus || "")
+      setClaimType(currentClaimType || "")
+    }
+  }, [isOpen, currentStatus, currentClaimType])
+
   const handleSearch = () => {
-    console.log("Search filters:", {
-      returnStatus,
-      claimType,
-    })
+    // Apply filters by calling the parent callback
+    if (onApplyFilters) {
+      onApplyFilters(returnStatus, claimType)
+    }
     setIsOpen(false)
   }
 
   const handleReset = () => {
-    setReturnStatus("Pending")
-    setClaimType("Defective")
+    setReturnStatus("")
+    setClaimType("")
+    // Call parent reset callback
+    if (onResetFilters) {
+      onResetFilters()
+    }
   }
 
   return (
@@ -52,17 +90,19 @@ export default function SearchFiltersModal({ trigger }: SearchFiltersModalProps)
             {/* Return Status */}
             <div>
               <h3 className="text-base text-gray-900 font-bold mb-4">Return Status</h3>
-              <div className="flex w-full bg-gray-100 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {returnStatusOptions.map((status) => (
                   <button
                     key={status}
                     onClick={() => setReturnStatus(status)}
-                    className={`flex-1 py-3 text-base font-medium transition-all duration-200 focus:outline-none rounded-xl
-                      ${returnStatus === status ? "bg-red-600 text-white" : "text-gray-500"}
+                    className={`py-3 px-4 text-sm font-medium transition-all duration-200 focus:outline-none rounded-lg text-center
+                      ${returnStatus === status 
+                        ? "bg-red-600 text-white shadow-md" 
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }
                     `}
-                    style={{ border: 'none', boxShadow: 'none' }}
                   >
-                    {status}
+                    {formatStatusName(status)}
                   </button>
                 ))}
               </div>
@@ -71,15 +111,17 @@ export default function SearchFiltersModal({ trigger }: SearchFiltersModalProps)
             {/* Claim Type */}
             <div>
               <h3 className="text-base text-gray-900 font-bold mb-4">Claim Type</h3>
-              <div className="flex w-full bg-gray-100 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {claimTypeOptions.map((type) => (
                   <button
                     key={type}
                     onClick={() => setClaimType(type)}
-                    className={`flex-1 py-3 text-base font-medium transition-all duration-200 focus:outline-none rounded-xl
-                      ${claimType === type ? "bg-red-600 text-white" : "text-gray-500"}
+                    className={`py-3 px-4 text-sm font-medium transition-all duration-200 focus:outline-none rounded-lg text-center
+                      ${claimType === type 
+                        ? "bg-red-600 text-white shadow-md" 
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }
                     `}
-                    style={{ border: 'none', boxShadow: 'none' }}
                   >
                     {type}
                   </button>

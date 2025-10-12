@@ -174,7 +174,12 @@ export default function CreateBrand({
         }
       } catch (err: any) {
         console.error("Error creating brand:", err);
-        showToast("Failed to create brand. Please try again.", "error");
+        // Extract error message from API response
+        const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           err.message || 
+                           "Failed to create brand. Please try again.";
+        showToast(errorMessage, "error");
       }
     },
     [showToast, reset, onClose, onSuccess]

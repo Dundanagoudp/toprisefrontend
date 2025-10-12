@@ -474,10 +474,6 @@ export default function ProductRequests() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button onClick={() => router.push('/user/dashboard/requests/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Request
-          </Button>
         </div>
       </div>
 
@@ -545,10 +541,11 @@ export default function ProductRequests() {
           <CardDescription>Filter products by various criteria</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Search</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="search-filter">Search</Label>
               <SearchInput
+                id="search-filter"
                 placeholder="Search products..."
                 value={searchInput}
                 onChange={handleSearchChange}
@@ -556,13 +553,14 @@ export default function ProductRequests() {
                   setSearchInput("");
                   setSearchQuery("");
                 }}
+                className="h-10"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Status</Label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="status-filter">Status</Label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
+                <SelectTrigger id="status-filter" className="h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -575,10 +573,10 @@ export default function ProductRequests() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Type</Label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="type-filter">Type</Label>
               <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger>
+                <SelectTrigger id="type-filter" className="h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -592,10 +590,10 @@ export default function ProductRequests() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Priority</Label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="priority-filter">Priority</Label>
               <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                <SelectTrigger>
+                <SelectTrigger id="priority-filter" className="h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -609,52 +607,57 @@ export default function ProductRequests() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <Label>Date Range</Label>
-            <div className="flex items-center space-x-2 mt-2">
-              <Popover>
-                <PopoverTrigger asChild>
+          <div className="mt-6">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="date-range-filter">Date Range</Label>
+              <div className="flex items-center space-x-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="date-range-filter"
+                      variant="outline"
+                      className={cn(
+                        "w-[280px] h-10 justify-start text-left font-normal",
+                        !dateRange.from && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                            {format(dateRange.to, "LLL dd, y")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "LLL dd, y")
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {(dateRange.from || dateRange.to) && (
                   <Button
                     variant="outline"
-                    className={cn(
-                      "w-[280px] justify-start text-left font-normal",
-                      !dateRange.from && "text-muted-foreground"
-                    )}
+                    size="sm"
+                    className="h-10"
+                    onClick={() => setDateRange({ from: undefined, to: undefined })}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "LLL dd, y")} -{" "}
-                          {format(dateRange.to, "LLL dd, y")}
-                        </>
-                      ) : (
-                        format(dateRange.from, "LLL dd, y")
-                      )
-                    ) : (
-                      <span>Pick a date range</span>
-                    )}
+                    Clear
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange.from}
-                    selected={dateRange}
-                    onSelect={setDateRange}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
-              {(dateRange.from || dateRange.to) && (
-                <Button
-                  variant="outline"
-                  onClick={() => setDateRange({ from: undefined, to: undefined })}
-                >
-                  Clear
-                </Button>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </CardContent>

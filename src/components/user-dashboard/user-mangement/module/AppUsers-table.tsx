@@ -88,10 +88,11 @@ export default function AppUsersTable({
 				(u.email || "").toLowerCase().includes(q) ||
 				(u.username || "").toLowerCase().includes(q) ||
 				(u.phone_Number || "").toLowerCase().includes(q)
-			const matchesRole = !role || (u.role || "").toLowerCase() === role.toLowerCase()
-			return matchesSearch && matchesRole
+			const matchesRole = !role || role.toLowerCase() === "all" || (u.role || "").toLowerCase() === role.toLowerCase()
+			const matchesStatus = !status || status.toLowerCase() === "all" || (u.isDeleted ? "inactive (deleted)" : "active").toLowerCase() === status.toLowerCase()
+			return matchesSearch && matchesRole && matchesStatus
 		})
-	}, [sorted, search, role])
+	}, [sorted, search, role, status])
 
 	const totalItems = filtered.length
 	const totalPages = Math.ceil(totalItems / itemsPerPage)

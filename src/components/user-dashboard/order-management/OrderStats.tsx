@@ -34,7 +34,7 @@ interface OrderStatsProps {
 interface OrderStats {
   totalOrders: number;
   totalRevenue: number;
-  pendingOrders: number;
+  confirmedOrders: number;
   completedOrders: number;
   cancelledOrders: number;
   averageOrderValue: number;
@@ -58,7 +58,7 @@ export default function OrderStats({ orders, loading = false }: OrderStatsProps)
       return {
         totalOrders: 0,
         totalRevenue: 0,
-        pendingOrders: 0,
+        confirmedOrders: 0,
         completedOrders: 0,
         cancelledOrders: 0,
         averageOrderValue: 0,
@@ -89,12 +89,12 @@ export default function OrderStats({ orders, loading = false }: OrderStatsProps)
 
     // Status distribution
     const statusCounts = orders.reduce((acc, order) => {
-      const status = order.status?.toLowerCase() || "pending";
+      const status = order.status?.toLowerCase() || "unknown";
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    const pendingOrders = statusCounts.pending || 0;
+    const confirmedOrders = statusCounts.confirmed || 0;
     const completedOrders = statusCounts.completed || statusCounts.delivered || 0;
     const cancelledOrders = statusCounts.cancelled || statusCounts.rejected || 0;
 
@@ -154,7 +154,7 @@ export default function OrderStats({ orders, loading = false }: OrderStatsProps)
     return {
       totalOrders,
       totalRevenue,
-      pendingOrders,
+      confirmedOrders,
       completedOrders,
       cancelledOrders,
       averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
@@ -242,13 +242,13 @@ export default function OrderStats({ orders, loading = false }: OrderStatsProps)
         {/* Pending Orders */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+            <CardTitle className="text-sm font-medium">Confirmed Orders</CardTitle>
+            <Clock className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(stats.pendingOrders)}</div>
+            <div className="text-2xl font-bold">{formatNumber(stats.confirmedOrders)}</div>
             <p className="text-xs text-muted-foreground">
-              {((stats.pendingOrders / stats.totalOrders) * 100).toFixed(1)}% of total orders
+              {((stats.confirmedOrders / stats.totalOrders) * 100).toFixed(1)}% of total orders
             </p>
           </CardContent>
         </Card>

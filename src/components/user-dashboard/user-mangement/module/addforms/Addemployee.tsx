@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { addEmployee } from "@/service/employeeServices";
-import { useToast } from "@/hooks/use-toast";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { Eye, EyeOff } from "lucide-react";
 
 import {
@@ -32,7 +32,7 @@ export default function Addemployee() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formData, setFormData] = useState<EmployeeFormValues | null>(null);
-  const { toast } = useToast();
+  const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
   const [showPassword, setShowPassword] = useState(false);
@@ -90,25 +90,30 @@ export default function Addemployee() {
 
       const response = await addEmployee(payload);
 
-      // Enhanced success notification
-      console.log("Employee created successfully, showing toast...");
-      toast({
-        title: "🎉 Employee Created Successfully!",
-        description: `Employee "${formData.fullName}" (${formData.employeeId}) has been added to the system successfully. They can now log in with their credentials.`,
-        variant: "default",
-      });
+      // Check if employee was created successfully
+      if (response.success) {
+        // Enhanced success notification
+        console.log("Employee created successfully, showing toast...");
+        showToast(
+          `🎉 Employee "${formData.fullName}" (${formData.employeeId}) has been added to the system successfully! They can now log in with their credentials.`,
+          "success"
+        );
 
-      // Close confirmation dialog first
-      setShowConfirmation(false);
+        // Close confirmation dialog first
+        setShowConfirmation(false);
 
-      // Reset form
-      form.reset();
-      setFormData(null);
+        // Reset form
+        form.reset();
+        setFormData(null);
 
-      // Navigate back to user management page after showing toast
-      setTimeout(() => {
-        router.push("/user/dashboard/user");
-      }, 1500); // Wait 1.5 seconds to show the toast before navigating
+        // Navigate back to user management page after showing toast
+        setTimeout(() => {
+          router.push("/user/dashboard/user");
+        }, 2000); // Wait 2 seconds to show the toast before navigating
+      } else {
+        // Handle unsuccessful response
+        throw new Error(response.message || "Failed to create employee");
+      }
     } catch (error: any) {
       // Better error handling
       let errorMessage = "Failed to add employee. Please try again.";
@@ -125,11 +130,7 @@ export default function Addemployee() {
         errorMessage = "Server error. Please try again later.";
       }
 
-      toast({
-        title: "Error Adding Employee ❌",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      showToast(errorMessage, "error");
     } finally {
       setSubmitLoading(false);
     }

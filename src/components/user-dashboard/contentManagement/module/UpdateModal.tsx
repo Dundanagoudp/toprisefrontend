@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,21 +52,27 @@ export default function UpdateModal({
   useEffect(() => {
     if (open && item) {
       console.log("UpdateModal - Loading item:", item);
+      
+      // Extract values with proper field mapping
+      const name = item.category_name || item.subcategory_name || item.brand_name || item.model_name || item.variant_name || '';
+      const code = item.category_code || item.subcategory_code || item.brand_code || item.model_code || item.variant_code || '';
+      const description = item.brand_description || item.category_description || item.subcategory_description || item.model_description || item.variant_Description || item.description || '';
+      const status = item.status || item.brand_Status || item.category_Status || item.subcategory_status || item.model_Status || item.variant_status || 'Active';
+      const vehicleType = (typeof item.type === 'object' ? item.type?._id : item.type) || item.vehicleType_id || '';
+      
       setFormData({
-        name: item.category_name || item.subcategory_name || item.brand_name || item.model_name || item.variant_name || '',
-        code: item.category_code || item.subcategory_code || item.brand_code || item.model_code || item.variant_code || '',
-        description: item.category_description || item.subcategory_description || item.brand_description || item.model_description || item.variant_Description || item.description || '',
-        status: item.category_Status || item.subcategory_status || item.brand_Status || item.status || item.model_Status || item.variant_status || 'Active',
-        vehicleType: item.type || item.vehicleType_id || '',
+        name,
+        code,
+        description,
+        status,
+        vehicleType,
         category: item.category_ref || item.category_id || '',
         brand: item.brand_ref || item.brand_id || (typeof item.brand === 'object' ? item.brand?._id : item.brand) || '',
         model: item.model || item.model_id || ''
       });
-      console.log("UpdateModal - Form data set:", {
-        name: item.category_name || item.subcategory_name || item.brand_name || item.model_name || item.variant_name || '',
-        description: item.category_description || item.subcategory_description || item.brand_description || item.model_description || item.variant_Description || item.description || '',
-        brand: item.brand_ref || item.brand_id || (typeof item.brand === 'object' ? item.brand?._id : item.brand) || ''
-      });
+      
+      console.log("UpdateModal - Form data set:", { name, code, description, status, vehicleType });
+      
       setImagePreview(item.category_image || item.subcategory_image || item.brand_logo || item.model_image || item.variant_image || '');
       setImageFile(null);
     }
@@ -117,6 +123,7 @@ export default function UpdateModal({
         submitFormData.append('brand_name', formData.name);
         if (formData.code) submitFormData.append('brand_code', formData.code);
         if (formData.description) submitFormData.append('brand_description', formData.description);
+        if (formData.vehicleType) submitFormData.append('type', formData.vehicleType);
         submitFormData.append('status', formData.status);
       } else if (type === 'model') {
         submitFormData.append('model_name', formData.name);
@@ -149,10 +156,29 @@ export default function UpdateModal({
 
       await onUpdate(submitFormData);
       showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully`, "success");
+      
+      // Reset form and close modal
+      setFormData({
+        name: '',
+        code: '',
+        description: '',
+        status: 'Active',
+        vehicleType: '',
+        category: '',
+        brand: '',
+        model: ''
+      });
+      setImageFile(null);
+      setImagePreview('');
       onClose();
     } catch (error: any) {
       console.error(`Error updating ${type}:`, error);
-      showToast(error?.response?.data?.message || `Failed to update ${type}`, "error");
+      // Extract error message from API response
+      const errorMessage = error?.response?.data?.message || 
+                         error?.response?.data?.error || 
+                         error?.message || 
+                         `Failed to update ${type}. Please try again.`;
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -182,7 +208,6 @@ export default function UpdateModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogOverlay className="bg-transparent" />
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" key={item?._id}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">{getTitle()}</DialogTitle>
@@ -228,8 +253,8 @@ export default function UpdateModal({
             )}
           </div>
 
-          {/* Vehicle Type Field (for categories) */}
-          {type === 'category' && vehicleTypes.length > 0 && (
+          {/* Vehicle Type Field (for categories and brands) */}
+          {(type === 'category' || type === 'brand') && vehicleTypes.length > 0 && (
             <div className="grid gap-2">
               <Label htmlFor="vehicleType">Vehicle Type</Label>
               <Select value={formData.vehicleType} onValueChange={(value) => handleInputChange('vehicleType', value)}>
