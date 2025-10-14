@@ -412,35 +412,29 @@ export default function Dashboard() {
             }
           >
             <div className="space-y-4">
-              {chartData.length > 0 ? (
-                <>
-                  <CustomLineChart data={chartData} />
-                  {/* Chart Legend */}
-                  <div className="flex flex-wrap gap-4 justify-center text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                      <span className="text-gray-600">Current Period</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <span className="text-gray-600">Previous Period</span>
-                    </div>
-                    {(processAllOrdersData || orderApiStats) && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        <span className="text-gray-600">{processAllOrdersData ? "All Orders Data" : "Order API Data"}</span>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center justify-center h-48 text-gray-500">
-                  <div className="text-center">
-                    <div className="text-lg font-medium mb-2">No Chart Data Available</div>
-                    <div className="text-sm">Loading order data...</div>
-                  </div>
+              <CustomLineChart data={chartData} />
+              {/* Chart Legend */}
+              <div className="flex flex-wrap gap-4 justify-center text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-gray-600">Current Period</span>
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span className="text-gray-600">Previous Period</span>
+                </div>
+                {(processAllOrdersData || orderApiStats) && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="text-gray-600">{processAllOrdersData ? "All Orders Data" : "Order API Data"}</span>
+                  </div>
+                )}
+              </div>
+              {chartData.length === 0 || (chartData.every(d => d.value1 === 0 && d.value2 === 0 && d.value3 === 0)) ? (
+                <div className="flex items-center justify-center h-12 text-xs text-gray-400 bg-gray-50 rounded-lg border border-dashed">
+                  No order data available for the selected period
+                </div>
+              ) : null}
             </div>
           </ChartCard>
           

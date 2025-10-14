@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { getvarient, getModels } from "@/service/product-Service";
+import { getvarient, getModels, getYearRange } from "@/service/product-Service";
 import { updateVariant } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -17,6 +17,7 @@ import UpdateModal from "../UpdateModal";
 export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
     const [variants, setVariants] = useState<any[]>([]);
     const [models, setModels] = useState<any[]>([]);
+    const [years, setYears] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [sortField, setSortField] = useState<string>("");
@@ -103,6 +104,46 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
         return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
     };
 
+    // Fetch data function (defined outside useEffect so it can be reused)
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [variantsResponse, modelsResponse, yearsResponse] = await Promise.all([
+                getvarient(),
+                getModels(),
+                getYearRange()
+            ]);
+            
+            if (!variantsResponse || !variantsResponse.data) {
+                console.error("No variants data found in response");
+                setVariants([]);
+            } else {
+                setVariants(Array.isArray(variantsResponse.data) ? variantsResponse.data : []);
+            }
+
+            if (!modelsResponse || !modelsResponse.data) {
+                console.error("No models data found in response");
+                setModels([]);
+            } else {
+                setModels(Array.isArray(modelsResponse.data) ? modelsResponse.data : []);
+            }
+
+            if (!yearsResponse || !yearsResponse.data) {
+                console.error("No years data found in response");
+                setYears([]);
+            } else {
+                setYears(Array.isArray(yearsResponse.data) ? yearsResponse.data : []);
+            }
+        } catch (err: any) {
+            console.error("Error fetching data:", err);
+            setVariants([]);
+            setModels([]);
+            setYears([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleEditVariant = (variant: any) => {
         setSelectedVariant(variant);
         setUpdateModalOpen(true);
@@ -112,39 +153,10 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
         if (!selectedVariant) return;
         await updateVariant(selectedVariant._id, formData);
         // Refresh variants after update
-        fetchData();
+        await fetchData();
     };
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [variantsResponse, modelsResponse] = await Promise.all([
-                    getvarient(),
-                    getModels()
-                ]);
-                
-                if (!variantsResponse || !variantsResponse.data) {
-                    console.error("No variants data found in response");
-                    setVariants([]);
-                } else {
-                    setVariants(Array.isArray(variantsResponse.data) ? variantsResponse.data : []);
-                }
-
-                if (!modelsResponse || !modelsResponse.data) {
-                    console.error("No models data found in response");
-                    setModels([]);
-                } else {
-                    setModels(Array.isArray(modelsResponse.data) ? modelsResponse.data : []);
-                }
-            } catch (err: any) {
-                console.error("Error fetching data:", err);
-                setVariants([]);
-                setModels([]);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
     }, []);
 
@@ -326,6 +338,7 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
                 item={selectedVariant}
                 type="variant"
                 models={models}
+                years={years}
             />
         </div>
     );

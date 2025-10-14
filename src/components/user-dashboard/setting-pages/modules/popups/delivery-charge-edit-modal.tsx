@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { updateAppSettings } from "@/service/deliverychargeServices"
-import type { AppSettings, ServiceableArea } from "@/types/deliverycharge-Types"
-import { Plus, Trash2, Settings, Mail, Phone, MapPin, FileText } from "lucide-react"
+import type { AppSettings } from "@/types/deliverycharge-Types"
+import { Settings, Mail, Phone, FileText } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 
 interface DeliveryChargeEditModalProps {
@@ -16,9 +16,10 @@ interface DeliveryChargeEditModalProps {
   onClose: () => void
   settings: AppSettings | null
   onUpdate: (settings: AppSettings) => void
+  editingSection: string | null
 }
 
-export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }: DeliveryChargeEditModalProps) {
+export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate, editingSection }: DeliveryChargeEditModalProps) {
   const { showToast } = useToast()
   const [formData, setFormData] = useState({
     deliveryCharge: "",
@@ -39,7 +40,6 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
       android: "",
       ios: ""
     },
-    servicableAreas: [] as ServiceableArea[],
     supportEmail: "",
     supportPhone: "",
     tnc: "",
@@ -68,7 +68,6 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
           android: settings.versioning?.android || "",
           ios: settings.versioning?.ios || ""
         },
-        servicableAreas: settings.servicableAreas || [],
         supportEmail: settings.supportEmail || "",
         supportPhone: settings.supportPhone || "",
         tnc: settings.tnc || "",
@@ -78,76 +77,97 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
   }, [settings])
 
   const handleSave = async () => {
-    if (!settings) return
+    if (!settings || !editingSection) return
 
     setIsLoading(true)
     try {
-      const updatedSettings = {
-        ...settings,
-        deliveryCharge: Number.parseFloat(formData.deliveryCharge) || 0,
-        minimumOrderValue: Number.parseFloat(formData.minimumOrderValue) || 0,
-        smtp: {
-          ...settings.smtp,
-          fromName: formData.smtp.fromName,
-          fromEmail: formData.smtp.fromEmail,
-          host: formData.smtp.host,
-          port: Number.parseInt(formData.smtp.port) || 587,
-          secure: formData.smtp.secure,
-          auth: {
-            user: formData.smtp.auth.user,
-            pass: formData.smtp.auth.pass
+      let payload: any = {}
+      
+      // Build payload based on which section is being edited
+      switch (editingSection) {
+        case 'delivery':
+          payload = {
+            deliveryCharge: Number.parseFloat(formData.deliveryCharge) || 0,
+            minimumOrderValue: Number.parseFloat(formData.minimumOrderValue) || 0
           }
-        },
-        versioning: {
-          ...settings.versioning,
-          web: formData.versioning.web,
-          android: formData.versioning.android,
-          ios: formData.versioning.ios
-        },
-        servicableAreas: formData.servicableAreas,
-        supportEmail: formData.supportEmail,
-        supportPhone: formData.supportPhone,
-        tnc: formData.tnc,
-        privacyPolicy: formData.privacyPolicy
+          break
+          
+        case 'smtp':
+          payload = {
+            smtp: {
+              fromName: formData.smtp.fromName,
+              fromEmail: formData.smtp.fromEmail,
+              host: formData.smtp.host,
+              port: Number.parseInt(formData.smtp.port) || 587,
+              secure: formData.smtp.secure,
+              auth: {
+                user: formData.smtp.auth.user,
+                pass: formData.smtp.auth.pass
+              }
+            }
+          }
+          break
+          
+        case 'versioning':
+          payload = {
+            versioning: {
+              web: formData.versioning.web,
+              android: formData.versioning.android,
+              ios: formData.versioning.ios
+            }
+          }
+          break
+          
+        case 'support':
+          payload = {
+            supportEmail: formData.supportEmail,
+            supportPhone: formData.supportPhone
+          }
+          break
+          
+        case 'legal':
+          payload = {
+            tnc: formData.tnc,
+            privacyPolicy: formData.privacyPolicy
+          }
+          break
+          
+        default:
+          showToast("Invalid section", "error")
+          return
       }
 
-      const response = await updateAppSettings(updatedSettings)
+      console.log(`Updating ${editingSection} with payload:`, payload)
+      
+      const response = await updateAppSettings(payload)
       if (response?.data) {
         onUpdate(response.data)
-        showToast("Settings updated successfully!", "success")
+        showToast(`${getSectionName(editingSection)} updated successfully!`, "success")
         onClose()
       } else {
         showToast("Failed to update settings. Please try again.", "error")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating settings:", error)
-      showToast("An error occurred while updating settings. Please try again.", "error")
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.error || 
+                          error?.message || 
+                          "An error occurred while updating settings. Please try again."
+      showToast(errorMessage, "error")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const addServiceableArea = () => {
-    setFormData(prev => ({
-      ...prev,
-      servicableAreas: [...prev.servicableAreas, { lat: 0, long: 0 }]
-    }))
-  }
-
-  const removeServiceableArea = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      servicableAreas: prev.servicableAreas.filter((_, i) => i !== index)
-    }))
-  }
-
-  const updateServiceableArea = (index: number, field: 'lat' | 'long', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      servicableAreas: prev.servicableAreas.map((area, i) => 
-        i === index ? { ...area, [field]: Number.parseFloat(value) || 0 } : area
-      )
-    }))
+  const getSectionName = (section: string | null): string => {
+    switch (section) {
+      case 'delivery': return 'Delivery Settings'
+      case 'smtp': return 'SMTP Configuration'
+      case 'versioning': return 'App Versioning'
+      case 'support': return 'Support Information'
+      case 'legal': return 'Legal Links'
+      default: return 'Settings'
+    }
   }
 
   return (
@@ -159,6 +179,7 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
 
         <div className="space-y-6">
           {/* Delivery Settings Section */}
+          {editingSection === 'delivery' && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-lg font-semibold">
               <Settings className="h-5 w-5" />
@@ -187,8 +208,10 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
               </div>
             </div>
           </div>
+          )}
 
           {/* SMTP Settings Section */}
+          {editingSection === 'smtp' && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-lg font-semibold">
               <Mail className="h-5 w-5" />
@@ -289,8 +312,10 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
               <Label htmlFor="smtp-secure">Secure Connection</Label>
             </div>
           </div>
+          )}
 
           {/* Versioning Section */}
+          {editingSection === 'versioning' && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-lg font-semibold">
               <Settings className="h-5 w-5" />
@@ -335,8 +360,10 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
               </div>
             </div>
           </div>
+          )}
 
           {/* Support Information Section */}
+          {editingSection === 'support' && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-lg font-semibold">
               <Phone className="h-5 w-5" />
@@ -364,8 +391,10 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
               </div>
             </div>
           </div>
+          )}
 
           {/* Legal Links Section */}
+          {editingSection === 'legal' && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-lg font-semibold">
               <FileText className="h-5 w-5" />
@@ -394,64 +423,8 @@ export function DeliveryChargeEditModal({ isOpen, onClose, settings, onUpdate }:
               </div>
             </div>
           </div>
+          )}
 
-          {/* Serviceable Areas Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-lg font-semibold">
-                <MapPin className="h-5 w-5" />
-                Serviceable Areas
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={addServiceableArea}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Area
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {formData.servicableAreas.map((area, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                  <div className="grid grid-cols-2 gap-3 flex-1">
-                    <div className="grid gap-1">
-                      <Label htmlFor={`lat-${index}`}>Latitude</Label>
-                      <Input
-                        id={`lat-${index}`}
-                        type="number"
-                        step="any"
-                        placeholder="28.6139"
-                        value={area.lat}
-                        onChange={(e) => updateServiceableArea(index, 'lat', e.target.value)}
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor={`long-${index}`}>Longitude</Label>
-                      <Input
-                        id={`long-${index}`}
-                        type="number"
-                        step="any"
-                        placeholder="77.209"
-                        value={area.long}
-                        onChange={(e) => updateServiceableArea(index, 'long', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeServiceableArea(index)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              {formData.servicableAreas.length === 0 && (
-                <div className="text-center text-gray-500 py-4">
-                  No serviceable areas configured
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4">

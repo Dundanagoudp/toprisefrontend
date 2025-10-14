@@ -91,20 +91,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <BreadcrumbProvider>
         <SidebarProvider>
           <AppSidebar />
-          <SidebarInset>
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
-              <div className="flex items-center gap-2 px-4">
-                <SidebarTrigger className="-ml-1" />
+          <SidebarInset className="min-w-0 overflow-x-hidden">
+            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40 min-w-0">
+              <div className="flex items-center gap-2 px-4 min-w-0 flex-1">
+                <SidebarTrigger className="-ml-1 flex-shrink-0" />
                 <Separator
                   orientation="vertical"
-                  className="mr-2 data-[orientation=vertical]:h-4"
+                  className="mr-2 data-[orientation=vertical]:h-4 flex-shrink-0"
                 />
-                <BreadcrumbWithContext />
+                <div className="min-w-0 flex-1">
+                  <BreadcrumbWithContext />
+                </div>
               </div>
-              <div className="ml-auto px-4">
+              <div className="flex-shrink-0 px-4">
                 <button
                   onClick={() => setIsNotifOpen((prev) => !prev)}
-                  className="relative rounded-full p-2 hover:bg-gray-100 transition-colors"
+                  className="relative rounded-full p-2 hover:bg-gray-100 transition-colors flex-shrink-0"
                   aria-label="Open notifications"
                 >
                   <Bell className="w-6 h-6 text-gray-700" />

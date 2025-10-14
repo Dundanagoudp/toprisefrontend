@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, X, Trash2, CheckCheck, AlertCircle, Info, AlertTriangle } from "lucide-react"
+import { Bell, X, Trash2, CheckCheck, AlertCircle, Info, AlertTriangle, Eye, EyeOff } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
@@ -8,7 +8,9 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import {
   getAllNotifications,
   markAsRead as markAsReadAPI,
+  markAsUnread as markAsUnreadAPI,
   markAllAsRead as markAllAsReadAPI,
+  markAllAsUnread as markAllAsUnreadAPI,
   deleteNotification as deleteNotificationAPI,
   deleteAllNotifications as deleteAllNotificationsAPI,
 } from "@/service/notificationServices"
@@ -95,7 +97,13 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       }
 
       if (response.success) {
-        setNotificationList(response.data)
+        // Sort notifications from latest to oldest based on createdAt timestamp
+        const sortedNotifications = response.data.sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime()
+          const dateB = new Date(b.createdAt).getTime()
+          return dateB - dateA // Latest first
+        })
+        setNotificationList(sortedNotifications)
         setSelectedIds(new Set())
         const allNotifications = filterType !== "all" ? await getAllNotifications(userId) : response
         if (allNotifications.success) {
@@ -130,6 +138,17 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
     }
   }
 
+  const markAsUnread = async (id: string) => {
+    try {
+      const response = await markAsUnreadAPI(id)
+      if (response.success) {
+        await fetchNotifications(filter)
+      }
+    } catch (err) {
+      console.error("Error marking notification as unread:", err)
+    }
+  }
+
   const markAllAsRead = async () => {
     try {
       const userId = getUserIdFromToken()
@@ -143,6 +162,22 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       }
     } catch (err) {
       console.error("Error marking all as read:", err)
+    }
+  }
+
+  const markAllAsUnread = async () => {
+    try {
+      const userId = getUserIdFromToken()
+      if (!userId) {
+        setError("Authentication required")
+        return
+      }
+      const response = await markAllAsUnreadAPI(userId)
+      if (response.success) {
+        await fetchNotifications(filter)
+      }
+    } catch (err) {
+      console.error("Error marking all as unread:", err)
     }
   }
 
@@ -177,6 +212,17 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       await fetchNotifications(filter)
     } catch (err) {
       console.error("Error marking selected as read:", err)
+    }
+  }
+
+  const markSelectedAsUnread = async () => {
+    try {
+      const idsToMark = Array.from(selectedIds)
+      if (idsToMark.length === 0) return
+      await Promise.all(idsToMark.map((id) => markAsUnreadAPI(id)))
+      await fetchNotifications(filter)
+    } catch (err) {
+      console.error("Error marking selected as unread:", err)
     }
   }
 
@@ -275,16 +321,28 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                     )
                   })}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={markAllAsRead}
-                  className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
-                  disabled={unreadCount === 0}
-                >
-                  <CheckCheck className="w-3 h-3 mr-1" />
-                  Mark All Read
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={markAllAsRead}
+                    className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
+                    disabled={unreadCount === 0}
+                  >
+                    <CheckCheck className="w-3 h-3 mr-1" />
+                    Mark All Read
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={markAllAsUnread}
+                    className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
+                    disabled={readCount === 0}
+                  >
+                    <CheckCheck className="w-3 h-3 mr-1" />
+                    Mark All Unread
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -325,8 +383,8 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                             isSelected
                               ? "bg-green-50 ring-1 ring-green-300"
                               : !notification.markAsRead
-                              ? "bg-blue-50/30"
-                              : ""
+                              ? "bg-blue-50/50 border-l-4 border-blue-500"
+                              : "bg-gray-50/30"
                           }`}
                         >
                           <div className="flex items-start gap-3">
@@ -340,12 +398,19 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                  <h4
-                                    className="text-sm font-medium text-gray-900 break-words"
-                                    style={{ display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}
-                                  >
-                                    {sanitizeText(notification.notification_title)}
-                                  </h4>
+                                  <div className="flex items-center gap-2">
+                                    {!notification.markAsRead && (
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                                    )}
+                                    <h4
+                                      className={`text-sm font-medium break-words ${
+                                        !notification.markAsRead ? "text-gray-900 font-semibold" : "text-gray-700"
+                                      }`}
+                                      style={{ display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                    >
+                                      {sanitizeText(notification.notification_title)}
+                                    </h4>
+                                  </div>
                                   <p className="text-xs text-gray-500 mt-0.5 capitalize">
                                     {notification.notification_type}
                                   </p>
@@ -367,6 +432,27 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
 
                             {/* Action Buttons */}
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {notification.markAsRead ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => markAsUnread(notification._id)}
+                                  className="h-7 w-7 p-0 text-gray-400 hover:text-blue-500"
+                                  title="Mark as unread"
+                                >
+                                  <EyeOff className="w-3 h-3" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => markAsRead(notification._id)}
+                                  className="h-7 w-7 p-0 text-gray-400 hover:text-green-500"
+                                  title="Mark as read"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -438,6 +524,15 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                     >
                       <CheckCheck className="w-4 h-4 text-gray-700" />
                       Mark as Read
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={markSelectedAsUnread}
+                      className="h-8 px-3 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-1"
+                    >
+                      <EyeOff className="w-4 h-4 text-blue-600" />
+                      Mark as Unread
                     </Button>
                     <Button
                       variant="ghost"

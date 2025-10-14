@@ -175,8 +175,34 @@ export default function AddDealer() {
           router.push("/user/dashboard/user");
         }, 2000);
       }
-    } catch (error) {
-      showToast("Failed to create dealer. Please try again.", "error");
+    } catch (error: any) {
+      // Enhanced error handling with specific messages for duplicates
+      let errorMessage = "Failed to create dealer. Please try again.";
+
+      console.error("Error creating dealer:", error);
+      
+      // Extract specific error message from API response
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.status === 400) {
+        errorMessage = "Invalid data provided. Please check your inputs.";
+      } else if (error.response?.status === 409) {
+        errorMessage = "Dealer with this email, phone number, GSTIN, or PAN already exists.";
+      } else if (error.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      }
+
+      // Log the full error details for debugging
+      if (error.response) {
+        console.error("API error response:", error.response.data);
+      }
+
+      showToast(errorMessage, "error");
+      setShowConfirmDialog(false); // Close confirmation dialog on error
     } finally {
       setSubmitLoading(false)
     }

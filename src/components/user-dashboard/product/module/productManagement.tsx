@@ -328,6 +328,14 @@ const handleBulkReject = useCallback(() => {
       subCategoryFilter: selectedSubCategoryId || undefined
     });
     
+    // Validate that we're passing IDs, not names
+    if (selectedCategoryId && !/^[0-9a-fA-F]{24}$/.test(selectedCategoryId)) {
+      console.warn("⚠️ Category filter is not a valid ID:", selectedCategoryId);
+    }
+    if (selectedSubCategoryId && !/^[0-9a-fA-F]{24}$/.test(selectedSubCategoryId)) {
+      console.warn("⚠️ Subcategory filter is not a valid ID:", selectedSubCategoryId);
+    }
+    
     return (
       <TabComponent
         searchQuery={searchQuery}
@@ -340,8 +348,8 @@ const handleBulkReject = useCallback(() => {
   }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryId, selectedSubCategoryId, activeTab, refreshKey]);
 
   return (
-    <div className="w-full ">
-      <Card className="shadow-sm rounded-none">
+    <div className="w-full min-w-0 overflow-x-hidden">
+      <Card className="shadow-sm rounded-none min-w-0">
         {/* Header */}
         <CardHeader className="space-y-4 sm:space-y-6">
           {/* Top Row: Search/Filters/Requests (left), Upload/Add Product (right) */}
@@ -371,6 +379,9 @@ const handleBulkReject = useCallback(() => {
                   console.log("Selected Subcategory Name:", selectedSubCategoryName);
                   console.log("Categories data:", categories);
                   console.log("Subcategories data:", subCategories);
+                  console.log("Filtered subcategories:", filteredSubCategories);
+                  console.log("Category ID valid:", selectedCategoryId ? /^[0-9a-fA-F]{24}$/.test(selectedCategoryId) : false);
+                  console.log("Subcategory ID valid:", selectedSubCategoryId ? /^[0-9a-fA-F]{24}$/.test(selectedSubCategoryId) : false);
                   console.log("========================");
                 }}
                 className="mt-2"
@@ -446,7 +457,14 @@ const handleBulkReject = useCallback(() => {
                                       const categoryName = cat?.category_name || cat?.name;
                                       console.log("Category selected - ID:", categoryId, "Name:", categoryName);
                                       console.log("Full category object:", cat);
-                                      setSelectedCategoryId(categoryId || null);
+                                      
+                                      // Validate that we have a valid ID
+                                      if (!categoryId || !/^[0-9a-fA-F]{24}$/.test(categoryId)) {
+                                        console.error("❌ Invalid category ID:", categoryId);
+                                        return;
+                                      }
+                                      
+                                      setSelectedCategoryId(categoryId);
                                       setSelectedCategoryName(categoryName || null); 
                                       setSelectedSubCategoryId(null);
                                       setSelectedSubCategoryName(null); 
@@ -489,7 +507,14 @@ const handleBulkReject = useCallback(() => {
                                       const subcategoryName = sub?.subcategory_name || sub?.name;
                                       console.log("Subcategory selected - ID:", subcategoryId, "Name:", subcategoryName);
                                       console.log("Full subcategory object:", sub);
-                                      setSelectedSubCategoryId(subcategoryId || null);
+                                      
+                                      // Validate that we have a valid ID
+                                      if (!subcategoryId || !/^[0-9a-fA-F]{24}$/.test(subcategoryId)) {
+                                        console.error("❌ Invalid subcategory ID:", subcategoryId);
+                                        return;
+                                      }
+                                      
+                                      setSelectedSubCategoryId(subcategoryId);
                                       setSelectedSubCategoryName(subcategoryName || null);
                                     }}
                                   >
@@ -583,7 +608,7 @@ const handleBulkReject = useCallback(() => {
         </CardHeader>
 
 
-        <CardContent className="p-0">
+        <CardContent className="p-0 min-w-0 overflow-x-auto">
           {/* Tab Bar */}
           <div
             className="flex w-full items-center justify-between border-b border-gray-200 overflow-x-auto"

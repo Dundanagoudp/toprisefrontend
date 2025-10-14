@@ -103,6 +103,33 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
         return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
     };
 
+    // Fetch data function (defined outside useEffect so it can be reused)
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [brandsResponse, typesResponse] = await Promise.all([
+                getBrand(),
+                getTypes()
+            ]);
+            
+            if (!brandsResponse || !brandsResponse.data) {
+                console.error("No data found in response");
+                setBrands([]);
+            } else {
+                setBrands(Array.isArray(brandsResponse.data) ? brandsResponse.data : []);
+            }
+            
+            if (typesResponse && typesResponse.data) {
+                setVehicleTypes(Array.isArray(typesResponse.data) ? typesResponse.data : []);
+            }
+        } catch (err: any) {
+            console.error("Error fetching data:", err);
+            setBrands([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleEditBrand = (brand: any) => {
         setSelectedBrand(brand);
         setUpdateModalOpen(true);
@@ -115,10 +142,7 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
             const response = await updateBrand(selectedBrand._id, formData);
             
             // Refresh brands after successful update
-            const brandsResponse = await getBrand();
-            if (brandsResponse && brandsResponse.data) {
-                setBrands(Array.isArray(brandsResponse.data) ? brandsResponse.data : []);
-            }
+            await fetchData();
             
             // Close modal after successful update
             setUpdateModalOpen(false);
@@ -131,31 +155,6 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
     };
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [brandsResponse, typesResponse] = await Promise.all([
-                    getBrand(),
-                    getTypes()
-                ]);
-                
-                if (!brandsResponse || !brandsResponse.data) {
-                    console.error("No data found in response");
-                    setBrands([]);
-                } else {
-                    setBrands(Array.isArray(brandsResponse.data) ? brandsResponse.data : []);
-                }
-                
-                if (typesResponse && typesResponse.data) {
-                    setVehicleTypes(Array.isArray(typesResponse.data) ? typesResponse.data : []);
-                }
-            } catch (err: any) {
-                console.error("Error fetching data:", err);
-                setBrands([]);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
     }, []);
 

@@ -86,6 +86,8 @@ export async function getProductsByPage(
 
     console.log("🔍 API URL for getProductsByPage:", url);
     console.log("🔍 Search parameters - query:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
+    console.log("🔍 Category filter type:", typeof categoryFilter, "Is ID:", categoryFilter ? /^[0-9a-fA-F]{24}$/.test(categoryFilter.trim()) : false);
+    console.log("🔍 Subcategory filter type:", typeof subCategoryFilter, "Is ID:", subCategoryFilter ? /^[0-9a-fA-F]{24}$/.test(subCategoryFilter.trim()) : false);
     console.log("🔍 Full search query details:", {
       searchQuery,
       searchQueryType: typeof searchQuery,
@@ -295,7 +297,7 @@ export async function rejectSingleProduct(
     }
     
     // Create JSON payload with rejection information
-    const payload = {
+    const payload: any = {
       reason: reason.trim()
     };
     

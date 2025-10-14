@@ -132,9 +132,9 @@ export default function OrdersTable() {
   const [loadingAction, setLoadingAction] = useState(false);
   const [picklistsData, setPicklistsData] = useState<any[]>([]);
 
-  // Sorting state
-  const [sortField, setSortField] = useState<string>("");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  // Sorting state - default sort by date (newest first)
+  const [sortField, setSortField] = useState<string>("date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Orders filters state
   const [filterStatus, setFilterStatus] = useState("all");

@@ -372,14 +372,32 @@ export const updateModel = async (modelId: string, formData: FormData): Promise<
 
 export const updateVariant = async (id: string, formData: FormData): Promise<any> => {
   try {
-    const response = await apiClient.put(`https://api.toprise.in/products/api/variant/${id}`, formData, {
+    console.log("Updating variant with ID:", id);
+    console.log("FormData contents:");
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ': ' + pair[1]);
+    }
+    
+    const response = await apiClient.put(`https://api.toprise.in/products/variants/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
+    
+    console.log("Variant update response:", response.data);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating variant:", error);
+    
+    // Extract and throw specific error message
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    } else if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    } else if (error.message) {
+      throw new Error(error.message);
+    }
+    
     throw error;
   }
 };

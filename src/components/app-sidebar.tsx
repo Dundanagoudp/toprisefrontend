@@ -14,6 +14,7 @@ import {
   BarChart3,
   Package,
   BookOpen,
+  ShoppingCart,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { LogOut as logoutAction } from "../store/slice/auth/authSlice";
@@ -46,6 +47,7 @@ const sidebarVisibilityConfig = {
       "Settings",
       "Reports",
       "Inventory Approval",
+      "Purchase Requests",
     ],
     show: [
       "Inventory Management",
@@ -68,6 +70,7 @@ const sidebarVisibilityConfig = {
       "Audit Logs",
       "Reports",
       "Inventory Approval",
+      "Purchase Requests",
     ],
     show: [
       "Dashboard",
@@ -93,6 +96,7 @@ const sidebarVisibilityConfig = {
       "Settings",
       "Audit Logs",
       "Reports",
+      "Purchase Requests",
     ],
     show: ["Inventory Management", "Catalogues", "Inventory Approval"],
   },
@@ -108,6 +112,7 @@ const sidebarVisibilityConfig = {
       "Support Tickets",
       "Settings",
       "Reports",
+      "Purchase Requests",
     ],
     show: [
       "Inventory Management",
@@ -211,6 +216,11 @@ const data = {
       title: "Inventory Approval",
       url: "/user/dashboard/requests",
       icon: FileText,
+    },
+    {
+      title: "Purchase Requests",
+      url: "/user/dashboard/purchase-requests",
+      icon: ShoppingCart,
     },
   ],
 };
