@@ -272,6 +272,67 @@ export async function rejectProduct(
   }
 }
 
+/**
+ * Reject a single product with reason and user information
+ * @param productId - Unique identifier of the product to reject
+ * @param reason - Rejection reason
+ * @param userId - ID of the user rejecting the product (optional, will be added from auth context)
+ * @returns Promise resolving to the product rejection response
+ * @throws Re-throws any API errors after logging
+ */
+export async function rejectSingleProduct(
+  productId: string,
+  reason: string,
+  userId?: string
+): Promise<ProductResponse> {
+  try {
+    // Validate required parameters
+    if (!productId) {
+      throw new Error("Product ID is required for rejection");
+    }
+    if (!reason || reason.trim() === "") {
+      throw new Error("Rejection reason is required");
+    }
+    
+    // Create JSON payload with rejection information
+    const payload = {
+      reason: reason.trim()
+    };
+    
+    // Add user information if provided (for audit logging)
+    if (userId) {
+      payload.rejectedBy = userId;
+    } else {
+      console.warn("No user ID provided for product rejection - audit logging may fail");
+    }
+    
+    console.log(`Rejecting product ${productId} with payload:`, payload);
+    
+    const { data: responseData } = await apiClient.patch(
+      `/category/products/v1/reject/${productId}`,
+      payload
+    );
+    
+    console.log(`Product ${productId} rejected successfully:`, responseData);
+    return responseData;
+  } catch (error: any) {
+    console.error(`Failed to reject product ${productId}:`, error);
+    
+    // Provide more specific error messages
+    if (error.response?.status === 500) {
+      throw new Error("Server error occurred while rejecting product. Please try again.");
+    } else if (error.response?.status === 404) {
+      throw new Error("Product not found.");
+    } else if (error.response?.status === 403) {
+      throw new Error("You don't have permission to reject this product.");
+    } else if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error("Failed to reject product. Please try again.");
+    }
+  }
+}
+
 export async function deactivateProduct(
   productId: string
 ): Promise<ProductResponse> {
@@ -360,24 +421,6 @@ export async function approveSingleProduct(
   }
 }
 
-export async function rejectSingleProduct(
-  productId: string,
-  reason?: string
-): Promise<ProductResponse> {
-  try {
-    const data = reason ? { reason } : {};
-    console.log("Rejecting product:", productId, "with payload:", data);
-    const response = await apiClient.patch(
-      `/category/products/v1/reject/${productId}`,
-      data
-    );
-    console.log("Reject response:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Failed to reject product:", error);
-    throw error;
-  }
-}
 
 // Categories API returns an array of categories
 export async function getCategories(): Promise<ApiResponse<ProductCategory[]>> {

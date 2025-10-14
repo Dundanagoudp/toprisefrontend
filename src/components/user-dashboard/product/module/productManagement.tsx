@@ -118,6 +118,20 @@ const getStatusColor = (status: string) => {
     };
     loadSubCategories();
   }, []);
+
+  // Filter subcategories based on selected category
+  const filteredSubCategories = useMemo(() => {
+    if (!selectedCategoryId || !subCategories.length) {
+      return subCategories;
+    }
+    
+    // Filter subcategories that belong to the selected category
+    return subCategories.filter((sub: any) => {
+      // Check if subcategory has a category reference that matches selected category
+      const subCategoryId = sub?.category_id || sub?.category?._id || sub?.category?.id;
+      return subCategoryId === selectedCategoryId;
+    });
+  }, [subCategories, selectedCategoryId]);
    const handleCloseModal = () => {
     setIsModalOpen(false);
    setUploadBulkLoading(false);
@@ -181,16 +195,18 @@ const getStatusColor = (status: string) => {
 
   // Debug: Monitor category and subcategory filter changes
   useEffect(() => {
-    console.log("ProductManagement: Category ID filter changed to:", selectedCategoryId);
-    console.log("ProductManagement: Category Name filter changed to:", selectedCategoryName);
-    console.log("ProductManagement: Subcategory ID filter changed to:", selectedSubCategoryId);
-    console.log("ProductManagement: Subcategory Name filter changed to:", selectedSubCategoryName);
-    console.log("ProductManagement: Categories data:", categories);
-    console.log("ProductManagement: Subcategories data:", subCategories);
+    console.log("🔍 ProductManagement: Filter state changed");
+    console.log("🔍 Category ID:", selectedCategoryId);
+    console.log("🔍 Category Name:", selectedCategoryName);
+    console.log("🔍 Subcategory ID:", selectedSubCategoryId);
+    console.log("🔍 Subcategory Name:", selectedSubCategoryName);
+    console.log("🔍 Total categories:", categories.length);
+    console.log("🔍 Total subcategories:", subCategories.length);
+    console.log("🔍 Filtered subcategories:", filteredSubCategories.length);
     
     // Trigger refresh when filters change
     setRefreshKey(prev => prev + 1);
-  }, [selectedCategoryId, selectedSubCategoryId]);
+  }, [selectedCategoryId, selectedSubCategoryId, filteredSubCategories]);
 
   const handleUploadBulk = () => {
     setBulkMode("upload");
@@ -371,15 +387,35 @@ const handleBulkReject = useCallback(() => {
                   <PopoverTrigger asChild>
                     <DynamicButton
                       variant="outline"
-                      customClassName="bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px] flex-shrink-0"
+                      customClassName={`bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px] flex-shrink-0 ${
+                        selectedCategoryName || selectedSubCategoryName 
+                          ? "border-blue-300 bg-blue-50 text-blue-700" 
+                          : ""
+                      }`}
                       text={
                         selectedCategoryName || selectedSubCategoryName
-                          ? `Filter: ${[selectedCategoryName, selectedSubCategoryName].filter(Boolean).join(" / ")}`
+                          ? `Filters: ${[selectedCategoryName, selectedSubCategoryName].filter(Boolean).join(" / ")}`
                           : "Filters"
                       }
                     />
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-80 p-4">
+                    {/* Clear All Filters Button */}
+                    {(selectedCategoryName || selectedSubCategoryName) && (
+                      <div className="flex justify-end mb-4">
+                        <button
+                          className="text-xs text-[#C72920] underline hover:text-[#A01E1A]"
+                          onClick={() => {
+                            setSelectedCategoryId(null);
+                            setSelectedCategoryName(null);
+                            setSelectedSubCategoryId(null);
+                            setSelectedSubCategoryName(null);
+                          }}
+                        >
+                          Clear All Filters
+                        </button>
+                      </div>
+                    )}
                     <Accordion type="multiple" defaultValue={["category", "subcategory"]}>
                       <AccordionItem value="category">
                         <AccordionTrigger className="text-sm font-medium">Category</AccordionTrigger>
@@ -443,8 +479,8 @@ const handleBulkReject = useCallback(() => {
                             </div>
                           )}
                           <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
-                            {subCategories && subCategories.length > 0 ? (
-                              subCategories.map((sub: any) => (
+                            {filteredSubCategories && filteredSubCategories.length > 0 ? (
+                              filteredSubCategories.map((sub: any) => (
                                 <li key={sub?._id || sub?.id}>
                                   <button
                                     className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedSubCategoryName === (sub?.subcategory_name || sub?.name) ? "bg-gray-100" : ""}`}
@@ -462,7 +498,12 @@ const handleBulkReject = useCallback(() => {
                                 </li>
                               ))
                             ) : (
-                              <li className="text-xs text-gray-500 px-2">No subcategories found</li>
+                              <li className="text-xs text-gray-500 px-2">
+                                {selectedCategoryId 
+                                  ? "No subcategories found for selected category" 
+                                  : "No subcategories found"
+                                }
+                              </li>
                             )}
                           </ul>
                         </AccordionContent>

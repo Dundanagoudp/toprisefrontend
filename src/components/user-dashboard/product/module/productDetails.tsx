@@ -39,6 +39,7 @@ export default function ViewProductDetails() {
   const [showDealersModal, setShowDealersModal] = React.useState(false);
   const [showHistoryDrawer, setShowHistoryDrawer] = React.useState(false);
   const auth = useAppSelector((state) => state.auth.user);
+  const authState = useAppSelector((state) => state.auth);
   const id = useParams<{ id: string }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -107,7 +108,14 @@ export default function ViewProductDetails() {
   const handleRejectProduct = async (data: { reason: string }) => {
     try {
       console.log("Rejecting product with reason:", data.reason);
-      await rejectSingleProduct(id.id, data.reason);
+      console.log("User ID for rejection:", auth?._id);
+      
+      // Pass user ID to ensure audit logging works
+      const userId = auth?._id || authState?.user?._id;
+      if (!userId) {
+        throw new Error("User authentication required to reject product");
+      }
+      await rejectSingleProduct(id.id, data.reason, userId);
       setIsRejectDialogOpen(false);
       
       // Show success message
@@ -115,9 +123,10 @@ export default function ViewProductDetails() {
       
       // Refresh product data after rejection
       await refreshProductData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error rejecting product:", error);
-      showToast("Failed to reject product", "error");
+      const errorMessage = error.message || "Failed to reject product";
+      showToast(errorMessage, "error");
     }
   };
   const handleEdit = (idObj: { id: string }) => {
