@@ -165,12 +165,16 @@ export default function ProductEdit() {
     
     try {
       setLoadingDealers(true);
+      console.log("Fetching dealers for category:", categoryId);
       const response = await getDealersByCategory(categoryId);
+      console.log("Dealers API response:", response);
       
       if (response.success && response.data && Array.isArray(response.data)) {
         setAvailableDealers(response.data);
+        console.log("Set available dealers:", response.data.length);
       } else {
         setAvailableDealers([]);
+        console.log("No dealers found or invalid response");
       }
     } catch (error) {
       console.error("Failed to fetch dealers by category:", error);
@@ -339,6 +343,13 @@ export default function ProductEdit() {
     }
   }, [watch("category")]);
 
+  // Also fetch dealers when product loads (in case category is already set)
+  useEffect(() => {
+    if (product && product.category?._id) {
+      fetchDealersByCategory(product.category._id);
+    }
+  }, [product]);
+
   // Populate form with fetched product data
   useEffect(() => {
     if (product) {
@@ -372,21 +383,21 @@ export default function ProductEdit() {
         is_universal: product.is_universal ? "yes" : "no",
         is_consumable: product.is_consumable ? "yes" : "no",
         keySpecifications: product.key_specifications || "",
-        dimensions: "",
+        dimensions: (product as any).dimensions || "",
         weight: product.weight?.toString() || "",
         certifications: product.certifications || "",
         warranty: product.warranty?.toString() || "",
         images: product.images?.join(",") || "",
-        videoUrl: "",
+        videoUrl: (product as any).video_url || (product as any).videoUrl || "",
         mrp_with_gst: product.mrp_with_gst?.toString() || "",
         gst_percentage: product.gst_percentage?.toString() || "",
         is_returnable: product.is_returnable ? "yes" : "no",
         return_policy: product.return_policy || "",
         dealerAssignments: [],
-        dealerMargin: "",
-        dealerPriorityOverride: "",
-        stockExpiryRule: "",
-        lastStockUpdate: product.available_dealers?.last_stock_update || "",
+        dealerMargin: (product as any).dealer_margin?.toString() || "",
+        dealerPriorityOverride: (product as any).dealer_priority_override?.toString() || "",
+        stockExpiryRule: (product as any).stock_expiry_rule || "",
+        lastStockUpdate: (product.available_dealers as any)?.last_stock_update || "",
         LastinquiredAt: product.last_stock_inquired || "",
         seo_title: product.seo_title || "",
         searchTags: product.search_tags?.join(",") || "",
@@ -402,6 +413,21 @@ export default function ProductEdit() {
       setSelectedImages([]);
       setSelectedImagePreviews([]);
       setRemovedExistingIndexes([]);
+      
+      // Populate dealer assignments from available_dealers
+      if (product.available_dealers && Array.isArray(product.available_dealers) && product.available_dealers.length > 0) {
+        const assignments = product.available_dealers
+          .filter(dealer => dealer.dealers_Ref)
+          .map(dealer => ({
+            dealerId: dealer.dealers_Ref || "",
+            quantity: dealer.quantity_per_dealer || 0,
+            margin: dealer.dealer_margin || 0,
+            priority: (dealer as any).priority || 0
+          }));
+        setDealerAssignments(assignments);
+      } else {
+        setDealerAssignments([]);
+      }
     }
   }, [product, reset]);
 
@@ -1439,6 +1465,24 @@ export default function ProductEdit() {
                 </Button>
               </div>
               
+              {/* Debug Info - Remove in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+                  <p>Available Dealers: {availableDealers.length}</p>
+                  <p>Current Assignments: {dealerAssignments.length}</p>
+                  {dealerAssignments.length > 0 && (
+                    <div>
+                      <p>Assignment Details:</p>
+                      {dealerAssignments.map((assignment, idx) => (
+                        <div key={idx} className="ml-2">
+                          - Dealer ID: {assignment.dealerId}, Qty: {assignment.quantity}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {dealerAssignments.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
                   <p className="text-sm">No dealers assigned yet</p>
@@ -1464,13 +1508,23 @@ export default function ProductEdit() {
                               <SelectValue placeholder="Select dealer" />
                             </SelectTrigger>
                             <SelectContent>
-                              {availableDealers
-                                .filter(dealer => !dealerAssignments.some((a, i) => i !== index && a.dealerId === dealer._id))
-                                .map((dealer) => (
-                                  <SelectItem key={dealer._id} value={dealer._id}>
-                                    {dealer.legal_name} ({dealer.trade_name})
-                                  </SelectItem>
-                                ))}
+                              {loadingDealers ? (
+                                <SelectItem value="" disabled>
+                                  Loading dealers...
+                                </SelectItem>
+                              ) : availableDealers.length === 0 ? (
+                                <SelectItem value="" disabled>
+                                  No dealers available for this category
+                                </SelectItem>
+                              ) : (
+                                availableDealers
+                                  .filter(dealer => !dealerAssignments.some((a, i) => i !== index && a.dealerId === dealer._id))
+                                  .map((dealer) => (
+                                    <SelectItem key={dealer._id} value={dealer._id}>
+                                      {dealer.legal_name} ({dealer.trade_name})
+                                    </SelectItem>
+                                  ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
@@ -1543,6 +1597,35 @@ export default function ProductEdit() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {/* Current Dealer Assignments Summary */}
+              {dealerAssignments.length > 0 && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Current Dealer Assignments:</h4>
+                  <div className="space-y-2">
+                    {dealerAssignments.map((assignment, index) => {
+                      const dealer = availableDealers.find(d => d._id === assignment.dealerId);
+                      return (
+                        <div key={index} className="flex items-center justify-between text-sm bg-white p-2 rounded border">
+                          <div className="flex-1">
+                            <span className="font-medium">
+                              {dealer ? `${dealer.legal_name} (${dealer.trade_name})` : `Dealer ID: ${assignment.dealerId}`}
+                            </span>
+                            {dealer && (
+                              <span className="text-gray-500 ml-2">ID: {dealer._id}</span>
+                            )}
+                          </div>
+                          <div className="flex gap-4 text-gray-600">
+                            <span>Qty: {assignment.quantity}</span>
+                            <span>Margin: {assignment.margin || 0}%</span>
+                            <span>Priority: {assignment.priority || 0}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>

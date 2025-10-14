@@ -355,8 +355,8 @@ export default function PaymentDetails() {
   };
 
   return (
-    <div className="w-full">
-      <Card className="shadow-sm rounded-none">
+    <div className="w-full min-w-0 overflow-x-hidden">
+      <Card className="shadow-sm rounded-none min-w-0">
         {/* Header */}
         <CardHeader className="space-y-4 sm:space-y-6">
           <CardTitle className="text-[#000000] font-bold text-lg font-sans">
@@ -419,7 +419,7 @@ export default function PaymentDetails() {
           </div>
         </CardHeader>
         
-        <CardContent className="p-0">
+        <CardContent className="p-0 min-w-0 overflow-x-auto">
           <div className="hidden sm:block overflow-x-auto">
             <Table className="min-w-full">
               <TableHeader>

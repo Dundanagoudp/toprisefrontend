@@ -5,7 +5,7 @@ import type { NotificationResponse, SingleNotificationResponse, MarkAllResponse 
 export const getAllNotifications = async (userId: string, markAsRead?: boolean): Promise<NotificationResponse> => {
   const params = markAsRead !== undefined ? { markAsRead } : {}
   const response = await apiClient.get<NotificationResponse>(
-    `/notification/api/notification/all_userNotifications/${userId}`,
+    `/notification/api/notification/`,
     { params },
   )
   return response.data
@@ -15,6 +15,14 @@ export const getAllNotifications = async (userId: string, markAsRead?: boolean):
 export const markAsRead = async (notificationId: string): Promise<SingleNotificationResponse> => {
   const response = await apiClient.put<SingleNotificationResponse>(
     `/notification/api/notification/markAsRead/${notificationId}`,
+  )
+  return response.data
+}
+
+// Mark single notification as unread
+export const markAsUnread = async (notificationId: string): Promise<SingleNotificationResponse> => {
+  const response = await apiClient.put<SingleNotificationResponse>(
+    `/notification/api/notification/markAsUnread/${notificationId}`,
   )
   return response.data
 }
@@ -30,6 +38,12 @@ export const deleteNotification = async (notificationId: string): Promise<Single
 // Mark all notifications as read for a user
 export const markAllAsRead = async (userId: string): Promise<MarkAllResponse> => {
   const response = await apiClient.put<MarkAllResponse>(`/notification/api/notification/markAsReadAll/${userId}`)
+  return response.data
+}
+
+// Mark all notifications as unread for a user
+export const markAllAsUnread = async (userId: string): Promise<MarkAllResponse> => {
+  const response = await apiClient.put<MarkAllResponse>(`/notification/api/notification/markAsUnreadAll/${userId}`)
   return response.data
 }
 

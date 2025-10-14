@@ -118,6 +118,20 @@ const getStatusColor = (status: string) => {
     };
     loadSubCategories();
   }, []);
+
+  // Filter subcategories based on selected category
+  const filteredSubCategories = useMemo(() => {
+    if (!selectedCategoryId || !subCategories.length) {
+      return subCategories;
+    }
+    
+    // Filter subcategories that belong to the selected category
+    return subCategories.filter((sub: any) => {
+      // Check if subcategory has a category reference that matches selected category
+      const subCategoryId = sub?.category_id || sub?.category?._id || sub?.category?.id;
+      return subCategoryId === selectedCategoryId;
+    });
+  }, [subCategories, selectedCategoryId]);
    const handleCloseModal = () => {
     setIsModalOpen(false);
    setUploadBulkLoading(false);
@@ -181,16 +195,18 @@ const getStatusColor = (status: string) => {
 
   // Debug: Monitor category and subcategory filter changes
   useEffect(() => {
-    console.log("ProductManagement: Category ID filter changed to:", selectedCategoryId);
-    console.log("ProductManagement: Category Name filter changed to:", selectedCategoryName);
-    console.log("ProductManagement: Subcategory ID filter changed to:", selectedSubCategoryId);
-    console.log("ProductManagement: Subcategory Name filter changed to:", selectedSubCategoryName);
-    console.log("ProductManagement: Categories data:", categories);
-    console.log("ProductManagement: Subcategories data:", subCategories);
+    console.log("🔍 ProductManagement: Filter state changed");
+    console.log("🔍 Category ID:", selectedCategoryId);
+    console.log("🔍 Category Name:", selectedCategoryName);
+    console.log("🔍 Subcategory ID:", selectedSubCategoryId);
+    console.log("🔍 Subcategory Name:", selectedSubCategoryName);
+    console.log("🔍 Total categories:", categories.length);
+    console.log("🔍 Total subcategories:", subCategories.length);
+    console.log("🔍 Filtered subcategories:", filteredSubCategories.length);
     
     // Trigger refresh when filters change
     setRefreshKey(prev => prev + 1);
-  }, [selectedCategoryId, selectedSubCategoryId]);
+  }, [selectedCategoryId, selectedSubCategoryId, filteredSubCategories]);
 
   const handleUploadBulk = () => {
     setBulkMode("upload");
@@ -312,6 +328,14 @@ const handleBulkReject = useCallback(() => {
       subCategoryFilter: selectedSubCategoryId || undefined
     });
     
+    // Validate that we're passing IDs, not names
+    if (selectedCategoryId && !/^[0-9a-fA-F]{24}$/.test(selectedCategoryId)) {
+      console.warn("⚠️ Category filter is not a valid ID:", selectedCategoryId);
+    }
+    if (selectedSubCategoryId && !/^[0-9a-fA-F]{24}$/.test(selectedSubCategoryId)) {
+      console.warn("⚠️ Subcategory filter is not a valid ID:", selectedSubCategoryId);
+    }
+    
     return (
       <TabComponent
         searchQuery={searchQuery}
@@ -324,8 +348,8 @@ const handleBulkReject = useCallback(() => {
   }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryId, selectedSubCategoryId, activeTab, refreshKey]);
 
   return (
-    <div className="w-full ">
-      <Card className="shadow-sm rounded-none">
+    <div className="w-full min-w-0 overflow-x-hidden">
+      <Card className="shadow-sm rounded-none min-w-0">
         {/* Header */}
         <CardHeader className="space-y-4 sm:space-y-6">
           {/* Top Row: Search/Filters/Requests (left), Upload/Add Product (right) */}
@@ -355,6 +379,9 @@ const handleBulkReject = useCallback(() => {
                   console.log("Selected Subcategory Name:", selectedSubCategoryName);
                   console.log("Categories data:", categories);
                   console.log("Subcategories data:", subCategories);
+                  console.log("Filtered subcategories:", filteredSubCategories);
+                  console.log("Category ID valid:", selectedCategoryId ? /^[0-9a-fA-F]{24}$/.test(selectedCategoryId) : false);
+                  console.log("Subcategory ID valid:", selectedSubCategoryId ? /^[0-9a-fA-F]{24}$/.test(selectedSubCategoryId) : false);
                   console.log("========================");
                 }}
                 className="mt-2"
@@ -371,15 +398,35 @@ const handleBulkReject = useCallback(() => {
                   <PopoverTrigger asChild>
                     <DynamicButton
                       variant="outline"
-                      customClassName="bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px] flex-shrink-0"
+                      customClassName={`bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px] flex-shrink-0 ${
+                        selectedCategoryName || selectedSubCategoryName 
+                          ? "border-blue-300 bg-blue-50 text-blue-700" 
+                          : ""
+                      }`}
                       text={
                         selectedCategoryName || selectedSubCategoryName
-                          ? `Filter: ${[selectedCategoryName, selectedSubCategoryName].filter(Boolean).join(" / ")}`
+                          ? `Filters: ${[selectedCategoryName, selectedSubCategoryName].filter(Boolean).join(" / ")}`
                           : "Filters"
                       }
                     />
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-80 p-4">
+                    {/* Clear All Filters Button */}
+                    {(selectedCategoryName || selectedSubCategoryName) && (
+                      <div className="flex justify-end mb-4">
+                        <button
+                          className="text-xs text-[#C72920] underline hover:text-[#A01E1A]"
+                          onClick={() => {
+                            setSelectedCategoryId(null);
+                            setSelectedCategoryName(null);
+                            setSelectedSubCategoryId(null);
+                            setSelectedSubCategoryName(null);
+                          }}
+                        >
+                          Clear All Filters
+                        </button>
+                      </div>
+                    )}
                     <Accordion type="multiple" defaultValue={["category", "subcategory"]}>
                       <AccordionItem value="category">
                         <AccordionTrigger className="text-sm font-medium">Category</AccordionTrigger>
@@ -410,7 +457,14 @@ const handleBulkReject = useCallback(() => {
                                       const categoryName = cat?.category_name || cat?.name;
                                       console.log("Category selected - ID:", categoryId, "Name:", categoryName);
                                       console.log("Full category object:", cat);
-                                      setSelectedCategoryId(categoryId || null);
+                                      
+                                      // Validate that we have a valid ID
+                                      if (!categoryId || !/^[0-9a-fA-F]{24}$/.test(categoryId)) {
+                                        console.error("❌ Invalid category ID:", categoryId);
+                                        return;
+                                      }
+                                      
+                                      setSelectedCategoryId(categoryId);
                                       setSelectedCategoryName(categoryName || null); 
                                       setSelectedSubCategoryId(null);
                                       setSelectedSubCategoryName(null); 
@@ -443,8 +497,8 @@ const handleBulkReject = useCallback(() => {
                             </div>
                           )}
                           <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
-                            {subCategories && subCategories.length > 0 ? (
-                              subCategories.map((sub: any) => (
+                            {filteredSubCategories && filteredSubCategories.length > 0 ? (
+                              filteredSubCategories.map((sub: any) => (
                                 <li key={sub?._id || sub?.id}>
                                   <button
                                     className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedSubCategoryName === (sub?.subcategory_name || sub?.name) ? "bg-gray-100" : ""}`}
@@ -453,7 +507,14 @@ const handleBulkReject = useCallback(() => {
                                       const subcategoryName = sub?.subcategory_name || sub?.name;
                                       console.log("Subcategory selected - ID:", subcategoryId, "Name:", subcategoryName);
                                       console.log("Full subcategory object:", sub);
-                                      setSelectedSubCategoryId(subcategoryId || null);
+                                      
+                                      // Validate that we have a valid ID
+                                      if (!subcategoryId || !/^[0-9a-fA-F]{24}$/.test(subcategoryId)) {
+                                        console.error("❌ Invalid subcategory ID:", subcategoryId);
+                                        return;
+                                      }
+                                      
+                                      setSelectedSubCategoryId(subcategoryId);
                                       setSelectedSubCategoryName(subcategoryName || null);
                                     }}
                                   >
@@ -462,7 +523,12 @@ const handleBulkReject = useCallback(() => {
                                 </li>
                               ))
                             ) : (
-                              <li className="text-xs text-gray-500 px-2">No subcategories found</li>
+                              <li className="text-xs text-gray-500 px-2">
+                                {selectedCategoryId 
+                                  ? "No subcategories found for selected category" 
+                                  : "No subcategories found"
+                                }
+                              </li>
                             )}
                           </ul>
                         </AccordionContent>
@@ -542,7 +608,7 @@ const handleBulkReject = useCallback(() => {
         </CardHeader>
 
 
-        <CardContent className="p-0">
+        <CardContent className="p-0 min-w-0 overflow-x-auto">
           {/* Tab Bar */}
           <div
             className="flex w-full items-center justify-between border-b border-gray-200 overflow-x-auto"

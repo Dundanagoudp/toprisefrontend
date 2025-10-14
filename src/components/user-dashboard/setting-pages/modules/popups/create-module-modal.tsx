@@ -134,12 +134,16 @@ export function CreateModuleModal({ children, onModuleCreated }: CreateModuleMod
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               {roles.map((role) => (
-                <Badge key={role} variant="secondary" className="pr-1">
+                <Badge 
+                  key={role} 
+                  variant="outline" 
+                  className="pr-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                >
                   {role}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-auto p-0 ml-1 text-muted-foreground hover:text-foreground"
+                    className="h-auto p-0 ml-1 text-blue-600 hover:text-blue-800 hover:bg-transparent"
                     onClick={() => handleRemoveRole(role)}
                   >
                     <X className="h-3 w-3" />

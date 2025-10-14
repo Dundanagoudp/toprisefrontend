@@ -99,6 +99,39 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
     return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
   };
 
+  // Fetch data function (defined outside useEffect so it can be reused)
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [subCategoriesResponse, categoriesResponse] = await Promise.all([
+        getSubCategories(),
+        getCategories()
+      ]);
+      
+      if (!subCategoriesResponse || !subCategoriesResponse.data) {
+        console.error("No subcategories data found in response");
+        setSubCategories([]);
+      } else {
+        const Items = subCategoriesResponse.data;
+        setSubCategories(Array.isArray(Items) ? Items : []);
+      }
+
+      if (!categoriesResponse || !categoriesResponse.data) {
+        console.error("No categories data found in response");
+        setCategories([]);
+      } else {
+        const Categories = categoriesResponse.data;
+        setCategories(Array.isArray(Categories) ? Categories : []);
+      }
+    } catch (err: any) {
+      console.error("Error fetching data:", err);
+      setSubCategories([]);
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEditSubCategory = (subCategory: any) => {
     setSelectedSubCategory(subCategory);
     setUpdateModalOpen(true);
@@ -108,40 +141,10 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
     if (!selectedSubCategory) return;
     await updateSubCategory(selectedSubCategory._id, formData);
     // Refresh subcategories after update
-    fetchData();
+    await fetchData();
   };
+  
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [subCategoriesResponse, categoriesResponse] = await Promise.all([
-          getSubCategories(),
-          getCategories()
-        ]);
-        
-        if (!subCategoriesResponse || !subCategoriesResponse.data) {
-          console.error("No subcategories data found in response");
-          setSubCategories([]);
-        } else {
-          const Items = subCategoriesResponse.data;
-          setSubCategories(Array.isArray(Items) ? Items : []);
-        }
-
-        if (!categoriesResponse || !categoriesResponse.data) {
-          console.error("No categories data found in response");
-          setCategories([]);
-        } else {
-          const Categories = categoriesResponse.data;
-          setCategories(Array.isArray(Categories) ? Categories : []);
-        }
-      } catch (err: any) {
-        console.error("Error fetching data:", err);
-        setSubCategories([]);
-        setCategories([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 

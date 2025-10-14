@@ -103,6 +103,39 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
           return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
         };
 
+        // Fetch data function (defined outside useEffect so it can be reused)
+        const fetchData = async () => {
+            setLoading(true);
+          try {
+            const [modelsResponse, brandsResponse] = await Promise.all([
+              getModels(),
+              getBrand()
+            ]);
+            
+            if (!modelsResponse || !modelsResponse.data) {
+              console.error("No models data found in response");
+              setModel([]);
+            } else {
+              const Items = modelsResponse.data;
+              setModel(Array.isArray(Items) ? Items : []);
+            }
+
+            if (!brandsResponse || !brandsResponse.data) {
+              console.error("No brands data found in response");
+              setBrands([]);
+            } else {
+              const Brands = brandsResponse.data;
+              setBrands(Array.isArray(Brands) ? Brands : []);
+            }
+          } catch (err: any) {
+            console.error("Error fetching data:", err);
+            setModel([]);
+            setBrands([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
         const handleEditModel = (model: any) => {
             setSelectedModel(model);
             setUpdateModalOpen(true);
@@ -112,41 +145,10 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
             if (!selectedModel) return;
             await updateModel(selectedModel._id, formData);
             // Refresh models after update
-            fetchData();
+            await fetchData();
         };
 
          useEffect(() => {
-            const fetchData = async () => {
-                setLoading(true);
-              try {
-                const [modelsResponse, brandsResponse] = await Promise.all([
-                  getModels(),
-                  getBrand()
-                ]);
-                
-                if (!modelsResponse || !modelsResponse.data) {
-                  console.error("No models data found in response");
-                  setModel([]);
-                } else {
-                  const Items = modelsResponse.data;
-                  setModel(Array.isArray(Items) ? Items : []);
-                }
-
-                if (!brandsResponse || !brandsResponse.data) {
-                  console.error("No brands data found in response");
-                  setBrands([]);
-                } else {
-                  const Brands = brandsResponse.data;
-                  setBrands(Array.isArray(Brands) ? Brands : []);
-                }
-              } catch (err: any) {
-                console.error("Error fetching data:", err);
-                setModel([]);
-                setBrands([]);
-              } finally {
-                setLoading(false);
-              }
-            };
             fetchData();
           }, []);
       

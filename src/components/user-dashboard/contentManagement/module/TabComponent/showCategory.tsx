@@ -101,6 +101,42 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
     return vehicleType?.type_name || "Unknown Type";
   };
 
+  // Fetch data function (defined outside useEffect so it can be reused)
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch categories and vehicle types in parallel
+      const [categoriesResponse, typesResponse] = await Promise.all([
+        getCategories(),
+        getTypes(),
+      ]);
+
+      // Handle categories
+      if (!categoriesResponse || !categoriesResponse.data) {
+        console.error("No categories data found in response");
+        setCategories([]);
+      } else {
+        const Items = categoriesResponse.data;
+        setCategories(Array.isArray(Items) ? Items : []);
+      }
+
+      // Handle vehicle types
+      if (!typesResponse || !typesResponse.data) {
+        console.error("No vehicle types data found in response");
+        setVehicleTypes([]);
+      } else {
+        const types = typesResponse.data;
+        setVehicleTypes(Array.isArray(types) ? types : []);
+      }
+    } catch (err: any) {
+      console.error("Error fetching data:", err);
+      setCategories([]);
+      setVehicleTypes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEditCategory = (category: any) => {
     setSelectedCategory(category);
     setUpdateModalOpen(true);
@@ -110,7 +146,7 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
     if (!selectedCategory) return;
     await updateCategory(selectedCategory._id, formData);
     // Refresh categories after update
-    fetchCategories();
+    await fetchData();
   };
 
   // Function to handle sorting
@@ -134,41 +170,8 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
       <ArrowDown className="h-4 w-4" />
     );
   };
+  
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch categories and vehicle types in parallel
-        const [categoriesResponse, typesResponse] = await Promise.all([
-          getCategories(),
-          getTypes(),
-        ]);
-
-        // Handle categories
-        if (!categoriesResponse || !categoriesResponse.data) {
-          console.error("No categories data found in response");
-          setCategories([]);
-        } else {
-          const Items = categoriesResponse.data;
-          setCategories(Array.isArray(Items) ? Items : []);
-        }
-
-        // Handle vehicle types
-        if (!typesResponse || !typesResponse.data) {
-          console.error("No vehicle types data found in response");
-          setVehicleTypes([]);
-        } else {
-          const types = typesResponse.data;
-          setVehicleTypes(Array.isArray(types) ? types : []);
-        }
-      } catch (err: any) {
-        console.error("Error fetching data:", err);
-        setCategories([]);
-        setVehicleTypes([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Edit, Mail, Phone, Globe, MapPin, FileText, Settings } from "lucide-react"
+import { Loader2, Edit, Mail, Phone, FileText, Settings } from "lucide-react"
 import { getAppSettings } from "@/service/deliverychargeServices"
 import { DeliveryChargeEditModal } from "@/components/user-dashboard/setting-pages/modules/popups/delivery-charge-edit-modal"
 import type { AppSettings } from "@/types/deliverycharge-Types"
@@ -13,7 +13,7 @@ export function DeliveryChargeSettings() {
   const { showToast } = useToast()
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingSection, setEditingSection] = useState<string | null>(null)
 
   const fetchSettings = async () => {
     setLoading(true)
@@ -53,7 +53,7 @@ export function DeliveryChargeSettings() {
             <Settings className="h-5 w-5" />
             Delivery Settings
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setIsModalOpen(true)}>
+          <Button size="sm" variant="outline" onClick={() => setEditingSection('delivery')}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
@@ -76,11 +76,15 @@ export function DeliveryChargeSettings() {
 
       {/* SMTP Settings Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
             SMTP Configuration
           </CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setEditingSection('smtp')}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-2">
@@ -112,11 +116,15 @@ export function DeliveryChargeSettings() {
 
       {/* Versioning Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
             App Versioning
           </CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setEditingSection('versioning')}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
@@ -136,11 +144,15 @@ export function DeliveryChargeSettings() {
 
       {/* Support Information Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Phone className="h-5 w-5" />
             Support Information
           </CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setEditingSection('support')}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -156,11 +168,15 @@ export function DeliveryChargeSettings() {
 
       {/* Legal Links Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Legal Links
           </CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setEditingSection('legal')}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -182,36 +198,12 @@ export function DeliveryChargeSettings() {
         </CardContent>
       </Card>
 
-      {/* Serviceable Areas Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Serviceable Areas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {settings?.servicableAreas?.map((area, index) => (
-              <div key={area._id || index} className="p-3 border rounded-lg">
-                <div className="text-sm text-gray-600">Area {index + 1}</div>
-                <div className="font-medium">
-                  Lat: {area.lat}, Long: {area.long}
-                </div>
-              </div>
-            ))}
-            {(!settings?.servicableAreas || settings.servicableAreas.length === 0) && (
-              <div className="text-gray-500">No serviceable areas configured</div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       <DeliveryChargeEditModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={editingSection !== null}
+        onClose={() => setEditingSection(null)}
         settings={settings}
         onUpdate={handleSettingsUpdate}
+        editingSection={editingSection}
       />
     </div>
   )

@@ -115,22 +115,33 @@ export default function Addemployee() {
         throw new Error(response.message || "Failed to create employee");
       }
     } catch (error: any) {
-      // Better error handling
+      // Enhanced error handling with specific messages for duplicates
       let errorMessage = "Failed to add employee. Please try again.";
 
+      console.error("Error creating employee:", error);
+      
+      // Extract specific error message from API response
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
       } else if (error.response?.status === 400) {
         errorMessage = "Invalid data provided. Please check your inputs.";
       } else if (error.response?.status === 409) {
-        errorMessage = "Employee with this email or username already exists.";
+        errorMessage = "Employee with this email, phone number, or username already exists.";
       } else if (error.response?.status === 500) {
         errorMessage = "Server error. Please try again later.";
       }
 
+      // Log the full error details for debugging
+      if (error.response) {
+        console.error("API error response:", error.response.data);
+      }
+
       showToast(errorMessage, "error");
+      setShowConfirmation(false); // Close confirmation dialog on error
     } finally {
       setSubmitLoading(false);
     }

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import DynamicButton from "@/components/common/button/button";
 import { useToast as GlobalToast } from "@/components/ui/toast";
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
@@ -21,6 +22,7 @@ interface UpdateModalProps {
   categories?: any[];
   brands?: any[];
   models?: any[];
+  years?: any[];
 }
 
 export default function UpdateModal({
@@ -32,17 +34,19 @@ export default function UpdateModal({
   vehicleTypes = [],
   categories = [],
   brands = [],
-  models = []
+  models = [],
+  years = []
 }: UpdateModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
     description: '',
-    status: 'Active',
+    status: 'active',
     vehicleType: '',
     category: '',
     brand: '',
-    model: ''
+    model: '',
+    years: [] as string[]
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -57,8 +61,20 @@ export default function UpdateModal({
       const name = item.category_name || item.subcategory_name || item.brand_name || item.model_name || item.variant_name || '';
       const code = item.category_code || item.subcategory_code || item.brand_code || item.model_code || item.variant_code || '';
       const description = item.brand_description || item.category_description || item.subcategory_description || item.model_description || item.variant_Description || item.description || '';
-      const status = item.status || item.brand_Status || item.category_Status || item.subcategory_status || item.model_Status || item.variant_status || 'Active';
+      const status = item.status || item.brand_Status || item.category_Status || item.subcategory_status || item.model_Status || item.variant_status || 'active';
       const vehicleType = (typeof item.type === 'object' ? item.type?._id : item.type) || item.vehicleType_id || '';
+      
+      // Extract model ID properly (handle both object and string)
+      const modelValue = typeof item.model === 'object' && item.model?._id 
+        ? item.model._id 
+        : (item.model || item.model_id || '');
+      
+      // Extract years (handle both array of IDs and array of objects)
+      const yearValues = item.Year && Array.isArray(item.Year)
+        ? item.Year.map((year: any) => 
+            typeof year === 'object' && year?._id ? year._id : year
+          )
+        : [];
       
       setFormData({
         name,
@@ -68,10 +84,11 @@ export default function UpdateModal({
         vehicleType,
         category: item.category_ref || item.category_id || '',
         brand: item.brand_ref || item.brand_id || (typeof item.brand === 'object' ? item.brand?._id : item.brand) || '',
-        model: item.model || item.model_id || ''
+        model: modelValue,
+        years: yearValues
       });
       
-      console.log("UpdateModal - Form data set:", { name, code, description, status, vehicleType });
+      console.log("UpdateModal - Form data set:", { name, code, description, status, vehicleType, model: modelValue, years: yearValues });
       
       setImagePreview(item.category_image || item.subcategory_image || item.brand_logo || item.model_image || item.variant_image || '');
       setImageFile(null);
@@ -136,6 +153,9 @@ export default function UpdateModal({
         if (formData.code) submitFormData.append('variant_code', formData.code);
         if (formData.description) submitFormData.append('variant_Description', formData.description);
         if (formData.model) submitFormData.append('model', formData.model);
+        if (formData.years && formData.years.length > 0) {
+          submitFormData.append('Year', formData.years.join(','));
+        }
         submitFormData.append('variant_status', formData.status);
       }
       
@@ -162,11 +182,12 @@ export default function UpdateModal({
         name: '',
         code: '',
         description: '',
-        status: 'Active',
+        status: 'active',
         vehicleType: '',
         category: '',
         brand: '',
-        model: ''
+        model: '',
+        years: []
       });
       setImageFile(null);
       setImagePreview('');
@@ -329,6 +350,47 @@ export default function UpdateModal({
             </div>
           )}
 
+          {/* Years Field (for variants) */}
+          {type === 'variant' && years.length > 0 && (
+            <div className="grid gap-2">
+              <Label>Years *</Label>
+              <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+                {years.map((year) => (
+                  <div key={year._id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`year-${year._id}`}
+                      checked={formData.years.includes(year._id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setFormData(prev => ({
+                            ...prev,
+                            years: [...prev.years, year._id]
+                          }));
+                        } else {
+                          setFormData(prev => ({
+                            ...prev,
+                            years: prev.years.filter(id => id !== year._id)
+                          }));
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor={`year-${year._id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {year.year_name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {formData.years.length > 0 && (
+                <p className="text-xs text-gray-500">
+                  {formData.years.length} year(s) selected
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Status Field */}
           <div className="grid gap-2">
             <Label htmlFor="status">Status</Label>
@@ -337,8 +399,8 @@ export default function UpdateModal({
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>

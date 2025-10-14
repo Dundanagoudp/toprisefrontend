@@ -333,21 +333,27 @@ export default function DealerProductEdit() {
         is_universal: typeof product.is_universal === "boolean" ? product.is_universal : false,
         is_consumable: typeof product.is_consumable === "boolean" ? product.is_consumable : false,
         keySpecifications: product.key_specifications || "",
-        dimensions: "",
+        dimensions: (product as any).dimensions || "",
         weight: product.weight?.toString() || "",
         certifications: product.certifications || "",
         warranty: product.warranty ? Number(product.warranty) : undefined,
         images: product.images?.join(",") || "",
-        videoUrl: "",
+        videoUrl: (product as any).video_url || (product as any).videoUrl || "",
         mrp_with_gst: product.mrp_with_gst ? Number(product.mrp_with_gst) : undefined,
         gst_percentage: product.gst_percentage ? Number(product.gst_percentage) : undefined,
         is_returnable: typeof product.is_returnable === "boolean" ? product.is_returnable : product.is_returnable === "yes",
         return_policy: product.return_policy || "",
         availableDealers: "",
         quantityPerDealer: "",
-        dealerMargin: "",
-        dealerPriorityOverride: "",
-        stockExpiryRule: "",
+        dealerMargin: (product as any).dealer_margin?.toString() || 
+                     (Array.isArray(product.available_dealers) && product.available_dealers.length > 0 
+                       ? product.available_dealers[0]?.dealer_margin?.toString() || ""
+                       : ""),
+        dealerPriorityOverride: (product as any).dealer_priority_override?.toString() || 
+                               (Array.isArray(product.available_dealers) && product.available_dealers.length > 0 
+                                 ? product.available_dealers[0]?.dealer_priority_override?.toString() || ""
+                                 : ""),
+        stockExpiryRule: (product as any).stock_expiry_rule || "",
         lastStockUpdate:
           Array.isArray(product.available_dealers) &&
           product.available_dealers.length > 0

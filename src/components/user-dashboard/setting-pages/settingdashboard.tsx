@@ -12,17 +12,8 @@ export default function SettingPage() {
   const settingsNav = [
     { name: "Permission Access", id: "Permission Access" },
     { name: "Dealer Permissions", id: "Dealer Permissions" },
-    { name: "Delivery Charge", id: "Delivery Charge" },
+    { name: "Other Settings", id: "Other Settings" },
     { name: "Pincodes", id: "Pincodes" },
-    { name: "Minimum Order Value", id: "Minimum Order Value" },
-    { name: "Smtp", id: "Smtp" },
-    { name: "Minimum Ticket", id: "Minimum Ticket" },
-    { name: "Serviceable Areas", id: "Serviceable Areas" },
-    { name: "Versioning", id: "Versioning" },
-    { name: "Support Email", id: "Support Email" },
-    { name: "Support Phone", id: "Support Phone" },
-    { name: "TNC", id: "TNC" },
-    { name: "Privacy Policy", id: "Privacy Policy" },
   ]
 
   return (
@@ -51,18 +42,8 @@ export default function SettingPage() {
         <div className="flex-1 p-4 lg:p-6">
           {activeSetting === "Permission Access" && <PermissionAccess />}
           {activeSetting === "Dealer Permissions" && <DealerPermissions />}
-          {activeSetting === "Delivery Charge" && <DeliveryChargeSettings />}
+          {activeSetting === "Other Settings" && <DeliveryChargeSettings />}
           {activeSetting === "Pincodes" && <PincodeManagement />}
-          
-          {/* Placeholder for other settings */}
-          {activeSetting !== "Permission Access" && activeSetting !== "Dealer Permissions" && activeSetting !== "Delivery Charge" && activeSetting !== "Pincodes" && (
-            <div className="flex items-center justify-center h-48 text-gray-500 bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <div className="text-lg font-medium mb-2">Coming Soon</div>
-                <div className="text-sm">Content for {activeSetting} will be displayed here.</div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
