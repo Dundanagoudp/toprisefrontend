@@ -69,8 +69,7 @@ const schema = z.object({
   is_consumable: z.boolean().optional(),
   // Technical Specifications
   keySpecifications: z.string().optional(),
-  dimensions: z.string().optional(),
-  weight: z.string().optional(),
+  weight: z.coerce.number().min(0, "Weight must be a positive number").optional(),
   certifications: z.string().optional(),
   warranty: z.number().optional(),
   // Media & Documentation
@@ -887,31 +886,17 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* Dimensions */}
-            <div className="space-y-2">
-              <Label htmlFor="dimensions" className="text-base font-medium font-sans">
-                Dimensions
-              </Label>
-              <Input
-                id="dimensions"
-                placeholder="Enter Dimensions"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("dimensions")}
-              />
-              {errors.dimensions && (
-                <span className="text-red-500 text-sm">
-                  {errors.dimensions.message}
-                </span>
-              )}
-            </div>
             {/* Weight */}
             <div className="space-y-2">
               <Label htmlFor="weight" className="text-base font-medium font-sans">
-                Weight
+                Weight (kg)
               </Label>
               <Input
                 id="weight"
-                placeholder="Enter Weight"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Enter Weight in kg"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("weight")}
               />
