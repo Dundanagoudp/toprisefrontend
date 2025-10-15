@@ -33,17 +33,29 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
   const [previewBanner, setPreviewBanner] = useState<Banner | null>(null);
   const { showToast } = useGlobalToast();
 
+  // Ensure banners is always an array
+  const safeBanners = Array.isArray(banners) ? banners : [];
+
   const fetchBanners = async () => {
     try {
       setLoading(true);
       const response = await getBanners();
-      setBanners(response.data || []);
+      console.log("Banner API response:", response); // Debug log
+      
+      // Handle the specific API response structure: response.data.data
+      let bannersData = [];
+      if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+        bannersData = response.data.data;
+      }
+      
+      setBanners(bannersData);
     } catch (error: any) {
       console.error("Error fetching banners:", error);
       showToast(
         error?.response?.data?.message || "Failed to fetch banners",
         "error"
       );
+      setBanners([]); // Ensure banners is always an array
     } finally {
       setLoading(false);
     }
@@ -51,17 +63,6 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
 
   useEffect(() => {
     fetchBanners();
-    
-    // Listen for banner created event
-    const handleBannerCreated = () => {
-      fetchBanners();
-    };
-    
-    window.addEventListener("bannerCreated", handleBannerCreated);
-    
-    return () => {
-      window.removeEventListener("bannerCreated", handleBannerCreated);
-    };
   }, []);
 
   const handleDelete = async (bannerId: string) => {
@@ -83,10 +84,11 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
     }
   };
 
-  const filteredBanners = banners.filter((banner) =>
+  const filteredBanners = safeBanners.filter((banner) =>
     searchQuery
-      ? banner.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        banner.vehicle_type.toLowerCase().includes(searchQuery.toLowerCase())
+      ? banner.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        banner.vehicle_type?.type_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        banner.brand_id?.brand_name?.toLowerCase().includes(searchQuery.toLowerCase())
       : true
   );
 
@@ -118,6 +120,7 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
+                <TableHead>Brand</TableHead>
                 <TableHead>Vehicle Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Images</TableHead>
@@ -129,7 +132,10 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
                 <TableRow key={banner._id}>
                   <TableCell className="font-medium">{banner.title}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{banner.vehicle_type}</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{banner.brand_id?.brand_name || 'N/A'}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">{banner.vehicle_type?.type_name || 'N/A'}</Badge>
                   </TableCell>
                   <TableCell>
                     {banner.is_active ? (
@@ -146,18 +152,18 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      {banner.web && (
-                        <Badge variant="secondary" className="text-xs">
+                      {banner.image?.web && (
+                        <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100 text-xs">
                           Web
                         </Badge>
                       )}
-                      {banner.mobile && (
-                        <Badge variant="secondary" className="text-xs">
+                      {banner.image?.mobile && (
+                        <Badge className="bg-cyan-100 text-cyan-800 hover:bg-cyan-100 text-xs">
                           Mobile
                         </Badge>
                       )}
-                      {banner.tablet && (
-                        <Badge variant="secondary" className="text-xs">
+                      {banner.image?.tablet && (
+                        <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100 text-xs">
                           Tablet
                         </Badge>
                       )}
@@ -201,36 +207,36 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
           <DialogHeader>
             <DialogTitle>{previewBanner?.title}</DialogTitle>
             <DialogDescription>
-              Vehicle Type: {previewBanner?.vehicle_type} | Status:{" "}
+              Vehicle Type: {previewBanner?.vehicle_type?.type_name || 'N/A'} | Brand: {previewBanner?.brand_id?.brand_name || 'N/A'} | Status:{" "}
               {previewBanner?.is_active ? "Active" : "Inactive"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {previewBanner?.web && (
+            {previewBanner?.image?.web && (
               <div>
                 <h4 className="font-semibold mb-2">Web Banner</h4>
                 <img
-                  src={previewBanner.web}
+                  src={previewBanner.image.web}
                   alt="Web banner"
                   className="w-full rounded-lg border"
                 />
               </div>
             )}
-            {previewBanner?.mobile && (
+            {previewBanner?.image?.mobile && (
               <div>
                 <h4 className="font-semibold mb-2">Mobile Banner</h4>
                 <img
-                  src={previewBanner.mobile}
+                  src={previewBanner.image.mobile}
                   alt="Mobile banner"
                   className="w-full max-w-sm rounded-lg border"
                 />
               </div>
             )}
-            {previewBanner?.tablet && (
+            {previewBanner?.image?.tablet && (
               <div>
                 <h4 className="font-semibold mb-2">Tablet Banner</h4>
                 <img
-                  src={previewBanner.tablet}
+                  src={previewBanner.image.tablet}
                   alt="Tablet banner"
                   className="w-full max-w-md rounded-lg border"
                 />

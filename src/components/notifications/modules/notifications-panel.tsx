@@ -492,27 +492,13 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    askConfirm(
-                      "Clear all notifications",
-                      "Are you sure you want to clear all notifications? This action cannot be undone.",
-                      () => {
-                        const userId = getUserIdFromToken()
-                        if (!userId) return
-                        deleteAllNotificationsAPI(userId)
-                          .then((response) => {
-                            if (response.success) {
-                              return fetchNotifications(filter)
-                            }
-                          })
-                          .catch((err) => console.error("Error clearing all notifications:", err))
-                      }
-                    )
+                    markAllAsRead()
                   }}
-                  className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1 justify-center sm:justify-start"
-                  disabled={notificationList.length === 0}
+                  className="h-8 px-3 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-1 justify-center sm:justify-start"
+                  disabled={notificationList.length === 0 || unreadCount === 0}
                 >
-                  <Trash2 className="w-4 h-4 text-red-600" />
-                  Clear All
+                  <CheckCheck className="w-4 h-4 text-blue-600" />
+                  Mark All Read
                 </Button>
                 {selectedIds.size > 0 && (
                   <div className="flex items-center gap-2 justify-center sm:justify-end">

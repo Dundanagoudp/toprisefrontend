@@ -419,7 +419,7 @@ export default function Reports() {
                             className={
                               dealer.unresolvedViolations > 0
                                 ? "bg-red-100 text-red-800"
-                                : "bg-green-100 text-green-800"
+                                : "bg-green-400 text-green-800"
                             }
                           >
                             {dealer.unresolvedViolations > 0

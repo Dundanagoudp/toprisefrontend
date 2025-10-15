@@ -291,7 +291,7 @@ export default function AuditLogs() {
       }
 
       const response = await fetch(
-        "http://193.203.161.146:3000/api/orders/api/analytics/audit-logs",
+        "https://api.toprise.in/api/orders/api/analytics/audit-logs",
         {
           method: "GET",
           headers: {

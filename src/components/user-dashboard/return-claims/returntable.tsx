@@ -493,9 +493,6 @@ export default function ReturnClaims() {
                     Validate Selected ({selectedClaims.length})
                   </Button>
                 )}
-              <Button className="flex items-center gap-2 border-red-400 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-500 px-6 py-2 rounded-lg font-medium text-base h-10 shadow-none focus:ring-2 focus:ring-red-100">
-                Review Return
-              </Button>
             </div>
           </div>
         </CardHeader>

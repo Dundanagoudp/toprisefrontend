@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, ArrowLeft, Wrench, Eye, Edit } from "lucide-react";
-import { getCatalogs } from "@/service/catalogue-service";
+import { getCatalogs, getBrands, getModels } from "@/service/catalogue-service";
 
 interface CatalogProductsProps {
   catalogId: string;
@@ -20,6 +20,8 @@ export default function CatalogProducts({ catalogId }: CatalogProductsProps) {
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [models, setModels] = useState<any[]>([]);
 
   useEffect(() => {
     fetchCatalogAndProducts();
@@ -40,17 +42,47 @@ export default function CatalogProducts({ catalogId }: CatalogProductsProps) {
     }
   }, [searchTerm, products]);
 
+  // Helper functions to get brand and model names by ID
+  const getBrandName = (brandId: string) => {
+    if (!brandId) return "N/A";
+    const brand = brands.find(b => b._id === brandId || b.id === brandId);
+    return brand ? brand.brand_name : brandId;
+  };
+
+  const getModelName = (modelId: string) => {
+    if (!modelId) return "N/A";
+    const model = models.find(m => m._id === modelId || m.id === modelId);
+    return model ? model.model_name : modelId;
+  };
+
   const fetchCatalogAndProducts = async () => {
     try {
       setLoading(true);
       console.log("Fetching catalog and products for ID:", catalogId);
       
-      const response = await getCatalogs();
-      console.log("Catalogs API response:", response);
+      // Fetch catalogs, brands, and models in parallel
+      const [catalogsResponse, brandsResponse, modelsResponse] = await Promise.all([
+        getCatalogs(),
+        getBrands(),
+        getModels()
+      ]);
       
-      if (response.success && response.data && Array.isArray(response.data.catalogs)) {
+      console.log("Catalogs API response:", catalogsResponse);
+      console.log("Brands API response:", brandsResponse);
+      console.log("Models API response:", modelsResponse);
+      
+      // Set brands and models
+      if (brandsResponse.success && Array.isArray(brandsResponse.data)) {
+        setBrands(brandsResponse.data);
+      }
+      
+      if (modelsResponse.success && Array.isArray(modelsResponse.data)) {
+        setModels(modelsResponse.data);
+      }
+      
+      if (catalogsResponse.success && catalogsResponse.data && Array.isArray(catalogsResponse.data.catalogs)) {
         // Find the specific catalog by ID
-        const foundCatalog = response.data.catalogs.find((cat: any) => cat._id === catalogId);
+        const foundCatalog = catalogsResponse.data.catalogs.find((cat: any) => cat._id === catalogId);
         
         if (foundCatalog) {
           console.log("Found catalog:", foundCatalog);
@@ -261,7 +293,7 @@ export default function CatalogProducts({ catalogId }: CatalogProductsProps) {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-500 font-medium">Brand</p>
                       <p className="text-sm font-semibold text-gray-900 truncate">
-                        {product.brand || "N/A"}
+                        {getBrandName(product.brand)}
                       </p>
                     </div>
                   </div>
@@ -273,7 +305,7 @@ export default function CatalogProducts({ catalogId }: CatalogProductsProps) {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-500 font-medium">Model</p>
                       <p className="text-sm font-semibold text-gray-900 truncate">
-                        {product.model || "N/A"}
+                        {getModelName(product.model)}
                       </p>
                     </div>
                   </div>
@@ -305,6 +337,7 @@ export default function CatalogProducts({ catalogId }: CatalogProductsProps) {
                   <Button 
                     variant="outline" 
                     className="w-full border-gray-300 hover:border-blue-500 hover:text-blue-600 rounded-xl py-3 font-semibold transition-all duration-200"
+                    onClick={() => router.push(`/user/dashboard/product/productedit/${product._id || product.id}`)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Product

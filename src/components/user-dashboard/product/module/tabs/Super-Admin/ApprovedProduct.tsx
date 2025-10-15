@@ -229,7 +229,7 @@ export default function ApprovedProduct({
 
   const allSelected =
     sortedProducts.length > 0 &&
-    sortedProducts.every((p: any) => selectedProducts.includes(p.id));
+    sortedProducts.every((p: any) => selectedProducts.includes(p._id));
 
   const handleSelectAll = () => {
     const newSelectedProducts = allSelected

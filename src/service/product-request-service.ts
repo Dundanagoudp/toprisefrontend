@@ -2,6 +2,7 @@ import apiClient from "@/apiClient";
 import {
   ProductRequestResponse,
   ProductRequestStatsResponse,
+  ApprovalStatsResponse,
   CreateProductRequestRequest,
   UpdateProductRequestRequest,
   ProductRequestFilters,
@@ -32,18 +33,18 @@ export async function getProductRequests(
   }
 }
 
-// // Get product request statistics
-// export async function getProductRequestStats(): Promise<ProductRequestStatsResponse> {
-//   try {
-//     const response = await apiClient.get(
-//       `/category/products/v1/requests/stats`
-//     );
-//     return response.data;
-//   } catch (error) {
-//     console.error("Failed to fetch product request stats:", error);
-//     throw error;
-//   }
-// }
+// Get product request statistics
+export async function getProductRequestStats(): Promise<ApprovalStatsResponse> {
+  try {
+    const response = await apiClient.get(
+      `/category/products/v1/approval/stats`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch product request stats:", error);
+    throw error;
+  }
+}
 
 // // Get a single product request by ID
 // export async function getProductRequestById(

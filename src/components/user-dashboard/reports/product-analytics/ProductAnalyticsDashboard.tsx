@@ -89,7 +89,37 @@ export default function ProductAnalyticsDashboard() {
   // Handle filter changes
   const handleFiltersChange = (newFilters: ProductAnalyticsFilterOptions) => {
     setFilters(newFilters);
+    // Trigger immediate data fetch with new filters
+    fetchAnalyticsWithFilters(newFilters);
   };
+
+  // Fetch analytics with specific filters
+  const fetchAnalyticsWithFilters = useCallback(async (filterOptions: ProductAnalyticsFilterOptions, showRefreshToast = false) => {
+    try {
+      if (showRefreshToast) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const data = await fetchAllProductAnalytics(filterOptions);
+      
+      setAnalyticsData(data.analytics);
+      setPerformanceData(data.performance);
+      setInventoryData(data.inventory);
+      setCategoryData(data.category);
+
+      if (showRefreshToast) {
+        showToast("Product analytics data refreshed successfully", "success");
+      }
+    } catch (error) {
+      console.error("Error fetching product analytics:", error);
+      showToast("Failed to fetch product analytics data", "error");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [showToast]);
 
   // Handle refresh
   const handleRefresh = () => {

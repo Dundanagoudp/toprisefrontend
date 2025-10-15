@@ -128,7 +128,7 @@ export const getSLAViolationStats = async (): Promise<any> => {
     console.log("Using client:", client === apiClient ? "main" : "fallback");
     
     const response = await client.get(
-      `/orders/api/sla-violations/stats`
+      `/orders/api/sla-violations/stats/stats`
     );
     return response.data;
   } catch (error) {

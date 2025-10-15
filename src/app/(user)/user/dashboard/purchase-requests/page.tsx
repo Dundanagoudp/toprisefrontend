@@ -14,13 +14,13 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { 
   ShoppingCart, 
-  Plus, 
   Eye, 
   Search,
   Filter,
   Download,
   FileText,
-  ExternalLink
+  ExternalLink,
+  Calendar
 } from "lucide-react"
 import SearchInput from "@/components/common/search/SearchInput"
 import { useAppSelector } from "@/store/hooks"
@@ -35,6 +35,14 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from "@/components/ui/pagination"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 interface PurchaseDocument {
   _id: string
@@ -82,8 +90,103 @@ export default function PurchaseRequestsPage() {
   const [pagination, setPagination] = useState<PaginationData | null>(null)
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined)
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined)
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [priorityFilter, setPriorityFilter] = useState<string>("all")
+  const [isExporting, setIsExporting] = useState(false)
   const auth = useAppSelector((state) => state.auth.user)
   const { showToast } = useToast()
+
+  // Export functionality
+  const exportToCSV = async () => {
+    if (filteredRequests.length === 0) {
+      showToast('No data to export', "warning")
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      // Prepare CSV headers
+      const headers = [
+        'Document Number',
+        'Request Date',
+        'Customer Name',
+        'Customer Email',
+        'Customer Phone',
+        'Customer Address',
+        'Pincode',
+        'Description',
+        'Estimated Value',
+        'Status',
+        'Priority',
+        'Files Count',
+        'Created At',
+        'Updated At'
+      ]
+
+      // Prepare CSV data with proper escaping
+      const csvData = filteredRequests.map(request => [
+        request.document_number || 'N/A',
+        new Date(request.createdAt).toLocaleDateString('en-IN'),
+        request.customer_details?.name || 'N/A',
+        request.customer_details?.email || 'N/A',
+        request.customer_details?.phone || 'N/A',
+        request.customer_details?.address || 'N/A',
+        request.customer_details?.pincode || 'N/A',
+        request.description || 'N/A',
+        request.estimated_order_value || 0,
+        request.status || 'N/A',
+        request.priority || 'N/A',
+        request.document_files?.length || 0,
+        new Date(request.createdAt).toLocaleString('en-IN'),
+        new Date(request.updatedAt).toLocaleString('en-IN')
+      ])
+
+      // Create CSV content with proper escaping
+      const csvContent = [
+        headers.join(','),
+        ...csvData.map(row => 
+          row.map(field => {
+            const stringField = String(field)
+            // Escape quotes and wrap in quotes if contains comma, quote, or newline
+            if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+              return `"${stringField.replace(/"/g, '""')}"`
+            }
+            return stringField
+          }).join(',')
+        )
+      ].join('\n')
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      
+      // Generate filename with current date and time
+      const now = new Date()
+      const dateStr = now.toISOString().split('T')[0]
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-')
+      const filename = `purchase-requests-${dateStr}-${timeStr}.csv`
+      link.setAttribute('download', filename)
+      
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Clean up the URL object
+      URL.revokeObjectURL(url)
+      
+      showToast(`Exported ${filteredRequests.length} purchase requests successfully`, "success")
+    } catch (error) {
+      console.error('Error exporting CSV:', error)
+      showToast('Failed to export data. Please try again.', "error")
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   // Fetch purchase requests from API
   const fetchPurchaseRequests = async (page: number = 1) => {
@@ -159,17 +262,47 @@ export default function PurchaseRequestsPage() {
   }
 
   const filteredRequests = purchaseRequests.filter((request) => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      request.document_number?.toLowerCase().includes(query) ||
-      request.customer_details?.name?.toLowerCase().includes(query) ||
-      request.customer_details?.email?.toLowerCase().includes(query) ||
-      request.customer_details?.phone?.toLowerCase().includes(query) ||
-      request.description?.toLowerCase().includes(query) ||
-      request.status?.toLowerCase().includes(query) ||
-      request.priority?.toLowerCase().includes(query)
-    )
+    // Search query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      const matchesSearch = (
+        request.document_number?.toLowerCase().includes(query) ||
+        request.customer_details?.name?.toLowerCase().includes(query) ||
+        request.customer_details?.email?.toLowerCase().includes(query) ||
+        request.customer_details?.phone?.toLowerCase().includes(query) ||
+        request.description?.toLowerCase().includes(query) ||
+        request.status?.toLowerCase().includes(query) ||
+        request.priority?.toLowerCase().includes(query)
+      )
+      if (!matchesSearch) return false
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      const requestDate = new Date(request.createdAt)
+      const fromDate = dateFrom ? new Date(dateFrom) : null
+      const toDate = dateTo ? new Date(dateTo) : null
+      
+      if (fromDate && toDate) {
+        if (requestDate < fromDate || requestDate > toDate) return false
+      } else if (fromDate) {
+        if (requestDate < fromDate) return false
+      } else if (toDate) {
+        if (requestDate > toDate) return false
+      }
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      if (request.status.toLowerCase() !== statusFilter.toLowerCase()) return false
+    }
+
+    // Priority filter
+    if (priorityFilter !== "all") {
+      if (request.priority.toLowerCase() !== priorityFilter.toLowerCase()) return false
+    }
+
+    return true
   })
 
   return (
@@ -186,34 +319,145 @@ export default function PurchaseRequestsPage() {
                 Manage and track all purchase requests
               </CardDescription>
             </div>
-            <Button className="bg-[#C72920] hover:bg-[#A01E1A] text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              New Purchase Request
-            </Button>
           </div>
         </CardHeader>
 
         <CardContent className="p-6 min-w-0">
           {/* Filters and Search */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
+          <div className="flex flex-col gap-4 mb-6">
+            {/* Search Bar */}
+            <div className="w-full">
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
                 onClear={() => setSearchQuery("")}
-                placeholder="Search by request ID, user, department, or status"
+                placeholder="Search by request ID, customer name, email, or status"
                 className="w-full"
               />
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2">
-                <Filter className="h-4 w-4" />
-                Filters
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
+            
+            {/* Advanced Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Date From */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">From Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dateFrom && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {dateFrom ? format(dateFrom, "PPP") : "Pick date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dateFrom}
+                      onSelect={setDateFrom}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Date To */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">To Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dateTo && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {dateTo ? format(dateTo, "PPP") : "Pick date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dateTo}
+                      onSelect={setDateTo}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#C72920] focus:border-transparent"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending-review">Pending Review</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              {/* Priority Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Priority</label>
+                <select
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#C72920] focus:border-transparent"
+                >
+                  <option value="all">All Priority</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-2 items-center justify-between">
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline" 
+                  className="gap-2 flex-shrink-0"
+                  onClick={() => {
+                    setDateFrom(undefined)
+                    setDateTo(undefined)
+                    setStatusFilter("all")
+                    setPriorityFilter("all")
+                    setSearchQuery("")
+                  }}
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline">Clear Filters</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="gap-2 flex-shrink-0"
+                  onClick={exportToCSV}
+                  disabled={filteredRequests.length === 0 || isExporting}
+                >
+                  <Download className={`h-4 w-4 ${isExporting ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">
+                    {isExporting ? 'Exporting...' : 'Export'}
+                  </span>
+                </Button>
+              </div>
+              {filteredRequests.length > 0 && (
+                <div className="text-sm text-gray-600">
+                  {filteredRequests.length} record{filteredRequests.length !== 1 ? 's' : ''} to export
+                </div>
+              )}
             </div>
           </div>
 

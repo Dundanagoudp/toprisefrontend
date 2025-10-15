@@ -37,14 +37,13 @@ const modelSchema = z.object({
     .min(1, "Please select a brand"),
 
   model_image: z
-    .instanceof(File)
-    .optional()
+    .instanceof(File, { message: "Model image is required" })
     .refine(
-      (file) => !file || file.size <= 5 * 1024 * 1024, // 5MB limit
+      (file) => file.size <= 5 * 1024 * 1024, // 5MB limit
       "Image size must be less than 5MB"
     )
     .refine(
-      (file) => !file || ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type),
+      (file) => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type),
       "Only JPEG, PNG, WebP, and GIF images are allowed"
     ),
 })
@@ -122,9 +121,8 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
         formData.append("updated_by", auth.user._id); 
       // Status will be set to "Created" by default on the backend
 
-      if (data.model_image) {
-        formData.append('model_image', data.model_image)
-      }
+      // Image is now mandatory, so it should always be present
+      formData.append('model_image', data.model_image)
 
       await createModel(formData)
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -317,7 +315,7 @@ export default function CreateModelForm({ open, onClose, onSuccess }: CreateMode
           {/* Image Upload */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Model Image
+              Model Image <span className="text-red-500">*</span>
             </Label>
             
             {!imagePreview ? (

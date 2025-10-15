@@ -76,6 +76,8 @@ import Image from "next/image";
 import { getProducts } from "@/service/product-Service";
 import slaViolationsService from "@/service/slaViolations-Service";
 import SLAViolationsDashboard from "@/components/user-dashboard/sla-violations/SLAViolationsDashboard";
+import { getAllDealers } from "@/service/dealerServices";
+import { getOrders } from "@/service/order-service";
 
 // Types for SLA Violations
 interface SLAViolation {
@@ -193,7 +195,7 @@ const getStatusBadge = (status: string) => {
         </Badge>
       );
     default:
-      return <Badge variant="secondary">{status || "Unknown"}</Badge>;
+      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{status || "Unknown"}</Badge>;
   }
 };
 
@@ -224,7 +226,7 @@ const getPriorityBadge = (priority: string) => {
         </Badge>
       );
     default:
-      return <Badge variant="secondary">{priority}</Badge>;
+      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{priority}</Badge>;
   }
 };
 
@@ -319,6 +321,14 @@ export default function SLAViolationsAndReporting() {
     notes: "",
     contact_dealer: false
   });
+  
+  // Dealers and orders for manual violation creation
+  const [dealers, setDealers] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [dealersLoading, setDealersLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [dealerSearchQuery, setDealerSearchQuery] = useState("");
+  const [orderSearchQuery, setOrderSearchQuery] = useState("");
 
   const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
@@ -336,6 +346,64 @@ export default function SLAViolationsAndReporting() {
       setSelectedViolationIds((prev) => prev.filter((violationId) => violationId !== id));
     }
   };
+
+  // Fetch dealers for manual violation creation
+  const fetchDealers = async () => {
+    try {
+      setDealersLoading(true);
+      const response = await getAllDealers();
+      if (response.success && response.data) {
+        setDealers(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching dealers:", error);
+    } finally {
+      setDealersLoading(false);
+    }
+  };
+
+  // Fetch orders for manual violation creation
+  const fetchOrders = async () => {
+    try {
+      setOrdersLoading(true);
+      const response = await getOrders();
+      if (response.success && response.data) {
+        setOrders(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // Filter dealers based on search query
+  const filteredDealers = useMemo(() => {
+    if (!dealerSearchQuery) return dealers;
+    return dealers.filter(dealer => 
+      dealer.trade_name?.toLowerCase().includes(dealerSearchQuery.toLowerCase()) ||
+      dealer.legal_name?.toLowerCase().includes(dealerSearchQuery.toLowerCase()) ||
+      dealer._id?.toLowerCase().includes(dealerSearchQuery.toLowerCase())
+    );
+  }, [dealers, dealerSearchQuery]);
+
+  // Filter orders based on search query
+  const filteredOrders = useMemo(() => {
+    if (!orderSearchQuery) return orders;
+    return orders.filter(order => 
+      order._id?.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      order.orderNumber?.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      order.customerName?.toLowerCase().includes(orderSearchQuery.toLowerCase())
+    );
+  }, [orders, orderSearchQuery]);
+
+  // Fetch dealers and orders when modal opens
+  useEffect(() => {
+    if (showCreateViolationModal) {
+      fetchDealers();
+      fetchOrders();
+    }
+  }, [showCreateViolationModal]);
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -631,6 +699,21 @@ export default function SLAViolationsAndReporting() {
     }
   };
 
+  // Reset create violation form
+  const resetCreateViolationForm = () => {
+    setCreateViolationData({
+      dealer_id: "",
+      order_id: "",
+      expected_fulfillment_time: "",
+      actual_fulfillment_time: "",
+      violation_minutes: 0,
+      notes: "",
+      contact_dealer: false
+    });
+    setDealerSearchQuery("");
+    setOrderSearchQuery("");
+  };
+
   // Handle creating manual SLA violation
   const handleCreateManualViolation = async () => {
     try {
@@ -646,15 +729,7 @@ export default function SLAViolationsAndReporting() {
       
       if (response.success) {
         // Reset form
-        setCreateViolationData({
-          dealer_id: "",
-          order_id: "",
-          expected_fulfillment_time: "",
-          actual_fulfillment_time: "",
-          violation_minutes: 0,
-          notes: "",
-          contact_dealer: false
-        });
+        resetCreateViolationForm();
         setShowCreateViolationModal(false);
         
         // Refresh data
@@ -1247,7 +1322,12 @@ export default function SLAViolationsAndReporting() {
 
 
       {/* Create Manual Violation Modal */}
-      <Dialog open={showCreateViolationModal} onOpenChange={setShowCreateViolationModal}>
+      <Dialog open={showCreateViolationModal} onOpenChange={(open) => {
+        setShowCreateViolationModal(open);
+        if (!open) {
+          resetCreateViolationForm();
+        }
+      }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Create Manual SLA Violation</DialogTitle>
@@ -1258,22 +1338,82 @@ export default function SLAViolationsAndReporting() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="dealer-id">Dealer ID *</Label>
-                <Input
-                  id="dealer-id"
+                <Label htmlFor="dealer-select">Select Dealer *</Label>
+                <Select
                   value={createViolationData.dealer_id}
-                  onChange={(e) => setCreateViolationData(prev => ({ ...prev, dealer_id: e.target.value }))}
-                  placeholder="Enter dealer ID"
-                />
+                  onValueChange={(value) => setCreateViolationData(prev => ({ ...prev, dealer_id: value }))}
+                  disabled={dealersLoading}
+                >
+                  <SelectTrigger className="bg-gray-50 border-gray-200 rounded-lg">
+                    <SelectValue placeholder={dealersLoading ? "Loading dealers..." : "Search and select dealer"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="p-2">
+                      <Input
+                        placeholder="Search dealers..."
+                        value={dealerSearchQuery}
+                        onChange={(e) => setDealerSearchQuery(e.target.value)}
+                        className="mb-2"
+                      />
+                    </div>
+                    {filteredDealers.length > 0 ? (
+                      filteredDealers.map((dealer) => (
+                        <SelectItem key={dealer._id} value={dealer._id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{dealer.trade_name || dealer.legal_name}</span>
+                            <span className="text-xs text-gray-500">ID: {dealer._id}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      !dealersLoading && (
+                        <SelectItem value="no-dealers" disabled>
+                          No dealers found
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="order-id">Order ID *</Label>
-                <Input
-                  id="order-id"
+                <Label htmlFor="order-select">Select Order *</Label>
+                <Select
                   value={createViolationData.order_id}
-                  onChange={(e) => setCreateViolationData(prev => ({ ...prev, order_id: e.target.value }))}
-                  placeholder="Enter order ID"
-                />
+                  onValueChange={(value) => setCreateViolationData(prev => ({ ...prev, order_id: value }))}
+                  disabled={ordersLoading}
+                >
+                  <SelectTrigger className="bg-gray-50 border-gray-200 rounded-lg">
+                    <SelectValue placeholder={ordersLoading ? "Loading orders..." : "Search and select order"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="p-2">
+                      <Input
+                        placeholder="Search orders..."
+                        value={orderSearchQuery}
+                        onChange={(e) => setOrderSearchQuery(e.target.value)}
+                        className="mb-2"
+                      />
+                    </div>
+                    {filteredOrders.length > 0 ? (
+                      filteredOrders.map((order) => (
+                        <SelectItem key={order._id} value={order._id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">Order #{order.orderNumber || order._id}</span>
+                            <span className="text-xs text-gray-500">
+                              {order.customerName ? `Customer: ${order.customerName}` : `ID: ${order._id}`}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      !ordersLoading && (
+                        <SelectItem value="no-orders" disabled>
+                          No orders found
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
@@ -1332,7 +1472,10 @@ export default function SLAViolationsAndReporting() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateViolationModal(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowCreateViolationModal(false);
+              resetCreateViolationForm();
+            }}>
               Cancel
             </Button>
             <Button 
