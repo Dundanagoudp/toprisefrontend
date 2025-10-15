@@ -195,8 +195,8 @@ export default function PurchaseRequestsPage() {
 
         <CardContent className="p-6 min-w-0">
           {/* Filters and Search */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
+          <div className="flex flex-col gap-3 mb-6">
+            <div className="w-full">
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -205,14 +205,14 @@ export default function PurchaseRequestsPage() {
                 className="w-full"
               />
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="gap-2 flex-shrink-0">
                 <Filter className="h-4 w-4" />
-                Filters
+                <span className="hidden sm:inline">Filters</span>
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 flex-shrink-0">
                 <Download className="h-4 w-4" />
-                Export
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
           </div>

@@ -541,9 +541,10 @@ export default function ProductRequests() {
           <CardDescription>Filter products by various criteria</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="search-filter">Search</Label>
+          <div className="space-y-4">
+            {/* Search Bar - Full Width */}
+            <div className="w-full">
+              <Label htmlFor="search-filter" className="mb-2 block">Search</Label>
               <SearchInput
                 id="search-filter"
                 placeholder="Search products..."
@@ -553,45 +554,47 @@ export default function ProductRequests() {
                   setSearchInput("");
                   setSearchQuery("");
                 }}
-                className="h-10"
+                className="h-10 w-full"
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="status-filter">Status</Label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger id="status-filter" className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="in_review">In Review</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Filters Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="status-filter">Status</Label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger id="status-filter" className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="in_review">In Review</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="type-filter">Type</Label>
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger id="type-filter" className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="new_product">New Product</SelectItem>
-                  <SelectItem value="update_product">Update Product</SelectItem>
-                  <SelectItem value="price_change">Price Change</SelectItem>
-                  <SelectItem value="stock_update">Stock Update</SelectItem>
-                  <SelectItem value="category_change">Category Change</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="type-filter">Type</Label>
+                <Select value={selectedType} onValueChange={setSelectedType}>
+                  <SelectTrigger id="type-filter" className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="new_product">New Product</SelectItem>
+                    <SelectItem value="update_product">Update Product</SelectItem>
+                    <SelectItem value="price_change">Price Change</SelectItem>
+                    <SelectItem value="stock_update">Stock Update</SelectItem>
+                    <SelectItem value="category_change">Category Change</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="priority-filter">Priority</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="priority-filter">Priority</Label>
               <Select value={selectedPriority} onValueChange={setSelectedPriority}>
                 <SelectTrigger id="priority-filter" className="h-10">
                   <SelectValue />
@@ -605,19 +608,19 @@ export default function ProductRequests() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
+            </div>
 
-          <div className="mt-6">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="date-range-filter">Date Range</Label>
-              <div className="flex items-center space-x-2">
+            {/* Date Range Filter - Full Width */}
+            <div className="w-full">
+              <Label htmlFor="date-range-filter" className="mb-2 block">Date Range</Label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       id="date-range-filter"
                       variant="outline"
                       className={cn(
-                        "w-[280px] h-10 justify-start text-left font-normal",
+                        "w-full sm:w-[280px] h-10 justify-start text-left font-normal",
                         !dateRange.from && "text-muted-foreground"
                       )}
                     >
