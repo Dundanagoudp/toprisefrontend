@@ -58,11 +58,13 @@ import {
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/toast";
 import {
-  getPickupRequests,
+  getAllPicklists,
   updatePickupStatus,
   type PickupRequest,
   type PickupItem,
+  type PicklistData,
 } from "@/service/pickup-service";
+import { packOrder } from "@/service/order-service";
 import { generatePickupListPDF, generateSinglePickupPDF } from "@/service/pdfService";
 
 export default function PickupManagement() {
@@ -70,13 +72,13 @@ export default function PickupManagement() {
   const { showToast } = useToast();
   
   // State management
-  const [pickups, setPickups] = useState<PickupRequest[]>([]);
+  const [pickups, setPickups] = useState<PicklistData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [selectedPickup, setSelectedPickup] = useState<PickupRequest | null>(null);
+  const [selectedPickup, setSelectedPickup] = useState<PicklistData | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isPackedDialogOpen, setIsPackedDialogOpen] = useState(false);
   const [packingNotes, setPackingNotes] = useState("");
@@ -91,7 +93,7 @@ export default function PickupManagement() {
 
       // Use real API calls with fallback to mock data
       try {
-        const response = await getPickupRequests();
+        const response = await getAllPicklists();
         setPickups(response.data);
       } catch (apiError) {
         console.warn("API calls failed, using mock data:", apiError);
@@ -180,13 +182,13 @@ export default function PickupManagement() {
   // Filter pickups based on search and filters
   const filteredPickups = pickups.filter(pickup => {
     const matchesSearch = 
-      pickup.pickupId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pickup.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pickup.dealerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pickup.orderId.toLowerCase().includes(searchTerm.toLowerCase());
+      (pickup._id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (pickup.linkedOrderId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (pickup.dealerId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (pickup.fulfilmentStaff?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "all" || pickup.status === statusFilter;
-    const matchesPriority = priorityFilter === "all" || pickup.priority === priorityFilter;
+    const matchesStatus = statusFilter === "all" || pickup.scanStatus === statusFilter;
+    const matchesPriority = priorityFilter === "all"; // Priority not available in new structure
     
     return matchesSearch && matchesStatus && matchesPriority;
   });
@@ -194,11 +196,20 @@ export default function PickupManagement() {
   // Mark pickup as packed
   const handleMarkAsPacked = async (pickupId: string) => {
     try {
-      // Use real API call with fallback
+      // Use the new pack order API endpoint
       try {
-        await updatePickupStatus(pickupId, "packed", packingNotes);
+        await packOrder(pickupId, {});
+        showToast("Picklist marked as packed successfully", "success");
       } catch (apiError) {
-        console.warn("API call failed, updating locally:", apiError);
+        console.warn("Pack order API failed, trying fallback:", apiError);
+        // Fallback to old API if pack order fails
+        try {
+          await updatePickupStatus(pickupId, "packed", packingNotes);
+          showToast("Picklist marked as packed successfully", "success");
+        } catch (fallbackError) {
+          console.warn("Fallback API also failed, updating locally:", fallbackError);
+          showToast("Picklist marked as packed (local update)", "success");
+        }
       }
       
       // Update local state
@@ -210,7 +221,6 @@ export default function PickupManagement() {
       
       setIsPackedDialogOpen(false);
       setPackingNotes("");
-      showToast("Picklist marked as packed successfully", "success");
     } catch (error) {
       console.error("Error marking pickup as packed:", error);
       showToast("Failed to mark picklist as packed", "error");
@@ -262,21 +272,17 @@ export default function PickupManagement() {
 
   // Utility functions
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
-      case "scheduled":
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><Calendar className="w-3 h-3 mr-1" />Scheduled</Badge>;
-      case "in_progress":
-        return <Badge variant="secondary" className="bg-purple-100 text-purple-800"><Package className="w-3 h-3 mr-1" />In Progress</Badge>;
-      case "packed":
-        return <Badge variant="secondary" className="bg-green-100 text-green-800"><PackageCheck className="w-3 h-3 mr-1" />Packed</Badge>;
-      case "picked_up":
-        return <Badge variant="secondary" className="bg-indigo-100 text-indigo-800"><Truck className="w-3 h-3 mr-1" />Picked Up</Badge>;
+    switch (status.toLowerCase()) {
+      case "not started":
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800"><Clock className="w-3 h-3 mr-1" />Not Started</Badge>;
+      case "in progress":
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><Package className="w-3 h-3 mr-1" />In Progress</Badge>;
       case "completed":
         return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />Cancelled</Badge>;
+      case "scanned":
+        return <Badge variant="secondary" className="bg-purple-100 text-purple-800"><PackageCheck className="w-3 h-3 mr-1" />Scanned</Badge>;
+      case "packed":
+        return <Badge variant="secondary" className="bg-green-100 text-green-800"><PackageCheck className="w-3 h-3 mr-1" />Packed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -388,13 +394,11 @@ export default function PickupManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="packed">Packed</SelectItem>
-                  <SelectItem value="picked_up">Picked Up</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="Not Started">Not Started</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Scanned">Scanned</SelectItem>
+                  <SelectItem value="Packed">Packed</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -447,11 +451,11 @@ export default function PickupManagement() {
               <TableRow>
                 <TableHead>Picklist ID</TableHead>
                 <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Dealer</TableHead>
-                <TableHead>Scheduled Date</TableHead>
+                <TableHead>Dealer ID</TableHead>
+                <TableHead>Staff</TableHead>
+                <TableHead>Created Date</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
+                <TableHead>Invoice</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -459,26 +463,34 @@ export default function PickupManagement() {
             <TableBody>
               {filteredPickups.map((pickup) => (
                 <TableRow key={pickup._id}>
-                  <TableCell className="font-medium">{pickup.pickupId}</TableCell>
-                  <TableCell>{pickup.orderId}</TableCell>
+                  <TableCell className="font-medium">{pickup._id}</TableCell>
+                  <TableCell>{pickup.linkedOrderId || 'N/A'}</TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{pickup.customerName}</div>
-                      <div className="text-sm text-gray-500">{pickup.customerPhone}</div>
-                    </div>
+                    <div className="font-medium">{pickup.dealerId || 'N/A'}</div>
                   </TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{pickup.dealerName}</div>
-                      <div className="text-sm text-gray-500">{pickup.dealerPhone}</div>
+                    <div className="font-medium">{pickup.fulfilmentStaff || 'N/A'}</div>
+                  </TableCell>
+                  <TableCell>{pickup.createdAt ? formatDate(pickup.createdAt) : 'N/A'}</TableCell>
+                  <TableCell>{getStatusBadge(pickup.scanStatus || 'Not Started')}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {pickup.invoiceGenerated ? (
+                        <>
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-green-700 font-medium">Generated</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          <span className="text-gray-600">Pending</span>
+                        </>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell>{formatDate(pickup.scheduledDate)}</TableCell>
-                  <TableCell>{getStatusBadge(pickup.status)}</TableCell>
-                  <TableCell>{getPriorityBadge(pickup.priority)}</TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {pickup.items.length} item{pickup.items.length !== 1 ? 's' : ''}
+                      {pickup.skuList?.length || 0} item{(pickup.skuList?.length || 0) !== 1 ? 's' : ''}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -495,9 +507,9 @@ export default function PickupManagement() {
                         </DialogTrigger>
                         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle>Pickup Details - {pickup.pickupId}</DialogTitle>
+                            <DialogTitle>Picklist Details - {pickup._id}</DialogTitle>
                             <DialogDescription>
-                              Detailed information about the pickup request
+                              Detailed information about the picklist
                             </DialogDescription>
                           </DialogHeader>
                           {selectedPickup && (
@@ -505,52 +517,59 @@ export default function PickupManagement() {
                               {/* Basic Information */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                  <h3 className="font-semibold mb-2">Customer Information</h3>
+                                  <h3 className="font-semibold mb-2">Picklist Information</h3>
                                   <div className="space-y-1 text-sm">
-                                    <div><User className="inline h-4 w-4 mr-1" />{selectedPickup.customerName}</div>
-                                    <div><Phone className="inline h-4 w-4 mr-1" />{selectedPickup.customerPhone}</div>
+                                    <div><User className="inline h-4 w-4 mr-1" />ID: {selectedPickup._id}</div>
+                                    <div><Phone className="inline h-4 w-4 mr-1" />Order ID: {selectedPickup.linkedOrderId || 'N/A'}</div>
                                   </div>
                                 </div>
                                 <div>
-                                  <h3 className="font-semibold mb-2">Dealer Information</h3>
+                                  <h3 className="font-semibold mb-2">Assignment Information</h3>
                                   <div className="space-y-1 text-sm">
-                                    <div><User className="inline h-4 w-4 mr-1" />{selectedPickup.dealerName}</div>
-                                    <div><Phone className="inline h-4 w-4 mr-1" />{selectedPickup.dealerPhone}</div>
+                                    <div><User className="inline h-4 w-4 mr-1" />Dealer ID: {selectedPickup.dealerId || 'N/A'}</div>
+                                    <div><Phone className="inline h-4 w-4 mr-1" />Staff: {selectedPickup.fulfilmentStaff || 'N/A'}</div>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Pickup Address */}
+                              {/* Status Information */}
                               <div>
-                                <h3 className="font-semibold mb-2">Pickup Address</h3>
+                                <h3 className="font-semibold mb-2">Status Information</h3>
                                 <div className="text-sm">
-                                  <MapPin className="inline h-4 w-4 mr-1" />
-                                  {formatAddress(selectedPickup.pickupAddress)}
+                                  <div className="flex items-center gap-2">
+                                    <span>Status:</span>
+                                    {getStatusBadge(selectedPickup.scanStatus || 'Not Started')}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span>Invoice:</span>
+                                    {selectedPickup.invoiceGenerated ? (
+                                      <Badge variant="secondary" className="bg-green-100 text-green-800">Generated</Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="bg-gray-100 text-gray-800">Pending</Badge>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
                               {/* Items */}
                               <div>
-                                <h3 className="font-semibold mb-2">Items to Pickup</h3>
+                                <h3 className="font-semibold mb-2">SKU List</h3>
                                 <div className="space-y-2">
-                                  {selectedPickup.items.map((item) => (
+                                  {(selectedPickup.skuList || []).map((item) => (
                                     <div key={item._id} className="border rounded-lg p-3">
                                       <div className="flex justify-between items-start">
                                         <div>
-                                          <div className="font-medium">{item.productName}</div>
-                                          <div className="text-sm text-gray-500">SKU: {item.sku}</div>
-                                          <div className="text-sm text-gray-500">Quantity: {item.quantity}</div>
-                                          <div className="text-sm text-gray-500">Condition: {item.condition}</div>
+                                          <div className="font-medium">SKU: {item.sku || 'N/A'}</div>
+                                          <div className="text-sm text-gray-500">Quantity: {item.quantity || 0}</div>
+                                          <div className="text-sm text-gray-500">Barcode: {item.barcode || 'N/A'}</div>
                                         </div>
-                                        <Badge variant="outline">{item.condition}</Badge>
+                                        <Badge variant="outline">SKU</Badge>
                                       </div>
-                                      {item.notes && (
-                                        <div className="mt-2 text-sm text-gray-600">
-                                          Notes: {item.notes}
-                                        </div>
-                                      )}
                                     </div>
                                   ))}
+                                  {(!selectedPickup.skuList || selectedPickup.skuList.length === 0) && (
+                                    <div className="text-sm text-gray-500 italic">No SKUs found</div>
+                                  )}
                                 </div>
                               </div>
 
@@ -564,25 +583,12 @@ export default function PickupManagement() {
                                 </div>
                               )}
 
-                              {/* Status Information */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                  <h3 className="font-semibold mb-2">Status Information</h3>
-                                  <div className="space-y-1 text-sm">
-                                    <div>Status: {getStatusBadge(selectedPickup.status)}</div>
-                                    <div>Priority: {getPriorityBadge(selectedPickup.priority)}</div>
-                                    {selectedPickup.assignedTo && (
-                                      <div>Assigned to: {selectedPickup.assignedTo}</div>
-                                    )}
-                                  </div>
-                                </div>
-                                <div>
-                                  <h3 className="font-semibold mb-2">Timestamps</h3>
-                                  <div className="space-y-1 text-sm">
-                                    <div>Created: {formatDate(selectedPickup.createdAt)}</div>
-                                    <div>Updated: {formatDate(selectedPickup.updatedAt)}</div>
-                                    <div>Scheduled: {formatDate(selectedPickup.scheduledDate)}</div>
-                                  </div>
+                              {/* Timestamps */}
+                              <div>
+                                <h3 className="font-semibold mb-2">Timestamps</h3>
+                                <div className="space-y-1 text-sm">
+                                  <div>Created: {selectedPickup.createdAt ? formatDate(selectedPickup.createdAt) : 'N/A'}</div>
+                                  <div>Updated: {selectedPickup.updatedAt ? formatDate(selectedPickup.updatedAt) : 'N/A'}</div>
                                 </div>
                               </div>
                             </div>
@@ -605,7 +611,7 @@ export default function PickupManagement() {
                       </Dialog>
 
                       {/* Mark as Packed Button */}
-                      {pickup.status === "scheduled" || pickup.status === "in_progress" ? (
+                      {pickup.scanStatus === "Not Started" || pickup.scanStatus === "In Progress" ? (
                         <Dialog open={isPackedDialogOpen} onOpenChange={setIsPackedDialogOpen}>
                           <DialogTrigger asChild>
                             <Button
@@ -621,7 +627,7 @@ export default function PickupManagement() {
                             <DialogHeader>
                               <DialogTitle>Mark as Packed</DialogTitle>
                               <DialogDescription>
-                                Confirm that all items for pickup {pickup.pickupId} have been packed and are ready for pickup.
+                                Confirm that all items for picklist {pickup._id} have been packed and are ready for pickup.
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
@@ -665,3 +671,4 @@ export default function PickupManagement() {
     </div>
   );
 }
+

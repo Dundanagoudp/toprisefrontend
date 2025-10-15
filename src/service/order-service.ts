@@ -114,6 +114,17 @@ export async function updateOrderStatusByDealerReq(payload: UpdateOrderStatusByD
   }
 }
 
+// Pack order using the new endpoint
+export async function packOrder(orderId: string, payload: { total_weight_kg?: number }): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await apiClient.put(`/orders/api/orders/${orderId}/pack`, payload);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to pack order:", error);
+    throw error;
+  }
+}
+
 // Get all orders from the specified endpoint
 export async function getAllOrders(): Promise<{
   success: boolean;

@@ -90,7 +90,6 @@ export default function UpdateStatus({open, onClose, ticketId, onStatusUpdated}:
                                 <SelectContent>
                                     <SelectItem value="Open">Open</SelectItem>
                                     <SelectItem value="In Progress">In Progress</SelectItem>
-                                    <SelectItem value="Pending">Pending</SelectItem>
                                     <SelectItem value="Resolved">Resolved</SelectItem>
                                     <SelectItem value="Closed">Closed</SelectItem>
                                 </SelectContent>
