@@ -11,7 +11,6 @@ import { Controller, useForm } from "react-hook-form"
 import { X, Image as ImageIcon } from 'lucide-react'
 import { createSubCategory, getCategories } from '@/service/product-Service'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { type } from 'os'
 import { useAppSelector } from '@/store/hooks'
 
 // Validation schema for subcategory creation
@@ -88,7 +87,8 @@ export default function CreateSubCategory({ open, onClose, onSuccess }: CreateSu
   })
 
   const watchedImage = watch('subcategory_image')
-    useEffect(() => {
+  
+  useEffect(() => {
       const fetchCategory = async () => {
         setCategoryLoading(true);
         try {
@@ -104,21 +104,27 @@ export default function CreateSubCategory({ open, onClose, onSuccess }: CreateSu
       };
       
       fetchCategory();
-    }, [])
+    }, [showToast])
 
   // Handle form submission
   const handleFormSubmit = useCallback(async (data: SubCategoryFormValues) => {
     try {
       console.log("Subcategory form data:", data)
       
+      // Validate user authentication
+      if (!auth?.user?._id) {
+        showToast("User authentication required. Please log in again.", "error");
+        return;
+      }
+      
       // Create FormData for file upload
       const formData = new FormData()
       formData.append('subcategory_name', data.subcategory_name)
       formData.append('subcategory_code', data.subcategory_code)
       formData.append('subcategory_description', data.subcategory_description)
-        formData.append('category_ref', data.category_ref)
-            formData.append("created_by", auth.user._id); // Fixed to match Redux structure
-        formData.append("updated_by", auth.user._id); 
+      formData.append('category_ref', data.category_ref)
+      formData.append("created_by", auth.user._id);
+      formData.append("updated_by", auth.user._id); 
       // Status will be set to "Created" by default on the backend
 
       if (data.subcategory_image) {
@@ -153,7 +159,7 @@ export default function CreateSubCategory({ open, onClose, onSuccess }: CreateSu
                          "Failed to create subcategory. Please try again."
       showToast(errorMessage, "error")
     }
-  }, [showToast, reset, onClose, onSuccess])
+  }, [showToast, reset, onClose, onSuccess, auth])
 
   // Handle file selection
   const handleFileSelect = useCallback((file: File) => {

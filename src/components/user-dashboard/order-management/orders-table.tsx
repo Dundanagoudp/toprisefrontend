@@ -162,7 +162,17 @@ export default function OrdersTable() {
   // Search + Sort combined
   const filteredOrders = useMemo(() => {
     let list = ordersState;
-    if (searchQuery) {
+    
+    // Apply enhanced filters first (they take precedence)
+    if (enhancedFilters.search) {
+      const q = enhancedFilters.search.toLowerCase();
+      list = list.filter(
+        (order: any) =>
+          order.orderId?.toLowerCase().includes(q) ||
+          order.customer?.toLowerCase().includes(q) ||
+          order.number?.toLowerCase().includes(q)
+      );
+    } else if (searchQuery) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
         (order: any) =>
@@ -171,24 +181,101 @@ export default function OrdersTable() {
           order.number?.toLowerCase().includes(q)
       );
     }
-    // Apply side-panel filters
-    if (filterStatus !== "all") {
+    
+    // Apply enhanced status filter
+    if (enhancedFilters.status !== "all") {
+      const fs = enhancedFilters.status.toLowerCase();
+      list = list.filter(
+        (o: any) => String(o.status || "").toLowerCase() === fs
+      );
+    } else if (filterStatus !== "all") {
       const fs = filterStatus.toLowerCase();
       list = list.filter(
         (o: any) => String(o.status || "").toLowerCase() === fs
       );
     }
-    if (filterPayment !== "all") {
+    
+    // Apply enhanced payment filter
+    if (enhancedFilters.paymentMethod !== "all") {
+      const fp = enhancedFilters.paymentMethod.toLowerCase();
+      list = list.filter(
+        (o: any) => String(o.payment || "").toLowerCase() === fp
+      );
+    } else if (filterPayment !== "all") {
       const fp = filterPayment.toLowerCase();
       list = list.filter(
         (o: any) => String(o.payment || "").toLowerCase() === fp
       );
     }
-    if (filterOrderSource !== "all") {
+    
+    // Apply enhanced order source filter
+    if (enhancedFilters.orderSource !== "all") {
+      const fsr = enhancedFilters.orderSource.toLowerCase();
+      list = list.filter(
+        (o: any) => String(o.orderSource || "").toLowerCase() === fsr
+      );
+    } else if (filterOrderSource !== "all") {
       const fsr = filterOrderSource.toLowerCase();
       list = list.filter(
         (o: any) => String(o.orderSource || "").toLowerCase() === fsr
       );
+    }
+    
+    // Apply date range filter
+    if (enhancedFilters.dateRange.from || enhancedFilters.dateRange.to) {
+      list = list.filter((order: any) => {
+        const orderDate = new Date(order.orderDate || order.date);
+        const fromDate = enhancedFilters.dateRange.from;
+        const toDate = enhancedFilters.dateRange.to;
+        
+        if (fromDate && toDate) {
+          return orderDate >= fromDate && orderDate <= toDate;
+        } else if (fromDate) {
+          return orderDate >= fromDate;
+        } else if (toDate) {
+          return orderDate <= toDate;
+        }
+        return true;
+      });
+    }
+    
+    // Apply order value filter
+    if (enhancedFilters.orderValue.min || enhancedFilters.orderValue.max) {
+      list = list.filter((order: any) => {
+        const orderValue = parseFloat(String(order.value).replace(/[^0-9.-]+/g, "")) || 0;
+        const minValue = parseFloat(enhancedFilters.orderValue.min) || 0;
+        const maxValue = parseFloat(enhancedFilters.orderValue.max) || Infinity;
+        
+        return orderValue >= minValue && orderValue <= maxValue;
+      });
+    }
+    
+    // Apply customer type filter
+    if (enhancedFilters.customerType !== "all") {
+      list = list.filter((order: any) => {
+        const customerType = order.customerType || order.customer_type || "individual";
+        return customerType.toLowerCase() === enhancedFilters.customerType.toLowerCase();
+      });
+    }
+    
+    // Apply region filter
+    if (enhancedFilters.region !== "all") {
+      list = list.filter((order: any) => {
+        const region = order.region || order.customer_region || "";
+        return region.toLowerCase() === enhancedFilters.region.toLowerCase();
+      });
+    }
+    
+    // Apply assigned dealer filter
+    if (enhancedFilters.assignedDealer !== "all") {
+      if (enhancedFilters.assignedDealer === "unassigned") {
+        list = list.filter((order: any) => !order.assignedDealer && !order.dealer);
+      } else {
+        list = list.filter((order: any) => {
+          const assignedDealer = order.assignedDealer || order.dealer || "";
+          return assignedDealer.toLowerCase() === enhancedFilters.assignedDealer.toLowerCase();
+        });
+      }
     }
     if (sortField) {
       list = [...list].sort((a: any, b: any) => {
@@ -249,6 +336,7 @@ export default function OrdersTable() {
     filterStatus,
     filterPayment,
     filterOrderSource,
+    enhancedFilters,
     sortField,
     sortDirection,
   ]);
@@ -397,6 +485,7 @@ export default function OrdersTable() {
 
   // Enhanced filter handlers
   const handleEnhancedFiltersChange = (newFilters: any) => {
+    console.log('Enhanced filters changed:', newFilters);
     setEnhancedFilters(newFilters);
     // Update legacy filters for backward compatibility
     setFilterStatus(newFilters.status);

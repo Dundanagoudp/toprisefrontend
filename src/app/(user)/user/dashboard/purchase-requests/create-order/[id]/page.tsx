@@ -189,7 +189,7 @@ export default function CreateOrderPage() {
     const gstAmount = (totalPrice * gstPercentage) / 100
 
     const selectedProduct: SelectedProduct = {
-      sku: product.sku || product.SKU || "N/A",
+      sku: product.sku_code || product.sku || product.SKU || "N/A",
       quantity: quantity,
       productId: product._id,
       productName: product.product_name || "Unnamed Product",
@@ -455,7 +455,7 @@ export default function CreateOrderPage() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{product.sku || product.SKU}</TableCell>
+                          <TableCell className="text-sm">{product.sku_code || product.sku || product.SKU}</TableCell>
                           <TableCell className="font-medium">₹{product.selling_price || product.dealer_price || 0}</TableCell>
                           <TableCell className="text-gray-600">₹{product.mrp || 0}</TableCell>
                           <TableCell className="text-right">

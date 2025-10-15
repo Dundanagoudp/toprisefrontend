@@ -90,6 +90,20 @@ export interface ProductRequestStatsResponse {
   data: ProductRequestStats;
 }
 
+// Actual API response structure
+export interface ApprovalStatsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    pending: number;
+    approved: number;
+    rejected: number;
+    total: number;
+    approvalRate: string;
+    rejectionRate: string;
+  };
+}
+
 export interface CreateProductRequestRequest {
   productId?: string;
   productName: string;

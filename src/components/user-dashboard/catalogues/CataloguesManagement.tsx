@@ -1150,7 +1150,7 @@ export default function CataloguesManagement() {
                 
                 {/* Action Buttons */}
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <Button 
+                  {/* <Button 
                     size="sm" 
                     className="bg-white/90 hover:bg-white text-gray-700 shadow-lg backdrop-blur-sm"
                     onClick={() => handleViewProducts(catalog)}
@@ -1159,7 +1159,7 @@ export default function CataloguesManagement() {
                   </Button>
                   <Button size="sm" className="bg-white/90 hover:bg-white text-gray-700 shadow-lg backdrop-blur-sm">
                     <Edit className="h-4 w-4" />
-                  </Button>
+                  </Button> */}
                   <Button 
                     size="sm" 
                     className="bg-red-500/90 hover:bg-red-600 text-white shadow-lg backdrop-blur-sm"

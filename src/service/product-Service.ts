@@ -8,20 +8,57 @@ import apiClient from "@/apiClient";
 export interface Banner {
   _id: string;
   title: string;
-  brand_id: string;
-  vehicle_type: string;
+  brand_id: {
+    _id: string;
+    brand_name: string;
+    brand_code: string;
+  };
+  vehicle_type: {
+    _id: string;
+    type_name: string;
+    type_code: string;
+  };
   is_active: boolean;
-  web?: string;
-  mobile?: string;
-  tablet?: string;
-  created_at?: string;
-  updated_at?: string;
+  description?: string;
+  link_url?: string;
+  display_order?: number;
+  image: {
+    web: string;
+    mobile: string;
+    tablet: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
 }
 
 export interface BannerResponse {
   success: boolean;
   message: string;
-  data: Banner[];
+  data: {
+    data: Banner[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+    filters: {
+      brands: Array<{
+        _id: string;
+        brand_name: string;
+        brand_code: string;
+      }>;
+      vehicleTypes: Array<{
+        _id: string;
+        type_name: string;
+        type_code: string;
+      }>;
+      appliedFilters: any;
+    };
+  };
 }
 import { PurchaseOrdersResponse, TicketResponse } from "@/types/Ticket-types";
 import { ReturnRequestsResponse } from "@/types/return-Types";
@@ -1079,7 +1116,7 @@ export async function getProductsByFilter(
 // Banner Management Functions
 export async function getBanners(): Promise<BannerResponse> {
   try {
-    const response = await apiClient.get(`/products/api/banner`);
+    const response = await apiClient.get(`/category/api/banners/admin/all`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch banners:", error);
@@ -1089,7 +1126,7 @@ export async function getBanners(): Promise<BannerResponse> {
 
 export async function createBanner(bannerData: FormData): Promise<ApiResponse<Banner>> {
   try {
-    const response = await apiClient.post(`/products/api/banner`, bannerData, {
+    const response = await apiClient.post(`/category/api/banners/admin/create`, bannerData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -1103,7 +1140,7 @@ export async function createBanner(bannerData: FormData): Promise<ApiResponse<Ba
 
 export async function updateBanner(bannerId: string, bannerData: FormData): Promise<ApiResponse<Banner>> {
   try {
-    const response = await apiClient.put(`/products/api/banner/${bannerId}`, bannerData, {
+    const response = await apiClient.put(`/category/api/banners/admin/${bannerId}`, bannerData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -1117,7 +1154,7 @@ export async function updateBanner(bannerId: string, bannerData: FormData): Prom
 
 export async function deleteBanner(bannerId: string): Promise<ApiResponse<any>> {
   try {
-    const response = await apiClient.delete(`/products/api/banner/${bannerId}`);
+    const response = await apiClient.delete(`/category/api/banners/admin/${bannerId}`);
     return response.data;
   } catch (error) {
     console.error("Failed to delete banner:", error);

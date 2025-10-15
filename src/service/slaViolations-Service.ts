@@ -11,7 +11,7 @@ export const slaViolationsService = {
     includeDetails?: boolean;
     includeOrderDetails?: boolean;
   }) => {
-    const response = await apiClient.get("/orders/api/sla-violations/stats", {
+    const response = await apiClient.get("/orders/api/sla-violations/stats/stats", {
       params,
     });
     return response.data;

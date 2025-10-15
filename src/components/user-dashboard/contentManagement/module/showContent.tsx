@@ -1,5 +1,6 @@
 "use client";
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
@@ -46,7 +47,27 @@ interface TabConfig {
 }
 
 export default function ShowContent() {
-  const [activeTab, setActiveTab] = useState<TabType>("Category");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get initial tab from URL or default to "Category"
+  const getInitialTab = (): TabType => {
+    const tabFromUrl = searchParams.get('tab') as TabType;
+    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner"];
+    return validTabs.includes(tabFromUrl) ? tabFromUrl : "Category";
+  };
+  
+  const [activeTab, setActiveTab] = useState<TabType>(getInitialTab);
+  
+  // Handle tab change and update URL
+  const handleTabChange = useCallback((newTab: TabType) => {
+    setActiveTab(newTab);
+    // Update URL without page reload
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', newTab);
+    router.replace(url.pathname + url.search, { scroll: false });
+  }, [router]);
+  
   const [openCategory, setOpenCategory] = useState(false);
   const [openSubCategory, setOpenSubCategory] = useState(false);
   const [openModel, setOpenModel] = useState(false);
@@ -69,6 +90,16 @@ export default function ShowContent() {
     variants: number;
   } | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Sync tab state with URL changes (browser back/forward)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') as TabType;
+    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner"];
+    if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams, activeTab]);
 
   // Fetch content stats on component mount
   useEffect(() => {
@@ -141,6 +172,74 @@ export default function ShowContent() {
   const handleUploadBulk = useCallback(() => {
     setOpenBulkUpload(true);
   }, []);
+
+  // Function to refresh content stats
+  const refreshContentStats = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      const stats = await getContentStats();
+      setContentStats(stats);
+    } catch (error) {
+      console.error("Failed to refresh content stats:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  // Success callbacks for each tab to refresh data
+  const handleCategorySuccess = useCallback(() => {
+    // Trigger refresh for category tab
+    if (activeTab === "Category") {
+      setRefreshKey(prev => prev + 1);
+    }
+    // Refresh content stats
+    refreshContentStats();
+  }, [activeTab, refreshContentStats]);
+
+  const handleSubcategorySuccess = useCallback(() => {
+    // Trigger refresh for subcategory tab
+    if (activeTab === "Subcategory") {
+      setRefreshKey(prev => prev + 1);
+    }
+    // Refresh content stats
+    refreshContentStats();
+  }, [activeTab, refreshContentStats]);
+
+  const handleModelSuccess = useCallback(() => {
+    // Trigger refresh for model tab
+    if (activeTab === "Model") {
+      setRefreshKey(prev => prev + 1);
+    }
+    // Refresh content stats
+    refreshContentStats();
+  }, [activeTab, refreshContentStats]);
+
+  const handleBrandSuccess = useCallback(() => {
+    // Trigger refresh for brand tab
+    if (activeTab === "Brand") {
+      setRefreshKey(prev => prev + 1);
+    }
+    // Refresh content stats
+    refreshContentStats();
+  }, [activeTab, refreshContentStats]);
+
+  const handleVariantSuccess = useCallback(() => {
+    // Trigger refresh for variant tab
+    if (activeTab === "Variant") {
+      setRefreshKey(prev => prev + 1);
+    }
+    // Refresh content stats
+    refreshContentStats();
+  }, [activeTab, refreshContentStats]);
+
+  const handleBannerSuccess = useCallback(() => {
+    // Trigger refresh for banner tab
+    if (activeTab === "Banner") {
+      setRefreshKey(prev => prev + 1);
+    }
+    // Refresh content stats
+    refreshContentStats();
+  }, [activeTab, refreshContentStats]);
 
   // Get content type for bulk upload based on active tab
   const getContentTypeForBulkUpload = useCallback((tabType: TabType) => {
@@ -236,8 +335,8 @@ export default function ShowContent() {
   // Render tab content dynamically
   const renderTabContent = useCallback(() => {
     const TabComponent = currentTabConfig.component;
-    return <TabComponent searchQuery={searchQuery} />;
-  }, [currentTabConfig, searchQuery]);
+    return <TabComponent key={refreshKey} searchQuery={searchQuery} />;
+  }, [currentTabConfig, searchQuery, refreshKey]);
 
   return (
     <div className="w-full">
@@ -318,7 +417,7 @@ export default function ShowContent() {
               {tabConfigs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`
                     flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm font-mono transition-colors
                     ${
@@ -341,15 +440,33 @@ export default function ShowContent() {
       <CreateCategory
         open={openCategory}
         onClose={() => setOpenCategory(false)}
+        onSuccess={handleCategorySuccess}
       />
       <CreateSubCategory
         open={openSubCategory}
         onClose={() => setOpenSubCategory(false)}
+        onSuccess={handleSubcategorySuccess}
       />
-      <CreateModelForm open={openModel} onClose={() => setOpenModel(false)} />
-      <CreateBrand open={openBrand} onClose={() => setOpenBrand(false)} />
-      <CreateVarient open={openVariant} onClose={() => setOpenVariant(false)} />
-      <CreateBanner open={openBanner} onClose={() => setOpenBanner(false)} />
+      <CreateModelForm 
+        open={openModel} 
+        onClose={() => setOpenModel(false)} 
+        onSuccess={handleModelSuccess}
+      />
+      <CreateBrand 
+        open={openBrand} 
+        onClose={() => setOpenBrand(false)} 
+        onSuccess={handleBrandSuccess}
+      />
+      <CreateVarient 
+        open={openVariant} 
+        onClose={() => setOpenVariant(false)} 
+        onSuccess={handleVariantSuccess}
+      />
+      <CreateBanner 
+        open={openBanner} 
+        onClose={() => setOpenBanner(false)} 
+        onSuccess={handleBannerSuccess}
+      />
       <ContentMangementBulk
         isOpen={openBulkUpload}
         onClose={() => setOpenBulkUpload(false)}

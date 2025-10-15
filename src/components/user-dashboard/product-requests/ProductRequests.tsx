@@ -95,7 +95,7 @@ import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import useDebounce from "@/utils/useDebounce";
 import {
   getProductRequests,
-  // getProductRequestStats,
+  getProductRequestStats,
   approveProductRequest,
   rejectProductRequest,
   putRequestInReview,
@@ -108,6 +108,7 @@ import {
   ProductRequest,
   ProductRequestStats,
   ProductRequestFilters,
+  ApprovalStatsResponse,
 } from "@/types/product-request-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 
@@ -117,9 +118,11 @@ export default function ProductRequests() {
   
   // State management
   const [requests, setRequests] = useState<ProductRequest[]>([]);
-  const [stats, setStats] = useState<ProductRequestStats | null>(null);
+  const [stats, setStats] = useState<ApprovalStatsResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dateRangeLoading, setDateRangeLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(true);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -176,6 +179,9 @@ export default function ProductRequests() {
         endDate: dateRange.to?.toISOString(),
       };
 
+      console.log('Fetching requests with filters:', filters);
+      console.log('Date range:', dateRange);
+
       const response = await getProductRequests(currentPage, itemsPerPage, filters);
       
       if (response.success) {
@@ -184,6 +190,7 @@ export default function ProductRequests() {
         setRequests(products);
         setTotalPages(response.data.pagination?.pages || 1);
         setTotalItems(response.data.pagination?.total || products.length);
+        console.log('Fetched products:', products.length);
       } else {
         setRequests([]);
         setTotalPages(1);
@@ -200,37 +207,61 @@ export default function ProductRequests() {
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
-      // Mock stats since the API is not available
-      const mockStats = {
-        totalRequests: 0,
-        pendingRequests: 0,
-        approvedRequests: 0,
-        rejectedRequests: 0,
-        inReviewRequests: 0,
-        urgentRequests: 0,
-        criticalRequests: 0,
-        lowPriorityRequests: 0,
-        mediumPriorityRequests: 0,
-        highPriorityRequests: 0,
-        averageProcessingTime: 0,
-        recentActivity: {
-          newRequests: 0,
-          processedRequests: 0,
-          pendingRequests: 0,
-          approvedRequests: 0,
-          rejectedRequests: 0,
-        },
-      };
-      setStats(mockStats);
+      setStatsLoading(true);
+      console.log('Fetching product request stats...');
+      const response = await getProductRequestStats();
+      
+      if (response.success) {
+        console.log('Stats fetched successfully:', response.data);
+        setStats(response.data);
+      } else {
+        console.error('Failed to fetch stats:', response.message);
+        // Fallback to mock stats if API fails
+        const mockStats = {
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          total: 0,
+          approvalRate: "0.00",
+          rejectionRate: "0.00",
+        };
+        setStats(mockStats);
+      }
     } catch (error) {
       console.error("Error fetching stats:", error);
+      showToast("Failed to load statistics", "error");
+      
+      // Fallback to mock stats on error
+      const mockStats = {
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        total: 0,
+        approvalRate: "0.00",
+        rejectionRate: "0.00",
+      };
+      setStats(mockStats);
+    } finally {
+      setStatsLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   // Load data on mount and when filters change
   useEffect(() => {
+    console.log('Date range changed:', dateRange);
     fetchRequests();
   }, [fetchRequests]);
+
+  // Debug date range changes and trigger API call
+  useEffect(() => {
+    console.log('Date range state updated:', dateRange);
+    // Trigger API call when date range changes
+    if (dateRange.from || dateRange.to) {
+      console.log('Date range filter applied, fetching data...');
+      setDateRangeLoading(true);
+      fetchRequests().finally(() => setDateRangeLoading(false));
+    }
+  }, [dateRange, fetchRequests]);
 
   useEffect(() => {
     fetchStats();
@@ -478,61 +509,95 @@ export default function ProductRequests() {
       </div>
 
       {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-              <FileText className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(stats.totalRequests || 0)}</div>
-              <p className="text-xs text-muted-foreground">
-                {formatNumber(stats.recentActivity?.newRequests || 0)} new this week
-              </p>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
+            <FileText className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{formatNumber(stats?.total || 0)}</div>
+                <p className="text-xs text-muted-foreground">
+                  {formatNumber(stats?.pending || 0)} pending approval
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(stats.pendingRequests || 0)}</div>
-              <p className="text-xs text-muted-foreground">
-                {formatNumber(stats.urgentRequests || 0)} urgent
-              </p>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{formatNumber(stats?.pending || 0)}</div>
+                <p className="text-xs text-muted-foreground">
+                  Awaiting review
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(stats.approvedRequests || 0)}</div>
-              <p className="text-xs text-muted-foreground">
-                {formatNumber(stats.recentActivity?.processedRequests || 0)} processed
-              </p>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{formatNumber(stats?.approved || 0)}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.approvalRate || "0.00"}% approval rate
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
-              <Activity className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(stats.averageProcessingTime || 0)}h</div>
-              <p className="text-xs text-muted-foreground">
-                Average processing time
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+            <XCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{formatNumber(stats?.rejected || 0)}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.rejectionRate || "0.00"}% rejection rate
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filters */}
       <Card>
@@ -612,7 +677,14 @@ export default function ProductRequests() {
 
             {/* Date Range Filter - Full Width */}
             <div className="w-full">
-              <Label htmlFor="date-range-filter" className="mb-2 block">Date Range</Label>
+              <Label htmlFor="date-range-filter" className="mb-2 block">
+                Date Range
+                {(dateRange.from || dateRange.to) && (
+                  <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                    {dateRangeLoading ? 'Filtering...' : 'Filter Active'}
+                  </span>
+                )}
+              </Label>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
@@ -639,13 +711,16 @@ export default function ProductRequests() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-50" align="start" side="bottom" sideOffset={4}>
                     <CalendarComponent
                       initialFocus
                       mode="range"
                       defaultMonth={dateRange.from}
                       selected={dateRange}
-                      onSelect={setDateRange}
+                      onSelect={(range) => {
+                        console.log('Date range selected:', range);
+                        setDateRange(range || { from: undefined, to: undefined });
+                      }}
                       numberOfMonths={2}
                     />
                   </PopoverContent>
@@ -655,7 +730,10 @@ export default function ProductRequests() {
                     variant="outline"
                     size="sm"
                     className="h-10"
-                    onClick={() => setDateRange({ from: undefined, to: undefined })}
+                    onClick={() => {
+                      console.log('Clearing date range');
+                      setDateRange({ from: undefined, to: undefined });
+                    }}
                   >
                     Clear
                   </Button>
@@ -837,7 +915,7 @@ export default function ProductRequests() {
                             </>
                           )}
                           <DropdownMenuItem
-                            onClick={() => router.push(`/user/dashboard/requests/${request._id}/edit`)}
+                            onClick={() => router.push(`/user/dashboard/product/productedit/${request._id}`)}
                           >
                             <Edit className="w-4 h-4 mr-2" />
                             Edit

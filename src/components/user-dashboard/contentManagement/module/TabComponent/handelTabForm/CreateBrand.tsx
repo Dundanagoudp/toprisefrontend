@@ -161,7 +161,6 @@ export default function CreateBrand({
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         showToast("Brand created successfully!", "success");
-        window.location.reload();
 
         // Reset form and close dialog
         reset();

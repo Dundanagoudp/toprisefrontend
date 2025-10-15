@@ -90,6 +90,7 @@ export default function EnhancedOrderFilters({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleFilterChange = (key: keyof OrderFilters, value: any) => {
+    console.log(`Filter change: ${key} = ${value}`);
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     onFiltersChange(newFilters);
@@ -398,37 +399,69 @@ export default function EnhancedOrderFilters({
               {filters.search && (
                 <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>Search: {filters.search}</span>
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => handleFilterChange("search", "")}
-                  />
+                  <button
+                    type="button"
+                    className="h-3 w-3 cursor-pointer hover:bg-blue-200 rounded-sm flex items-center justify-center"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Clearing search filter');
+                      handleFilterChange("search", "");
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
                 </Badge>
               )}
               {filters.status !== "all" && (
                 <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>Status: {filters.status}</span>
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => handleFilterChange("status", "all")}
-                  />
+                  <button
+                    type="button"
+                    className="h-3 w-3 cursor-pointer hover:bg-blue-200 rounded-sm flex items-center justify-center"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Clearing status filter');
+                      handleFilterChange("status", "all");
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
                 </Badge>
               )}
               {filters.paymentMethod !== "all" && (
                 <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>Payment: {filters.paymentMethod}</span>
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => handleFilterChange("paymentMethod", "all")}
-                  />
+                  <button
+                    type="button"
+                    className="h-3 w-3 cursor-pointer hover:bg-blue-200 rounded-sm flex items-center justify-center"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Clearing payment filter');
+                      handleFilterChange("paymentMethod", "all");
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
                 </Badge>
               )}
               {filters.orderSource !== "all" && (
                 <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
                   <span>Source: {filters.orderSource}</span>
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => handleFilterChange("orderSource", "all")}
-                  />
+                  <button
+                    type="button"
+                    className="h-3 w-3 cursor-pointer hover:bg-blue-200 rounded-sm flex items-center justify-center"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Clearing order source filter');
+                      handleFilterChange("orderSource", "all");
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
                 </Badge>
               )}
               {(filters.dateRange.from || filters.dateRange.to) && (
@@ -437,10 +470,18 @@ export default function EnhancedOrderFilters({
                     Date: {filters.dateRange.from ? format(filters.dateRange.from, "MMM dd") : "Start"} -{" "}
                     {filters.dateRange.to ? format(filters.dateRange.to, "MMM dd") : "End"}
                   </span>
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => handleDateRangeChange({ from: undefined, to: undefined })}
-                  />
+                  <button
+                    type="button"
+                    className="h-3 w-3 cursor-pointer hover:bg-blue-200 rounded-sm flex items-center justify-center"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Clearing date range filter');
+                      handleDateRangeChange({ from: undefined, to: undefined });
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
                 </Badge>
               )}
               {(filters.orderValue.min || filters.orderValue.max) && (
@@ -448,10 +489,18 @@ export default function EnhancedOrderFilters({
                   <span>
                     Value: {filters.orderValue.min || "0"} - {filters.orderValue.max || "∞"}
                   </span>
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => handleFilterChange("orderValue", { min: "", max: "" })}
-                  />
+                  <button
+                    type="button"
+                    className="h-3 w-3 cursor-pointer hover:bg-blue-200 rounded-sm flex items-center justify-center"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Clearing order value filter');
+                      handleFilterChange("orderValue", { min: "", max: "" });
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
                 </Badge>
               )}
             </div>

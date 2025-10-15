@@ -23,18 +23,19 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
-import { createBanner } from "@/service/product-Service";
-import { getBrands } from "@/service/product-Service";
+import { createBanner, getTypes } from "@/service/product-Service";
+import { getBrands } from "@/service/catalogue-service";
 import { Upload, X } from "lucide-react";
 
 // Banner schema
 const bannerSchema = z.object({
   title: z.string().min(1, "Title is required"),
   brand_id: z.string().min(1, "Brand is required"),
-  vehicle_type: z.enum(["Car", "Bike", "CV", "All"], {
-    errorMap: () => ({ message: "Vehicle type is required" }),
-  }),
+  vehicle_type: z.string().min(1, "Vehicle type is required"),
   is_active: z.boolean().default(true),
+  description: z.string().optional(),
+  link_url: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  display_order: z.number().min(1, "Display order must be at least 1").default(1),
 });
 
 type BannerFormData = z.infer<typeof bannerSchema>;
@@ -42,12 +43,15 @@ type BannerFormData = z.infer<typeof bannerSchema>;
 interface CreateBannerProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: (banner: any) => void;
 }
 
-export default function CreateBanner({ open, onClose }: CreateBannerProps) {
+export default function CreateBanner({ open, onClose, onSuccess }: CreateBannerProps) {
   const [loading, setLoading] = useState(false);
   const [brands, setBrands] = useState<any[]>([]);
   const [brandsLoading, setBrandsLoading] = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState<any[]>([]);
+  const [vehicleTypesLoading, setVehicleTypesLoading] = useState(false);
   const [webImage, setWebImage] = useState<File | null>(null);
   const [mobileImage, setMobileImage] = useState<File | null>(null);
   const [tabletImage, setTabletImage] = useState<File | null>(null);
@@ -68,8 +72,11 @@ export default function CreateBanner({ open, onClose }: CreateBannerProps) {
     defaultValues: {
       title: "",
       brand_id: "",
-      vehicle_type: "All",
+      vehicle_type: "",
       is_active: true,
+      description: "",
+      link_url: "",
+      display_order: 1,
     },
   });
 
@@ -78,6 +85,7 @@ export default function CreateBanner({ open, onClose }: CreateBannerProps) {
   useEffect(() => {
     if (open) {
       fetchBrands();
+      fetchVehicleTypes();
     }
   }, [open]);
 
@@ -91,6 +99,28 @@ export default function CreateBanner({ open, onClose }: CreateBannerProps) {
       showToast("Failed to fetch brands", "error");
     } finally {
       setBrandsLoading(false);
+    }
+  };
+
+  const fetchVehicleTypes = async () => {
+    try {
+      setVehicleTypesLoading(true);
+      const response = await getTypes();
+      // Handle different response structures
+      let typesData = [];
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          typesData = response.data;
+        } else if (response.data.products && Array.isArray(response.data.products)) {
+          typesData = response.data.products;
+        }
+      }
+      setVehicleTypes(typesData);
+    } catch (error) {
+      console.error("Error fetching vehicle types:", error);
+      showToast("Failed to fetch vehicle types", "error");
+    } finally {
+      setVehicleTypesLoading(false);
     }
   };
 
@@ -157,6 +187,9 @@ export default function CreateBanner({ open, onClose }: CreateBannerProps) {
       formData.append("brand_id", data.brand_id);
       formData.append("vehicle_type", data.vehicle_type);
       formData.append("is_active", data.is_active.toString());
+      formData.append("description", data.description || "");
+      formData.append("link_url", data.link_url || "");
+      formData.append("display_order", data.display_order.toString());
 
       if (webImage) {
         formData.append("web", webImage);
@@ -172,8 +205,10 @@ export default function CreateBanner({ open, onClose }: CreateBannerProps) {
       showToast("Banner created successfully", "success");
       handleClose();
       
-      // Trigger a refresh by dispatching a custom event
-      window.dispatchEvent(new CustomEvent("bannerCreated"));
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess(data);
+      }
     } catch (error: any) {
       console.error("Error creating banner:", error);
       showToast(
@@ -258,23 +293,78 @@ export default function CreateBanner({ open, onClose }: CreateBannerProps) {
               Vehicle Type
             </Label>
             <Select
-              onValueChange={(value: any) => setValue("vehicle_type", value)}
-              defaultValue="All"
+              onValueChange={(value) => setValue("vehicle_type", value)}
+              disabled={vehicleTypesLoading}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select vehicle type" />
+                <SelectValue
+                  placeholder={
+                    vehicleTypesLoading ? "Loading vehicle types..." : "Select a vehicle type"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All</SelectItem>
-                <SelectItem value="Car">Car</SelectItem>
-                <SelectItem value="Bike">Bike</SelectItem>
-                <SelectItem value="CV">Commercial Vehicle (CV)</SelectItem>
+                {vehicleTypes.map((type) => (
+                  <SelectItem key={type._id} value={type._id}>
+                    {type.type_name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {errors.vehicle_type && (
               <p className="text-sm text-red-500">
                 {errors.vehicle_type.message}
               </p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description">
+              Description
+            </Label>
+            <Input
+              id="description"
+              {...register("description")}
+              placeholder="Enter banner description"
+              className="w-full"
+            />
+            {errors.description && (
+              <p className="text-sm text-red-500">{errors.description.message}</p>
+            )}
+          </div>
+
+          {/* Link URL */}
+          <div className="space-y-2">
+            <Label htmlFor="link_url">
+              Link URL
+            </Label>
+            <Input
+              id="link_url"
+              {...register("link_url")}
+              placeholder="https://example.com/offer"
+              className="w-full"
+            />
+            {errors.link_url && (
+              <p className="text-sm text-red-500">{errors.link_url.message}</p>
+            )}
+          </div>
+
+          {/* Display Order */}
+          <div className="space-y-2">
+            <Label htmlFor="display_order" className="required">
+              Display Order
+            </Label>
+            <Input
+              id="display_order"
+              type="number"
+              {...register("display_order", { valueAsNumber: true })}
+              placeholder="1"
+              min="1"
+              className="w-full"
+            />
+            {errors.display_order && (
+              <p className="text-sm text-red-500">{errors.display_order.message}</p>
             )}
           </div>
 

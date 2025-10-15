@@ -91,7 +91,37 @@ export default function OrderAnalyticsDashboard() {
   // Handle filter changes
   const handleFiltersChange = (newFilters: OrderAnalyticsFilterOptions) => {
     setFilters(newFilters);
+    // Trigger immediate data fetch with new filters
+    fetchAnalyticsWithFilters(newFilters);
   };
+
+  // Fetch analytics with specific filters
+  const fetchAnalyticsWithFilters = useCallback(async (filterOptions: OrderAnalyticsFilterOptions, showRefreshToast = false) => {
+    try {
+      if (showRefreshToast) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const data = await fetchAllOrderAnalytics(filterOptions);
+      
+      setSalesData(data.sales);
+      setAnalyticsData(data.analytics);
+      setPerformanceData(data.performance);
+      setPicklistsData(data.picklists);
+
+      if (showRefreshToast) {
+        showToast("Order analytics data refreshed successfully", "success");
+      }
+    } catch (error) {
+      console.error("Error fetching order analytics:", error);
+      showToast("Failed to fetch order analytics data", "error");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [showToast]);
 
   // Handle refresh
   const handleRefresh = () => {
