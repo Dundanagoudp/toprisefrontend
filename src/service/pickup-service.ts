@@ -25,6 +25,26 @@ export interface PickupRequest {
   updatedAt: string;
 }
 
+// New interface for picklist data from API
+export interface PicklistData {
+  _id: string;
+  linkedOrderId: string;
+  dealerId: string;
+  fulfilmentStaff: string;
+  skuList: {
+    sku: string;
+    quantity: number;
+    barcode: string;
+    _id: string;
+  }[];
+  scanStatus: string;
+  invoiceGenerated: boolean;
+  updatedAt: string;
+  createdAt: string;
+  __v: number;
+  dealerInfo: any;
+}
+
 export interface PickupItem {
   _id: string;
   productName: string;
@@ -41,6 +61,12 @@ export interface PickupRequestsResponse {
   data: PickupRequest[];
 }
 
+export interface PicklistResponse {
+  success: boolean;
+  message: string;
+  data: PicklistData[];
+}
+
 export interface PickupRequestResponse {
   success: boolean;
   message: string;
@@ -50,7 +76,7 @@ export interface PickupRequestResponse {
 // API functions
 export const getPickupRequests = async (): Promise<PickupRequestsResponse> => {
   try {
-    const response = await apiClient.get('/orders/api/pickup/requests');
+    const response = await apiClient.get('/orders/api/orders/api/pickup/requests');
     return response.data;
   } catch (error) {
     console.error('Error fetching pickup requests:', error);
@@ -58,9 +84,20 @@ export const getPickupRequests = async (): Promise<PickupRequestsResponse> => {
   }
 };
 
+// New function to get all picklists using the new endpoint
+export const getAllPicklists = async (): Promise<PicklistResponse> => {
+  try {
+    const response = await apiClient.get('/orders/api/orders/picklists');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching picklists:', error);
+    throw error;
+  }
+};
+
 export const getPickupRequestById = async (pickupId: string): Promise<PickupRequestResponse> => {
   try {
-    const response = await apiClient.get(`/orders/api/pickup/requests/${pickupId}`);
+    const response = await apiClient.get(`/orders/api/orders/api/pickup/requests/${pickupId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching pickup request:', error);
@@ -74,7 +111,7 @@ export const updatePickupStatus = async (
   notes?: string
 ): Promise<any> => {
   try {
-    const response = await apiClient.put(`/orders/api/pickup/requests/${pickupId}/status`, {
+    const response = await apiClient.put(`/orders/api/orders/api/pickup/requests/${pickupId}/status`, {
       status,
       notes
     });
@@ -90,7 +127,7 @@ export const assignPickupToStaff = async (
   staffId: string
 ): Promise<any> => {
   try {
-    const response = await apiClient.put(`/orders/api/pickup/requests/${pickupId}/assign`, {
+    const response = await apiClient.put(`/orders/api/orders/api/pickup/requests/${pickupId}/assign`, {
       staffId
     });
     return response.data;
@@ -104,7 +141,7 @@ export const createPickupRequest = async (
   pickupData: Omit<PickupRequest, '_id' | 'pickupId' | 'createdAt' | 'updatedAt'>
 ): Promise<any> => {
   try {
-    const response = await apiClient.post('/orders/api/pickup/requests', pickupData);
+    const response = await apiClient.post('/orders/api/orders/api/pickup/requests', pickupData);
     return response.data;
   } catch (error) {
     console.error('Error creating pickup request:', error);
@@ -117,7 +154,7 @@ export const cancelPickupRequest = async (
   reason?: string
 ): Promise<any> => {
   try {
-    const response = await apiClient.put(`/orders/api/pickup/requests/${pickupId}/cancel`, {
+    const response = await apiClient.put(`/orders/api/orders/api/pickup/requests/${pickupId}/cancel`, {
       reason
     });
     return response.data;
@@ -130,7 +167,7 @@ export const cancelPickupRequest = async (
 // Filter and search functions
 export const getPickupRequestsByStatus = async (status: string): Promise<PickupRequestsResponse> => {
   try {
-    const response = await apiClient.get(`/orders/api/pickup/requests?status=${status}`);
+    const response = await apiClient.get(`/orders/api/orders/api/pickup/requests?status=${status}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching pickup requests by status:', error);
@@ -140,7 +177,7 @@ export const getPickupRequestsByStatus = async (status: string): Promise<PickupR
 
 export const getPickupRequestsByPriority = async (priority: string): Promise<PickupRequestsResponse> => {
   try {
-    const response = await apiClient.get(`/orders/api/pickup/requests?priority=${priority}`);
+    const response = await apiClient.get(`/orders/api/orders/api/pickup/requests?priority=${priority}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching pickup requests by priority:', error);
@@ -150,7 +187,7 @@ export const getPickupRequestsByPriority = async (priority: string): Promise<Pic
 
 export const searchPickupRequests = async (searchTerm: string): Promise<PickupRequestsResponse> => {
   try {
-    const response = await apiClient.get(`/orders/api/pickup/requests/search?q=${searchTerm}`);
+    const response = await apiClient.get(`/orders/api/orders/api/pickup/requests/search?q=${searchTerm}`);
     return response.data;
   } catch (error) {
     console.error('Error searching pickup requests:', error);
@@ -161,7 +198,7 @@ export const searchPickupRequests = async (searchTerm: string): Promise<PickupRe
 // Statistics functions
 export const getPickupStatistics = async (): Promise<any> => {
   try {
-    const response = await apiClient.get('/orders/api/pickup/statistics');
+    const response = await apiClient.get('/orders/api/orders/api/pickup/statistics');
     return response.data;
   } catch (error) {
     console.error('Error fetching pickup statistics:', error);
@@ -176,7 +213,7 @@ export const bulkUpdatePickupStatus = async (
   notes?: string
 ): Promise<any> => {
   try {
-    const response = await apiClient.put('/orders/api/pickup/requests/bulk-status', {
+    const response = await apiClient.put('/orders/api/orders/api/pickup/requests/bulk-status', {
       pickupIds,
       status,
       notes
@@ -193,7 +230,7 @@ export const bulkAssignPickup = async (
   staffId: string
 ): Promise<any> => {
   try {
-    const response = await apiClient.put('/orders/api/pickup/requests/bulk-assign', {
+    const response = await apiClient.put('/orders/api/orders/api/pickup/requests/bulk-assign', {
       pickupIds,
       staffId
     });

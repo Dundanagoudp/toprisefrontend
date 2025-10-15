@@ -41,6 +41,7 @@ export default function UpdateModal({
     name: '',
     code: '',
     description: '',
+    keySpecifications: '',
     status: 'active',
     vehicleType: '',
     category: '',
@@ -60,9 +61,21 @@ export default function UpdateModal({
       // Extract values with proper field mapping
       const name = item.category_name || item.subcategory_name || item.brand_name || item.model_name || item.variant_name || '';
       const code = item.category_code || item.subcategory_code || item.brand_code || item.model_code || item.variant_code || '';
-      const description = item.brand_description || item.category_description || item.subcategory_description || item.model_description || item.variant_Description || item.description || '';
-      const status = item.status || item.brand_Status || item.category_Status || item.subcategory_status || item.model_Status || item.variant_status || 'active';
-      const vehicleType = (typeof item.type === 'object' ? item.type?._id : item.type) || item.vehicleType_id || '';
+      const description = item.brand_description || item.brandDescription || item.description || item.category_description || item.subcategory_description || item.model_description || item.variant_Description || '';
+      const keySpecifications = item.key_specifications || item.keySpecifications || item.model_key_specifications || item.brand_key_specifications || item.category_key_specifications || item.subcategory_key_specifications || item.variant_key_specifications || '';
+      // Extract status with proper mapping for categories and subcategories
+      let status = item.status || item.brand_Status || item.category_Status || item.subcategory_status || item.model_Status || item.variant_status || 'active';
+      
+      // Map all content type status values to dropdown options
+      if (type === 'category' || type === 'subcategory' || type === 'brand' || type === 'model' || type === 'variant') {
+        if (status === 'Created' || status === 'active') {
+          status = 'active';
+        } else if (status === 'Draft' || status === 'inactive') {
+          status = 'inactive';
+        }
+      }
+      // Extract vehicle type properly for categories
+      const vehicleType = (typeof item.type === 'object' ? item.type?._id : item.type) || item.vehicleType_id || item.type_id || '';
       
       // Extract model ID properly (handle both object and string)
       const modelValue = typeof item.model === 'object' && item.model?._id 
@@ -76,19 +89,46 @@ export default function UpdateModal({
           )
         : [];
       
+      // Extract category ID properly for subcategories
+      const categoryValue = typeof item.category_ref === 'object' && item.category_ref?._id 
+        ? item.category_ref._id 
+        : (item.category_ref || item.category_id || '');
+      
       setFormData({
         name,
         code,
         description,
+        keySpecifications,
         status,
         vehicleType,
-        category: item.category_ref || item.category_id || '',
+        category: categoryValue,
         brand: item.brand_ref || item.brand_id || (typeof item.brand === 'object' ? item.brand?._id : item.brand) || '',
         model: modelValue,
         years: yearValues
       });
       
-      console.log("UpdateModal - Form data set:", { name, code, description, status, vehicleType, model: modelValue, years: yearValues });
+      console.log("UpdateModal - Form data set:", { name, code, description, keySpecifications, status, vehicleType, category: categoryValue, model: modelValue, years: yearValues });
+      console.log("UpdateModal - Original status from item:", item.brand_Status || item.category_Status || item.subcategory_status || item.model_Status || item.variant_status, "Mapped to:", status);
+      console.log("UpdateModal - Original vehicle type from item:", item.type, "Mapped to:", vehicleType);
+      console.log("UpdateModal - Original description from item:", {
+        brand_description: item.brand_description,
+        brandDescription: item.brandDescription,
+        description: item.description,
+        category_description: item.category_description,
+        subcategory_description: item.subcategory_description,
+        model_description: item.model_description,
+        variant_Description: item.variant_Description
+      }, "Mapped to:", description);
+      console.log("UpdateModal - Original key specifications from item:", {
+        key_specifications: item.key_specifications,
+        keySpecifications: item.keySpecifications,
+        model_key_specifications: item.model_key_specifications,
+        brand_key_specifications: item.brand_key_specifications,
+        category_key_specifications: item.category_key_specifications,
+        subcategory_key_specifications: item.subcategory_key_specifications,
+        variant_key_specifications: item.variant_key_specifications
+      }, "Mapped to:", keySpecifications);
+      console.log("UpdateModal - Full item data for debugging:", item);
       
       setImagePreview(item.category_image || item.subcategory_image || item.brand_logo || item.model_image || item.variant_image || '');
       setImageFile(null);
@@ -146,6 +186,7 @@ export default function UpdateModal({
         submitFormData.append('model_name', formData.name);
         if (formData.code) submitFormData.append('model_code', formData.code);
         if (formData.description) submitFormData.append('model_description', formData.description);
+        if (formData.keySpecifications) submitFormData.append('key_specifications', formData.keySpecifications);
         if (formData.brand) submitFormData.append('brand_ref', formData.brand);
         submitFormData.append('status', formData.status);
       } else if (type === 'variant') {
@@ -273,6 +314,25 @@ export default function UpdateModal({
               </p>
             )}
           </div>
+
+          {/* Key Specifications Field (for models) */}
+          {type === 'model' && (
+            <div className="grid gap-2">
+              <Label htmlFor="keySpecifications">Key Specifications</Label>
+              <Textarea
+                id="keySpecifications"
+                value={formData.keySpecifications || ''}
+                onChange={(e) => handleInputChange('keySpecifications', e.target.value)}
+                placeholder="Enter key specifications"
+                className="min-h-[80px]"
+              />
+              {formData.keySpecifications && (
+                <p className="text-xs text-gray-500">
+                  {formData.keySpecifications.length} characters
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Vehicle Type Field (for categories and brands) */}
           {(type === 'category' || type === 'brand') && vehicleTypes.length > 0 && (

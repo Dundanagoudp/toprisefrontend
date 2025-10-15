@@ -4,6 +4,7 @@ import { Bell, X, Trash2, CheckCheck, AlertCircle, Info, AlertTriangle, Eye, Eye
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import {
   getAllNotifications,
@@ -48,7 +49,90 @@ const sanitizeText = (text?: string | null) => {
     .trim()
 }
 
+// Function to handle notification navigation
+const handleNotificationClick = (notification: Notification, router: any) => {
+  // Mark notification as read when clicked
+  if (!notification.markAsRead) {
+    markAsReadAPI(notification._id)
+  }
+
+  // Navigate based on notification type and webRoute
+  if (notification.webRoute) {
+    // Use the webRoute from the notification
+    router.push(notification.webRoute)
+  } else {
+    // Fallback navigation based on notification type
+    const type = notification.notification_type?.toLowerCase()
+    
+    switch (type) {
+      case 'order':
+      case 'order_created':
+      case 'order_updated':
+      case 'order_cancelled':
+        router.push('/user/dashboard/order')
+        break
+      case 'product':
+      case 'product_created':
+      case 'product_updated':
+      case 'product_approved':
+      case 'product_rejected':
+        router.push('/user/dashboard/product')
+        break
+      case 'inventory':
+      case 'inventory_low':
+      case 'inventory_updated':
+        router.push('/user/dashboard/inventory')
+        break
+      case 'user':
+      case 'user_created':
+      case 'user_updated':
+        router.push('/user/dashboard/user-management')
+        break
+      case 'dealer':
+      case 'dealer_created':
+      case 'dealer_updated':
+        router.push('/user/dashboard/dealer')
+        break
+      case 'sla':
+      case 'sla_violation':
+        router.push('/user/dashboard/sla-violations')
+        break
+      case 'return':
+      case 'return_request':
+        router.push('/user/dashboard/return-claims')
+        break
+      case 'purchase_request':
+        router.push('/user/dashboard/purchase-requests')
+        break
+      case 'catalogue':
+      case 'catalogue_created':
+      case 'catalogue_updated':
+        router.push('/user/dashboard/catalogues')
+        break
+      case 'content_management':
+      case 'brand':
+      case 'model':
+      case 'variant':
+      case 'category':
+      case 'subcategory':
+        router.push('/user/dashboard/content-management')
+        break
+      case 'reports':
+        router.push('/user/dashboard/reports')
+        break
+      case 'settings':
+        router.push('/user/dashboard/settings')
+        break
+      default:
+        // Default to dashboard if no specific route is found
+        router.push('/user/dashboard')
+        break
+    }
+  }
+}
+
 export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: NotificationsPanelProps) {
+  const router = useRouter()
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = open !== undefined ? open : internalOpen
   const setIsOpen = onOpenChange ?? setInternalOpen
@@ -392,10 +476,16 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                               type="checkbox"
                               className="mt-1 rounded border-gray-300 focus:ring-green-600 focus:ring-offset-0 focus:ring-1 accent-green-600"
                               checked={isSelected}
-                              onChange={() => handleCheckboxChange(notification)}
+                              onChange={(e) => {
+                                e.stopPropagation()
+                                handleCheckboxChange(notification)
+                              }}
                             />
 
-                            <div className="flex-1 min-w-0">
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => handleNotificationClick(notification, router)}
+                            >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
@@ -436,7 +526,10 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => markAsUnread(notification._id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    markAsUnread(notification._id)
+                                  }}
                                   className="h-7 w-7 p-0 text-gray-400 hover:text-blue-500"
                                   title="Mark as unread"
                                 >
@@ -446,7 +539,10 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => markAsRead(notification._id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    markAsRead(notification._id)
+                                  }}
                                   className="h-7 w-7 p-0 text-gray-400 hover:text-green-500"
                                   title="Mark as read"
                                 >
@@ -456,7 +552,8 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation()
                                   askConfirm(
                                     "Delete notification",
                                     "Are you sure you want to delete this notification? This action cannot be undone.",

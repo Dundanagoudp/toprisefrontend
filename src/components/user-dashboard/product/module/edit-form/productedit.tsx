@@ -84,10 +84,6 @@ const schema = z.object({
     margin: z.coerce.number().optional(),
     priority: z.coerce.number().optional(),
   })).optional(),
-  dealerMargin: z.string().optional(),
-  dealerPriorityOverride: z.string().optional(),
-  stockExpiryRule: z.string().optional(),
-  lastStockUpdate: z.string().optional(),
   LastinquiredAt: z.string().optional(),
 
   // Status, Audit & Metadata
@@ -392,10 +388,6 @@ export default function ProductEdit() {
         is_returnable: product.is_returnable ? "yes" : "no",
         return_policy: product.return_policy || "",
         dealerAssignments: [],
-        dealerMargin: (product as any).dealer_margin?.toString() || "",
-        dealerPriorityOverride: (product as any).dealer_priority_override?.toString() || "",
-        stockExpiryRule: (product as any).stock_expiry_rule || "",
-        lastStockUpdate: (product.available_dealers as any)?.last_stock_update || "",
         LastinquiredAt: product.last_stock_inquired || "",
         seo_title: product.seo_title || "",
         searchTags: product.search_tags?.join(",") || "",
@@ -1611,77 +1603,6 @@ export default function ProductEdit() {
                     })}
                   </div>
                 </div>
-              )}
-            </div>
-            {/* Dealer Margin % */}
-            <div className="space-y-2">
-              <Label htmlFor="dealerMargin" className="text-sm font-medium">
-                Dealer Margin %
-              </Label>
-              <Input
-                id="dealerMargin"
-                placeholder="Enter Margin"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("dealerMargin")}
-              />
-              {errors.dealerMargin && (
-                <span className="text-red-500 text-sm">
-                  {errors.dealerMargin.message}
-                </span>
-              )}
-            </div>
-            {/* Dealer Priority Override */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="dealerPriorityOverride"
-                className="text-sm font-medium"
-              >
-                Dealer Priority Override
-              </Label>
-              <Input
-                id="dealerPriorityOverride"
-                placeholder="Enter Override"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("dealerPriorityOverride")}
-              />
-              {errors.dealerPriorityOverride && (
-                <span className="text-red-500 text-sm">
-                  {errors.dealerPriorityOverride.message}
-                </span>
-              )}
-            </div>
-            {/* Stock Expiry Rule */}
-            <div className="space-y-2">
-              <Label htmlFor="stockExpiryRule" className="text-sm font-medium">
-                Stock Expiry Rule
-              </Label>
-              <Input
-                id="stockExpiryRule"
-                placeholder="Enter Rule"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("stockExpiryRule")}
-              />
-              {errors.stockExpiryRule && (
-                <span className="text-red-500 text-sm">
-                  {errors.stockExpiryRule.message}
-                </span>
-              )}
-            </div>
-            {/* Last Stock Update */}
-            <div className="space-y-2">
-              <Label htmlFor="lastStockUpdate" className="text-sm font-medium">
-                Last Stock Update
-              </Label>
-              <Input
-                id="lastStockUpdate"
-                placeholder="Enter Update"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("lastStockUpdate")}
-              />
-              {errors.lastStockUpdate && (
-                <span className="text-red-500 text-sm">
-                  {errors.lastStockUpdate.message}
-                </span>
               )}
             </div>
             {/* Last Inquired At */}

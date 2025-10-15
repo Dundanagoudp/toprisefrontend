@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { DynamicButton } from "@/components/common/button"
 import { useToast as GlobalToast } from "@/components/ui/toast"
-import { updateOrderStatusByDealerReq } from "@/service/order-service"
+import { packOrder } from "@/service/order-service"
 
 interface MarkPackedModalProps {
   open: boolean
@@ -27,7 +27,7 @@ const MarkPackedModal: React.FC<MarkPackedModalProps> = ({ open, onOpenChange, o
   const onMarkPacked = async () => {
     try {
       setLoading(true)
-      await updateOrderStatusByDealerReq({ orderId, dealerId, total_weight_kg: totalWeightKg } as any)
+      await packOrder(orderId, { total_weight_kg: totalWeightKg })
       showToast("Order marked as packed", "success")
       onOpenChange(false)
     } catch (e) {
