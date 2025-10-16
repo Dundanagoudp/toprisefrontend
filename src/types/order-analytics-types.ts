@@ -217,6 +217,44 @@ export interface OrderAnalyticsFilterOptions {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   limit?: number;
+  // New filters based on Order model
+  orderId?: string;
+  invoiceNumber?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  dealerId?: string;
+  skuStatus?: string;
+  dealerMappingStatus?: string;
+  paymentStatus?: string;
+  refundStatus?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  purchaseOrderId?: string;
+  minGST?: number;
+  maxGST?: number;
+  minDeliveryCharges?: number;
+  maxDeliveryCharges?: number;
+  minCGST?: number;
+  maxCGST?: number;
+  minSGST?: number;
+  maxSGST?: number;
+  minIGST?: number;
+  maxIGST?: number;
+  hasInvoice?: boolean;
+  hasRating?: boolean;
+  hasReview?: boolean;
+  minRating?: number;
+  maxRating?: number;
+  slaType?: string;
+  isSLAMet?: boolean;
+  minViolationMinutes?: number;
+  maxViolationMinutes?: number;
+  borzoOrderId?: string;
+  borzoTrackingStatus?: string;
+  borzoOrderStatus?: string;
+  awb?: string;
+  courierName?: string;
 }
 
 // Export Types
@@ -227,52 +265,76 @@ export interface OrderExportOptions {
   includeDetails?: boolean;
 }
 
-// Status and Type Enums
+// Status and Type Enums - Updated to match Order model
 export const ORDER_STATUSES = [
-  'pending',
-  'confirmed',
-  'processing',
-  'shipped',
-  'delivered',
-  'cancelled',
-  'returned',
-  'refunded'
+  'Confirmed',
+  'Assigned',
+  'Scanning',
+  'Packed',
+  'Shipped',
+  'Delivered',
+  'Cancelled',
+  'Returned'
 ] as const;
 
 export const ORDER_TYPES = [
-  'standard',
-  'express',
-  'bulk',
-  'subscription'
+  'Online',
+  'Offline',
+  'System'
 ] as const;
 
 export const PAYMENT_TYPES = [
-  'cash_on_delivery',
-  'online',
-  'wallet',
-  'card',
-  'upi',
-  'net_banking'
+  'COD',
+  'Prepaid',
+  'System'
 ] as const;
 
 export const ORDER_SOURCES = [
-  'website',
-  'mobile_app',
-  'api',
-  'admin_panel',
-  'dealer_portal'
+  'Web',
+  'Mobile',
+  'POS'
 ] as const;
 
 export const DELIVERY_TYPES = [
   'standard',
-  'express',
-  'same_day',
-  'scheduled'
+  'endofday'
 ] as const;
 
 export const TYPE_OF_DELIVERY = [
-  'home_delivery',
-  'pickup',
-  'store_pickup',
-  'locker_delivery'
+  'Standard',
+  'Express'
+] as const;
+
+// New enums based on Order model
+export const SKU_STATUSES = [
+  'Pending',
+  'Confirmed',
+  'Assigned',
+  'Packed',
+  'Shipped',
+  'Delivered',
+  'Cancelled',
+  'Returned'
+] as const;
+
+export const DEALER_MAPPING_STATUSES = [
+  'Pending',
+  'Scanning',
+  'Packed'
+] as const;
+
+export const PAYMENT_STATUSES = [
+  'pending',
+  'completed',
+  'failed',
+  'refunded',
+  'cancelled'
+] as const;
+
+export const REFUND_STATUSES = [
+  'pending',
+  'approved',
+  'rejected',
+  'processed',
+  'cancelled'
 ] as const;

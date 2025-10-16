@@ -201,8 +201,20 @@ const fetchOrdersForStats = async (dealerId: string): Promise<DealerOrder[]> => 
   try {
     console.log(`[fetchOrdersForStats] Fetching orders for dealer ID: ${dealerId}`);
     const response = await apiClient.get(`/orders/api/orders/get/order-by-dealer/${dealerId}`);
-    console.log(`[fetchOrdersForStats] Successfully fetched ${response.data.orders?.length || 0} orders for dealer ID: ${dealerId}`);
-    return response.data.orders || [];
+    console.log(`[fetchOrdersForStats] API Response:`, response.data);
+    
+    // Handle different response structures
+    let orders: DealerOrder[] = [];
+    if (response.data && response.data.orders && Array.isArray(response.data.orders)) {
+      orders = response.data.orders;
+    } else if (response.data && Array.isArray(response.data)) {
+      orders = response.data;
+    } else if (Array.isArray(response.data)) {
+      orders = response.data;
+    }
+    
+    console.log(`[fetchOrdersForStats] Successfully fetched ${orders.length} orders for dealer ID: ${dealerId}`);
+    return orders;
   } catch (error) {
     console.error(`[fetchOrdersForStats] Error fetching orders for dealer ID ${dealerId}:`, error);
     return [];
@@ -216,8 +228,20 @@ const fetchPickListsForStats = async (dealerId: string): Promise<DealerPickList[
   try {
     console.log(`[fetchPickListsForStats] Fetching picklists for dealer ID: ${dealerId}`);
     const response = await apiClient.get(`/orders/api/orders/picklists/dealer/${dealerId}`);
-    console.log(`[fetchPickListsForStats] Successfully fetched ${response.data.data?.length || 0} picklists for dealer ID: ${dealerId}`);
-    return response.data.data || [];
+    console.log(`[fetchPickListsForStats] API Response:`, response.data);
+    
+    // Handle different response structures
+    let picklists: DealerPickList[] = [];
+    if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      picklists = response.data.data;
+    } else if (response.data && Array.isArray(response.data)) {
+      picklists = response.data;
+    } else if (Array.isArray(response.data)) {
+      picklists = response.data;
+    }
+    
+    console.log(`[fetchPickListsForStats] Successfully fetched ${picklists.length} picklists for dealer ID: ${dealerId}`);
+    return picklists;
   } catch (error) {
     console.error(`[fetchPickListsForStats] Error fetching picklists for dealer ID ${dealerId}:`, error);
     return [];
@@ -231,38 +255,42 @@ const calculateStatsFromData = (orders: DealerOrder[], pickLists: DealerPickList
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Ensure orders and pickLists are arrays
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safePickLists = Array.isArray(pickLists) ? pickLists : [];
+
   // Calculate order statistics
-  const totalOrders = orders.length;
-  const pendingOrders = orders.filter(order => order.status === "Pending").length;
-  const assignedOrders = orders.filter(order => order.status === "Assigned").length;
-  const packedOrders = orders.filter(order => order.status === "Packed").length;
-  const shippedOrders = orders.filter(order => order.status === "Shipped").length;
-  const deliveredOrders = orders.filter(order => order.status === "Delivered").length;
-  const cancelledOrders = orders.filter(order => order.status === "Cancelled").length;
-  const returnedOrders = orders.filter(order => order.status === "Returned").length;
+  const totalOrders = safeOrders.length;
+  const pendingOrders = safeOrders.filter(order => order.status === "Pending").length;
+  const assignedOrders = safeOrders.filter(order => order.status === "Assigned").length;
+  const packedOrders = safeOrders.filter(order => order.status === "Packed").length;
+  const shippedOrders = safeOrders.filter(order => order.status === "Shipped").length;
+  const deliveredOrders = safeOrders.filter(order => order.status === "Delivered").length;
+  const cancelledOrders = safeOrders.filter(order => order.status === "Cancelled").length;
+  const returnedOrders = safeOrders.filter(order => order.status === "Returned").length;
 
   // Calculate today's orders
-  const todaysOrders = orders.filter(order => {
+  const todaysOrders = safeOrders.filter(order => {
     const orderDate = new Date(order.orderDetails.orderDate);
     orderDate.setHours(0, 0, 0, 0);
     return orderDate.getTime() === today.getTime();
   }).length;
 
   // Calculate order value statistics
-  const orderValues = orders.map(order => order.orderDetails.order_Amount || 0);
+  const orderValues = safeOrders.map(order => order.orderDetails.order_Amount || 0);
   const totalOrderValue = orderValues.reduce((sum, value) => sum + value, 0);
   const averageOrderValue = totalOrders > 0 ? totalOrderValue / totalOrders : 0;
   const minOrderValue = orderValues.length > 0 ? Math.min(...orderValues) : 0;
   const maxOrderValue = orderValues.length > 0 ? Math.max(...orderValues) : 0;
 
   // Calculate picklist statistics
-  const totalPickLists = pickLists.length;
-  const pendingPickLists = pickLists.filter(pickList => pickList.scanStatus === "Pending").length;
-  const processedPickLists = pickLists.filter(pickList => pickList.scanStatus === "Processing").length;
-  const completedPickLists = pickLists.filter(pickList => pickList.scanStatus === "Completed").length;
+  const totalPickLists = safePickLists.length;
+  const pendingPickLists = safePickLists.filter(pickList => pickList.scanStatus === "Pending").length;
+  const processedPickLists = safePickLists.filter(pickList => pickList.scanStatus === "Processing").length;
+  const completedPickLists = safePickLists.filter(pickList => pickList.scanStatus === "Completed").length;
 
   // Calculate today's picklists
-  const todaysPickLists = pickLists.filter(pickList => {
+  const todaysPickLists = safePickLists.filter(pickList => {
     const pickListDate = new Date(pickList.createdAt);
     pickListDate.setHours(0, 0, 0, 0);
     return pickListDate.getTime() === today.getTime();
