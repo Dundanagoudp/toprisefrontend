@@ -249,7 +249,7 @@ export default function AuditLogs() {
       }
 
       const response = await fetch(
-        "http://193.203.161.146:3000/api/category/api/audit/logs",
+        "https://api.toprise.in/api/category/api/audit/logs",
         {
           method: "GET",
           headers: {
@@ -333,7 +333,7 @@ export default function AuditLogs() {
       }
 
       const response = await fetch(
-        "http://193.203.161.146:3000/api/users/api/audit/logs",
+        "https://api.toprise.in/api/users/api/audit/logs",
         {
           method: "GET",
           headers: {

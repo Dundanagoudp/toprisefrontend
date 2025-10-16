@@ -131,15 +131,12 @@ export default function AppUsersTable({
 				/>
 			</div>
 			
-			<table className="w-full min-w-[900px]">
+			<table className="w-full min-w-[800px]">
 				<thead>
 					<tr className="border-b border-gray-200 bg-gray-50">
 						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">#</th>
 						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
 							Username
-						</th>
-						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
-							Name
 						</th>
 						<th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
 							Email
@@ -165,7 +162,6 @@ export default function AppUsersTable({
 							<tr key={idx} className="border-b border-gray-100">
 								<td className="p-3 md:p-4"><Skeleton className="h-4 w-6" /></td>
 								<td className="p-3 md:p-4"><Skeleton className="h-4 w-24" /></td>
-								<td className="p-3 md:p-4"><Skeleton className="h-4 w-32" /></td>
 								<td className="p-3 md:p-4"><Skeleton className="h-4 w-40" /></td>
 								<td className="p-3 md:p-4"><Skeleton className="h-6 w-16 rounded" /></td>
 								<td className="p-3 md:p-4"><Skeleton className="h-4 w-28" /></td>
@@ -176,9 +172,6 @@ export default function AppUsersTable({
 							<tr key={u._id} className="border-b border-gray-100 hover:bg-gray-50">
 								<td className="p-3 md:p-4 text-gray-600 text-sm">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
 								<td className="p-3 md:p-4 text-gray-700 text-sm">{u.username || "-"}</td>
-								<td className="p-3 md:p-4 text-gray-700 text-sm">
-									{`${u.firstName || ""} ${u.lastName || ""}`.trim() || "-"}
-								</td>
 								<td className="p-3 md:p-4 text-gray-700 text-sm">{u.email || "-"}</td>
 								<td className="p-3 md:p-4 text-gray-600 text-sm">
 									<span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">

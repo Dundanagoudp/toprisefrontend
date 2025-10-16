@@ -43,6 +43,42 @@ export interface PicklistData {
   createdAt: string;
   __v: number;
   dealerInfo: any;
+  staffInfo: any;
+  orderInfo: {
+    _id: string;
+    orderId: string;
+    status: string;
+    order_Amount: number;
+    paymentType: string;
+    deliveryCharges: number;
+    customerDetails: {
+      userId: string;
+      name: string;
+      phone: string;
+      address: string;
+      pincode: string;
+      email: string;
+    };
+    skuDetails: any[];
+    timestamps: {
+      createdAt: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+  skuDetails: {
+    sku: string;
+    quantity: number;
+    barcode: string;
+    productDetails: any;
+    error?: string;
+    _id?: string;
+  }[];
+  totalItems: number;
+  uniqueSKUs: number;
+  isOverdue: boolean;
+  estimatedCompletionTime: number;
+  notes?: string;
 }
 
 export interface PickupItem {
@@ -64,7 +100,24 @@ export interface PickupRequestsResponse {
 export interface PicklistResponse {
   success: boolean;
   message: string;
-  data: PicklistData[];
+  data: {
+    data: PicklistData[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+    summary: {
+      totalPicklists: number;
+      completedPicklists: number;
+      inProgressPicklists: number;
+      notStartedPicklists: number;
+      overduePicklists: number;
+    };
+  };
 }
 
 export interface PickupRequestResponse {
@@ -87,7 +140,10 @@ export const getPickupRequests = async (): Promise<PickupRequestsResponse> => {
 // New function to get all picklists using the new endpoint
 export const getAllPicklists = async (): Promise<PicklistResponse> => {
   try {
+    console.log('Fetching picklists from API...');
     const response = await apiClient.get('/orders/api/orders/picklists');
+    console.log('API Response:', response);
+    console.log('Response Data:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching picklists:', error);

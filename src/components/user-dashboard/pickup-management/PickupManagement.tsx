@@ -59,12 +59,10 @@ import { format } from "date-fns";
 import { useToast } from "@/components/ui/toast";
 import {
   getAllPicklists,
-  updatePickupStatus,
   type PickupRequest,
   type PickupItem,
   type PicklistData,
 } from "@/service/pickup-service";
-import { packOrder } from "@/service/order-service";
 import { generatePickupListPDF, generateSinglePickupPDF } from "@/service/pdfService";
 
 export default function PickupManagement() {
@@ -80,8 +78,6 @@ export default function PickupManagement() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [selectedPickup, setSelectedPickup] = useState<PicklistData | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [isPackedDialogOpen, setIsPackedDialogOpen] = useState(false);
-  const [packingNotes, setPackingNotes] = useState("");
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingSinglePDF, setIsGeneratingSinglePDF] = useState(false);
 
@@ -90,76 +86,85 @@ export default function PickupManagement() {
     try {
       setLoading(true);
       setError(null);
+      console.log('Starting to fetch pickup data...');
 
       // Use real API calls with fallback to mock data
       try {
+        console.log('Calling getAllPicklists API...');
         const response = await getAllPicklists();
-        setPickups(response.data);
+        console.log('API Response received:', response);
+        console.log('Response data:', response.data);
+        console.log('Is response.data an array?', Array.isArray(response.data));
+        
+        // Handle different response structures
+        if (response && response.data && Array.isArray(response.data)) {
+          console.log('Using response.data directly (array):', response.data);
+          setPickups(response.data);
+        } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+          console.log('Using response.data.data (nested):', response.data.data);
+          setPickups(response.data.data);
+        } else {
+          console.log('No valid data found, setting empty array');
+          console.log('Response structure:', response);
+          setPickups([]);
+        }
       } catch (apiError) {
         console.warn("API calls failed, using mock data:", apiError);
         // Fallback to mock data if API calls fail
-        const mockPickups: PickupRequest[] = [
+        const mockPickups: PicklistData[] = [
           {
             _id: "1",
-            pickupId: "PICKUP-001",
-            orderId: "ORD-001",
-            customerName: "John Doe",
-            customerPhone: "+91-9876543210",
-            dealerName: "Auto Parts Plus",
-            dealerPhone: "+91-9876543211",
-            pickupAddress: {
-              address: "123 Customer Street",
-              city: "Mumbai",
-              state: "Maharashtra",
-              pincode: "400001"
-            },
-            scheduledDate: "2025-01-20T10:00:00Z",
-            status: "scheduled",
-            priority: "high",
-            items: [
+            linkedOrderId: "ORD-001",
+            dealerId: "dealer-001",
+            fulfilmentStaff: "staff-001",
+            skuList: [
               {
-                _id: "1",
-                productName: "Brake Pads",
                 sku: "BP-001",
                 quantity: 2,
-                condition: "new",
-                notes: "Front brake pads"
+                barcode: "BRK001",
+                _id: "sku-1"
               }
             ],
-            notes: "Customer prefers morning pickup",
-            assignedTo: "Staff Member 1",
-            createdAt: "2025-01-19T08:00:00Z",
-            updatedAt: "2025-01-19T08:00:00Z"
+            scanStatus: "Not Started",
+            invoiceGenerated: false,
+            updatedAt: "2025-01-19T10:00:00Z",
+            createdAt: "2025-01-19T10:00:00Z",
+            __v: 0,
+            dealerInfo: null,
+            staffInfo: null,
+            orderInfo: null,
+            skuDetails: [],
+            totalItems: 1,
+            uniqueSKUs: 1,
+            isOverdue: false,
+            estimatedCompletionTime: 30
           },
           {
             _id: "2",
-            pickupId: "PICKUP-002",
-            orderId: "ORD-002",
-            customerName: "Jane Smith",
-            customerPhone: "+91-9876543212",
-            dealerName: "Car Care Center",
-            dealerPhone: "+91-9876543213",
-            pickupAddress: {
-              address: "789 Customer Avenue",
-              city: "Delhi",
-              state: "NCR",
-              pincode: "110001"
-            },
-            scheduledDate: "2025-01-20T14:00:00Z",
-            status: "packed",
-            priority: "medium",
-            items: [
+            linkedOrderId: "ORD-002",
+            dealerId: "dealer-002",
+            fulfilmentStaff: "staff-002",
+            skuList: [
               {
-                _id: "3",
-                productName: "Air Filter",
                 sku: "AF-001",
                 quantity: 1,
-                condition: "new"
+                barcode: "BRK002",
+                _id: "sku-2"
               }
             ],
-            assignedTo: "Staff Member 2",
+            scanStatus: "Packed",
+            invoiceGenerated: false,
+            updatedAt: "2025-01-19T15:30:00Z",
             createdAt: "2025-01-19T09:00:00Z",
-            updatedAt: "2025-01-19T15:30:00Z"
+            __v: 0,
+            dealerInfo: null,
+            staffInfo: null,
+            orderInfo: null,
+            skuDetails: [],
+            totalItems: 1,
+            uniqueSKUs: 1,
+            isOverdue: false,
+            estimatedCompletionTime: 30
           }
         ];
 
@@ -169,6 +174,38 @@ export default function PickupManagement() {
       console.error("Error fetching pickup data:", error);
       setError("Failed to load picklist data");
       showToast("Failed to load picklist data", "error");
+      
+      // Set mock data as fallback even on error
+      const mockPickups: PicklistData[] = [
+        {
+          _id: "1",
+          linkedOrderId: "ORD-001",
+          dealerId: "dealer-001",
+          fulfilmentStaff: "staff-001",
+          skuList: [
+            {
+              sku: "BP-001",
+              quantity: 2,
+              barcode: "BRK001",
+              _id: "sku-1"
+            }
+          ],
+          scanStatus: "Not Started",
+          invoiceGenerated: false,
+          updatedAt: "2025-01-19T10:00:00Z",
+          createdAt: "2025-01-19T10:00:00Z",
+          __v: 0,
+          dealerInfo: null,
+          staffInfo: null,
+          orderInfo: null,
+          skuDetails: [],
+          totalItems: 1,
+          uniqueSKUs: 1,
+          isOverdue: false,
+          estimatedCompletionTime: 30
+        }
+      ];
+      setPickups(mockPickups);
     } finally {
       setLoading(false);
     }
@@ -180,7 +217,7 @@ export default function PickupManagement() {
   }, []);
 
   // Filter pickups based on search and filters
-  const filteredPickups = pickups.filter(pickup => {
+  const filteredPickups = (Array.isArray(pickups) ? pickups : []).filter(pickup => {
     const matchesSearch = 
       (pickup._id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (pickup.linkedOrderId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -193,39 +230,12 @@ export default function PickupManagement() {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
-  // Mark pickup as packed
-  const handleMarkAsPacked = async (pickupId: string) => {
-    try {
-      // Use the new pack order API endpoint
-      try {
-        await packOrder(pickupId, {});
-        showToast("Picklist marked as packed successfully", "success");
-      } catch (apiError) {
-        console.warn("Pack order API failed, trying fallback:", apiError);
-        // Fallback to old API if pack order fails
-        try {
-          await updatePickupStatus(pickupId, "packed", packingNotes);
-          showToast("Picklist marked as packed successfully", "success");
-        } catch (fallbackError) {
-          console.warn("Fallback API also failed, updating locally:", fallbackError);
-          showToast("Picklist marked as packed (local update)", "success");
-        }
-      }
-      
-      // Update local state
-      setPickups(prev => prev.map(pickup => 
-        pickup._id === pickupId 
-          ? { ...pickup, status: "packed" as const, updatedAt: new Date().toISOString() }
-          : pickup
-      ));
-      
-      setIsPackedDialogOpen(false);
-      setPackingNotes("");
-    } catch (error) {
-      console.error("Error marking pickup as packed:", error);
-      showToast("Failed to mark picklist as packed", "error");
-    }
-  };
+  // Debug logging
+  console.log('Pickups state:', pickups);
+  console.log('Filtered pickups:', filteredPickups);
+  console.log('Search term:', searchTerm);
+  console.log('Status filter:', statusFilter);
+
 
   // Handle PDF generation
   const handleGeneratePDF = async () => {
@@ -239,7 +249,7 @@ export default function PickupManagement() {
         searchTerm: searchTerm || undefined,
       };
       
-      await generatePickupListPDF(filteredPickups, {
+      await generatePickupListPDF(filteredPickups as any, {
         title,
         includeFilters: statusFilter !== 'all' || priorityFilter !== 'all' || searchTerm !== '',
         filters
@@ -255,11 +265,11 @@ export default function PickupManagement() {
   };
 
   // Handle single pickup PDF generation
-  const handleGenerateSinglePickupPDF = async (pickup: PickupRequest) => {
+  const handleGenerateSinglePickupPDF = async (pickup: PicklistData) => {
     try {
       setIsGeneratingSinglePDF(true);
       
-      await generateSinglePickupPDF(pickup);
+      await generateSinglePickupPDF(pickup as any);
       
       showToast("Picklist details PDF generated successfully", "success");
     } catch (error) {
@@ -451,12 +461,13 @@ export default function PickupManagement() {
               <TableRow>
                 <TableHead>Picklist ID</TableHead>
                 <TableHead>Order ID</TableHead>
-                <TableHead>Dealer ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Dealer</TableHead>
                 <TableHead>Staff</TableHead>
                 <TableHead>Created Date</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Invoice</TableHead>
                 <TableHead>Items</TableHead>
+                <TableHead>Overdue</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -464,34 +475,70 @@ export default function PickupManagement() {
               {filteredPickups.map((pickup) => (
                 <TableRow key={pickup._id}>
                   <TableCell className="font-medium">{pickup._id}</TableCell>
-                  <TableCell>{pickup.linkedOrderId || 'N/A'}</TableCell>
                   <TableCell>
-                    <div className="font-medium">{pickup.dealerId || 'N/A'}</div>
+                    <div className="font-medium">
+                      {pickup.orderInfo?.orderId || pickup.linkedOrderId || 'N/A'}
+                    </div>
+                    {pickup.orderInfo?.order_Amount && (
+                      <div className="text-sm text-gray-500">
+                        ₹{pickup.orderInfo.order_Amount.toLocaleString()}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{pickup.fulfilmentStaff || 'N/A'}</div>
+                    <div className="font-medium">
+                      {pickup.orderInfo?.customerDetails?.name || 'N/A'}
+                    </div>
+                    {pickup.orderInfo?.customerDetails?.phone && (
+                      <div className="text-sm text-gray-500">
+                        {pickup.orderInfo.customerDetails.phone}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">
+                      {pickup.dealerInfo?.name || pickup.dealerId || 'N/A'}
+                    </div>
+                    {pickup.dealerInfo?.email && (
+                      <div className="text-sm text-gray-500">
+                        {pickup.dealerInfo.email}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">
+                      {pickup.staffInfo?.name || pickup.fulfilmentStaff || 'N/A'}
+                    </div>
+                    {pickup.staffInfo?.email && (
+                      <div className="text-sm text-gray-500">
+                        {pickup.staffInfo.email}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>{pickup.createdAt ? formatDate(pickup.createdAt) : 'N/A'}</TableCell>
                   <TableCell>{getStatusBadge(pickup.scanStatus || 'Not Started')}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      {pickup.invoiceGenerated ? (
-                        <>
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-green-700 font-medium">Generated</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                          <span className="text-gray-600">Pending</span>
-                        </>
-                      )}
+                    <div className="text-sm">
+                      {pickup.totalItems || pickup.skuList?.length || 0} item{(pickup.totalItems || pickup.skuList?.length || 0) !== 1 ? 's' : ''}
                     </div>
+                    {pickup.uniqueSKUs && (
+                      <div className="text-xs text-gray-500">
+                        {pickup.uniqueSKUs} unique SKUs
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      {pickup.skuList?.length || 0} item{(pickup.skuList?.length || 0) !== 1 ? 's' : ''}
-                    </div>
+                    {pickup.isOverdue ? (
+                      <Badge variant="destructive" className="bg-red-100 text-red-800">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        Overdue
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        On Time
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
@@ -520,17 +567,44 @@ export default function PickupManagement() {
                                   <h3 className="font-semibold mb-2">Picklist Information</h3>
                                   <div className="space-y-1 text-sm">
                                     <div><User className="inline h-4 w-4 mr-1" />ID: {selectedPickup._id}</div>
-                                    <div><Phone className="inline h-4 w-4 mr-1" />Order ID: {selectedPickup.linkedOrderId || 'N/A'}</div>
+                                    <div><Phone className="inline h-4 w-4 mr-1" />Order ID: {selectedPickup.orderInfo?.orderId || selectedPickup.linkedOrderId || 'N/A'}</div>
+                                    <div><Calendar className="inline h-4 w-4 mr-1" />Created: {selectedPickup.createdAt ? formatDate(selectedPickup.createdAt) : 'N/A'}</div>
+                                    <div><Calendar className="inline h-4 w-4 mr-1" />Updated: {selectedPickup.updatedAt ? formatDate(selectedPickup.updatedAt) : 'N/A'}</div>
                                   </div>
                                 </div>
                                 <div>
                                   <h3 className="font-semibold mb-2">Assignment Information</h3>
                                   <div className="space-y-1 text-sm">
-                                    <div><User className="inline h-4 w-4 mr-1" />Dealer ID: {selectedPickup.dealerId || 'N/A'}</div>
-                                    <div><Phone className="inline h-4 w-4 mr-1" />Staff: {selectedPickup.fulfilmentStaff || 'N/A'}</div>
+                                    <div><User className="inline h-4 w-4 mr-1" />Dealer: {selectedPickup.dealerInfo?.name || selectedPickup.dealerId || 'N/A'}</div>
+                                    <div><Phone className="inline h-4 w-4 mr-1" />Staff: {selectedPickup.staffInfo?.name || selectedPickup.fulfilmentStaff || 'N/A'}</div>
+                                    {selectedPickup.estimatedCompletionTime && (
+                                      <div><Clock className="inline h-4 w-4 mr-1" />Est. Time: {selectedPickup.estimatedCompletionTime} min</div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Order Information */}
+                              {selectedPickup.orderInfo && (
+                                <div>
+                                  <h3 className="font-semibold mb-2">Order Information</h3>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1 text-sm">
+                                      <div><strong>Order Amount:</strong> ₹{selectedPickup.orderInfo.order_Amount?.toLocaleString() || 'N/A'}</div>
+                                      <div><strong>Status:</strong> {selectedPickup.orderInfo.status || 'N/A'}</div>
+                                      <div><strong>Payment Type:</strong> {selectedPickup.orderInfo.paymentType || 'N/A'}</div>
+                                      <div><strong>Delivery Charges:</strong> ₹{selectedPickup.orderInfo.deliveryCharges || 0}</div>
+                                    </div>
+                                    <div className="space-y-1 text-sm">
+                                      <div><strong>Customer Name:</strong> {selectedPickup.orderInfo.customerDetails?.name || 'N/A'}</div>
+                                      <div><strong>Phone:</strong> {selectedPickup.orderInfo.customerDetails?.phone || 'N/A'}</div>
+                                      <div><strong>Email:</strong> {selectedPickup.orderInfo.customerDetails?.email || 'N/A'}</div>
+                                      <div><strong>Address:</strong> {selectedPickup.orderInfo.customerDetails?.address || 'N/A'}</div>
+                                      <div><strong>Pincode:</strong> {selectedPickup.orderInfo.customerDetails?.pincode || 'N/A'}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
                               {/* Status Information */}
                               <div>
@@ -553,15 +627,27 @@ export default function PickupManagement() {
 
                               {/* Items */}
                               <div>
-                                <h3 className="font-semibold mb-2">SKU List</h3>
+                                <h3 className="font-semibold mb-2">SKU List ({selectedPickup.totalItems || selectedPickup.skuList?.length || 0} items, {selectedPickup.uniqueSKUs || 0} unique SKUs)</h3>
                                 <div className="space-y-2">
-                                  {(selectedPickup.skuList || []).map((item) => (
-                                    <div key={item._id} className="border rounded-lg p-3">
+                                  {(selectedPickup.skuDetails || selectedPickup.skuList || []).map((item, index) => (
+                                    <div key={item._id || index} className="border rounded-lg p-3">
                                       <div className="flex justify-between items-start">
-                                        <div>
+                                        <div className="flex-1">
                                           <div className="font-medium">SKU: {item.sku || 'N/A'}</div>
                                           <div className="text-sm text-gray-500">Quantity: {item.quantity || 0}</div>
                                           <div className="text-sm text-gray-500">Barcode: {item.barcode || 'N/A'}</div>
+                                          {item.productDetails && (
+                                            <div className="mt-2 text-sm">
+                                              <div><strong>Product:</strong> {item.productDetails.name || 'N/A'}</div>
+                                              <div><strong>Price:</strong> ₹{item.productDetails.selling_price || 0}</div>
+                                              <div><strong>MRP:</strong> ₹{item.productDetails.mrp || 0}</div>
+                                            </div>
+                                          )}
+                                          {item.error && (
+                                            <div className="mt-2 text-sm text-red-500">
+                                              <strong>Error:</strong> {item.error}
+                                            </div>
+                                          )}
                                         </div>
                                         <Badge variant="outline">SKU</Badge>
                                       </div>
@@ -596,7 +682,7 @@ export default function PickupManagement() {
                           <DialogFooter className="flex justify-between">
                             <Button 
                               variant="outline"
-                              onClick={() => handleGenerateSinglePickupPDF(selectedPickup)}
+                              onClick={() => selectedPickup && handleGenerateSinglePickupPDF(selectedPickup)}
                               disabled={isGeneratingSinglePDF}
                               className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                             >
@@ -610,56 +696,6 @@ export default function PickupManagement() {
                         </DialogContent>
                       </Dialog>
 
-                      {/* Mark as Packed Button */}
-                      {pickup.scanStatus === "Not Started" || pickup.scanStatus === "In Progress" ? (
-                        <Dialog open={isPackedDialogOpen} onOpenChange={setIsPackedDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => setSelectedPickup(pickup)}
-                            >
-                              <PackageCheck className="h-4 w-4 mr-1" />
-                              Mark Packed
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Mark as Packed</DialogTitle>
-                              <DialogDescription>
-                                Confirm that all items for picklist {pickup._id} have been packed and are ready for pickup.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="packing-notes">Packing Notes (Optional)</Label>
-                                <Input
-                                  id="packing-notes"
-                                  placeholder="Add any notes about the packing process..."
-                                  value={packingNotes}
-                                  onChange={(e) => setPackingNotes(e.target.value)}
-                                />
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setIsPackedDialogOpen(false);
-                                  setPackingNotes("");
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                onClick={() => handleMarkAsPacked(pickup._id)}
-                              >
-                                Confirm Packed
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
