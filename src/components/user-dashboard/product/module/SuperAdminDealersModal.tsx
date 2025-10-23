@@ -3,6 +3,8 @@
 import type React from "react"
 import { X, Package, Users, TrendingUp } from "lucide-react"
 import type { Product } from "@/types/product-Types"
+import { getDealerById } from "@/service/dealerServices"
+import { useEffect, useState } from "react"
 
 interface SuperAdminDealersModalProps {
   open: boolean
@@ -22,7 +24,7 @@ const MODAL_CONSTANTS = {
 }
 
 const TABLE_HEADERS = [
-  { key: "dealer_id", label: "Dealer ID", icon: Users },
+  { key: "dealer_name", label: "Dealer Name", icon: Users },
   { key: "quantity", label: "Quantity", icon: Package },
   { key: "margin", label: "Margin %", icon: TrendingUp },
   { key: "priority", label: "Priority" },
@@ -31,12 +33,58 @@ const TABLE_HEADERS = [
 ]
 
 const SuperAdminDealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, onClose, product }) => {
+  const [dealerNames, setDealerNames] = useState<Record<string, string>>({})
+  const [loadingDealers, setLoadingDealers] = useState(false)
+
   if (!open || !product || !product.available_dealers) {
     return null
   }
 
   const dealerCount = product.available_dealers.length
   const inStockCount = product.available_dealers.filter((dealer) => dealer.inStock).length
+
+  // Fetch dealer names when modal opens
+  useEffect(() => {
+    if (open && product?.available_dealers) {
+      fetchDealerNames()
+    }
+  }, [open, product])
+
+  const fetchDealerNames = async () => {
+    setLoadingDealers(true)
+    try {
+      const dealerPromises = product.available_dealers.map(async (dealer) => {
+        if (dealer.dealers_Ref) {
+          try {
+            const response = await getDealerById(dealer.dealers_Ref)
+            if (response.success) {
+              return {
+                id: dealer.dealers_Ref,
+                name: response.data.legal_name || response.data.trade_name || "Unknown Dealer"
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to fetch dealer ${dealer.dealers_Ref}:`, error)
+          }
+        }
+        return {
+          id: dealer.dealers_Ref,
+          name: "Unknown Dealer"
+        }
+      })
+
+      const dealerResults = await Promise.all(dealerPromises)
+      const nameMap: Record<string, string> = {}
+      dealerResults.forEach(result => {
+        nameMap[result.id] = result.name
+      })
+      setDealerNames(nameMap)
+    } catch (error) {
+      console.error("Failed to fetch dealer names:", error)
+    } finally {
+      setLoadingDealers(false)
+    }
+  }
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return MODAL_CONSTANTS.NO_DATA
@@ -120,8 +168,12 @@ const SuperAdminDealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, o
                   {product.available_dealers.map((dealer: any, index: number) => (
                     <tr key={`dealer-${index}`} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap border-r border-black-200">
-                        <span className="text-sm font-mono font-medium text-gray-900 bg-gray-50 px-3 py-1 rounded border border-black-300">
-                          {dealer.dealers_Ref || MODAL_CONSTANTS.NO_DATA}
+                        <span className="text-sm font-medium text-gray-900 bg-gray-50 px-3 py-1 rounded border border-black-300">
+                          {loadingDealers ? (
+                            <span className="text-gray-500">Loading...</span>
+                          ) : (
+                            dealerNames[dealer.dealers_Ref] || dealer.dealers_Ref || MODAL_CONSTANTS.NO_DATA
+                          )}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 border-r border-black-200">

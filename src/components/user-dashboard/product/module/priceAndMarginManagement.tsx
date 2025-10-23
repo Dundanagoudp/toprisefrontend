@@ -132,6 +132,7 @@ interface DashboardData {
     totalDealers: number;
     highRiskDealers: number;
     mediumRiskDealers: number;
+    lowRiskDealers: number;
     eligibleForDisable: number;
   };
   topViolators: Array<{
@@ -275,6 +276,7 @@ export default function SLAViolationsAndReporting() {
       totalDealers: 0,
       highRiskDealers: 0,
       mediumRiskDealers: 0,
+      lowRiskDealers: 0,
       eligibleForDisable: 0,
     },
     topViolators: [],
@@ -455,6 +457,28 @@ export default function SLAViolationsAndReporting() {
         console.log("Setting stats data:", response.data);
         setStatsData(response.data);
         
+        // Calculate risk level distribution accurately
+        const dealers = response.data.data || [];
+        const totalDealers = response.data.summary.uniqueDealerCount || 0;
+        
+        // Calculate risk levels based on violation rate
+        const highRiskDealers = dealers.filter((dealer: any) => dealer.violationRate >= 80).length;
+        const mediumRiskDealers = dealers.filter((dealer: any) => dealer.violationRate >= 50 && dealer.violationRate < 80).length;
+        const lowRiskDealers = dealers.filter((dealer: any) => dealer.violationRate < 50).length;
+        const eligibleForDisable = dealers.filter((dealer: any) => dealer.violationRate >= 90).length;
+        
+        // Verify total counts match
+        const calculatedTotal = highRiskDealers + mediumRiskDealers + lowRiskDealers;
+        console.log("Risk Level Distribution:", {
+          totalDealers,
+          highRiskDealers,
+          mediumRiskDealers,
+          lowRiskDealers,
+          eligibleForDisable,
+          calculatedTotal,
+          dealersCount: dealers.length
+        });
+
         // Update dashboard data with new stats
         setDashboardData(prev => ({
           ...prev,
@@ -469,10 +493,11 @@ export default function SLAViolationsAndReporting() {
             resolutionRate: response.data.summary.resolutionRate,
           },
           dealersWithViolations: {
-            totalDealers: response.data.summary.uniqueDealerCount,
-            highRiskDealers: response.data.data.filter((dealer: any) => dealer.violationRate >= 80).length,
-            mediumRiskDealers: response.data.data.filter((dealer: any) => dealer.violationRate >= 50 && dealer.violationRate < 80).length,
-            eligibleForDisable: response.data.data.filter((dealer: any) => dealer.violationRate >= 90).length,
+            totalDealers: totalDealers,
+            highRiskDealers: highRiskDealers,
+            mediumRiskDealers: mediumRiskDealers,
+            lowRiskDealers: lowRiskDealers,
+            eligibleForDisable: eligibleForDisable,
           },
           topViolators: prev?.topViolators || [],
           trends: prev?.trends || {
@@ -1132,9 +1157,7 @@ export default function SLAViolationsAndReporting() {
                       <span className="text-sm font-medium">Low Risk</span>
                     </div>
                     <span className="text-sm text-gray-600">
-                      {loading ? "..." : (dashboardData?.dealersWithViolations?.totalDealers || 0) - 
-                        (dashboardData?.dealersWithViolations?.highRiskDealers || 0) - 
-                        (dashboardData?.dealersWithViolations?.mediumRiskDealers || 0)}
+                      {loading ? "..." : dashboardData?.dealersWithViolations?.lowRiskDealers || 0}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1145,6 +1168,23 @@ export default function SLAViolationsAndReporting() {
                     <span className="text-sm text-gray-600">
                       {loading ? "..." : dashboardData?.dealersWithViolations?.eligibleForDisable || 0}
                     </span>
+                  </div>
+                  
+                  {/* Total Validation */}
+                  <div className="border-t pt-3 mt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Total Dealers</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {loading ? "..." : 
+                          (dashboardData?.dealersWithViolations?.highRiskDealers || 0) + 
+                          (dashboardData?.dealersWithViolations?.mediumRiskDealers || 0) + 
+                          (dashboardData?.dealersWithViolations?.lowRiskDealers || 0)
+                        }
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Expected: {dashboardData?.dealersWithViolations?.totalDealers || 0} dealers
+                    </div>
                   </div>
                 </div>
               </CardContent>

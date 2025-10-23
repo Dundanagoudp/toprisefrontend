@@ -1161,6 +1161,61 @@ export async function deleteBanner(bannerId: string): Promise<ApiResponse<any>> 
     throw error;
   }
 }
+
+// Delete Category
+export async function deleteCategory(categoryId: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(`/category/api/category/${categoryId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete category:", error);
+    throw error;
+  }
+}
+
+// Delete Subcategory
+export async function deleteSubCategory(subCategoryId: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(`/category/api/subcategory/${subCategoryId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete subcategory:", error);
+    throw error;
+  }
+}
+
+// Delete Brand
+export async function deleteBrand(brandId: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(`/category/api/brands/${brandId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete brand:", error);
+    throw error;
+  }
+}
+
+// Delete Model
+export async function deleteModel(modelId: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(`/category/api/model/${modelId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete model:", error);
+    throw error;
+  }
+}
+
+// Delete Variant
+export async function deleteVariant(variantId: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(`/category/variants/${variantId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete variant:", error);
+    throw error;
+  }
+}
 export async function getVehicleDetails(
   brandId: string,
   modelId: string,
