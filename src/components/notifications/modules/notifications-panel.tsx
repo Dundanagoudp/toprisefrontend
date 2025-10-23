@@ -1,19 +1,14 @@
 "use client"
 
-import { Bell, X, Trash2, CheckCheck, AlertCircle, Info, AlertTriangle, Eye, EyeOff } from "lucide-react"
+import { Bell, X, CheckCheck, AlertCircle, Info, AlertTriangle, Eye } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import {
   getAllNotifications,
   markAsRead as markAsReadAPI,
-  markAsUnread as markAsUnreadAPI,
   markAllAsRead as markAllAsReadAPI,
-  markAllAsUnread as markAllAsUnreadAPI,
-  deleteNotification as deleteNotificationAPI,
-  deleteAllNotifications as deleteAllNotificationsAPI,
 } from "@/service/notificationServices"
 import type { Notification } from "@/types/notification-types"
 import { getUserIdFromToken } from "@/utils/auth"
@@ -142,24 +137,13 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   const [filter, setFilter] = useState<FilterType>("all")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [allTotalCount, setAllTotalCount] = useState<number>(0)
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [confirmTitle, setConfirmTitle] = useState("")
-  const [confirmDescription, setConfirmDescription] = useState("")
-  const [confirmAction, setConfirmAction] = useState<null | (() => void)>(null)
-
-  const askConfirm = (title: string, description: string, action: () => void) => {
-    setConfirmTitle(title)
-    setConfirmDescription(description)
-    setConfirmAction(() => action)
-    setConfirmOpen(true)
-  }
 
   // Show only three items at a time and let the rest scroll
   const VISIBLE_ITEMS = 3
   const ITEM_APPROX_HEIGHT_PX = 96 // approx row height in pixels
   const LIST_MAX_HEIGHT = VISIBLE_ITEMS * ITEM_APPROX_HEIGHT_PX
 
-  const fetchNotifications = async (filterType: FilterType = "all") => {
+  const fetchNotifications = async () => {
     try {
       setLoading(true)
       setError(null)
@@ -171,31 +155,23 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
         return
       }
 
-      let response
-      if (filterType === "all") {
-        response = await getAllNotifications(userId)
-      } else if (filterType === "read") {
-        response = await getAllNotifications(userId, true)
-      } else {
-        response = await getAllNotifications(userId, false)
-      }
+      const response = await getAllNotifications(userId)
 
       if (response.success) {
-        // Sort notifications from latest to oldest based on createdAt timestamp
-        const sortedNotifications = response.data.sort((a, b) => {
+        // Filter out deleted notifications and sort from latest to oldest
+        const filteredNotifications = (response.data || []).filter((n) => !n.isUserDeleted)
+        const sortedNotifications = filteredNotifications.sort((a, b) => {
           const dateA = new Date(a.createdAt).getTime()
           const dateB = new Date(b.createdAt).getTime()
           return dateB - dateA // Latest first
         })
         setNotificationList(sortedNotifications)
         setSelectedIds(new Set())
-        const allNotifications = filterType !== "all" ? await getAllNotifications(userId) : response
-        if (allNotifications.success) {
-          const allItems = (allNotifications.data || []).filter((n) => !n.isUserDeleted)
-          const unread = allItems.filter((n) => !n.markAsRead).length
-          setAllTotalCount(allItems.length)
-          onCountUpdate?.(unread)
-        }
+        
+        // Calculate counts for badge display
+        const unread = filteredNotifications.filter((n) => !n.markAsRead).length
+        setAllTotalCount(filteredNotifications.length)
+        onCountUpdate?.(unread)
       }
     } catch (err) {
       setError("Failed to load notifications")
@@ -207,31 +183,31 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
 
   useEffect(() => {
     if (isOpen) {
-      fetchNotifications(filter)
+      fetchNotifications()
     }
-  }, [isOpen, filter])
+  }, [isOpen])
 
   const markAsRead = async (id: string) => {
     try {
       const response = await markAsReadAPI(id)
       if (response.success) {
-        await fetchNotifications(filter)
+        // Update the notification in the local state immediately for real-time feedback
+        setNotificationList(prev => 
+          prev.map(notification => 
+            notification._id === id 
+              ? { ...notification, markAsRead: true, markAsReadAt: new Date().toISOString() }
+              : notification
+          )
+        )
+        // Update the count immediately
+        const updatedUnreadCount = notificationList.filter(n => n._id !== id && !n.markAsRead).length
+        onCountUpdate?.(updatedUnreadCount)
       }
     } catch (err) {
       console.error("Error marking notification as read:", err)
     }
   }
 
-  const markAsUnread = async (id: string) => {
-    try {
-      const response = await markAsUnreadAPI(id)
-      if (response.success) {
-        await fetchNotifications(filter)
-      }
-    } catch (err) {
-      console.error("Error marking notification as unread:", err)
-    }
-  }
 
   const markAllAsRead = async () => {
     try {
@@ -242,28 +218,22 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       }
       const response = await markAllAsReadAPI(userId)
       if (response.success) {
-        await fetchNotifications(filter)
+        // Update all notifications to read status immediately for real-time feedback
+        setNotificationList(prev => 
+          prev.map(notification => ({ 
+            ...notification, 
+            markAsRead: true, 
+            markAsReadAt: new Date().toISOString() 
+          }))
+        )
+        // Update the count to 0 immediately
+        onCountUpdate?.(0)
       }
     } catch (err) {
       console.error("Error marking all as read:", err)
     }
   }
 
-  const markAllAsUnread = async () => {
-    try {
-      const userId = getUserIdFromToken()
-      if (!userId) {
-        setError("Authentication required")
-        return
-      }
-      const response = await markAllAsUnreadAPI(userId)
-      if (response.success) {
-        await fetchNotifications(filter)
-      }
-    } catch (err) {
-      console.error("Error marking all as unread:", err)
-    }
-  }
 
   const handleCheckboxChange = async (notification: Notification) => {
     const willSelect = !selectedIds.has(notification._id)
@@ -280,7 +250,17 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       if (willSelect && !notification.markAsRead) {
         const res = await markAsReadAPI(notification._id)
         if (res.success) {
-          await fetchNotifications(filter)
+          // Update the notification in the local state immediately for real-time feedback
+          setNotificationList(prev => 
+            prev.map(n => 
+              n._id === notification._id 
+                ? { ...n, markAsRead: true, markAsReadAt: new Date().toISOString() }
+                : n
+            )
+          )
+          // Update the count immediately
+          const updatedUnreadCount = notificationList.filter(n => n._id !== notification._id && !n.markAsRead).length
+          onCountUpdate?.(updatedUnreadCount)
         }
       }
     } catch (err) {
@@ -292,37 +272,30 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
     try {
       const idsToMark = Array.from(selectedIds)
       if (idsToMark.length === 0) return
-      await Promise.all(idsToMark.map((id) => markAsReadAPI(id)))
-      await fetchNotifications(filter)
+      const responses = await Promise.all(idsToMark.map((id) => markAsReadAPI(id)))
+      
+      // Check if all requests were successful
+      if (responses.every(res => res.success)) {
+        // Update all selected notifications to read status immediately for real-time feedback
+        setNotificationList(prev => 
+          prev.map(notification => 
+            idsToMark.includes(notification._id)
+              ? { ...notification, markAsRead: true, markAsReadAt: new Date().toISOString() }
+              : notification
+          )
+        )
+        // Update the count immediately
+        const updatedUnreadCount = notificationList.filter(n => !idsToMark.includes(n._id) && !n.markAsRead).length
+        onCountUpdate?.(updatedUnreadCount)
+        // Clear selection
+        setSelectedIds(new Set())
+      }
     } catch (err) {
       console.error("Error marking selected as read:", err)
     }
   }
 
-  const markSelectedAsUnread = async () => {
-    try {
-      const idsToMark = Array.from(selectedIds)
-      if (idsToMark.length === 0) return
-      await Promise.all(idsToMark.map((id) => markAsUnreadAPI(id)))
-      await fetchNotifications(filter)
-    } catch (err) {
-      console.error("Error marking selected as unread:", err)
-    }
-  }
 
-  const deleteSelectedNotifications = () => {
-    const idsToDelete = Array.from(selectedIds)
-    if (idsToDelete.length === 0) return
-    askConfirm(
-      "Delete selected notifications",
-      `Are you sure you want to delete ${idsToDelete.length} selected notification(s)? This action cannot be undone.`,
-      () => {
-        Promise.all(idsToDelete.map((id) => deleteNotificationAPI(id)))
-          .then(() => fetchNotifications(filter))
-          .catch((err) => console.error("Error deleting selected notifications:", err))
-      }
-    )
-  }
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp)
@@ -334,6 +307,21 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
     return `${Math.floor(diffInMinutes / 1440)}d ago`
   }
+
+  // Filter notifications based on current filter
+  const filteredNotifications = useMemo(() => {
+    if (!notificationList.length) return []
+    
+    switch (filter) {
+      case "read":
+        return notificationList.filter(notification => notification.markAsRead === true)
+      case "unread":
+        return notificationList.filter(notification => notification.markAsRead === false)
+      case "all":
+      default:
+        return notificationList
+    }
+  }, [notificationList, filter])
 
   const unreadCount = notificationList.filter((n) => !n.markAsRead).length
   const totalCount = notificationList.length
@@ -416,16 +404,6 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                     <CheckCheck className="w-3 h-3 mr-1" />
                     Mark All Read
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={markAllAsUnread}
-                    className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
-                    disabled={readCount === 0}
-                  >
-                    <CheckCheck className="w-3 h-3 mr-1" />
-                    Mark All Unread
-                  </Button>
                 </div>
               </div>
             </div>
@@ -450,15 +428,23 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                 className="overflow-y-auto overflow-x-hidden"
                 style={{ maxHeight: `${LIST_MAX_HEIGHT}px` }}
               >
-                {notificationList.length === 0 ? (
+                {filteredNotifications.length === 0 ? (
                   <div className="px-4 py-12 text-center">
                     <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">No notifications yet</p>
-                    <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
+                    <p className="text-sm text-gray-500">
+                      {filter === "all" ? "No notifications yet" : 
+                       filter === "read" ? "No read notifications" : 
+                       "No unread notifications"}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {filter === "all" ? "You're all caught up!" : 
+                       filter === "read" ? "No read notifications found" : 
+                       "All notifications are read"}
+                    </p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {notificationList.map((notification) => {
+                    {filteredNotifications.map((notification) => {
                       const isSelected = selectedIds.has(notification._id)
                       return (
                         <div
@@ -522,20 +508,7 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
 
                             {/* Action Buttons */}
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {notification.markAsRead ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    markAsUnread(notification._id)
-                                  }}
-                                  className="h-7 w-7 p-0 text-gray-400 hover:text-blue-500"
-                                  title="Mark as unread"
-                                >
-                                  <EyeOff className="w-3 h-3" />
-                                </Button>
-                              ) : (
+                              {!notification.markAsRead && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -549,30 +522,6 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                                   <Eye className="w-3 h-3" />
                                 </Button>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  askConfirm(
-                                    "Delete notification",
-                                    "Are you sure you want to delete this notification? This action cannot be undone.",
-                                    () => {
-                                      deleteNotificationAPI(notification._id)
-                                        .then((res) => {
-                                          if (res.success) {
-                                            return fetchNotifications(filter)
-                                          }
-                                        })
-                                        .catch((err) => console.error("Error deleting notification:", err))
-                                    }
-                                  )
-                                }}
-                                className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
-                                title="Delete notification"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
                             </div>
                           </div>
                         </div>
@@ -608,24 +557,6 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
                       <CheckCheck className="w-4 h-4 text-gray-700" />
                       Mark as Read
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={markSelectedAsUnread}
-                      className="h-8 px-3 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-1"
-                    >
-                      <EyeOff className="w-4 h-4 text-blue-600" />
-                      Mark as Unread
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={deleteSelectedNotifications}
-                      className="h-8 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                      Delete
-                    </Button>
                   </div>
                 )}
                 <Button variant="outline" size="sm" onClick={() => setIsOpen(false)} className="h-8 px-4 text-xs">
@@ -634,17 +565,6 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
               </div>
             </div>
           </Card>
-          <ConfirmationDialog
-            isOpen={confirmOpen}
-            onClose={() => setConfirmOpen(false)}
-            onConfirm={() => {
-              if (confirmAction) confirmAction()
-            }}
-            title={confirmTitle}
-            description={confirmDescription}
-            confirmText="Delete"
-            cancelText="Cancel"
-          />
         </div>
       )}
     </div>

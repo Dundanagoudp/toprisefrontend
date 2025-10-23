@@ -97,6 +97,7 @@ export default function EnhancedOrderFilters({
   };
 
   const handleDateRangeChange = (range: { from: Date | undefined; to: Date | undefined }) => {
+    console.log("Date range changed:", range);
     const newFilters = { ...filters, dateRange: range };
     setFilters(newFilters);
     onFiltersChange(newFilters);
@@ -266,7 +267,20 @@ export default function EnhancedOrderFilters({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Date Range */}
               <div className="space-y-2">
-                <Label>Date Range</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Date Range</Label>
+                  {(filters.dateRange.from || filters.dateRange.to) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDateRangeChange({ from: undefined, to: undefined })}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -299,6 +313,10 @@ export default function EnhancedOrderFilters({
                       selected={filters.dateRange}
                       onSelect={handleDateRangeChange}
                       numberOfMonths={2}
+                      weekStartsOn={1}
+                      fixedWeeks={true}
+                      showOutsideDays={true}
+                      className="rounded-md border"
                     />
                   </PopoverContent>
                 </Popover>

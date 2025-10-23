@@ -19,13 +19,6 @@ export const markAsRead = async (notificationId: string): Promise<SingleNotifica
   return response.data
 }
 
-// Mark single notification as unread
-export const markAsUnread = async (notificationId: string): Promise<SingleNotificationResponse> => {
-  const response = await apiClient.put<SingleNotificationResponse>(
-    `/notification/api/notification/markAsUnread/${notificationId}`,
-  )
-  return response.data
-}
 
 // Delete single notification
 export const deleteNotification = async (notificationId: string): Promise<SingleNotificationResponse> => {
@@ -41,11 +34,6 @@ export const markAllAsRead = async (userId: string): Promise<MarkAllResponse> =>
   return response.data
 }
 
-// Mark all notifications as unread for a user
-export const markAllAsUnread = async (userId: string): Promise<MarkAllResponse> => {
-  const response = await apiClient.put<MarkAllResponse>(`/notification/api/notification/markAsUnreadAll/${userId}`)
-  return response.data
-}
 
 // Delete all notifications for a user
 export const deleteAllNotifications = async (userId: string): Promise<MarkAllResponse> => {

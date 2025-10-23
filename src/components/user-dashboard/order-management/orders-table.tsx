@@ -223,20 +223,48 @@ export default function OrdersTable() {
     
     // Apply date range filter
     if (enhancedFilters.dateRange.from || enhancedFilters.dateRange.to) {
+      console.log("Date range filter applied:", {
+        from: enhancedFilters.dateRange.from,
+        to: enhancedFilters.dateRange.to,
+        totalOrders: list.length
+      });
+      
       list = list.filter((order: any) => {
-        const orderDate = new Date(order.orderDate || order.date);
+        // Get order date and normalize to start of day for comparison
+        const orderDateStr = order.orderDate || order.date;
+        if (!orderDateStr) return false;
+        
+        const orderDate = new Date(orderDateStr);
+        const orderDateOnly = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate());
+        
         const fromDate = enhancedFilters.dateRange.from;
         const toDate = enhancedFilters.dateRange.to;
         
         if (fromDate && toDate) {
-          return orderDate >= fromDate && orderDate <= toDate;
+          // Normalize dates to start of day for proper comparison
+          const fromDateOnly = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+          const toDateOnly = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+          
+          const isInRange = orderDateOnly >= fromDateOnly && orderDateOnly <= toDateOnly;
+          console.log("Date comparison:", {
+            orderDate: orderDateOnly.toISOString().split('T')[0],
+            fromDate: fromDateOnly.toISOString().split('T')[0],
+            toDate: toDateOnly.toISOString().split('T')[0],
+            isInRange
+          });
+          
+          return isInRange;
         } else if (fromDate) {
-          return orderDate >= fromDate;
+          const fromDateOnly = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+          return orderDateOnly >= fromDateOnly;
         } else if (toDate) {
-          return orderDate <= toDate;
+          const toDateOnly = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+          return orderDateOnly <= toDateOnly;
         }
         return true;
       });
+      
+      console.log("Filtered orders count:", list.length);
     }
     
     // Apply order value filter

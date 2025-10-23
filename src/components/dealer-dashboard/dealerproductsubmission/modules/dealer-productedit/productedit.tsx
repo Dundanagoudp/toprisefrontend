@@ -301,11 +301,104 @@ export default function DealerProductEdit() {
     }
   }, [watch("category")]);
 
+  // Watch for category changes and fetch subcategories
+  useEffect(() => {
+    const categoryId = watch("category");
+    if (categoryId) {
+      const fetchSubCategoriesByCategory = async () => {
+        try {
+          const response = await getSubCategories(categoryId);
+          if (response.success && Array.isArray(response.data)) {
+            setSubCategoryOptions(response.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch subcategories:", error);
+        }
+      };
+      fetchSubCategoriesByCategory();
+    } else {
+      setSubCategoryOptions([]);
+    }
+  }, [watch("category")]);
+
+  // Fetch subcategories when product loads (in case category is already set)
+  useEffect(() => {
+    if (product && product.category?._id) {
+      const fetchSubCategoriesByCategory = async () => {
+        try {
+          const response = await getSubCategories(product.category._id);
+          if (response.success && Array.isArray(response.data)) {
+            setSubCategoryOptions(response.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch subcategories for product:", error);
+        }
+      };
+      fetchSubCategoriesByCategory();
+    }
+  }, [product]);
+
+  // Fetch dependent dropdown options when product loads
+  useEffect(() => {
+    if (!product) return;
+
+    const fetchDependentOptions = async () => {
+      try {
+        // Fetch brands if vehicle type is available
+        if (product.brand?.type) {
+          const brandsResponse = await getBrandByType(product.brand.type);
+          if (brandsResponse.success && Array.isArray(brandsResponse.data)) {
+            setBrandOptions(brandsResponse.data);
+          }
+        }
+
+        // Fetch models if brand is available
+        if (product.brand?._id) {
+          const modelsResponse = await getModelByBrand(product.brand._id);
+          if (modelsResponse.success && Array.isArray(modelsResponse.data)) {
+            setModelOptions(modelsResponse.data);
+          }
+        }
+
+        // Fetch variants if model is available
+        if (product.model?._id) {
+          const variantsResponse = await getvarientByModel(product.model._id);
+          if (variantsResponse.success && Array.isArray(variantsResponse.data)) {
+            setVarientOptions(variantsResponse.data);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch dependent options:", error);
+      }
+    };
+
+    fetchDependentOptions();
+  }, [product]);
+
+  // Additional useEffect to ensure brand options are loaded for edit mode
+  useEffect(() => {
+    if (product && product.brand?.type && brandOptions.length === 0) {
+      const fetchBrandsForEdit = async () => {
+        try {
+          const response = await getBrandByType(product.brand.type);
+          if (response.success && Array.isArray(response.data)) {
+            setBrandOptions(response.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch brands for edit:", error);
+        }
+      };
+      fetchBrandsForEdit();
+    }
+  }, [product, brandOptions.length]);
+
   // Populate form with fetched product data
   useEffect(() => {
     if (product) {
       console.log("Setting form values for product:", product);
-      reset({
+      // Use setTimeout to ensure dependent dropdowns are loaded first
+      const populateForm = () => {
+        reset({
         sku_code: product.sku_code || "",
         manufacturer_part_name: product.manufacturer_part_name || "",
         product_name: product.product_name || "",
@@ -332,7 +425,6 @@ export default function DealerProductEdit() {
         fitment_notes: product.fitment_notes || "",
         is_universal: typeof product.is_universal === "boolean" ? product.is_universal : false,
         is_consumable: typeof product.is_consumable === "boolean" ? product.is_consumable : false,
-        keySpecifications: product.key_specifications || "",
         dimensions: (product as any).dimensions || "",
         weight: product.weight?.toString() || "",
         certifications: product.certifications || "",
@@ -364,7 +456,11 @@ export default function DealerProductEdit() {
         searchTags: product.search_tags?.join(",") || "",
         search_tags: product.search_tags || [],
         seo_description: product.seo_description || "",
-      });
+        });
+      };
+
+      // Delay form population to allow dependent dropdowns to load
+      setTimeout(populateForm, 100);
       
       // Initialize image previews for existing images
       if (product.images && Array.isArray(product.images)) {
@@ -457,14 +553,21 @@ export default function DealerProductEdit() {
   }, [product, typeOptions, setValue]);
 
   useEffect(() => {
-    // Brand - Wait for brandOptions to be populated
-    if (product && brandOptions.length > 0 && product.brand) {
-      const selectedBrandObj = brandOptions.find(
-        (b) => b._id === product.brand?._id
-      );
-      if (selectedBrandObj) {
-        setSelectedBrandId(selectedBrandObj._id);
-        setValue("brand", selectedBrandObj._id);
+    // Brand - Set immediately when product loads, then update when options are available
+    if (product && product.brand) {
+      if (brandOptions.length > 0) {
+        // Options are loaded, find and set the correct brand
+        const selectedBrandObj = brandOptions.find(
+          (b) => b._id === product.brand?._id
+        );
+        if (selectedBrandObj) {
+          setSelectedBrandId(selectedBrandObj._id);
+          setValue("brand", selectedBrandObj._id);
+        }
+      } else {
+        // Options not loaded yet, set the brand ID directly
+        setSelectedBrandId(product.brand._id);
+        setValue("brand", product.brand._id);
       }
     }
   }, [product, brandOptions, setValue]);
@@ -1246,27 +1349,6 @@ export default function DealerProductEdit() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Key Specifications */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="keySpecifications"
-                className="text-sm font-medium"
-              >
-                Key Specifications
-              </Label>
-              <Input
-                id="keySpecifications"
-                placeholder="Enter Key Specifications"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("keySpecifications")}
-                disabled={Boolean(allowedFields && !allowedFields.includes("keySpecifications"))}
-              />
-              {errors.keySpecifications && (
-                <span className="text-red-500 text-sm">
-                  {errors.keySpecifications.message}
-                </span>
-              )}
-            </div>
             {/* Dimensions */}
             <div className="space-y-2">
               <Label htmlFor="dimensions" className="text-sm font-medium">

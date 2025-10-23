@@ -64,7 +64,6 @@ const schema = z.object({
   is_universal: z.string().optional(),
   is_consumable: z.string().optional(),
   // Technical Specifications
-  keySpecifications: z.string().optional(),
   weight: z.coerce.number().min(0, "Weight must be a positive number").optional(),
   certifications: z.string().optional(),
   warranty: z.string().optional(),
@@ -338,6 +337,26 @@ export default function ProductEdit() {
     }
   }, [watch("category")]);
 
+  // Watch for category changes and fetch subcategories
+  useEffect(() => {
+    const categoryId = watch("category");
+    if (categoryId) {
+      const fetchSubCategoriesByCategory = async () => {
+        try {
+          const response = await getSubCategories(categoryId);
+          if (response.success && Array.isArray(response.data)) {
+            setSubCategoryOptions(response.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch subcategories:", error);
+        }
+      };
+      fetchSubCategoriesByCategory();
+    } else {
+      setSubCategoryOptions([]);
+    }
+  }, [watch("category")]);
+
   // Also fetch dealers when product loads (in case category is already set)
   useEffect(() => {
     if (product && product.category?._id) {
@@ -345,55 +364,88 @@ export default function ProductEdit() {
     }
   }, [product]);
 
+  // Fetch subcategories when product loads (in case category is already set)
+  useEffect(() => {
+    if (product && product.category?._id) {
+      const fetchSubCategoriesByCategory = async () => {
+        try {
+          const response = await getSubCategories(product.category._id);
+          if (response.success && Array.isArray(response.data)) {
+            setSubCategoryOptions(response.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch subcategories for product:", error);
+        }
+      };
+      fetchSubCategoriesByCategory();
+    }
+  }, [product]);
+
   // Populate form with fetched product data
   useEffect(() => {
     if (product) {
-      reset({
-        sku_code: product.sku_code || "",
-        manufacturer_part_name: product.manufacturer_part_name || "",
-        product_name: product.product_name || "",
-        brand: product.brand?._id || "",
-        vehicle_type: product.brand?.type || "",
-        hsn_code: product.hsn_code || "",
-        category: product.category?._id || "",
-        sub_category: product.sub_category?._id || "",
-        product_type: product.product_type || "",
-        no_of_stock: product.no_of_stock,
-        selling_price: product.selling_price,
-        updatedBy: product.updated_at || "",
-        admin_notes: product.admin_notes || "",
-        make: product.make && product.make.length > 0 ? product.make[0] : "",
-        make2: product.make && product.make.length > 1 ? product.make[1] : "",
-       
-        model: product.model?._id || "",
-        year_range:
-          product.year_range && product.year_range.length > 0
-            ? product.year_range[0]._id
-            : "",
-        variant:
-          product.variant && product.variant.length > 0
-            ? product.variant[0]._id
-            : "",
-        fitment_notes: product.fitment_notes || "",
-        is_universal: product.is_universal ? "yes" : "no",
-        is_consumable: product.is_consumable ? "yes" : "no",
-        keySpecifications: product.key_specifications || "",
-        weight: product.weight?.toString() || "",
-        certifications: product.certifications || "",
-        warranty: product.warranty?.toString() || "",
-        images: product.images?.join(",") || "",
-        videoUrl: (product as any).video_url || (product as any).videoUrl || "",
-        mrp_with_gst: product.mrp_with_gst?.toString() || "",
-        gst_percentage: product.gst_percentage?.toString() || "",
-        is_returnable: product.is_returnable ? "yes" : "no",
-        return_policy: product.return_policy || "",
-        dealerAssignments: [],
-        LastinquiredAt: product.last_stock_inquired || "",
-        seo_title: product.seo_title || "",
-        searchTags: product.search_tags?.join(",") || "",
-        search_tags: product.search_tags || [],
-        seo_description: product.seo_description || "",
-      });
+      // Use setTimeout to ensure dependent dropdowns are loaded first
+      const populateForm = () => {
+        reset({
+          sku_code: product.sku_code || "",
+          manufacturer_part_name: product.manufacturer_part_name || "",
+          product_name: product.product_name || "",
+          brand: product.brand?._id || "",
+          vehicle_type: product.brand?.type || "",
+          hsn_code: product.hsn_code || "",
+          category: product.category?._id || "",
+          sub_category: product.sub_category?._id || "",
+          product_type: product.product_type || "",
+          no_of_stock: product.no_of_stock,
+          selling_price: product.selling_price,
+          updatedBy: product.updated_at || "",
+          admin_notes: product.admin_notes || "",
+          make: product.make && product.make.length > 0 ? product.make[0] : "",
+          make2: product.make && product.make.length > 1 ? product.make[1] : "",
+         
+          model: product.model?._id || "",
+          year_range:
+            product.year_range && product.year_range.length > 0
+              ? product.year_range[0]._id
+              : "",
+          variant:
+            product.variant && product.variant.length > 0
+              ? product.variant[0]._id
+              : "",
+          fitment_notes: product.fitment_notes || "",
+          is_universal: product.is_universal ? "yes" : "no",
+          is_consumable: product.is_consumable ? "yes" : "no",
+          weight: product.weight?.toString() || "",
+          certifications: product.certifications || "",
+          warranty: product.warranty?.toString() || "",
+          images: product.images?.join(",") || "",
+          videoUrl: (product as any).video_url || (product as any).videoUrl || "",
+          mrp_with_gst: product.mrp_with_gst?.toString() || "",
+          gst_percentage: product.gst_percentage?.toString() || "",
+          is_returnable: product.is_returnable ? "yes" : "no",
+          return_policy: product.return_policy || "",
+          dealerAssignments: [],
+          LastinquiredAt: product.last_stock_inquired || "",
+          seo_title: product.seo_title || "",
+          searchTags: product.search_tags?.join(",") || "",
+          search_tags: product.search_tags || [],
+          seo_description: product.seo_description || "",
+        });
+        
+        // Set brand ID for model dependency
+        if (product.brand?._id) {
+          setSelectedBrandId(product.brand._id);
+        }
+        
+        // Set model ID for variant dependency
+        if (product.model?._id) {
+          setModelId(product.model._id);
+        }
+      };
+
+      // Delay form population to allow dependent dropdowns to load
+      setTimeout(populateForm, 100);
+
       // Initialize image previews for existing images
       if (product.images && Array.isArray(product.images)) {
         setExistingImages(product.images);
@@ -442,6 +494,60 @@ export default function ProductEdit() {
     }
   }, [product, setValue]);
 
+  // Fetch dependent dropdown options when product loads
+  useEffect(() => {
+    if (!product) return;
+
+    const fetchDependentOptions = async () => {
+      try {
+        // Fetch brands if vehicle type is available
+        if (product.brand?.type) {
+          const brandsResponse = await getBrandByType(product.brand.type);
+          if (brandsResponse.success && Array.isArray(brandsResponse.data)) {
+            setBrandOptions(brandsResponse.data);
+          }
+        }
+
+        // Fetch models if brand is available
+        if (product.brand?._id) {
+          const modelsResponse = await getModelByBrand(product.brand._id);
+          if (modelsResponse.success && Array.isArray(modelsResponse.data)) {
+            setModelOptions(modelsResponse.data);
+          }
+        }
+
+        // Fetch variants if model is available
+        if (product.model?._id) {
+          const variantsResponse = await getvarientByModel(product.model._id);
+          if (variantsResponse.success && Array.isArray(variantsResponse.data)) {
+            setVarientOptions(variantsResponse.data);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch dependent options:", error);
+      }
+    };
+
+    fetchDependentOptions();
+  }, [product]);
+
+  // Additional useEffect to ensure brand options are loaded for edit mode
+  useEffect(() => {
+    if (product && product.brand?.type && brandOptions.length === 0) {
+      const fetchBrandsForEdit = async () => {
+        try {
+          const response = await getBrandByType(product.brand.type);
+          if (response.success && Array.isArray(response.data)) {
+            setBrandOptions(response.data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch brands for edit:", error);
+        }
+      };
+      fetchBrandsForEdit();
+    }
+  }, [product, brandOptions.length]);
+
   // Prepopulate dependent dropdowns in correct order after product data loads
 
   
@@ -453,16 +559,23 @@ export default function ProductEdit() {
   }, [product, typeOptions, setValue]);
 
   useEffect(() => {
-    // Brand
-    if (product && brandOptions.length > 0 && product.brand) {
-      const selectedBrandObj = brandOptions.find(
-        (b) =>
-          b.brand_name === product.brand?.brand_name ||
-          b._id === product.brand?._id
-      );
-      if (selectedBrandObj) {
-        setSelectedBrandId(selectedBrandObj._id);
-        setValue("brand", selectedBrandObj._id); // Set ID, not name
+    // Brand - Set immediately when product loads, then update when options are available
+    if (product && product.brand) {
+      if (brandOptions.length > 0) {
+        // Options are loaded, find and set the correct brand
+        const selectedBrandObj = brandOptions.find(
+          (b) =>
+            b.brand_name === product.brand?.brand_name ||
+            b._id === product.brand?._id
+        );
+        if (selectedBrandObj) {
+          setSelectedBrandId(selectedBrandObj._id);
+          setValue("brand", selectedBrandObj._id);
+        }
+      } else {
+        // Options not loaded yet, set the brand ID directly
+        setSelectedBrandId(product.brand._id);
+        setValue("brand", product.brand._id);
       }
     }
   }, [product, brandOptions, setValue]);
@@ -1108,26 +1221,6 @@ export default function ProductEdit() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Key Specifications */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="keySpecifications"
-                className="text-sm font-medium"
-              >
-                Key Specifications
-              </Label>
-              <Input
-                id="keySpecifications"
-                placeholder="Enter Key Specifications"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("keySpecifications")}
-              />
-              {errors.keySpecifications && (
-                <span className="text-red-500 text-sm">
-                  {errors.keySpecifications.message}
-                </span>
-              )}
-            </div>
             {/* Weight */}
             <div className="space-y-2">
               <Label htmlFor="weight" className="text-sm font-medium">

@@ -8,11 +8,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { getvarient, getModels, getYearRange } from "@/service/product-Service";
+import { getvarient, getModels, getYearRange, deleteVariant } from "@/service/product-Service";
 import { updateVariant } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import UpdateModal from "../UpdateModal";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 
 export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
     const [variants, setVariants] = useState<any[]>([]);
@@ -24,6 +25,8 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
     const [updateModalOpen, setUpdateModalOpen] = useState(false);
     const [selectedVariant, setSelectedVariant] = useState<any>(null);
+    const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+    const { showToast } = useGlobalToast();
     const itemPerPage = 10;
 
     // Filter and sort variants
@@ -156,6 +159,25 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
         await fetchData();
     };
 
+    const handleDelete = async (variantId: string) => {
+        if (!confirm("Are you sure you want to delete this variant?")) return;
+
+        try {
+            setDeleteLoading(variantId);
+            await deleteVariant(variantId);
+            showToast("Variant deleted successfully", "success");
+            fetchData();
+        } catch (error: any) {
+            console.error("Error deleting variant:", error);
+            showToast(
+                error?.response?.data?.message || "Failed to delete variant",
+                "error"
+            );
+        } finally {
+            setDeleteLoading(null);
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -234,13 +256,28 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
                                     </span>
                                 </TableCell>
                                 <TableCell>
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={() => handleEditVariant(item)}
-                                    >
-                                        Edit
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => handleEditVariant(item)}
+                                        >
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleDelete(item._id)}
+                                            disabled={deleteLoading === item._id}
+                                            title="Delete"
+                                        >
+                                            {deleteLoading === item._id ? (
+                                                <div className="h-4 w-4 border-2 border-gray-300 border-t-red-600 rounded-full animate-spin" />
+                                            ) : (
+                                                <Trash2 className="h-4 w-4 text-red-600" />
+                                            )}
+                                        </Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))
