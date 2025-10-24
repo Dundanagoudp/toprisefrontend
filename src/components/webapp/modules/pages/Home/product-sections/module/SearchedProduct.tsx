@@ -200,27 +200,33 @@ const SearchResults = () => {
     }
   }, [category, categoryName, vehicleTypeId, query]);
 
-  // Handle brand click - update search query and trigger new search
-  const handleBrandClick = async (brandName: string) => {
-    let newQuery: string;
-
-    if (categoryName) {
-      // If we're in category mode, combine category and brand
-      newQuery = `${categoryName} ${brandName}`.trim();
+  // Handle brand click - navigate to brand selection page
+  const handleBrandClick = async (brandName: string, brandId?: string) => {
+    if (vehicleTypeId) {
+      // Navigate to brand selection page
+      router.push(`/shop/brands/${vehicleTypeId}`);
     } else {
-      // If we're in regular search mode, combine existing query with brand
-      newQuery = `${query} ${brandName}`.trim();
+      // Fallback to original behavior if no vehicleTypeId
+      let newQuery: string;
+
+      if (categoryName) {
+        // If we're in category mode, combine category and brand
+        newQuery = `${categoryName} ${brandName}`.trim();
+      } else {
+        // If we're in regular search mode, combine existing query with brand
+        newQuery = `${query} ${brandName}`.trim();
+      }
+
+      console.log("Brand clicked:", brandName, "New query:", newQuery);
+
+      // Update URL with new query
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.set("query", newQuery);
+      // Remove category parameters since we're now doing a query search
+      newSearchParams.delete("category");
+      newSearchParams.delete("categoryName");
+      router.push(`?${newSearchParams.toString()}`);
     }
-
-    console.log("Brand clicked:", brandName, "New query:", newQuery);
-
-    // Update URL with new query
-    const newSearchParams = new URLSearchParams(searchParams.toString());
-    newSearchParams.set("query", newQuery);
-    // Remove category parameters since we're now doing a query search
-    newSearchParams.delete("category");
-    newSearchParams.delete("categoryName");
-    router.push(`?${newSearchParams.toString()}`);
   };
 
   // Handle model click - fetch variants for selected model and show them
@@ -403,11 +409,18 @@ const SearchResults = () => {
           }
 
           // Check is_brand, is_model, is_variant, and is_product flags
- 
+
           const brandFlag = response.is_brand || false;
           const modelFlag = response.is_model || false;
           const variantFlag = response.is_variant || false;
           const productFlag = response.is_product || false;
+          
+          // If brands are detected and we have vehicleTypeId, redirect to brand selection page
+          if (brandFlag && vehicleTypeId) {
+            router.push(`/shop/brands/${vehicleTypeId}`);
+            return;
+          }
+          
           setIsBrand(brandFlag);
           setIsModel(modelFlag);
           setIsVariant(variantFlag);
@@ -899,7 +912,7 @@ const SearchResults = () => {
                         <div
                           key={brand._id}
                           className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
-                          onClick={() => handleBrandClick(brand.brand_name)}
+                          onClick={() => handleBrandClick(brand.brand_name, brand._id)}
                         >
                           <div className="flex flex-col items-center gap-3">
                             <img

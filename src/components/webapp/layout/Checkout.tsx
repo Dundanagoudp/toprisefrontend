@@ -1,4 +1,12 @@
 "use client";
+
+// Declare Razorpay type for TypeScript
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 import {
   Package,
   FileText,
@@ -18,7 +26,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { paymentCreation } from "@/service/user/payment-service";
-import {useRazorpay} from "react-razorpay";
+// Razorpay integration without react-razorpay package
 import {
   addAddress,
   createOrders,
@@ -41,7 +49,6 @@ import BillingAddressForm, { AddressFormValues } from "./BillingAddressForm";
 import { StepProgressBar } from "@/components/common/StepProgressBar";
 import type { Step } from "@/components/common/StepProgressBar";
 import { prepareOrderBody, preparePaymentBody } from "../common/PaymentBodyType";
-import { CurrencyCode } from "react-razorpay/dist/constants/currency";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -69,7 +76,21 @@ export default function CheckoutPage() {
   const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
   const quantityUpdateTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ;
-    const { Razorpay } = useRazorpay();
+
+  // Load Razorpay dynamically
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => {
+        resolve(window.Razorpay);
+      };
+      script.onerror = () => {
+        resolve(null);
+      };
+      document.body.appendChild(script);
+    });
+  };
   const checkoutSteps: Step[] = [
     { id: "address", label: "Address", icon: User },
     { id: "delivery", label: "Delivery", icon: Package },
@@ -223,7 +244,7 @@ const handlePayment = async () => {
     const options = {
       key: RAZORPAY_KEY_ID || "", 
       amount: order?.payment?.amount || Math.round((cart.grandTotal || 0) * 100), // Convert to paise
-      currency: "INR" as CurrencyCode ,
+      currency: "INR",
       name: "Toprise",
       description: `Payment for order - ₹${Math.round(cart.grandTotal || 0)}`,
       order_id: order.razorpayOrderId,
@@ -256,6 +277,12 @@ const handlePayment = async () => {
       }
     };
 
+    // Load Razorpay dynamically and open payment modal
+    const Razorpay = await loadRazorpay() as any;
+    if (!Razorpay) {
+      throw new Error("Failed to load Razorpay");
+    }
+    
     const rzpay = new Razorpay(options);
     rzpay.open();
     

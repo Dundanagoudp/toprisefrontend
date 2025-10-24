@@ -19,22 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -86,13 +73,9 @@ import {
   Play,
 } from "lucide-react";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import SearchInput from "@/components/common/search/SearchInput";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import DynamicButton from "@/components/common/button/button";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
-import useDebounce from "@/utils/useDebounce";
 import {
   getProductRequests,
   getProductRequestStats,
@@ -121,7 +104,6 @@ export default function ProductRequests() {
   const [stats, setStats] = useState<ApprovalStatsResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateRangeLoading, setDateRangeLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(true);
   
   // Pagination state
@@ -130,12 +112,7 @@ export default function ProductRequests() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
   
-  // Filter states
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [selectedPriority, setSelectedPriority] = useState<string>("all");
+  // Date range filter state
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -155,14 +132,6 @@ export default function ProductRequests() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [reviewNotes, setReviewNotes] = useState("");
   
-  // Debounced search
-  const { debouncedCallback: debouncedSearch } = useDebounce(
-    (query: string) => {
-      setSearchQuery(query);
-      setCurrentPage(1);
-    },
-    500
-  );
 
   // Fetch requests
   const fetchRequests = useCallback(async () => {
@@ -170,17 +139,12 @@ export default function ProductRequests() {
       setLoading(true);
       setError(null);
       
-      const filters: ProductRequestFilters = {
-        search: searchQuery || undefined,
-        status: selectedStatus !== "all" ? selectedStatus as any : undefined,
-        requestType: selectedType !== "all" ? selectedType as any : undefined,
-        priority: selectedPriority !== "all" ? selectedPriority as any : undefined,
+      const filters = {
         startDate: dateRange.from?.toISOString(),
         endDate: dateRange.to?.toISOString(),
       };
 
-      console.log('Fetching requests with filters:', filters);
-      console.log('Date range:', dateRange);
+      console.log('Fetching requests with date range:', filters);
 
       const response = await getProductRequests(currentPage, itemsPerPage, filters);
       
@@ -202,7 +166,7 @@ export default function ProductRequests() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchQuery, selectedStatus, selectedType, selectedPriority, dateRange]);
+  }, [currentPage, dateRange]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -248,29 +212,19 @@ export default function ProductRequests() {
 
   // Load data on mount and when filters change
   useEffect(() => {
-    console.log('Date range changed:', dateRange);
+    console.log('Filters changed, fetching requests...');
     fetchRequests();
   }, [fetchRequests]);
-
-  // Debug date range changes and trigger API call
-  useEffect(() => {
-    console.log('Date range state updated:', dateRange);
-    // Trigger API call when date range changes
-    if (dateRange.from || dateRange.to) {
-      console.log('Date range filter applied, fetching data...');
-      setDateRangeLoading(true);
-      fetchRequests().finally(() => setDateRangeLoading(false));
-    }
-  }, [dateRange, fetchRequests]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
-  // Handle search
-  const handleSearchChange = (value: string) => {
-    setSearchInput(value);
-    debouncedSearch(value);
+  // Handle date range change
+  const handleDateRangeChange = (range: { from: Date | undefined; to: Date | undefined }) => {
+    console.log('Date range changed:', range);
+    setDateRange(range);
+    setCurrentPage(1); // Reset to first page when filter changes
   };
 
   // Handle selection
@@ -599,147 +553,28 @@ export default function ProductRequests() {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Date Range Filter */}
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter products by various criteria</CardDescription>
+          <CardTitle>Date Range Filter</CardTitle>
+          <CardDescription>Filter products by creation date range</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {/* Search Bar - Full Width */}
-            <div className="w-full">
-              <Label htmlFor="search-filter" className="mb-2 block">Search</Label>
-              <SearchInput
-                id="search-filter"
-                placeholder="Search products..."
-                value={searchInput}
-                onChange={handleSearchChange}
-                onClear={() => {
-                  setSearchInput("");
-                  setSearchQuery("");
-                }}
-                className="h-10 w-full"
-              />
-            </div>
-
-            {/* Filters Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="status-filter">Status</Label>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger id="status-filter" className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="in_review">In Review</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="type-filter">Type</Label>
-                <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger id="type-filter" className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="new_product">New Product</SelectItem>
-                    <SelectItem value="update_product">Update Product</SelectItem>
-                    <SelectItem value="price_change">Price Change</SelectItem>
-                    <SelectItem value="stock_update">Stock Update</SelectItem>
-                    <SelectItem value="category_change">Category Change</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="priority-filter">Priority</Label>
-              <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                <SelectTrigger id="priority-filter" className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            </div>
-
-            {/* Date Range Filter - Full Width */}
-            <div className="w-full">
-              <Label htmlFor="date-range-filter" className="mb-2 block">
-                Date Range
-                {(dateRange.from || dateRange.to) && (
-                  <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                    {dateRangeLoading ? 'Filtering...' : 'Filter Active'}
-                  </span>
-                )}
-              </Label>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="date-range-filter"
-                      variant="outline"
-                      className={cn(
-                        "w-full sm:w-[280px] h-10 justify-start text-left font-normal",
-                        !dateRange.from && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "LLL dd, y")} -{" "}
-                            {format(dateRange.to, "LLL dd, y")}
-                          </>
-                        ) : (
-                          format(dateRange.from, "LLL dd, y")
-                        )
-                      ) : (
-                        <span>Pick a date range</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-50" align="start" side="bottom" sideOffset={4}>
-                    <CalendarComponent
-                      initialFocus
-                      mode="range"
-                      defaultMonth={dateRange.from}
-                      selected={dateRange}
-                      onSelect={(range) => {
-                        console.log('Date range selected:', range);
-                        setDateRange(range || { from: undefined, to: undefined });
-                      }}
-                      numberOfMonths={2}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {(dateRange.from || dateRange.to) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-10"
-                    onClick={() => {
-                      console.log('Clearing date range');
-                      setDateRange({ from: undefined, to: undefined });
-                    }}
-                  >
-                    Clear
-                  </Button>
-                )}
-              </div>
-            </div>
+          <div className="w-full">
+            <Label htmlFor="date-range-filter" className="mb-2 block">
+              Date Range
+              {(dateRange.from || dateRange.to) && (
+                <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                  Filter Active
+                </span>
+              )}
+            </Label>
+            <SimpleDatePicker
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              placeholder="Select date range"
+              className="w-full"
+            />
           </div>
         </CardContent>
       </Card>

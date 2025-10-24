@@ -25,7 +25,8 @@ export async function getProductRequests(
         )),
     });
 
-    const response = await apiClient.get(`/category/products/v1/pending`);
+    console.log('API call with params:', params.toString());
+    const response = await apiClient.get(`/category/products/v1/pending?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch product requests:", error);
