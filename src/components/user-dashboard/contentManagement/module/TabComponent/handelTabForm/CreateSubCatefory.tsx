@@ -266,7 +266,7 @@ export default function CreateSubCategory({ open, onClose, onSuccess }: CreateSu
                   <SelectContent>
                     {category && Array.isArray(category) && category.length > 0 ? (
                       category.map((option) => (
-                        <SelectItem key={option?._id || Math.random()} value={option?._id || ""}>
+                        <SelectItem key={option?._id || Math.random()} value={option?._id || "unknown"}>
                           {option?.category_name || "Unknown Category"}
                         </SelectItem>
                       ))

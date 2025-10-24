@@ -1578,11 +1578,11 @@ export default function ProductEdit() {
                             </SelectTrigger>
                             <SelectContent>
                               {loadingDealers ? (
-                                <SelectItem value="" disabled>
+                                <SelectItem value="loading" disabled>
                                   Loading dealers...
                                 </SelectItem>
                               ) : availableDealers.length === 0 ? (
-                                <SelectItem value="" disabled>
+                                <SelectItem value="no-dealers" disabled>
                                   No dealers available for this category
                                 </SelectItem>
                               ) : (
