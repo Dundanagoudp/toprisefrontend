@@ -8,6 +8,7 @@ interface ValidateReturnRequestProps {
   open: boolean;
   onClose: () => void;
   onValidationComplete?: (success: boolean) => void;
+  onNextStep?: () => void;
   returnId: string | null;
 }
 
@@ -15,6 +16,7 @@ export default function ValidateReturnRequest({
   open, 
   onClose, 
   onValidationComplete,
+  onNextStep,
   returnId 
 }: ValidateReturnRequestProps) {
   const [isValidating, setIsValidating] = useState(false)
@@ -32,10 +34,7 @@ export default function ValidateReturnRequest({
       if (response.success) {
         setSuccess(true)
         onValidationComplete?.(true)
-        // Auto close after showing success for 1.5 seconds
-        setTimeout(() => {
-          handleClose()
-        }, 1500)
+        // Don't auto close - let user choose next step
       } else {
         setError("Failed to validate return request. Please try again.")
       }
@@ -130,6 +129,29 @@ export default function ValidateReturnRequest({
                 "Validate Request"
               )}
             </Button>
+          </DialogFooter>
+        )}
+
+        {success && (
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              className="flex-1"
+            >
+              Close
+            </Button>
+            {onNextStep && (
+              <Button
+                onClick={() => {
+                  onNextStep()
+                  handleClose()
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                Next Step
+              </Button>
+            )}
           </DialogFooter>
         )}
       </DialogContent>

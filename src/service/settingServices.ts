@@ -95,6 +95,20 @@ export const updateModule = async (data: UpdateModuleRequest): Promise<UpdateMod
 }
 
 /**
+ * Deletes a permission module.
+ * This corresponds to the DELETE /api/users/api/permissionMatrix/modules endpoint.
+ * @param data The request body containing the module name and updater's user ID.
+ * @returns A promise that resolves to the DeleteModuleResponse.
+ */
+export const deleteModule = async (data: {
+  module: string;
+  updatedBy: string;
+}): Promise<{ message: string; data: any }> => {
+  const response = await apiClient.delete(`${BASE_PATH}/modules`, { data });
+  return response.data;
+}
+
+/**
  * Updates a user's permissions within a specific module and role.
  * This corresponds to the PUT /api/users/api/permissionMatrix/permissions/update endpoint.
  * @param data The request body containing module, role, user ID, new permission details, and updater's user ID.

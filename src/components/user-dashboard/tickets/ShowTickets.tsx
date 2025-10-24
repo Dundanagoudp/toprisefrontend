@@ -231,15 +231,31 @@ export default function ShowTickets() {
 
       {/* Filters Modal */}
       {isFiltersOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-4">Filter Tickets</h3>
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setIsFiltersOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Filter Tickets</h3>
+              <button
+                onClick={() => setIsFiltersOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <select 
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   value={filters.status}
                   onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                 >
@@ -253,9 +269,9 @@ export default function ShowTickets() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Assigned</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Assigned</label>
                 <select 
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   value={filters.assigned}
                   onChange={(e) => setFilters(prev => ({ ...prev, assigned: e.target.value }))}
                 >
@@ -266,9 +282,9 @@ export default function ShowTickets() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Date Range</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
                 <select 
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   value={filters.dateRange}
                   onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
                 >
@@ -285,12 +301,12 @@ export default function ShowTickets() {
                 variant="outline"
                 text="Clear Filters"
                 onClick={() => setFilters({ status: "", assigned: "", dateRange: "" })}
-                className="flex-1"
+                className="flex-1 border-gray-300 hover:bg-gray-50"
               />
               <DynamicButton
                 text="Apply Filters"
                 onClick={() => setIsFiltersOpen(false)}
-                className="flex-1"
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
               />
             </div>
           </div>

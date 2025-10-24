@@ -37,6 +37,7 @@ export default function OrderAnalyticsFilters({ filters, onFiltersChange }: Orde
 
   // Apply filters
   const applyFilters = () => {
+    console.log("Applying order analytics filters:", localFilters);
     onFiltersChange(localFilters);
   };
 

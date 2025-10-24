@@ -67,7 +67,7 @@ export function EditPermissionModal({
       const requestData: UpdateUserPermissionsRequest = {
         module: moduleName,
         role: roleName,
-        userId: userId,
+        userid: userId,
         permissions: {
           allowedFields: allowedFields,
           read: permissions.read,

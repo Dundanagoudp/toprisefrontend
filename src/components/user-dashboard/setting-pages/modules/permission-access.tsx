@@ -15,6 +15,7 @@ import {
   removeRoleFromModule,
   getPermissionsByModuleAndRole,
   removeUserPermissions,
+  deleteModule,
 } from "@/service/settingServices"
 import type { PermissionModule, AccessPermissionRole, UserPermissionDetails } from "@/types/setting-Types"
 import { useToast } from "@/components/ui/toast"
@@ -125,7 +126,7 @@ export default function PermissionAccess() {
       await removeUserPermissions({
         module: activeModule,
         role: activeRole,
-        userId: userId,
+        userid: userId,
         // Removed updatedBy field to fix 500 error
       })
       showToast("User permission removed successfully", "success")
@@ -142,6 +143,26 @@ export default function PermissionAccess() {
 
   const handleRoleAdded = () => {
     fetchModuleRoles(activeModule) // Refresh roles list
+  }
+
+  const handleDeleteModule = async (moduleName: string) => {
+    try {
+      await deleteModule({
+        module: moduleName,
+        updatedBy: "685bf85bee1e2d9c9bd7f1b1" // This should come from logged in user
+      });
+      showToast("Module deleted successfully", "success");
+      
+      // Reset active selections and refresh modules
+      setActiveModule("");
+      setActiveRole("");
+      setModuleRoles([]);
+      setUserPermissions([]);
+      fetchModules();
+    } catch (error) {
+      console.error("Error deleting module:", error);
+      showToast("Failed to delete module", "error");
+    }
   }
 
   const handleRoleClick = (roleName: string) => {
@@ -184,14 +205,29 @@ export default function PermissionAccess() {
                 modules.map((moduleItem) => (
                   <div
                     key={moduleItem._id}
-                    className={`py-1 px-2 cursor-pointer transition-colors ${
+                    className={`flex items-center justify-between py-1 px-2 transition-colors ${
                       activeModule === moduleItem.module
                         ? "text-red-600 font-medium"
                         : "text-black hover:text-gray-700"
                     }`}
-                    onClick={() => setActiveModule(moduleItem.module)}
                   >
-                    {moduleItem.module}
+                    <div
+                      className="cursor-pointer flex-1"
+                      onClick={() => setActiveModule(moduleItem.module)}
+                    >
+                      {moduleItem.module}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteModule(moduleItem.module);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 ))
               )}

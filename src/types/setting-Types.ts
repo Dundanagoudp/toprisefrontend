@@ -154,7 +154,7 @@ export interface UpdateModuleResponse {
 export interface UpdateUserPermissionsRequest {
   module: string
   role: string
-  userId: string | User
+  userid: string | User
   permissions: {
     allowedFields: string[]
     read: boolean
@@ -174,7 +174,7 @@ export interface UpdateUserPermissionsResponse {
 export interface RemoveUserPermissionsRequest {
   module: string
   role: string
-  userId: string | User
+  userid: string | User
   updatedBy?: string | User
 }
 

@@ -20,6 +20,7 @@ export async function fetchDealerAnalytics(
   filters: AnalyticsFilterOptions = {}
 ): Promise<DealerAnalyticsResponse> {
   try {
+    console.log("Fetching dealer analytics with filters:", filters);
     const queryParams = new URLSearchParams();
 
     // Add filters to query params
@@ -33,6 +34,7 @@ export async function fetchDealerAnalytics(
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
 
+    console.log("Dealer analytics URL:", url);
     const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
