@@ -53,10 +53,6 @@ const variantSchema = z.object({
     .min(1, "Variant code must be at least 1 character")
     .max(20, "Variant code must not exceed 20 characters"),
 
-  variant_Description: z
-    .string()
-    .min(10, "Description must be at least 10 characters")
-    .max(500, "Description must not exceed 500 characters"),
 
   model: z.string().min(1, "Please select a model"),
 
@@ -93,7 +89,6 @@ export default function CreateVariant({
     defaultValues: {
       variant_name: "",
       variant_code: "",
-      variant_Description: "",
       model: "",
       Year: [],
     },
@@ -138,7 +133,6 @@ export default function CreateVariant({
         const formData = new FormData();
         formData.append("variant_name", data.variant_name);
         formData.append("variant_code", data.variant_code);
-        formData.append("variant_Description", data.variant_Description);
         formData.append("model", data.model);
         formData.append("created_by", auth.user._id);
         formData.append("updated_by", auth.user._id);
@@ -357,26 +351,6 @@ export default function CreateVariant({
             )}
           </div>
 
-          {/* Variant Description */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="variant_Description"
-              className="text-sm font-medium"
-            >
-              Variant Description <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="variant_Description"
-              placeholder="Enter detailed description (e.g., Top-tier variant with advanced features)"
-              className="bg-gray-50 border-gray-200 rounded-lg min-h-[100px] resize-none"
-              {...register("variant_Description")}
-            />
-            {errors.variant_Description && (
-              <span className="text-red-500 text-sm">
-                {errors.variant_Description.message}
-              </span>
-            )}
-          </div>
 
           <DialogFooter className="gap-2">
             <Button

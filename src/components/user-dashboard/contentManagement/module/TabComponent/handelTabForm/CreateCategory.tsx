@@ -41,11 +41,6 @@ const categorySchema = z.object({
       "Category code must be uppercase letters, numbers, hyphens, or underscores only"
     ),
 
-  category_description: z
-    .string()
-    .min(1, "Category description is required")
-    .min(10, "Description must be at least 10 characters")
-    .max(500, "Description must not exceed 500 characters"),
 
   vehicleType_id: z.string().min(1, "Please select a vehicle type"),
   category_image: z
@@ -98,7 +93,6 @@ export default function CreateCategory({
     defaultValues: {
       category_name: "",
       category_code: "",
-      category_description: "",
       vehicleType_id: "",
       category_image: undefined,
     },
@@ -155,7 +149,6 @@ export default function CreateCategory({
         formData.append("category_name", data.category_name);
         formData.append("category_code", data.category_code);
         formData.append("main_category", "Main category"); // Assuming main_category is not used
-        formData.append("category_description", data.category_description);
         formData.append("created_by", auth.user._id); // Fixed to match Redux structure
         formData.append("updated_by", auth.user._id); // Fixed to match Redux structure
         formData.append("type", data.vehicleType_id); // Fixed: Send vehicleType_id as 'type' field
@@ -372,26 +365,6 @@ export default function CreateCategory({
             </p>
           </div>
 
-          {/* Category Description */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="category_description"
-              className="text-sm font-medium"
-            >
-              Category Description <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="category_description"
-              placeholder="Enter detailed description of the category"
-              className="w-full bg-gray-50 border-gray-200 rounded-lg min-h-[100px] resize-none"
-              {...register("category_description")}
-            />
-            {errors.category_description && (
-              <span className="text-red-500 text-sm">
-                {errors.category_description.message}
-              </span>
-            )}
-          </div>
 
           {/* Image Upload */}
           <div className="space-y-2">

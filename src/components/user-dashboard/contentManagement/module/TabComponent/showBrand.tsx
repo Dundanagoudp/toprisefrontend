@@ -162,15 +162,30 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
 
         try {
             setDeleteLoading(brandId);
-            await deleteBrand(brandId);
-            showToast("Brand deleted successfully", "success");
-            fetchData();
+            const response = await deleteBrand(brandId);
+            
+            // Check if the deletion was successful
+            if (response && (response.success || response.message)) {
+                showToast("Brand deleted successfully", "success");
+                // Refresh the data after successful deletion
+                await fetchData();
+            } else {
+                throw new Error("Deletion failed - no success response");
+            }
         } catch (error: any) {
             console.error("Error deleting brand:", error);
-            showToast(
-                error?.response?.data?.message || "Failed to delete brand",
-                "error"
-            );
+            
+            // Check if the error is because the brand was already deleted
+            const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete brand";
+            
+            if (errorMessage.includes("not found") || errorMessage.includes("brandid is not found")) {
+                // If the brand is not found, it might have been already deleted
+                showToast("Brand may have been already deleted", "warning");
+                // Still refresh the data to update the UI
+                await fetchData();
+            } else {
+                showToast(errorMessage, "error");
+            }
         } finally {
             setDeleteLoading(null);
         }

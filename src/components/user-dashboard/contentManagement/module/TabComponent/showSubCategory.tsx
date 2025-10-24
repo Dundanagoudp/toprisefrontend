@@ -152,15 +152,29 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
 
     try {
       setDeleteLoading(subCategoryId);
-      await deleteSubCategory(subCategoryId);
-      showToast("Subcategory deleted successfully", "success");
-      fetchData();
+      const response = await deleteSubCategory(subCategoryId);
+      
+      // Check if the deletion was successful
+      if (response && (response.success || response.message)) {
+        showToast("Subcategory deleted successfully", "success");
+        await fetchData();
+      } else {
+        throw new Error("Deletion failed - no success response");
+      }
     } catch (error: any) {
       console.error("Error deleting subcategory:", error);
-      showToast(
-        error?.response?.data?.message || "Failed to delete subcategory",
-        "error"
-      );
+      
+      // Check if the error is because the subcategory was already deleted
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete subcategory";
+      
+      if (errorMessage.includes("not found") || errorMessage.includes("subcategoryid is not found")) {
+        // If the subcategory is not found, it might have been already deleted
+        showToast("Subcategory may have been already deleted", "warning");
+        // Still refresh the data to update the UI
+        await fetchData();
+      } else {
+        showToast(errorMessage, "error");
+      }
     } finally {
       setDeleteLoading(null);
     }

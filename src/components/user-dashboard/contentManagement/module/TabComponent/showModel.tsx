@@ -156,15 +156,29 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
 
             try {
                 setDeleteLoading(modelId);
-                await deleteModel(modelId);
-                showToast("Model deleted successfully", "success");
-                fetchData();
+                const response = await deleteModel(modelId);
+                
+                // Check if the deletion was successful
+                if (response && (response.success || response.message)) {
+                    showToast("Model deleted successfully", "success");
+                    await fetchData();
+                } else {
+                    throw new Error("Deletion failed - no success response");
+                }
             } catch (error: any) {
                 console.error("Error deleting model:", error);
-                showToast(
-                    error?.response?.data?.message || "Failed to delete model",
-                    "error"
-                );
+                
+                // Check if the error is because the model was already deleted
+                const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete model";
+                
+                if (errorMessage.includes("not found") || errorMessage.includes("modelid is not found")) {
+                    // If the model is not found, it might have been already deleted
+                    showToast("Model may have been already deleted", "warning");
+                    // Still refresh the data to update the UI
+                    await fetchData();
+                } else {
+                    showToast(errorMessage, "error");
+                }
             } finally {
                 setDeleteLoading(null);
             }
