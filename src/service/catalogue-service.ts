@@ -344,7 +344,7 @@ export const updateSubCategory = async (id: string, formData: FormData): Promise
 
 export const updateBrand = async (id: string, formData: FormData): Promise<any> => {
   try {
-    const response = await apiClient.put(`https://api.toprise.in/products/api/brand/${id}`, formData, {
+    const response = await apiClient.put(`https://api.toprise.in/products/api/brands/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

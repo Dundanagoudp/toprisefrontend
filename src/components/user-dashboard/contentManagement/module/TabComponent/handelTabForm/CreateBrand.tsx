@@ -53,11 +53,6 @@ const brandSchema = z.object({
       "Brand code must be uppercase letters, numbers, hyphens, or underscores only"
     ),
 
-  brand_description: z
-    .string()
-    .min(1, "Brand description is required")
-    .min(10, "Description must be at least 10 characters")
-    .max(500, "Description must not exceed 500 characters"),
 
   type_ref: z.string().min(1, "Please select a type"),
 
@@ -112,7 +107,6 @@ export default function CreateBrand({
     defaultValues: {
       brand_name: "",
       brand_code: "",
-      brand_description: "",
       type_ref: "",
       brand_logo: undefined,
     },
@@ -147,7 +141,6 @@ export default function CreateBrand({
         const formData = new FormData();
         formData.append("brand_name", data.brand_name);
         formData.append("brand_code", data.brand_code);
-        formData.append("brand_description", data.brand_description);
         formData.append("type", data.type_ref);
         formData.append("created_by", auth.user._id);
         formData.append("updated_by", auth.user._id);
@@ -367,23 +360,6 @@ export default function CreateBrand({
             </p>
           </div>
 
-          {/* Brand Description */}
-          <div className="space-y-2">
-            <Label htmlFor="brand_description" className="text-sm font-medium">
-              Brand Description <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="brand_description"
-              placeholder="Enter detailed description (e.g., Best Brand)"
-              className="bg-gray-50 border-gray-200 rounded-lg min-h-[100px] resize-none"
-              {...register("brand_description")}
-            />
-            {errors.brand_description && (
-              <span className="text-red-500 text-sm">
-                {errors.brand_description.message}
-              </span>
-            )}
-          </div>
 
           {/* Image Upload */}
           <div className="space-y-2">

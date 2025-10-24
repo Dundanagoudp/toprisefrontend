@@ -164,15 +164,29 @@ export default function ShowVarient({ searchQuery }: { searchQuery: string }) {
 
         try {
             setDeleteLoading(variantId);
-            await deleteVariant(variantId);
-            showToast("Variant deleted successfully", "success");
-            fetchData();
+            const response = await deleteVariant(variantId);
+            
+            // Check if the deletion was successful
+            if (response && (response.success || response.message)) {
+                showToast("Variant deleted successfully", "success");
+                await fetchData();
+            } else {
+                throw new Error("Deletion failed - no success response");
+            }
         } catch (error: any) {
             console.error("Error deleting variant:", error);
-            showToast(
-                error?.response?.data?.message || "Failed to delete variant",
-                "error"
-            );
+            
+            // Check if the error is because the variant was already deleted
+            const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete variant";
+            
+            if (errorMessage.includes("not found") || errorMessage.includes("variantid is not found")) {
+                // If the variant is not found, it might have been already deleted
+                showToast("Variant may have been already deleted", "warning");
+                // Still refresh the data to update the UI
+                await fetchData();
+            } else {
+                showToast(errorMessage, "error");
+            }
         } finally {
             setDeleteLoading(null);
         }

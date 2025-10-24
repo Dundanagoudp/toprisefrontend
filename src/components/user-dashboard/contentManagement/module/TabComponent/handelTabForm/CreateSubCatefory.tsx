@@ -29,11 +29,6 @@ const subCategorySchema = z.object({
     .max(20, "Subcategory code must not exceed 20 characters")
     .regex(/^[A-Z0-9-_]+$/, "Subcategory code must be uppercase letters, numbers, hyphens, or underscores only"),
 
-  subcategory_description: z
-    .string()
-    .min(1, "Subcategory description is required")
-    .min(10, "Description must be at least 10 characters")
-    .max(500, "Description must not exceed 500 characters"),
 
     category_ref: z.string().min(1, "Please select a category"),
 
@@ -80,7 +75,6 @@ export default function CreateSubCategory({ open, onClose, onSuccess }: CreateSu
     defaultValues: {
       subcategory_name: '',
       subcategory_code: '',
-      subcategory_description: '',
         category_ref: '',
       subcategory_image: undefined,
     }
@@ -121,7 +115,6 @@ export default function CreateSubCategory({ open, onClose, onSuccess }: CreateSu
       const formData = new FormData()
       formData.append('subcategory_name', data.subcategory_name)
       formData.append('subcategory_code', data.subcategory_code)
-      formData.append('subcategory_description', data.subcategory_description)
       formData.append('category_ref', data.category_ref)
       formData.append("created_by", auth.user._id);
       formData.append("updated_by", auth.user._id); 
@@ -326,23 +319,6 @@ export default function CreateSubCategory({ open, onClose, onSuccess }: CreateSu
             </p>
           </div>
 
-          {/* Subcategory Description */}
-          <div className="space-y-2">
-            <Label htmlFor="subcategory_description" className="text-sm font-medium">
-              Subcategory Description <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="subcategory_description"
-              placeholder="Enter detailed description (e.g., hello test subcategory)"
-              className="bg-gray-50 border-gray-200 rounded-lg min-h-[100px] resize-none"
-              {...register("subcategory_description")}
-            />
-            {errors.subcategory_description && (
-              <span className="text-red-500 text-sm">
-                {errors.subcategory_description.message}
-              </span>
-            )}
-          </div>
 
           {/* Image Upload */}
           <div className="space-y-2">

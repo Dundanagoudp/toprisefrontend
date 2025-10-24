@@ -157,15 +157,29 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
 
     try {
       setDeleteLoading(categoryId);
-      await deleteCategory(categoryId);
-      showToast("Category deleted successfully", "success");
-      fetchData();
+      const response = await deleteCategory(categoryId);
+      
+      // Check if the deletion was successful
+      if (response && (response.success || response.message)) {
+        showToast("Category deleted successfully", "success");
+        await fetchData();
+      } else {
+        throw new Error("Deletion failed - no success response");
+      }
     } catch (error: any) {
       console.error("Error deleting category:", error);
-      showToast(
-        error?.response?.data?.message || "Failed to delete category",
-        "error"
-      );
+      
+      // Check if the error is because the category was already deleted
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete category";
+      
+      if (errorMessage.includes("not found") || errorMessage.includes("categoryid is not found")) {
+        // If the category is not found, it might have been already deleted
+        showToast("Category may have been already deleted", "warning");
+        // Still refresh the data to update the UI
+        await fetchData();
+      } else {
+        showToast(errorMessage, "error");
+      }
     } finally {
       setDeleteLoading(null);
     }
