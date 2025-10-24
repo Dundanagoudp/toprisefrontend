@@ -22,7 +22,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +30,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
-import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import Emptydata from "../../Emptydata";
@@ -66,7 +64,6 @@ export default function RejectedProduct({
 }) {
   const dispatch = useAppDispatch();
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
-  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -155,26 +152,6 @@ export default function RejectedProduct({
     return filtered;
   }, [paginatedProducts, sortField, sortDirection]);
 
-  // Selection handlers
-  const handleSelectOne = (id: string) => {
-    const newSelectedProducts = selectedProducts.includes(id)
-      ? selectedProducts.filter((pid) => pid !== id)
-      : [...selectedProducts, id];
-    // Only dispatch to Redux store
-    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
-  };
-
-  const allSelected =
-    filteredProducts.length > 0 &&
-    filteredProducts.every((p: any) => selectedProducts.includes(p._id));
-
-  const handleSelectAll = () => {
-    const newSelectedProducts = allSelected
-      ? []
-      : filteredProducts.map((p: any) => p._id);
-    // Only dispatch to Redux store
-    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
-  };
 
   const handleEditProduct = (id: string) => {
     route.push(`/user/dashboard/product/productedit/${id}`);
@@ -212,13 +189,6 @@ export default function RejectedProduct({
       <Table>
         <TableHeader>
           <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-            <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
-              <Checkbox
-                checked={allSelected}
-                onCheckedChange={handleSelectAll}
-                aria-label="Select all"
-              />
-            </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
               Image
             </TableHead>
@@ -276,9 +246,6 @@ export default function RejectedProduct({
                     index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                   }`}
                 >
-                  <TableCell className="px-4 py-4 w-8">
-                    <Skeleton className="h-4 w-4 rounded" />
-                  </TableCell>
                   <TableCell className="px-6 py-4">
                     <Skeleton className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md" />
                   </TableCell>
@@ -318,13 +285,6 @@ export default function RejectedProduct({
                     index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                   }`}
                 >
-                  <TableCell className="px-4 py-4 w-8 font-[Poppins]">
-                    <Checkbox
-                      checked={selectedProducts.includes(product._id)}
-                      onCheckedChange={() => handleSelectOne(product._id)}
-                      aria-label="Select row"
-                    />
-                  </TableCell>
                   <TableCell className="px-6 py-4 font-[Poppins]">
                     <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                       <Image

@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { approveBulkProducts, aproveProduct, deactivateBulkProducts, deactivateProduct, exportCSV, rejectProduct, getCategories, getSubCategories } from "@/service/product-Service";
+import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, getCategories, getSubCategories } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
@@ -64,9 +64,6 @@ const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [uploadDealerBulkLoading, setUploadDealerBulkLoading] = useState(false);
   const route = useRouter();
   const dispatch = useAppDispatch();
-const selectedProducts = useAppSelector(
-  (state) => state.productIdForBulkAction.products || []
-);
 const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff", "Fulfillment-Admin"];
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -230,65 +227,6 @@ const getStatusColor = (status: string) => {
     setUploadDealerBulkLoading(true);
   };
 
-  // Bulk operation handlers for Select component
-  const handleBulkApprove = async () => {
-    const productIds = Object.values(selectedProducts);
-    if (productIds.length === 0) return;
-    try {
-      const updatedProducts: any[] = [];
-      const requestBody = { productIds };
-      await approveBulkProducts(requestBody);
-      await Promise.all(
-        productIds.map(async (id) => {
-          
-          updatedProducts.push(id);
-        })
-      );
-      // Update Redux for all approved products
-      updatedProducts.forEach((id) => {
-        dispatch(updateProductLiveStatus({ id, liveStatus: "Approved" }));
-      });
-      showToast("Approved successfully", "success");
-      
-      // Trigger refresh in child components
-      setRefreshKey(prev => prev + 1);
-    } catch (error) {
-      console.error("Bulk approve failed:", error);
-      showToast("Approved failed", "error");
-    }
-  };
-const handleBulkReject = useCallback(() => {
-  if (!selectedProducts || selectedProducts.length === 0) {
-    showToast("Please select products to reject", "error");
-    return;
-  }
-  setIsRejectDialogOpen(true);
-}, [selectedProducts, showToast]);
-// Bulk Deactivate handler
-  const handleBulkDeactivate = async () => {
-       const productIds = Object.values(selectedProducts);
-       if (productIds.length === 0) return;
-    try {
-            const updatedProducts: any[] = [];
-             const requestBody = { productIds };
-      await deactivateBulkProducts(requestBody);
-       showToast("Deactivated successfully", "success");
-      await Promise.all(
-        productIds.map(async (id) => {
-             updatedProducts.push(id);
-           })
-         );
-         // Update Redux for all deactivated products
-         updatedProducts.forEach((id) => {
-           dispatch(updateProductLiveStatus({ id, liveStatus: "Pending" }));
-         });
-         
-      // Trigger refresh in child components
-      setRefreshKey(prev => prev + 1);
-    } catch (error) {
-      console.error("Bulk deactivate failed:", error);
-    }
-  };
 
   const tabConfigs: TabConfig[] = useMemo(() => {
     return [
@@ -632,28 +570,6 @@ const handleBulkReject = useCallback(() => {
                 </button>
               ))}
             </nav>
-            {selectedProducts.length > 0 && (
-              <div className="px-4 sm:px-6 flex items-center flex-shrink-0">
-                <DropdownMenu >
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="min-w-[120px] sm:min-w-[140px] text-xs sm:text-sm"
-                      disabled={!allowedRoles.includes(auth.role)}
-                    >Bulk Actions</Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem className="cursor-pointer" onClick={handleBulkApprove}>
-                      Approve Selected
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer" onClick={handleBulkDeactivate}>
-                      Deactivate Selected
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer" onClick={handleBulkReject}>
-                      Reject Selected
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
           </div>
           {/* Tab Content */}
           <div className="min-h-[400px] font-sans">{renderTabContent()}</div>

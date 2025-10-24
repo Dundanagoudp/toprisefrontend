@@ -37,6 +37,7 @@ export default function AnalyticsFilters({ filters, onFiltersChange }: Analytics
 
   // Apply filters
   const applyFilters = () => {
+    console.log("Applying filters:", localFilters);
     onFiltersChange(localFilters);
   };
 

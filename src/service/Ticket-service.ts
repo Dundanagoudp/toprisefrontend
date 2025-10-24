@@ -50,3 +50,16 @@ export async function getTicketByUser(userRef: string): Promise<TicketResponse> 
         throw err
     }
 }
+
+export const updateTicketNotes = async (ticketId: string, notesData: {
+    remarks: string;
+    updated_by: string;
+}): Promise<TicketResponse> => {
+    try {
+        const response = await apiClient.patch(`/orders/api/tickets/updateRemarks/${ticketId}`, notesData);
+        return response.data;
+    } catch (err: any) {
+        console.log("error in update ticket notes", err);
+        throw err;
+    }
+}

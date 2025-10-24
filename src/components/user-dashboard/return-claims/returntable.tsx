@@ -266,6 +266,20 @@ export default function ReturnClaims() {
     }
   };
 
+  const handleValidationNextStep = () => {
+    // After validation, the next step is to schedule pickup
+    if (validationDialog.returnId) {
+      const returnRequest = returnRequests.find(r => r._id === validationDialog.returnId);
+      if (returnRequest) {
+        setSchedulePickupDialog({
+          open: true,
+          returnId: validationDialog.returnId,
+          returnRequest: returnRequest
+        });
+      }
+    }
+  };
+
   // Handle inspect completion
   const handleInspectComplete = (success: boolean) => {
     if (success) {
@@ -876,6 +890,7 @@ export default function ReturnClaims() {
           open={validationDialog.open}
           onClose={handleCloseValidation}
           onValidationComplete={handleValidationComplete}
+          onNextStep={handleValidationNextStep}
           returnId={validationDialog.returnId}
         />
 

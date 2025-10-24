@@ -83,8 +83,38 @@ export default function AnalyticsDashboard() {
 
   // Handle filter changes
   const handleFiltersChange = (newFilters: AnalyticsFilterOptions) => {
+    console.log("Filters changed:", newFilters);
     setFilters(newFilters);
+    // Trigger immediate data fetch with new filters
+    fetchAnalyticsWithFilters(newFilters);
   };
+
+  // Fetch analytics with specific filters
+  const fetchAnalyticsWithFilters = useCallback(async (filterOptions: AnalyticsFilterOptions, showRefreshToast = false) => {
+    try {
+      if (showRefreshToast) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const data = await fetchAllAnalytics(filterOptions);
+      
+      setDealersData(data.dealers);
+      setEmployeesData(data.employees);
+      setPerformanceData(data.performance);
+
+      if (showRefreshToast) {
+        showToast("Analytics data refreshed successfully", "success");
+      }
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      showToast("Failed to fetch analytics data", "error");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [showToast]);
 
   // Handle refresh
   const handleRefresh = () => {

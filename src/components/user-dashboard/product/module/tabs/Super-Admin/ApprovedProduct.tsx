@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronUp, Loader2, MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
-import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import Emptydata from "../../Emptydata";
@@ -83,7 +82,6 @@ export default function ApprovedProduct({
   // Use the correct state for products with live status
 
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
-  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
@@ -218,26 +216,6 @@ export default function ApprovedProduct({
     setTotalProducts(sortedProducts.length);
   }, [sortedProducts]);
 
-  // Selection handlers
-  const handleSelectOne = (id: string) => {
-    const newSelectedProducts = selectedProducts.includes(id)
-      ? selectedProducts.filter((pid) => pid !== id)
-      : [...selectedProducts, id];
-    // Only dispatch to Redux store
-    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
-  };
-
-  const allSelected =
-    sortedProducts.length > 0 &&
-    sortedProducts.every((p: any) => selectedProducts.includes(p._id));
-
-  const handleSelectAll = () => {
-    const newSelectedProducts = allSelected
-      ? []
-      : sortedProducts.map((p: any) => p._id);
-    // Only dispatch to Redux store
-    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
-  };
 
   const handleEditProduct = (id: string) => {
     // Implement navigation or modal logic here
@@ -377,13 +355,6 @@ const handleSortByName = () => {
       <Table>
         <TableHeader>
           <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-            <TableHead className="px-4 py-4 w-8 font-sans">
-              <Checkbox
-                checked={allSelected}
-                onCheckedChange={handleSelectAll}
-                aria-label="Select all"
-              />
-            </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">
               Image
             </TableHead>
@@ -446,9 +417,6 @@ const handleSortByName = () => {
                     index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                   }`}
                 >
-                  <TableCell className="px-4 py-4 w-8">
-                    <Skeleton className="h-4 w-4 rounded" />
-                  </TableCell>
                   <TableCell className="px-6 py-4">
                     <Skeleton className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md" />
                   </TableCell>
@@ -491,13 +459,6 @@ const handleSortByName = () => {
                     index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                   }`}
                 >
-                  <TableCell className="px-4 py-4 w-8 font-[Poppins]">
-                    <Checkbox
-                      checked={selectedProducts.includes(product._id)}
-                      onCheckedChange={() => handleSelectOne(product._id)}
-                      aria-label="Select row"
-                    />
-                  </TableCell>
                   <TableCell className="px-6 py-4 font-[Poppins]">
                     <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                       <Image

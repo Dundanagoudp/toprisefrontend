@@ -31,7 +31,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,7 +39,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronUp, Loader2, MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
-import { fetchProductIdForBulkActionSuccess } from "@/store/slice/product/productIdForBulkAction";
 import { useRouter } from "next/navigation";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import Emptydata from "../../Emptydata";
@@ -75,7 +73,6 @@ export default function PendingProduct({
 }) {
   const dispatch = useAppDispatch();
   const { showToast } = useGlobalToast();
-  const selectedProducts = useAppSelector((state) => state.productIdForBulkAction.products || []);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
   const [totalProducts, setTotalProducts] = useState<number>(0);
@@ -212,14 +209,6 @@ export default function PendingProduct({
     return <Emptydata />;
   }
 
-  // Selection handlers
-  const handleSelectOne = (id: string) => {
-    const newSelectedProducts = selectedProducts.includes(id)
-      ? selectedProducts.filter((pid) => pid !== id)
-      : [...selectedProducts, id];
-    // Only dispatch to Redux store
-    dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
-  };
 
   const handleStatusChange = async (productId: string, newStatus: string) => {
     try {
@@ -245,30 +234,6 @@ export default function PendingProduct({
     }
   };
 
-  const allSelected =
-    filteredProducts.length > 0 &&
-    filteredProducts.every((product: any) =>
-      selectedProducts.includes(product._id)
-    );
-
-  const handleSelectAll = () => {
-    if (allSelected) {
-      const newSelectedProducts = selectedProducts.filter(
-        (id) => !filteredProducts.some((product: any) => product._id === id)
-      );
-      // Only dispatch to Redux store
-      dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
-    } else {
-      const filteredProductIds = filteredProducts.map(
-        (product: any) => product._id
-      );
-      const newSelectedProducts = Array.from(
-        new Set([...selectedProducts, ...filteredProductIds])
-      );
-      // Only dispatch to Redux store
-      dispatch(fetchProductIdForBulkActionSuccess([...newSelectedProducts]));
-    }
-  };
 
   // Navigation handlers
   const handleEditProduct = (id: string) => {
@@ -292,13 +257,6 @@ export default function PendingProduct({
         <Table>
           <TableHeader>
             <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-              <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
-                <Checkbox
-                  checked={allSelected}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Select all"
-                />
-              </TableHead>
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
                 Image
               </TableHead>
@@ -366,9 +324,6 @@ export default function PendingProduct({
                       index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                     }`}
                   >
-                    <TableCell className="px-4 py-4 w-8">
-                      <Skeleton className="h-4 w-4 rounded" />
-                    </TableCell>
                     <TableCell className="px-6 py-4">
                       <Skeleton className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md" />
                     </TableCell>
@@ -411,13 +366,6 @@ export default function PendingProduct({
                       index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                     }`}
                   >
-                    <TableCell className="px-4 py-4 w-8 font-[Poppins]">
-                      <Checkbox
-                        checked={selectedProducts.includes(product._id)}
-                        onCheckedChange={() => handleSelectOne(product._id)}
-                        aria-label="Select row"
-                      />
-                    </TableCell>
                     <TableCell className="px-6 py-4 font-[Poppins]">
                       <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                         <Image
