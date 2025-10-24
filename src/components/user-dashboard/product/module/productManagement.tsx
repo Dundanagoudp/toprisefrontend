@@ -290,65 +290,38 @@ const getStatusColor = (status: string) => {
       <Card className="shadow-sm rounded-none min-w-0">
         {/* Header */}
         <CardHeader className="space-y-4 sm:space-y-6">
-          {/* Top Row: Search/Filters/Requests (left), Upload/Add Product (right) */}
-          <div className="flex flex-col space-y-4 w-full">
-            {/* Search Bar - Full Width */}
-            <div className="w-full">
-              <SearchInput
-                value={searchInput}
-                onChange={handleSearchChange}
-                onClear={handleClearSearch}
-                isLoading={isSearching}
-                placeholder="Search Spare parts..."
-              />
-              {/* Temporary debug button - remove after testing */}
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  console.log("=== FILTER DEBUG INFO ===");
-                  console.log("Current searchInput:", searchInput);
-                  console.log("Current searchQuery:", searchQuery);
-                  console.log("Current isSearching:", isSearching);
-                  console.log("Current activeTab:", activeTab);
-                  console.log("Selected Category ID:", selectedCategoryId);
-                  console.log("Selected Category Name:", selectedCategoryName);
-                  console.log("Selected Subcategory ID:", selectedSubCategoryId);
-                  console.log("Selected Subcategory Name:", selectedSubCategoryName);
-                  console.log("Categories data:", categories);
-                  console.log("Subcategories data:", subCategories);
-                  console.log("Filtered subcategories:", filteredSubCategories);
-                  console.log("Category ID valid:", selectedCategoryId ? /^[0-9a-fA-F]{24}$/.test(selectedCategoryId) : false);
-                  console.log("Subcategory ID valid:", selectedSubCategoryId ? /^[0-9a-fA-F]{24}$/.test(selectedSubCategoryId) : false);
-                  console.log("========================");
-                }}
-                className="mt-2"
-              >
-                Debug Filters
-              </Button>
-            </div>
-            
-            {/* Middle Row: Filters and Action Buttons */}
-            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 w-full">
-              {/* Left: Filter Buttons */}
-              <div className="flex flex-wrap gap-2 sm:gap-3 overflow-x-auto">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <DynamicButton
-                      variant="outline"
-                      customClassName={`bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px] flex-shrink-0 ${
-                        selectedCategoryName || selectedSubCategoryName 
-                          ? "border-blue-300 bg-blue-50 text-blue-700" 
-                          : ""
-                      }`}
-                      text={
-                        selectedCategoryName || selectedSubCategoryName
-                          ? `Filters: ${[selectedCategoryName, selectedSubCategoryName].filter(Boolean).join(" / ")}`
-                          : "Filters"
-                      }
-                    />
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-80 p-4">
+          {/* Search Bar */}
+          <div className="w-full">
+            <SearchInput
+              value={searchInput}
+              onChange={handleSearchChange}
+              onClear={handleClearSearch}
+              isLoading={isSearching}
+              placeholder="Search Spare parts..."
+            />
+          </div>
+          
+          {/* Filters Row */}
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 w-full">
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 overflow-x-auto">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <DynamicButton
+                    variant="outline"
+                    customClassName={`bg-transparent border-gray-300 hover:bg-gray-50 min-w-[120px] flex-shrink-0 h-10 ${
+                      selectedCategoryName || selectedSubCategoryName 
+                        ? "border-blue-300 bg-blue-50 text-blue-700" 
+                        : ""
+                    }`}
+                    text={
+                      selectedCategoryName || selectedSubCategoryName
+                        ? `Filters: ${[selectedCategoryName, selectedSubCategoryName].filter(Boolean).join(" / ")}`
+                        : "Filters"
+                    }
+                  />
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-80 p-4">
                     {/* Clear All Filters Button */}
                     {(selectedCategoryName || selectedSubCategoryName) && (
                       <div className="flex justify-end mb-4">
@@ -472,26 +445,25 @@ const getStatusColor = (status: string) => {
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
-                  </PopoverContent>
-                </Popover>
-                <DynamicButton
-                  variant="outline"
-                  customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0"
-                  text="Export"
-                  onClick={handleDownload}
-                />
-                <DynamicButton
-                  variant="outline"
-                  customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0"
-                  text="Logs"
-                  onClick={() => route.push('/user/dashboard/product/Logs')}
-                  icon={<FileBarChart className="w-4 h-4 mr-2" />}
-                />
-              </div>
+                </PopoverContent>
+              </Popover>
+              <DynamicButton
+                variant="outline"
+                customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
+                text="Export"
+                onClick={handleDownload}
+              />
+              <DynamicButton
+                variant="outline"
+                customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
+                text="Logs"
+                onClick={() => route.push('/user/dashboard/product/Logs')}
+                icon={<FileBarChart className="w-4 h-4 mr-2" />}
+              />
             </div>
             
             {/* Bottom Row: Action Buttons */}
-            <div className="flex flex-wrap gap-2 sm:gap-3 w-full">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full">
               {(auth?.role === "Super-admin" ||
                 auth?.role === "Inventory-Admin" ||
                 auth?.role === "Inventory-Staff") && (
@@ -542,9 +514,7 @@ const getStatusColor = (status: string) => {
             </div>
           </div>
 
-          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 w-full"></div>
         </CardHeader>
-
 
         <CardContent className="p-0 min-w-0 overflow-x-auto">
           {/* Tab Bar */}
@@ -575,21 +545,21 @@ const getStatusColor = (status: string) => {
           <div className="min-h-[400px] font-sans">{renderTabContent()}</div>
         </CardContent>
       </Card>
-          <UploadBulkCard
-              isOpen={isModalOpen}
-              onClose={handleCloseModal} 
-              mode={bulkMode}
-            />
-            <RejectReason
-              isOpen={isRejectDialogOpen}
-              onClose={() => setIsRejectDialogOpen(false)}
-              onSubmit={(data) => {
-                setIsRejectDialogOpen(false);
-                // Trigger refresh after bulk rejection
-                setRefreshKey(prev => prev + 1);
-              }}
-            />
-            
+      
+      <UploadBulkCard
+        isOpen={isModalOpen}
+        onClose={handleCloseModal} 
+        mode={bulkMode}
+      />
+      <RejectReason
+        isOpen={isRejectDialogOpen}
+        onClose={() => setIsRejectDialogOpen(false)}
+        onSubmit={(data) => {
+          setIsRejectDialogOpen(false);
+          // Trigger refresh after bulk rejection
+          setRefreshKey(prev => prev + 1);
+        }}
+      />
     </div>
   );
 }

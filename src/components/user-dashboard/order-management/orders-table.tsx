@@ -154,6 +154,32 @@ export default function OrdersTable() {
     assignedDealer: "all",
   });
   
+  // Force refresh state for date range changes
+  const [dateRangeKey, setDateRangeKey] = useState(0);
+  
+  // Handle enhanced filter changes
+  const handleEnhancedFiltersChange = (newFilters: any) => {
+    console.log("Enhanced filters changed:", newFilters);
+    setEnhancedFilters(newFilters);
+    
+    // Update legacy filters for backward compatibility
+    setFilterStatus(newFilters.status);
+    setFilterPayment(newFilters.paymentMethod);
+    setFilterOrderSource(newFilters.orderSource);
+    setSearchQuery(newFilters.search);
+    
+    // Force refresh for date range changes
+    if (newFilters.dateRange.from !== enhancedFilters.dateRange.from || 
+        newFilters.dateRange.to !== enhancedFilters.dateRange.to) {
+      setDateRangeKey(prev => prev + 1);
+    }
+  };
+  
+  // Force re-render when date range changes
+  useEffect(() => {
+    console.log("Date range key changed, forcing re-render:", dateRangeKey);
+  }, [dateRangeKey]);
+  
   // Enhanced order stats state
   const [enhancedOrderStats, setEnhancedOrderStats] = useState<EnhancedOrderStatsData | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -367,6 +393,7 @@ export default function OrdersTable() {
     enhancedFilters,
     sortField,
     sortDirection,
+    dateRangeKey,
   ]);
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedData = filteredOrders.slice(
@@ -511,16 +538,6 @@ export default function OrdersTable() {
     }
   }, []);
 
-  // Enhanced filter handlers
-  const handleEnhancedFiltersChange = (newFilters: any) => {
-    console.log('Enhanced filters changed:', newFilters);
-    setEnhancedFilters(newFilters);
-    // Update legacy filters for backward compatibility
-    setFilterStatus(newFilters.status);
-    setFilterPayment(newFilters.paymentMethod);
-    setFilterOrderSource(newFilters.orderSource);
-    setSearchQuery(newFilters.search);
-  };
 
   const handleExport = () => {
     // Implement export functionality

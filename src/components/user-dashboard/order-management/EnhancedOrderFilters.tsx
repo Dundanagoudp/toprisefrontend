@@ -18,16 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import {
   Filter,
-  Calendar as CalendarIcon,
   X,
   Search,
   Download,
@@ -36,7 +29,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 
 interface EnhancedOrderFiltersProps {
   onFiltersChange: (filters: OrderFilters) => void;
@@ -98,8 +91,17 @@ export default function EnhancedOrderFilters({
 
   const handleDateRangeChange = (range: { from: Date | undefined; to: Date | undefined }) => {
     console.log("Date range changed:", range);
-    const newFilters = { ...filters, dateRange: range };
+    
+    // Ensure both from and to dates are properly handled
+    const newRange = {
+      from: range.from,
+      to: range.to
+    };
+    
+    const newFilters = { ...filters, dateRange: newRange };
     setFilters(newFilters);
+    
+    // Force immediate filter application
     onFiltersChange(newFilters);
   };
 
@@ -281,45 +283,12 @@ export default function EnhancedOrderFilters({
                     </Button>
                   )}
                 </div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !filters.dateRange.from && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filters.dateRange.from ? (
-                        filters.dateRange.to ? (
-                          <>
-                            {format(filters.dateRange.from, "LLL dd, y")} -{" "}
-                            {format(filters.dateRange.to, "LLL dd, y")}
-                          </>
-                        ) : (
-                          format(filters.dateRange.from, "LLL dd, y")
-                        )
-                      ) : (
-                        <span>Pick a date range</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      initialFocus
-                      mode="range"
-                      defaultMonth={filters.dateRange.from}
-                      selected={filters.dateRange}
-                      onSelect={handleDateRangeChange}
-                      numberOfMonths={2}
-                      weekStartsOn={1}
-                      fixedWeeks={true}
-                      showOutsideDays={true}
-                      className="rounded-md border"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <CustomDatePicker
+                  value={filters.dateRange}
+                  onChange={handleDateRangeChange}
+                  placeholder="Pick a date range"
+                  className="w-full"
+                />
               </div>
 
               {/* Order Value Range */}

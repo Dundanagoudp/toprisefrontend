@@ -49,13 +49,13 @@ export default function ContactPage() {
   )
 
   return (
-    <main className="bg-neutral-100 py-16 px-6">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+    <main className="bg-neutral-100 py-16 px-6 min-h-screen flex items-center">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
         {/* Left side text */}
-        <section className="space-y-6">
+        <section className="space-y-6 lg:pr-8 text-center lg:text-left">
           <h1 className="h2 text-neutral-1000">Get in Touch</h1>
-          <p className="b2 text-neutral-700 max-w-md">
-            We’d love to hear from you. Fill out the form and our team will get back to you as soon
+          <p className="b2 text-neutral-700 max-w-md mx-auto lg:mx-0">
+            We'd love to hear from you. Fill out the form and our team will get back to you as soon
             as possible.
           </p>
           <div className="space-y-2">
@@ -65,10 +65,10 @@ export default function ContactPage() {
         </section>
 
         {/* Right side form */}
-        <section className="bg-white rounded-xl shadow-md p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+        <section className="bg-white rounded-xl shadow-md p-8 lg:ml-4 w-full max-w-lg mx-auto lg:mx-0">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div>
-              <Label htmlFor="enquiry_name">Name</Label>
+              <Label htmlFor="enquiry_name" className="py-2">Name</Label>
               <Input
                 id="enquiry_name"
                 placeholder="Your name"
@@ -81,7 +81,7 @@ export default function ContactPage() {
             </div>
 
             <div>
-              <Label htmlFor="enquiry_phone">Mobile</Label>
+              <Label htmlFor="enquiry_phone" className="py-2">Mobile</Label>
               <Input
                 id="enquiry_phone"
                 type="tel"
@@ -95,7 +95,7 @@ export default function ContactPage() {
             </div>
 
             <div>
-              <Label htmlFor="enquiry_email">Email</Label>
+              <Label htmlFor="enquiry_email" className="py-2">Email</Label>
               <Input
                 id="enquiry_email"
                 type="email"
@@ -109,7 +109,7 @@ export default function ContactPage() {
             </div>
 
             <div>
-              <Label htmlFor="enquiry_message">Message</Label>
+              <Label htmlFor="enquiry_message" className="py-2" >Message</Label>
               <Textarea
                 id="enquiry_message"
                 placeholder="Write your message..."
@@ -122,9 +122,11 @@ export default function ContactPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Sending..." : "Send Message"}
-            </Button>
+            <div className="pt-2">
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Sending..." : "Send Message"}
+              </Button>
+            </div>
           </form>
         </section>
       </div>

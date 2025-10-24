@@ -36,13 +36,6 @@ const SuperAdminDealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, o
   const [dealerNames, setDealerNames] = useState<Record<string, string>>({})
   const [loadingDealers, setLoadingDealers] = useState(false)
 
-  if (!open || !product || !product.available_dealers) {
-    return null
-  }
-
-  const dealerCount = product.available_dealers.length
-  const inStockCount = product.available_dealers.filter((dealer) => dealer.inStock).length
-
   // Fetch dealer names when modal opens
   useEffect(() => {
     if (open && product?.available_dealers) {
@@ -50,7 +43,16 @@ const SuperAdminDealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, o
     }
   }, [open, product])
 
+  if (!open || !product || !product.available_dealers) {
+    return null
+  }
+
+  const dealerCount = product.available_dealers.length
+  const inStockCount = product.available_dealers.filter((dealer) => dealer.inStock).length
+
   const fetchDealerNames = async () => {
+    if (!product?.available_dealers) return
+    
     setLoadingDealers(true)
     try {
       const dealerPromises = product.available_dealers.map(async (dealer) => {
