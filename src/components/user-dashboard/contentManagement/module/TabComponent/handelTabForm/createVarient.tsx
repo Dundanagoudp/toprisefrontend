@@ -231,7 +231,7 @@ export default function CreateVariant({
                   <SelectContent>
                     {models && Array.isArray(models) && models.length > 0
                       ? models.map((option: Model) => (
-                          <SelectItem key={option?._id || Math.random()} value={option?._id || ""}>
+                          <SelectItem key={option?._id || Math.random()} value={option?._id || "unknown"}>
                             {option?.model_name || "Unknown Model"}
                           </SelectItem>
                         ))
@@ -302,7 +302,7 @@ export default function CreateVariant({
                   <SelectContent>
                     {years && Array.isArray(years) && years.length > 0
                       ? years.map((option: Year) => (
-                          <SelectItem key={option?._id || Math.random()} value={option?._id || ""}>
+                          <SelectItem key={option?._id || Math.random()} value={option?._id || "unknown"}>
                             {option?.year_name || "Unknown Year"}
                           </SelectItem>
                         ))

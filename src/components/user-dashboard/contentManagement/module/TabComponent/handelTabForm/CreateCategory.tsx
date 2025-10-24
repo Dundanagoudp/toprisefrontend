@@ -317,7 +317,7 @@ export default function CreateCategory({
                       ))
                     ) : (
                       !typeLoading && (
-                        <SelectItem value="" disabled>
+                        <SelectItem value="no-types" disabled>
                           No vehicle types available
                         </SelectItem>
                       )
