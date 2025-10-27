@@ -15,6 +15,7 @@ import {
   smartSearchWithCategory,
 } from "@/service/user/smartSearchService";
 import { getVariantsByModel } from "@/service/product-Service";
+import { getProductsByFilterWithIds } from "@/service/product-Service";
 import { Product, Brand } from "@/types/User/Search-Types";
 import { useAppSelector } from "@/store/hooks";
 import { selectVehicleType } from "@/store/slice/vehicle/vehicleSlice";
@@ -38,6 +39,7 @@ interface Model {
 import ModelListing from "@/components/webapp/modules/pages/Home/category/module/ModelListing";
 import VariantListing from "@/components/webapp/modules/pages/Home/category/module/VariantListing";
 import ProductListing from "@/components/webapp/modules/pages/Home/category/module/ProductListing";
+import SearchModal from "./SearchModal";
 
 // Variant interface for API response
 interface Variant {
@@ -65,6 +67,9 @@ const SearchResults = () => {
   const category = searchParams.get("category");
   const categoryName = searchParams.get("categoryName");
   const vehicleTypeId = searchParams.get("vehicleTypeId");
+  const brand = searchParams.get("brand");
+  const model = searchParams.get("model");
+  const variant = searchParams.get("variant");
   const vehicleType = useAppSelector(selectVehicleType);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -88,6 +93,7 @@ const SearchResults = () => {
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(100000);
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
 
   const noVehicleResults =
     Boolean(vehicleTypeId) &&
@@ -199,6 +205,60 @@ const SearchResults = () => {
       fetchCategoryBrands();
     }
   }, [category, categoryName, vehicleTypeId, query]);
+
+  // Handle product fetching when brand, model, variant, and category are present
+  useEffect(() => {
+    if (brand && model && variant && category) {
+      const fetchFilteredProducts = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          console.log("Fetching products with filters:", { brand, model, variant, category });
+          
+          const response = await getProductsByFilterWithIds(
+            "", // product_type (not used)
+            brand, // brandId
+            model, // modelId
+            variant, // variantId
+            category, // categoryId
+            undefined, // sub_categoryId
+            undefined, // sort_by
+            undefined, // min_price
+            undefined, // max_price
+            1, // page
+            50 // limit
+          );
+
+          console.log("Products API Response:", response);
+
+          let extractedProducts: any[] = [];
+
+          // Handle different possible response structures
+          if (response && response.data) {
+            if (Array.isArray(response.data)) {
+              extractedProducts = response.data;
+            } else if (response.data.products && Array.isArray(response.data.products)) {
+              extractedProducts = response.data.products;
+            }
+          }
+
+          setProducts(extractedProducts as Product[]);
+          setIsProduct(true);
+          setIsBrand(false);
+          setIsModel(false);
+          setIsVariant(false);
+          setIsCategory(false);
+        } catch (err) {
+          console.error("Error fetching filtered products:", err);
+          setError("Failed to load products");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchFilteredProducts();
+    }
+  }, [brand, model, variant, category]);
 
   // Handle brand click - navigate to brand selection page
   const handleBrandClick = async (brandName: string, brandId?: string) => {
@@ -876,27 +936,22 @@ const SearchResults = () => {
               <main>
                 {/* Page Header */}
                 <div className="mb-6 flex items-center justify-between">
-                  <h1 className="text-2xl font-bold text-foreground mb-4">
+                  {/* <h1 className="text-2xl font-bold text-foreground mb-4">
                     {isCategory && categoryName
                       ? `Brands in "${categoryName}" Category`
                       : `Search Results for "${query}"`}
-                  </h1>
+                  </h1> */}
 
-                  {/* Search Bar */}
-                  {/* <div className="relative max-w-md ml-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    className="w-full pl-10 pr-4 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                  />
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                    <SearchIcon className="w-4 h-4" />
-                  </div>
-                </div>
-              </div> */}
+                  {/* Search Button */}
+                  {vehicleTypeId && (
+                    <button
+                      onClick={() => setIsSearchModalOpen(true)}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2"
+                    >
+                      <SearchIcon className="w-4 h-4" />
+                      Search Products
+                    </button>
+                  )}
                 </div>
                 {/* Brand Display - grid of all brands */}
                 {(isBrand || isCategory) && brandData.length > 0 && (
@@ -1125,6 +1180,16 @@ const SearchResults = () => {
           </div>
         </div>
       </div>
+
+      {/* Search Modal */}
+      {vehicleTypeId && (
+        <SearchModal
+          isOpen={isSearchModalOpen}
+          onClose={() => setIsSearchModalOpen(false)}
+          vehicleTypeId={vehicleTypeId}
+          vehicleType={vehicleType}
+        />
+      )}
     </>
   );
 };

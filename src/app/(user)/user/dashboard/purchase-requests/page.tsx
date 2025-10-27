@@ -19,8 +19,7 @@ import {
   Filter,
   Download,
   FileText,
-  ExternalLink,
-  Calendar
+  ExternalLink
 } from "lucide-react"
 import SearchInput from "@/components/common/search/SearchInput"
 import { useAppSelector } from "@/store/hooks"
@@ -35,14 +34,7 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from "@/components/ui/pagination"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { Calendar as CalendarComponent } from "@/components/ui/calendar"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker"
 
 interface PurchaseDocument {
   _id: string
@@ -90,8 +82,10 @@ export default function PurchaseRequestsPage() {
   const [pagination, setPagination] = useState<PaginationData | null>(null)
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined)
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined)
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined
+  })
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [isExporting, setIsExporting] = useState(false)
@@ -278,10 +272,10 @@ export default function PurchaseRequestsPage() {
     }
 
     // Date range filter
-    if (dateFrom || dateTo) {
+    if (dateRange.from || dateRange.to) {
       const requestDate = new Date(request.createdAt)
-      const fromDate = dateFrom ? new Date(dateFrom) : null
-      const toDate = dateTo ? new Date(dateTo) : null
+      const fromDate = dateRange.from ? new Date(dateRange.from) : null
+      const toDate = dateRange.to ? new Date(dateRange.to) : null
       
       if (fromDate && toDate) {
         if (requestDate < fromDate || requestDate > toDate) return false
@@ -338,58 +332,14 @@ export default function PurchaseRequestsPage() {
             
             {/* Advanced Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Date From */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">From Date</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !dateFrom && "text-muted-foreground"
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {dateFrom ? format(dateFrom, "PPP") : "Pick date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={dateFrom}
-                      onSelect={setDateFrom}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Date To */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">To Date</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !dateTo && "text-muted-foreground"
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {dateTo ? format(dateTo, "PPP") : "Pick date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={dateTo}
-                      onSelect={setDateTo}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+              {/* Date Range */}
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Date Range</label>
+                <SimpleDatePicker
+                  value={dateRange}
+                  onChange={setDateRange}
+                  placeholder="Select date range"
+                />
               </div>
 
               {/* Status Filter */}
@@ -431,8 +381,7 @@ export default function PurchaseRequestsPage() {
                   variant="outline" 
                   className="gap-2 flex-shrink-0"
                   onClick={() => {
-                    setDateFrom(undefined)
-                    setDateTo(undefined)
+                    setDateRange({ from: undefined, to: undefined })
                     setStatusFilter("all")
                     setPriorityFilter("all")
                     setSearchQuery("")

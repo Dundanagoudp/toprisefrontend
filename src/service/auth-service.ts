@@ -65,15 +65,24 @@ export const checkEmailVerification = async (): Promise<boolean> => {
 };
 export const checkUserExists = async (phone_Number: string): Promise<boolean> => {
   try {
+    console.log("checkUserExists called with phone:", phone_Number);
+    console.log("Making POST request to: /users/api/users/check-user");
+    console.log("Request body:", { phone_Number });
+    
     const response = await apiClient.post("/users/api/users/check-user", {
       phone_Number,
     }, {
       withCredentials: true,
     });
 
-    return response.data.data.exists;
+    console.log("checkUserExists response:", response.data);
+    const exists = response.data.data.exists;
+    console.log("User exists:", exists);
+    
+    return exists;
   } catch (error: any) {
     console.error("Check user exists failed:", error);
+    console.error("Error details:", error.response?.data || error.message);
     throw error;
   }
 };

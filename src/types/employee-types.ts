@@ -65,6 +65,7 @@ export type Employee = {
   designation?: string
   department?: string
   status?: string
+  active?: boolean
   accessLevel?: string
   roleDescription?: string
   sendLoginInvite?: boolean

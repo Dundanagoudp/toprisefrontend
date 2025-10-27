@@ -16,17 +16,25 @@ export async function getProductRequests(
   filters?: ProductRequestFilters
 ): Promise<ProductRequestResponse> {
   try {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(filters &&
-        Object.fromEntries(
-          Object.entries(filters).filter(([_, value]) => value !== undefined)
-        )),
-    });
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    
+    // Add filters if provided
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+    }
 
-    console.log('API call with params:', params.toString());
+    console.log('Fetching product requests with params:', params.toString());
+    console.log('Filters passed:', filters);
+    
     const response = await apiClient.get(`/category/products/v1/pending?${params.toString()}`);
+    
+    console.log('API Response:', response.data);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch product requests:", error);
