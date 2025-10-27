@@ -60,11 +60,27 @@ export function UserLoginForm({
 
     setOtpLoading(true);
     try {
+      // First, check if user exists
+      console.log("Checking if user exists with phone:", phoneE164);
+      console.log("API endpoint: /users/api/users/check-user");
+      const userExists = await checkUserExists(phoneE164);
+      console.log("User exists check result:", userExists);
+      
+      if (!userExists) {
+        console.log("User doesn't exist, showing error toast");
+        showToast("User doesn't exist. Please sign up first.", "error");
+        setOtpLoading(false);
+        return;
+      }
+
+      console.log("User exists, proceeding with OTP send");
+      // If user exists, proceed with sending OTP
       const result = await firebasePhoneAuth.sendOTP(phoneE164);
       setConfirmationResult(result);
       setOtpSent(true);
       showToast(`OTP sent to ${phoneE164}`, "success");
     } catch (err: any) {
+      console.error("Error in handleSendOTP:", err);
       showToast(err.message || "Failed to send OTP", "error");
     } finally {
       setOtpLoading(false);

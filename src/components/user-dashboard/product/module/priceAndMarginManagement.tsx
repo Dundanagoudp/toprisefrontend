@@ -78,6 +78,7 @@ import slaViolationsService from "@/service/slaViolations-Service";
 import SLAViolationsDashboard from "@/components/user-dashboard/sla-violations/SLAViolationsDashboard";
 import { getAllDealers } from "@/service/dealerServices";
 import { getOrders } from "@/service/order-service";
+import { useToast } from "@/components/ui/toast";
 
 // Types for SLA Violations
 interface SLAViolation {
@@ -250,6 +251,7 @@ export default function SLAViolationsAndReporting() {
   const route = useRouter();
   const payload = getTokenPayload();
   const isAllowed = payload?.role === "Inventory-Admin" || payload?.role === "Super-admin";
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedViolationIds, setSelectedViolationIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("tabular");
@@ -655,6 +657,7 @@ export default function SLAViolationsAndReporting() {
       });
       
       console.log("Dealer contacted successfully");
+      showToast("Dealer contacted successfully!", "success");
       setShowContactModal(false);
       setSelectedViolationId(null);
       setCustomMessage("Please address this SLA violation immediately");
@@ -665,6 +668,7 @@ export default function SLAViolationsAndReporting() {
                 fetchEnhancedViolations();
     } catch (error) {
       console.error("Error contacting dealer:", error);
+      showToast("Failed to contact dealer. Please try again.", "error");
     } finally {
       setActionLoading(false);
     }

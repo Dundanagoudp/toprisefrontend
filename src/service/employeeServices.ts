@@ -101,6 +101,31 @@ export async function revokeRole(id: string, data: any): Promise<any> {
   }
 }
 
+/**
+ * Reactivates an employee's role.
+ * @param employeeId The unique identifier of the employee.
+ * @param updatedBy The ID of the user performing the reactivation.
+ * @returns A Promise that resolves to the API response.
+ */
+export async function reactivateRole(employeeId: string, updatedBy: string): Promise<any> {
+  try {
+    console.log("Reactivating employee:", employeeId);
+    console.log("Updated by:", updatedBy);
+    console.log("API endpoint: /users/api/users/employee/reactivate-role");
+    
+    const response = await apiClient.put(`/users/api/users/employee/reactivate-role`, {
+      employeeId,
+      updatedBy
+    });
+    
+    console.log("Reactivate role response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to reactivate role for employee with id ${employeeId}:`, error);
+    throw error;
+  }
+}
+
 // New API functions for region and dealer filtering
 
 /**

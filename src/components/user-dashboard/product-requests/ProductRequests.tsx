@@ -100,7 +100,8 @@ export default function ProductRequests() {
   const { showToast } = useGlobalToast();
   
   // State management
-  const [requests, setRequests] = useState<ProductRequest[]>([]);
+  const [allRequests, setAllRequests] = useState<ProductRequest[]>([]); // Store all fetched data
+  const [requests, setRequests] = useState<ProductRequest[]>([]); // Filtered data to display
   const [stats, setStats] = useState<ApprovalStatsResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,40 +134,40 @@ export default function ProductRequests() {
   const [reviewNotes, setReviewNotes] = useState("");
   
 
-  // Fetch requests
+  // Fetch requests - fetch all data without filters
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const filters = {
-        startDate: dateRange.from?.toISOString(),
-        endDate: dateRange.to?.toISOString(),
-      };
+      console.log('Fetching all product requests...');
 
-      console.log('Fetching requests with date range:', filters);
-
-      const response = await getProductRequests(currentPage, itemsPerPage, filters);
+      const response = await getProductRequests(currentPage, itemsPerPage);
       
       if (response.success) {
-        // Handle the actual API response structure
-        const products = response.data.products || response.data || [];
-        setRequests(products);
-        setTotalPages(response.data.pagination?.pages || 1);
-        setTotalItems(response.data.pagination?.total || products.length);
-        console.log('Fetched products:', products.length);
+        // Handle the API response structure from /category/products/v1/pending
+        const products = response.data?.products || [];
+        const pagination = response.data?.pagination || {};
+        
+        console.log('Products fetched:', products.length);
+        console.log('Pagination:', pagination);
+        
+        // Store all fetched data
+        setAllRequests(products);
+        setTotalPages(pagination.totalPages || 1);
+        setTotalItems(pagination.totalItems || 0);
       } else {
-        setRequests([]);
+        setAllRequests([]);
         setTotalPages(1);
         setTotalItems(0);
       }
     } catch (error) {
       console.error("Error fetching requests:", error);
-             setError("Failed to load products");
+      setError("Failed to load products");
     } finally {
       setLoading(false);
     }
-  }, [currentPage, dateRange]);
+  }, [currentPage]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -210,9 +211,8 @@ export default function ProductRequests() {
     }
   }, [showToast]);
 
-  // Load data on mount and when filters change
+  // Load data on mount
   useEffect(() => {
-    console.log('Filters changed, fetching requests...');
     fetchRequests();
   }, [fetchRequests]);
 
@@ -220,11 +220,49 @@ export default function ProductRequests() {
     fetchStats();
   }, [fetchStats]);
 
+  // Apply date range filter on client side
+  useEffect(() => {
+    if (dateRange.from || dateRange.to) {
+      const filtered = allRequests.filter((request: any) => {
+        const requestDate = new Date(request.created_at || request.createdAt);
+        const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+        const toDate = dateRange.to ? new Date(dateRange.to) : null;
+        
+        // Set time to start of day for fromDate and end of day for toDate
+        if (fromDate) {
+          fromDate.setHours(0, 0, 0, 0);
+        }
+        if (toDate) {
+          toDate.setHours(23, 59, 59, 999);
+        }
+        
+        requestDate.setHours(0, 0, 0, 0);
+        
+        // Check if request date is within range
+        if (fromDate && toDate) {
+          return requestDate >= fromDate && requestDate <= toDate;
+        } else if (fromDate) {
+          return requestDate >= fromDate;
+        } else if (toDate) {
+          return requestDate <= toDate;
+        }
+        return true;
+      });
+      
+      console.log('Filtered products:', filtered.length);
+      setRequests(filtered);
+    } else {
+      // No filter applied, show all data
+      console.log('No date filter, showing all products');
+      setRequests(allRequests);
+    }
+  }, [allRequests, dateRange]);
+
   // Handle date range change
   const handleDateRangeChange = (range: { from: Date | undefined; to: Date | undefined }) => {
     console.log('Date range changed:', range);
     setDateRange(range);
-    setCurrentPage(1); // Reset to first page when filter changes
+    // No need to reset page or fetch data - filtering is done on client side
   };
 
   // Handle selection
@@ -337,10 +375,6 @@ export default function ProductRequests() {
   const handleExport = async () => {
     try {
       const filters: ProductRequestFilters = {
-        search: searchQuery || undefined,
-        status: selectedStatus !== "all" ? selectedStatus as any : undefined,
-        requestType: selectedType !== "all" ? selectedType as any : undefined,
-        priority: selectedPriority !== "all" ? selectedPriority as any : undefined,
         startDate: dateRange.from?.toISOString(),
         endDate: dateRange.to?.toISOString(),
       };
@@ -663,7 +697,7 @@ export default function ProductRequests() {
                      </TableCell>
                   </TableRow>
                 ) : (
-                  requests?.map((request) => (
+                  requests?.map((request: any) => (
                   <TableRow key={request._id}>
                     <TableCell>
                       <Checkbox
@@ -693,7 +727,7 @@ export default function ProductRequests() {
                     <TableCell>
                       {getPriorityBadge(request.priority || 'medium')}
                     </TableCell>
-                    <TableCell>{getStatusBadge(request.live_status || request.Qc_status || 'pending')}</TableCell>
+                    <TableCell>{getStatusBadge((request as any).Qc_status || (request as any).live_status || 'Pending')}</TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium">System</div>
@@ -704,7 +738,7 @@ export default function ProductRequests() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        {formatDate(request.createdAt || new Date().toISOString())}
+                        {formatDate(request.created_at || request.createdAt || new Date().toISOString())}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -721,7 +755,7 @@ export default function ProductRequests() {
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          {(request.live_status || request.Qc_status || 'pending') === "pending" && (
+                                                     {((request as any).Qc_status === "Pending") && (
                             <>
                               <DropdownMenuItem
                                 onClick={() => handleApprove(request._id)}

@@ -12,6 +12,7 @@ interface SearchInputWithVehiclesProps {
   onChange: (value: string) => void;
   onClear?: () => void;
   onSubmit?: (value: string) => void;
+  onSearchClick?: () => void; // New prop for search button click
   isLoading?: boolean;
   placeholder?: string;
   className?: string;
@@ -23,6 +24,7 @@ const SearchInputWithVehicles: React.FC<SearchInputWithVehiclesProps> = ({
   onChange,
   onClear,
   onSubmit,
+  onSearchClick,
   isLoading = false,
   placeholder = "Search...",
   className = "",
@@ -38,9 +40,10 @@ const SearchInputWithVehicles: React.FC<SearchInputWithVehiclesProps> = ({
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && onSubmit && value.trim()) {
-      onSubmit(value.trim());
-    }
+    // Remove Enter key functionality - only allow search button click
+    // if (e.key === 'Enter' && onSubmit && value.trim()) {
+    //   onSubmit(value.trim());
+    // }
   };
 
   const handleSavedVehicleClick = (vehicle: any) => {
@@ -222,7 +225,17 @@ useEffect(() => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-4 py-0">
+      <div 
+        className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-4 py-0 cursor-pointer"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("Search bar clicked, calling onSearchClick");
+          if (onSearchClick) {
+            onSearchClick();
+          }
+        }}
+      >
         {isLoading ? (
           <Loader2 className="h-5 w-5 text-[#A3A3A3] flex-shrink-0 animate-spin" />
         ) : (
@@ -233,13 +246,26 @@ useEffect(() => {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyPress={handleKeyPress}
-          className="bg-transparent font-[Poppins] border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#A3A3A3] h-10 p-0 flex-1 outline-none shadow-none"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Trigger the parent div click
+            if (onSearchClick) {
+              onSearchClick();
+            }
+          }}
+          className="bg-transparent font-[Poppins] border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[#737373] placeholder:text-[#A3A3A3] h-10 p-0 flex-1 outline-none shadow-none cursor-pointer"
+          readOnly
         />
         {value && onClear && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClear}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClear();
+            }}
             className="h-6 w-6 p-0 hover:bg-gray-200 rounded-full flex-shrink-0"
             type="button"
           >

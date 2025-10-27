@@ -45,12 +45,18 @@ export interface ProductRequestResponse {
   success: boolean;
   message: string;
   data: {
-    requests: ProductRequest[];
+    products: any[]; // Using any[] to support the API response structure
     pagination: {
       page: number;
       limit: number;
       total: number;
       pages: number;
+      totalPages: number;
+      totalItems: number;
+      currentPage: number;
+      itemsPerPage: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
     };
   };
 }

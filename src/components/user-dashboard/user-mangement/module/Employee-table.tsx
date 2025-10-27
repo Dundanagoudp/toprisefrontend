@@ -16,7 +16,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { 
   getAllEmployees, 
-  revokeRole, 
+  revokeRole,
+  reactivateRole,
   getEmployeesByRegion, 
   getFulfillmentStaffByRegion 
 } from "@/service/employeeServices"
@@ -95,6 +96,29 @@ export default function EmployeeTable({
     }
   };
 
+  // Handle role reactivation
+  const handleReactivateRole = async (employeeId: string, employeeName: string) => {
+    try {
+      setIsLoading(true);
+      
+      const updatedBy = auth?._id || "";
+      console.log("Reactivating role for employee:", employeeId);
+      console.log("Updated by:", updatedBy);
+      
+      await reactivateRole(employeeId, updatedBy);
+      
+      // Show success toast
+      showToast(`Role reactivated successfully for ${employeeName}`, "success");
+      
+      // Refresh the employee list to reflect the changes
+      await fetchEmployees();
+    } catch (error: any) {
+      showToast(`Failed to reactivate role: ${error.message || "Unknown error"}`, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle assign region and dealer
   const handleAssignRegionDealer = (employee: Employee) => {
     setSelectedEmployees([employee]);
@@ -153,6 +177,13 @@ export default function EmployeeTable({
         return employee.role !== "User" && employee.role !== "Dealer";
       });
       
+      // Log the active field for debugging
+      console.log("Employee data with active field:", filteredEmployees.map((emp: Employee) => ({
+        name: emp.First_name,
+        active: emp.active,
+        status: emp.status
+      })));
+      
       setEmployees(filteredEmployees);
     } catch (err: any) {
       setError(err);
@@ -192,8 +223,9 @@ export default function EmployeeTable({
         bValue = b.role?.toLowerCase() || "";
         break;
       case "status":
-        aValue = a.status?.toLowerCase() || "";
-        bValue = b.status?.toLowerCase() || "";
+        // Sort by active field first, then by status field as fallback
+        aValue = a.active === true ? "active" : a.active === false ? "inactive" : a.status?.toLowerCase() || "";
+        bValue = b.active === true ? "active" : b.active === false ? "inactive" : b.status?.toLowerCase() || "";
         break;
       default:
         return 0;
@@ -430,10 +462,16 @@ export default function EmployeeTable({
                  <td className="p-3 md:p-4 text-gray-600 text-sm">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      employee.status === "Active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                      employee.active === true || (employee.active === undefined && employee.status === "Active")
+                        ? "bg-green-100 text-green-800" 
+                        : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {employee.status || "Active"}
+                    {employee.active === true 
+                      ? "Active" 
+                      : employee.active === false 
+                      ? "Inactive" 
+                      : employee.status || "Active"}
                   </span>
                 </td>
                 <td className="p-3 md:p-4">
@@ -465,12 +503,20 @@ export default function EmployeeTable({
                           Assign Region & Dealer
                         </DropdownMenuItem>
                       )}
-                      {canPerformAdminActions() && employee.role !== "User" && (
+                      {canPerformAdminActions() && employee.role !== "User" && (employee.active !== false) && (
                         <DropdownMenuItem 
                           onClick={() => handleRevokeRole(employee._id, employee.First_name)}
                           className="text-red-600 hover:text-red-700"
                         >
                           Revoke Role
+                        </DropdownMenuItem>
+                      )}
+                      {canPerformAdminActions() && employee.role !== "User" && employee.active === false && (
+                        <DropdownMenuItem 
+                          onClick={() => handleReactivateRole(employee._id, employee.First_name)}
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          Reactivate Role
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>

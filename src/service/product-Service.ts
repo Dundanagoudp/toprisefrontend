@@ -1027,6 +1027,88 @@ export async function getRandomBanners(vehicleTypeId: string): Promise<ApiRespon
 
 
 
+/**
+ * Intelligent search that auto-detects search intent
+ * @param query Search query string
+ * @param limit Maximum results to return (default: 20)
+ * @param page Page number for pagination (default: 1)
+ * @returns Promise resolving to intelligent search results
+ */
+export async function intelligentSearch(
+  query: string,
+  limit: number = 20,
+  page: number = 1
+): Promise<any> {
+  try {
+    const params = new URLSearchParams();
+    params.append('query', query);
+    params.append('limit', limit.toString());
+    params.append('page', page.toString());
+
+    const response = await apiClient.get(`/category/products/v1/intelligent-search?${params.toString()}`);
+    console.log("Intelligent search response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to perform intelligent search:", error);
+    throw error;
+  }
+}
+
+export async function getProductsByFilterWithIds(
+  product_type: string,
+  brandId: string,
+  modelId: string,
+  variantId: string,
+  categoryId: string,
+  sub_categoryId?: string,
+  sort_by?: string,
+  min_price?: number,
+  max_price?: number,
+  page: number = 1,
+  limit: number = 10
+): Promise<ProductResponse> {
+  try {
+    // Validate input parameters
+    if (page < 1) page = 1;
+    if (limit < 1) limit = 10;
+
+    let url = `/category/products/v1?`;
+    
+    if (brandId && brandId.trim() !== "") {
+      url += `brand=${encodeURIComponent(brandId.trim())}`;
+    }
+    if (modelId && modelId.trim() !== "") {
+      url += `&model=${encodeURIComponent(modelId.trim())}`;
+    }
+    if (variantId && variantId.trim() !== "") {
+      url += `&variant=${encodeURIComponent(variantId.trim())}`;
+    }
+    if (categoryId && categoryId.trim() !== "") {
+      url += `&category=${encodeURIComponent(categoryId.trim())}`;
+    }
+    if (sub_categoryId && sub_categoryId.trim() !== "") {
+      url += `&sub_category=${encodeURIComponent(sub_categoryId.trim())}`;
+    }
+    if (sort_by && sort_by.trim() !== "") {
+      url += `&sort_by=${encodeURIComponent(sort_by.trim())}`;
+    }
+    if (min_price !== undefined && min_price >= 0) {
+      url += `&min_price=${min_price}`;
+    }
+    if (max_price !== undefined && max_price >= 0) {
+      url += `&max_price=${max_price}`;
+    }
+    
+
+    console.log("Fetching products with URL:", url);
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch products by filter:", error);
+    throw error;
+  }
+}
+
 export async function getProductsByFilter(
   product_type: string,
   brand: string,

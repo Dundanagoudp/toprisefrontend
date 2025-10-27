@@ -282,7 +282,7 @@ const handlePayment = async () => {
     if (!Razorpay) {
       throw new Error("Failed to load Razorpay");
     }
-    
+
     const rzpay = new Razorpay(options);
     rzpay.open();
     

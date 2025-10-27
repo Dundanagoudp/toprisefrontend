@@ -12,6 +12,7 @@ import {
 } from "@/service/product-Service"
 import { getVehicleInfo } from "@/service/vehicle-info-service"
 import { useToast } from "@/components/ui/toast"
+import SearchModal from "../product-sections/module/SearchModal"
 
 interface Model {
   _id: string;
@@ -53,6 +54,7 @@ export default function BannerSection() {
   // Number plate search
   const [numberPlate, setNumberPlate] = useState<string>("")
   const [isVehicleSearchLoading, setIsVehicleSearchLoading] = useState<boolean>(false)
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false)
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll)
@@ -344,6 +346,16 @@ const handleVehicleSearch = () => {
                 </div>
               </div>
 
+              {/* Advanced Search Button */}
+              {/* <div className="pt-4 border-t border-white/20">
+                <button
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl mb-4"
+                >
+                  Advanced Product Search
+                </button>
+              </div> */}
+
               {/* App Download CTA */}
               <div className="pt-4 border-t border-white/20">
                 <div className="flex justify-center lg:justify-end">
@@ -369,6 +381,16 @@ const handleVehicleSearch = () => {
           N
         </button>
       </div> */}
+
+      {/* Search Modal */}
+      {typeId && (
+        <SearchModal
+          isOpen={isSearchModalOpen}
+          onClose={() => setIsSearchModalOpen(false)}
+          vehicleTypeId={typeId}
+          vehicleType="Vehicle"
+        />
+      )}
     </section>
   )
 }
