@@ -158,28 +158,25 @@ export default function BannerSection() {
   }, [selectedModel, showToast])
 
   // Handle vehicle search
-const handleVehicleSearch = () => {
-  if (!selectedBrand || !selectedModel) {
-    showToast("Please select at least Brand and Model", "error");
-    return;
-  }
-
-  // Resolve human-readable names from selected ids (fallback to id if name not found)
-  const brandName = brands.find(b => b._id === selectedBrand)?.brand_name || selectedBrand;
-  const modelName = models.find(m => m._id === selectedModel)?.model_name || selectedModel;
-  const variantName = variants.find(v => v._id === selectedVariant)?.variant_name || selectedVariant;
-
-  // Build a single query string (same shape as your working example)
-  const queryParts = [brandName, modelName, variantName].filter(Boolean);
-  const queryStr = queryParts.join(' ').trim();
-
-  const searchParams = new URLSearchParams();
-  if (queryStr) searchParams.append('query', queryStr);
-  if (typeId) searchParams.append('vehicleTypeId', typeId);
-
-  router.push(`/shop/search-results/?${searchParams.toString()}`);
-};
-
+  const handleVehicleSearch = () => {
+    if (!selectedBrand || !selectedModel) {
+      showToast("Please select at least Brand and Model", "error");
+      return;
+    }
+  
+    // Prepare params similar to SearchModal
+    const params = new URLSearchParams();
+    params.set("brand", selectedBrand);
+    params.set("model", selectedModel);
+    if (selectedVariant) params.set("variant", selectedVariant);
+    if (typeId) params.set("vehicleTypeId", typeId);
+  
+    // You can also add a category field later if you want to match full modal flow:
+    // params.set("category", selectedCategoryId);
+  
+    router.push(`/shop/search-results?${params.toString()}`);
+  };
+  
   // Handle number plate search
   const handleNumberPlateSearch = async () => {
     if (!numberPlate.trim()) {

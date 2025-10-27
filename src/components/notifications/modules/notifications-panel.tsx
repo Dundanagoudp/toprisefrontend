@@ -118,6 +118,13 @@ const handleNotificationClick = (notification: Notification, router: any) => {
       case 'settings':
         router.push('/user/dashboard/settings')
         break
+      case 'ticket':
+      case 'support_ticket':
+      case 'ticket_created':
+      case 'ticket_updated':
+      case 'ticket_resolved':
+        router.push('/user/dashboard/tickets')
+        break
       default:
         // Default to dashboard if no specific route is found
         router.push('/user/dashboard')

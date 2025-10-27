@@ -83,6 +83,10 @@ const SearchModal: React.FC<SearchModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [detectedPath, setDetectedPath] = useState<any>(null);
+  
+  // Search type information
+  const [searchType, setSearchType] = useState<string | null>(null);
+  const [searchTypeDetails, setSearchTypeDetails] = useState<any>(null);
 
   // Reset states when modal opens
   useEffect(() => {
@@ -98,6 +102,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
       setVariants([]);
       setCategories([]);
       setDetectedPath(null);
+      setSearchType(null);
+      setSearchTypeDetails(null);
       setError(null);
     }
   }, [isOpen]);
@@ -117,14 +123,18 @@ const SearchModal: React.FC<SearchModalProps> = ({
         return;
       }
 
-      const { type, results, detectedPath: detected, total, hasMore, suggestion } = response.data;
+      const { type, results, detectedPath: detected, total, hasMore, suggestion, searchType: detectedSearchType, searchTypeDetails } = response.data;
       console.log("Search type detected:", type);
+      console.log("Search type:", detectedSearchType);
+      console.log("Search type details:", searchTypeDetails);
       console.log("Results:", results);
       console.log("Detected path:", detected);
       console.log("Total results:", total);
       console.log("Suggestion:", suggestion);
 
       setDetectedPath(detected);
+      setSearchType(detectedSearchType);
+      setSearchTypeDetails(searchTypeDetails);
 
       // Handle different result types
       switch (type) {
@@ -170,6 +180,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
               id: detected.model.id,
               name: detected.model.name,
               code: detected.model.code,
+              status: 'active',
               nextStep: 'variant'
             });
           }
@@ -225,13 +236,26 @@ const SearchModal: React.FC<SearchModalProps> = ({
       const response = await apiClient.get(`/category/api/category/type/${vehicleTypeId}`);
       
       console.log("Categories response:", response);
+      console.log("Response structure:", {
+        hasData: !!response?.data,
+        dataKeys: response?.data ? Object.keys(response.data) : [],
+        hasCategories: !!response?.data?.data?.categories,
+        categoriesLength: response?.data?.data?.categories?.length || 0
+      });
       
       if (response && response.data) {
-        // The response structure is: { success: true, message: "...", data: [...] }
-        const categoriesData = response.data.data || response.data;
+        // The response structure is: { success: true, message: "...", data: { categories: [...] } }
+        const categoriesData = response.data.data?.categories || response.data.categories || response.data.data || response.data;
         const categoryData = Array.isArray(categoriesData) ? categoriesData : [];
-        setCategories(categoryData);
-        setCurrentStep('category');
+        console.log("Parsed categories:", categoryData);
+        console.log("Categories count:", categoryData.length);
+        
+        if (categoryData.length > 0) {
+          setCategories(categoryData);
+          setCurrentStep('category');
+        } else {
+          setError("No categories found for this vehicle type");
+        }
       } else {
         setError("Failed to load categories");
       }
@@ -264,10 +288,10 @@ const SearchModal: React.FC<SearchModalProps> = ({
         if (response.data) {
           if (Array.isArray(response.data)) {
             variantsData = response.data;
-          } else if (response.data.data && Array.isArray(response.data.data)) {
-            variantsData = response.data.data;
-          } else if (response.data.variants && Array.isArray(response.data.variants)) {
-            variantsData = response.data.variants;
+          } else if ((response.data as any).products && Array.isArray((response.data as any).products)) {
+            variantsData = (response.data as any).products;
+          } else if ((response.data as any).data && Array.isArray((response.data as any).data)) {
+            variantsData = (response.data as any).data;
           }
         }
         
@@ -316,6 +340,17 @@ const SearchModal: React.FC<SearchModalProps> = ({
     params.set('model', selectedModel.id);
     params.set('variant', variant.id);
     params.set('category', selectedCategory._id);
+    
+    // Add search type parameters if available
+    if (searchType) {
+      params.set('searchType', searchType);
+    }
+    if (searchTypeDetails) {
+      params.set('searchTypeDetails', JSON.stringify(searchTypeDetails));
+    }
+    if (searchQuery.trim()) {
+      params.set('originalQuery', searchQuery.trim());
+    }
 
     // Navigate to search results page
     router.push(`/shop/search-results?${params.toString()}`);
@@ -324,33 +359,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
 
   
 
-  // Helper function to load products directly when needed
-  const loadProductsDirectly = async (model: Model) => {
-    try {
-      setLoading(true);
-      const searchTerm = `${detectedPath?.brand?.name || ''} ${model.name}`.trim();
-      const response = await intelligentSearch(searchTerm, 50, 1);
-      
-      if (response.success) {
-        const { type, results } = response.data;
-        if (type === 'products' && results && results.length > 0) {
-          setProducts(results);
-        } else {
-          setError("No products found for this model.");
-        }
-      }
-    } catch (err) {
-      console.error("Error loading products directly:", err);
-      setError("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleProductSelect = (product: Product) => {
-    router.push(`/shop/product/${product._id}`);
-    onClose();
-  };
 
   const handleBack = () => {
     switch (currentStep) {
@@ -500,7 +509,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   <div className="flex items-start gap-2">
                     <span className="text-blue-600 font-medium">•</span>
                     <div>
-                      <span className="font-medium">SKU Code:</span> "TOPT1000015", "TOPBRK001"
+                      <span className="font-medium">SKU Code:</span> "TOPT1000015", "TOPBRK001", "Top"
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
@@ -635,39 +644,6 @@ const SearchModal: React.FC<SearchModalProps> = ({
             </div>
           )}
 
-          {currentStep === 'products' && (
-            <div className="space-y-4">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                </div>
-              ) : products.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {products.map((product) => (
-                    <div
-                      key={product._id}
-                      onClick={() => handleProductSelect(product)}
-                      className="p-4 border border-border rounded-lg hover:border-primary/50 cursor-pointer transition-colors"
-                    >
-                      <img
-                        src={buildImageUrl(product.images?.[0])}
-                        alt={product.product_name}
-                        className="w-full h-32 object-cover rounded-md mb-2"
-                      />
-                      <h3 className="font-medium text-sm mb-1">{product.product_name}</h3>
-                      <p className="text-primary font-semibold">
-                        Rs {product.selling_price?.toLocaleString() || 0}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No products found.</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
