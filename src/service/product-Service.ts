@@ -1064,14 +1064,11 @@ export async function getProductsByFilterWithIds(
   sort_by?: string,
   min_price?: number,
   max_price?: number,
-  page: number = 1,
-  limit: number = 10
+  sku_code?: string,
+  product_name?: string,
+  part_name?: string
 ): Promise<ProductResponse> {
   try {
-    // Validate input parameters
-    if (page < 1) page = 1;
-    if (limit < 1) limit = 10;
-
     let url = `/category/products/v1?`;
     
     if (brandId && brandId.trim() !== "") {
@@ -1098,7 +1095,15 @@ export async function getProductsByFilterWithIds(
     if (max_price !== undefined && max_price >= 0) {
       url += `&max_price=${max_price}`;
     }
-    
+    if (sku_code && sku_code.trim() !== "") {
+      url += `&sku_code=${encodeURIComponent(sku_code.trim())}`;
+    }
+    if (product_name && product_name.trim() !== "") {
+      url += `&product_name=${encodeURIComponent(product_name.trim())}`;
+    }
+    if (part_name && part_name.trim() !== "") {
+      url += `&part_name=${encodeURIComponent(part_name.trim())}`;
+    }
 
     console.log("Fetching products with URL:", url);
     const response = await apiClient.get(url);
@@ -1127,33 +1132,35 @@ export async function getProductsByFilter(
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
 
-    let url = `/category/products/v1?product_type=${encodeURIComponent(product_type)}`;
+    let url = `/category/products/v1?`;
+    
+    // Add parameters only if they have values
     if (brand && brand.trim() !== "") {
-      url += `&brand=${encodeURIComponent(brand.trim())}`;
+      url += `brand=${encodeURIComponent(brand.trim())}`;
     }
     if (model && model.trim() !== "") {
-      url += `&model=${encodeURIComponent(model.trim())}`;
+      url += `${url.includes('=') ? '&' : ''}model=${encodeURIComponent(model.trim())}`;
     }
     if (variant && variant.trim() !== "") {
-      url += `&variant=${encodeURIComponent(variant.trim())}`;
+      url += `${url.includes('=') ? '&' : ''}variant=${encodeURIComponent(variant.trim())}`;
     }
     if (sub_category && sub_category.trim() !== "") {
-      url += `&sub_category=${encodeURIComponent(sub_category.trim())}`;
+      url += `${url.includes('=') ? '&' : ''}sub_category=${encodeURIComponent(sub_category.trim())}`;
     }
     if (query && query.trim() !== "") {
       const sanitizedQuery = query.trim().replace(/[<>]/g, "");
       if (sanitizedQuery.length > 0) {
-        url += `&query=${encodeURIComponent(sanitizedQuery)}`;
+        url += `${url.includes('=') ? '&' : ''}query=${encodeURIComponent(sanitizedQuery)}`;
       }
     }
     if (sort_by && sort_by.trim() !== "") {
-      url += `&sort_by=${encodeURIComponent(sort_by.trim())}`;
+      url += `${url.includes('=') ? '&' : ''}sort_by=${encodeURIComponent(sort_by.trim())}`;
     }
     if (min_price) {
-      url += `&min_price=${encodeURIComponent(min_price.toString())}`;
+      url += `${url.includes('=') ? '&' : ''}min_price=${encodeURIComponent(min_price.toString())}`;
     }
     if (max_price) {
-      url += `&max_price=${encodeURIComponent(max_price.toString())}`;
+      url += `${url.includes('=') ? '&' : ''}max_price=${encodeURIComponent(max_price.toString())}`;
     }
     // Removed page and limit parameters as they're causing issues
     // url += `&page=${page}&limit=${limit}`;

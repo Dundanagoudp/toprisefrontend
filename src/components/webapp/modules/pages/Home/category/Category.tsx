@@ -71,7 +71,17 @@ export default function CategorySection() {
   return (
     <section className="py-12 px-4 bg-white">
       <div className="max-w-screen-2xl mx-auto">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">Shop by Categories</h2>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">Shop by Categories</h2>
+          <Button
+            onClick={() => router.push('/shop/categories')}
+            variant="outline"
+            className="flex items-center gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            View More
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
         <div className="relative">
           {/* Left Arrow - Hidden on mobile, visible on desktop */}

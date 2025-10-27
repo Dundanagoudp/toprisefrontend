@@ -34,7 +34,7 @@ interface Model {
 interface VariantListingProps {
   variants: Variant[];
   models: Model | null;
-  onVariantSelect: (variantName: string) => void;
+  onVariantSelect: (variantName: string, variantId?: string) => void;
   isLoading?: boolean;
 }
 
@@ -110,7 +110,7 @@ const VariantListing = ({
           <div
             key={variant._id}
             className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
-            onClick={() => onVariantSelect(variant.variant_name)}
+            onClick={() => onVariantSelect(variant.variant_name, variant._id)}
           >
             <div className="flex flex-col items-center gap-3">
               <img

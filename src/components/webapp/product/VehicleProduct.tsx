@@ -84,7 +84,7 @@ const VehicleProductsPage: React.FC = () => {
     let ignore = false;
     try {
       const response = await getProductsByFilter(
-        pType,
+        "", // product_type - no longer used
         b,
         m,
         v,

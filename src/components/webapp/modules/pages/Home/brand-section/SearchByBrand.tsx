@@ -50,14 +50,18 @@ const SearchByBrand: React.FC<SearchByBrandProps> = ({ className = "" }) => {
   }, [typeId, vehicleType]);
 
   const handleBrandClick = (brand: Brand) => {
-    // Navigate to search page with query parameter
-    const params = new URLSearchParams({
-      query: brand.brand_name,
-      vehicleTypeId: typeId
-    });
-
-    router.push(`/shop/search-results/?${params.toString()}`);
+    if (!brand?._id) {
+      console.warn("No brand ID found for:", brand);
+      return;
+    }
+  
+    const params = new URLSearchParams();
+    params.set("brand", brand._id);
+    if (typeId) params.set("vehicleTypeId", typeId);
+  
+    router.push(`/shop/search-results?${params.toString()}`);
   };
+  
 
   const scrollLeft = () => {
     if (scrollRef.current) {
