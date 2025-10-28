@@ -33,6 +33,7 @@ import {
   type SLAViolationsSummary
 } from "@/service/sla-violations-service";
 import { useToast } from "@/components/ui/toast";
+import { getCookie, getAuthToken } from "@/utils/auth";
 
 interface ViolationCardProps {
   violation: SLAViolation;
@@ -188,20 +189,26 @@ const SummaryCard = ({ summary, loading }: SummaryCardProps) => {
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{summary.totalViolations}</div>
+            <div className="text-2xl font-bold text-gray-900">
+              {summary.totalViolations || 0}
+            </div>
             <div className="text-sm text-gray-600">Total Violations</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{summary.unresolvedViolations}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {summary.unresolvedViolations || 0}
+            </div>
             <div className="text-sm text-gray-600">Unresolved</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{summary.resolvedViolations}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {summary.resolvedViolations || 0}
+            </div>
             <div className="text-sm text-gray-600">Resolved</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">
-              {formatViolationTime(summary.averageViolationMinutes)}
+              {formatViolationTime(summary.averageViolationMinutes || 0)}
             </div>
             <div className="text-sm text-gray-600">Avg Violation Time</div>
           </div>
@@ -228,17 +235,62 @@ export default function DealerSLAViolations() {
       setLoading(true);
       setError(null);
       
+      // Get dealer ID from cookie or token
+      let dealerId = getCookie("dealerId");
+      if (!dealerId) {
+        const token = getAuthToken();
+        if (token) {
+          try {
+            const payloadBase64 = token.split(".")[1];
+            if (payloadBase64) {
+              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+              const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+              const payloadJson = atob(paddedBase64);
+              const payload = JSON.parse(payloadJson);
+              dealerId = payload.dealerId || payload.id;
+            }
+          } catch (err) {
+            console.error("Failed to get dealerId from token:", err);
+          }
+        }
+      }
+      
+      if (!dealerId) {
+        throw new Error("Dealer ID not found in cookie or token");
+      }
+      
+      console.log("Fetching SLA violations for dealer ID:", dealerId);
+      
       const filters: any = {};
       if (statusFilter !== "all") {
         filters.resolved = statusFilter === "resolved";
       }
       
-      const response = await getSLAViolationsByDealer(undefined, page, 10, filters);
+      const response = await getSLAViolationsByDealer(dealerId, page, 10, filters);
       
-      setViolations(response.data.violations);
-      setSummary(response.data.summary);
-      setCurrentPage(response.data.pagination.currentPage);
-      setTotalPages(response.data.pagination.totalPages);
+      console.log("SLA violations response:", response);
+      
+      // Handle the enhanced endpoint response structure
+      setViolations(response.data.violations || []);
+      
+      // Map statistics to summary format with proper validation
+      const statistics = response.data.statistics;
+      const mappedSummary = {
+        totalViolations: Number(statistics?.totalViolations) || 0,
+        resolvedViolations: Number(statistics?.resolvedViolations) || 0,
+        unresolvedViolations: Number(statistics?.unresolvedViolations) || 0,
+        averageViolationMinutes: Number(statistics?.averageViolationMinutes) || 0,
+        criticalViolations: 0, // Not provided in enhanced endpoint
+        highViolations: 0, // Not provided in enhanced endpoint
+        mediumViolations: 0, // Not provided in enhanced endpoint
+        lowViolations: 0, // Not provided in enhanced endpoint
+      };
+      
+      console.log("Mapped summary:", mappedSummary);
+      setSummary(mappedSummary);
+      
+      setCurrentPage(response.data.pagination?.currentPage || 1);
+      setTotalPages(response.data.pagination?.totalPages || 0);
       
     } catch (err) {
       console.error("Failed to fetch SLA violations:", err);

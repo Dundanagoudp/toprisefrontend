@@ -267,11 +267,27 @@ export default function OrdersTable() {
         setPickListLoading(false);
         return;
       }
+      
+      console.log("Fetching pick list for dealer ID:", dealerId);
       const data = await getDealerPickList(dealerId);
-      setPickListData(data);
+      console.log("Pick list data received:", data);
+      
+      // Validate and sanitize the data
+      const validatedData = Array.isArray(data) ? data : [];
+      
+      // Ensure each pick list has a valid skuList array
+      const sanitizedData = validatedData.map((pickList: any) => ({
+        ...pickList,
+        skuList: Array.isArray(pickList.skuList) ? pickList.skuList : []
+      }));
+      
+      console.log("Sanitized pick list data:", sanitizedData);
+      setPickListData(sanitizedData);
       setPickListModalOpen(true);
     } catch (error) {
+      console.error("Error fetching pick list:", error);
       showToast("Failed to fetch pick list.", "error");
+      setPickListData([]); // Set empty array on error
     } finally {
       setPickListLoading(false);
     }
