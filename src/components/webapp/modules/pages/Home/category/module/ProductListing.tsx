@@ -108,64 +108,78 @@ const ProductListing = ({
           Select Product
         </h2>
         <p className="text-muted-foreground">
-          Choose from {products.length} available product{products.length !== 1 ? 's' : ''}
+          Choose from {products.length} product{products.length !== 1 ? 's' : ''}
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {displayedProducts.map((product) => (
-          <div
-            key={product._id}
-            className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all"
-          >
-            <div className="flex flex-col gap-3">
-              <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                <img
-                  src={buildImageUrl(product.images?.[0])}
-                  alt={product.product_name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="text-center">
-                <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight mb-2">
-                  {product.product_name}
-                </h4>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-primary font-semibold">
-                    Rs {product.selling_price?.toLocaleString() || 'N/A'}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {product.sku_code}
-                  </span>
+        {displayedProducts.map((product) => {
+          const isOutOfStock = product.out_of_stock || product.no_of_stock <= 0;
+          
+          return (
+            <div
+              key={product._id}
+              className={`bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all ${
+                isOutOfStock ? 'opacity-75' : ''
+              }`}
+            >
+              <div className="flex flex-col gap-3">
+                <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden relative">
+                  <img
+                    src={buildImageUrl(product.images?.[0])}
+                    alt={product.product_name}
+                    className="w-full h-full object-cover"
+                  />
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+                        Out of Stock
+                      </span>
+                    </div>
+                  )}
                 </div>
-                {/* <p className="text-xs text-muted-foreground mb-3">
-                  {product.category} • {product.sub_category}
-                </p> */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleViewProduct(product._id)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-transparent hover:bg-secondary/50 border border-border rounded-md transition-colors"
-                  >
-                    <Eye className="w-3 h-3" />
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleAddToCart(product._id, product.product_name)}
-                    disabled={addingToCart === product._id}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {addingToCart === product._id ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <ShoppingCart className="w-3 h-3" />
-                    )}
-                    {addingToCart === product._id ? 'Adding...' : 'Add to Cart'}
-                  </button>
+                <div className="text-center">
+                  <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight mb-2">
+                    {product.product_name}
+                  </h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-primary font-semibold">
+                      Rs {product.selling_price?.toLocaleString() || 'N/A'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {product.sku_code}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleViewProduct(product._id)}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-transparent hover:bg-secondary/50 border border-border rounded-md transition-colors"
+                    >
+                      <Eye className="w-3 h-3" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleAddToCart(product._id, product.product_name)}
+                      disabled={addingToCart === product._id || isOutOfStock}
+                      className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs rounded-md transition-colors ${
+                        isOutOfStock
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed'
+                      }`}
+                    >
+                      {addingToCart === product._id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <ShoppingCart className="w-3 h-3" />
+                      )}
+                      {addingToCart === product._id ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Load More */}
