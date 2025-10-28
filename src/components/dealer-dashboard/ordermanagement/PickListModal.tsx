@@ -36,6 +36,9 @@ export default function PickListModal({
   const [totalWeight, setTotalWeight] = useState<number>(0);
   const [isPacking, setIsPacking] = useState(false);
 
+  // Ensure pickLists is always an array
+  const safePickLists = Array.isArray(pickLists) ? pickLists : [];
+
   // Check if order is already packed
   const isOrderPacked = orderStatus === "Packed" || orderStatus === "packed";
   const isOrderShipped = orderStatus === "Shipped" || orderStatus === "shipped";
@@ -125,12 +128,12 @@ export default function PickListModal({
         </div>
 
         <div className="mt-4">
-          {pickLists.length === 0 ? (
+          {safePickLists.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500 text-lg">No pick list found for this order</p>
             </div>
           ) : (
-            pickLists.map((pickList) => (
+            safePickLists.map((pickList) => (
               <div key={pickList._id} className="mb-8 border border-red-200 rounded-lg p-4">
                 <div className="mb-2 text-sm text-gray-700">
                   <span className="font-semibold">Pick List ID:</span> {pickList._id} <br />
@@ -146,13 +149,21 @@ export default function PickListModal({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pickList.skuList.map((item) => (
-                      <TableRow key={item._id} className="border-b border-gray-100">
-                        <TableCell className="px-4 py-3 font-medium text-gray-900">{item.sku}</TableCell>
-                        <TableCell className="px-6 py-3 text-gray-900">{item.quantity}</TableCell>
-                        <TableCell className="px-4 py-3 text-gray-600 font-mono text-sm">{item.barcode}</TableCell>
+                    {pickList.skuList && Array.isArray(pickList.skuList) ? (
+                      pickList.skuList.map((item) => (
+                        <TableRow key={item._id} className="border-b border-gray-100">
+                          <TableCell className="px-4 py-3 font-medium text-gray-900">{item.sku}</TableCell>
+                          <TableCell className="px-6 py-3 text-gray-900">{item.quantity}</TableCell>
+                          <TableCell className="px-4 py-3 text-gray-600 font-mono text-sm">{item.barcode}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="px-4 py-3 text-center text-gray-500">
+                          No SKU items found for this pick list
+                        </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
