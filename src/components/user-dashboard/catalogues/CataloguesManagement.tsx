@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Filter, Car, Calendar, Wrench, Plus, Edit, Trash2, Eye, BarChart3 } from "lucide-react";
 import { Catalog, Brand, Model, Variant, CreateCatalogRequest } from "@/types/catalogue-types";
+import { useToast } from "@/components/ui/toast";
 import { 
   getCatalogs, 
   getMockCatalogs, 
@@ -28,6 +29,7 @@ import {
 
 export default function CataloguesManagement() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [filteredCatalogs, setFilteredCatalogs] = useState<Catalog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -474,6 +476,7 @@ export default function CataloguesManagement() {
       const response = await updateCatalog(selectedCatalogForUpdate.id, updateForm);
       if (response.success) {
         console.log("Catalog updated successfully");
+        showToast("Catalogue has been updated successfully!", "success");
         fetchCatalogs(); // Refresh the list
         setIsUpdateDialogOpen(false);
         setSelectedCatalogForUpdate(null);
@@ -487,9 +490,11 @@ export default function CataloguesManagement() {
         });
       } else {
         console.error("Failed to update catalog:", response.message);
+        showToast(response.message || "Failed to update catalogue. Please try again.", "error");
       }
     } catch (error) {
       console.error("Error updating catalog:", error);
+      showToast("Failed to update catalogue. Please try again.", "error");
     }
   };
 
@@ -497,6 +502,7 @@ export default function CataloguesManagement() {
     try {
       const response = await createCatalog(createForm);
       if (response.success) {
+        showToast("Catalogue has been created successfully!", "success");
         fetchCatalogs(); // Refresh the list
         setIsCreateDialogOpen(false);
         setCreateForm({
@@ -509,10 +515,11 @@ export default function CataloguesManagement() {
         });
       } else {
         console.error("Failed to create catalog:", response.message);
-        // You might want to show a toast notification here
+        showToast(response.message || "Failed to create catalogue. Please try again.", "error");
       }
     } catch (error) {
       console.error("Error creating catalog:", error);
+      showToast("Failed to create catalogue. Please try again.", "error");
       // Fallback to mock data behavior for development
       const newCatalog: Catalog = {
         id: Date.now().toString(),
@@ -544,6 +551,7 @@ export default function CataloguesManagement() {
         catalog_models: [],
         catalog_variants: []
       });
+      showToast("Catalogue has been created successfully! (Mock data)", "success");
     }
   };
 
@@ -551,15 +559,18 @@ export default function CataloguesManagement() {
     try {
       const response = await deleteCatalog(catalogId);
       if (response.success) {
+        showToast("Catalogue has been deleted successfully!", "success");
         fetchCatalogs(); // Refresh the list
       } else {
         console.error("Failed to delete catalog:", response.message);
-        // You might want to show a toast notification here
+        showToast(response.message || "Failed to delete catalogue. Please try again.", "error");
       }
     } catch (error) {
       console.error("Error deleting catalog:", error);
+      showToast("Failed to delete catalogue. Please try again.", "error");
       // Fallback to mock data behavior for development
       setCatalogs(catalogs.filter(cat => cat.id !== catalogId));
+      showToast("Catalogue has been deleted successfully! (Mock data)", "success");
     }
   };
 

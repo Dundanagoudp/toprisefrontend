@@ -441,10 +441,12 @@ export default function SLAViolationsAndReporting() {
       } else {
         console.warn("Enhanced violations API response:", response);
         setViolations([]);
+        showToast("Failed to fetch violations data", "error");
       }
     } catch (error) {
       console.error("Error fetching enhanced violations:", error);
       setViolations([]);
+      showToast("Error fetching violations data", "error");
     }
   };
 
@@ -485,14 +487,14 @@ export default function SLAViolationsAndReporting() {
         setDashboardData(prev => ({
           ...prev,
           quickStats: {
-            totalViolations: response.data.summary.totalViolations,
-            totalViolationMinutes: response.data.summary.totalViolationMinutes,
-            avgViolationMinutes: response.data.summary.avgViolationMinutes,
-            maxViolationMinutes: response.data.summary.maxViolationMinutes,
-            resolvedViolations: response.data.summary.resolvedViolations,
-            unresolvedViolations: response.data.summary.unresolvedViolations,
-            uniqueDealerCount: response.data.summary.uniqueDealerCount,
-            resolutionRate: response.data.summary.resolutionRate,
+            totalViolations: response.data.summary.totalViolations || 0,
+            totalViolationMinutes: response.data.summary.totalViolationMinutes || 0,
+            avgViolationMinutes: response.data.summary.avgViolationMinutes || 0,
+            maxViolationMinutes: response.data.summary.maxViolationMinutes || 0,
+            resolvedViolations: response.data.summary.resolvedViolations || 0,
+            unresolvedViolations: response.data.summary.unresolvedViolations || 0,
+            uniqueDealerCount: response.data.summary.uniqueDealerCount || 0,
+            resolutionRate: response.data.summary.resolutionRate || 0,
           },
           dealersWithViolations: {
             totalDealers: totalDealers,
@@ -530,10 +532,12 @@ export default function SLAViolationsAndReporting() {
       } else {
         console.warn("SLA stats API response:", response);
         setStatsData(null);
+        showToast("Failed to fetch SLA statistics", "error");
       }
     } catch (error) {
       console.error("Error fetching SLA stats:", error);
       setStatsData(null);
+      showToast("Error fetching SLA statistics", "error");
     }
   };
 
@@ -713,16 +717,39 @@ export default function SLAViolationsAndReporting() {
       startDate.setMonth(startDate.getMonth() - 1); // Last 30 days
       const endDate = new Date();
       
+      console.log("Fetching summary for dealerId:", dealerId);
+      console.log("Date range:", startDate.toISOString().split('T')[0], "to", endDate.toISOString().split('T')[0]);
+      
       const summary = await getSLADealerViolationSummary(
         dealerId,
         startDate.toISOString().split('T')[0],
         endDate.toISOString().split('T')[0]
       );
       
-      setSummaryData(summary);
+      console.log("Raw summary response:", summary);
+      
+      // Map the response data to the expected format
+      const mappedSummary = {
+        totalViolations: summary?.data?.totalViolations || summary?.totalViolations || 0,
+        resolvedViolations: summary?.data?.resolvedViolations || summary?.resolvedViolations || 0,
+        unresolvedViolations: summary?.data?.unresolvedViolations || summary?.unresolvedViolations || 0,
+        avgResolutionTime: summary?.data?.avgResolutionTime || summary?.avgResolutionTime || "N/A"
+      };
+      
+      console.log("Mapped summary data:", mappedSummary);
+      
+      setSummaryData(mappedSummary);
       setShowSummaryModal(true);
     } catch (error) {
       console.error("Error fetching violation summary:", error);
+      // Set fallback data to prevent UI crashes
+      setSummaryData({
+        totalViolations: 0,
+        resolvedViolations: 0,
+        unresolvedViolations: 0,
+        avgResolutionTime: "N/A"
+      });
+      setShowSummaryModal(true);
     } finally {
       setActionLoading(false);
     }

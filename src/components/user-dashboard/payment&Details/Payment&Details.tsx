@@ -268,11 +268,20 @@ export default function PaymentDetails() {
     setFilterStatus("all");
     setFilterPaymentMethod("all");
     setFilterDateRange("all");
+    setCurrentPage(1); // Reset to first page when clearing filters
   };
 
   const handleApplyFilters = () => {
     setShowFilters(false);
+    setCurrentPage(1); // Reset to first page when applying filters
   };
+  
+  // Reset page when filter changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [filterStatus, filterPaymentMethod, filterDateRange]);
 
   const getAppliedFiltersCount = () => {
     let count = 0;
