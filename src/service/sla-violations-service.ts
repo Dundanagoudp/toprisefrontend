@@ -223,16 +223,46 @@ export const getSLADealerViolationSummary = async (
   endDate: string
 ): Promise<any> => {
   try {
+    console.log("Fetching dealer summary for:", dealerId);
+    console.log("Date range:", startDate, "to", endDate);
+    
     // Use fallback client if main client is not available
     const client = apiClient && typeof apiClient.get === 'function' ? apiClient : createFallbackClient();
     
     const response = await client.get(
       `/orders/api/sla-violations/dealer/${dealerId}/summary?startDate=${startDate}&endDate=${endDate}`
     );
-    return response.data;
+    
+    console.log("Dealer summary API response:", response.data);
+    
+    // Handle different response structures
+    if (response.data.success) {
+      return response.data;
+    } else if (response.data.data) {
+      // If response has data but no success flag, wrap it
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message || "Summary fetched successfully"
+      };
+    } else {
+      // If response structure is different, return as is
+      return response.data;
+    }
   } catch (error) {
     console.error("Error fetching SLA dealer violation summary:", error);
-    throw error;
+    
+    // Return a fallback response structure
+    return {
+      success: false,
+      data: {
+        totalViolations: 0,
+        resolvedViolations: 0,
+        unresolvedViolations: 0,
+        avgResolutionTime: "N/A"
+      },
+      message: "Failed to fetch dealer summary"
+    };
   }
 };
 
