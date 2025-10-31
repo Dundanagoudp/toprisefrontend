@@ -106,8 +106,11 @@ export default function AssignRegionDealerModal({
       const response = await assignEmployeesToDealer(selectedDealer, {
         employeeIds,
         assignmentNotes,
-        region: selectedRegion // Include region in the payload
-      });
+        // Send both singular and array forms to maximize backend compatibility
+        region: selectedRegion,
+        // @ts-expect-error allow extra field for backend compatibility
+        regions: [selectedRegion]
+      } as any);
       
       const message = response?.message || `Successfully assigned ${selectedEmployees.length} employee(s) to dealer and region`;
       showToast(message, "success");

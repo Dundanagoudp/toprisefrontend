@@ -501,6 +501,15 @@ export default function PurchaseRequestsPage() {
                             <Eye className="h-4 w-4" />
                             View
                           </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="gap-1"
+                            onClick={() => router.push(`/user/dashboard/purchase-requests/${request._id}`)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Open
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

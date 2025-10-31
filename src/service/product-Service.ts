@@ -1241,6 +1241,18 @@ export async function updateBanner(bannerId: string, bannerData: FormData): Prom
   }
 }
 
+export async function updateBannerStatus(bannerId: string, isActive: boolean): Promise<ApiResponse<Banner>> {
+  try {
+    const response = await apiClient.put(`/category/api/banners/admin/updateStatus/${bannerId}`, {
+      is_active: isActive,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update banner status:", error);
+    throw error;
+  }
+}
+
 export async function deleteBanner(bannerId: string): Promise<ApiResponse<any>> {
   try {
     const response = await apiClient.delete(`/category/api/banners/admin/${bannerId}`);

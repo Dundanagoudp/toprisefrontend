@@ -73,7 +73,6 @@ const sidebarVisibilityConfig = {
       "Purchase Requests",
     ],
     show: [
-      "Dashboard",
       "Inventory Management",
       "Catalogues",
       "Order Management",

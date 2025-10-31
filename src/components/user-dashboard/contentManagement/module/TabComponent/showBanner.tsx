@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
-import { getBanners, deleteBanner, Banner } from "@/service/product-Service";
+import { getBanners, deleteBanner, updateBannerStatus, Banner } from "@/service/product-Service";
 import {
   Table,
   TableBody,
@@ -64,6 +64,17 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
   useEffect(() => {
     fetchBanners();
   }, []);
+
+  const handleToggleActive = async (banner: Banner) => {
+    try {
+      await updateBannerStatus(banner._id, !banner.is_active);
+      showToast(`Banner ${banner.is_active ? "deactivated" : "activated"} successfully`, "success");
+      fetchBanners();
+    } catch (error: any) {
+      console.error("Error toggling banner status:", error);
+      showToast(error?.response?.data?.message || "Failed to update banner status", "error");
+    }
+  };
 
   const handleDelete = async (bannerId: string) => {
     if (!confirm("Are you sure you want to delete this banner?")) return;
@@ -174,6 +185,18 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handleToggleActive(banner)}
+                        title={banner.is_active ? "Deactivate" : "Activate"}
+                      >
+                        {banner.is_active ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setPreviewBanner(banner)}
                         title="Preview"
                       >
@@ -203,7 +226,7 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewBanner} onOpenChange={() => setPreviewBanner(null)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{previewBanner?.title}</DialogTitle>
             <DialogDescription>
@@ -211,35 +234,41 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
               {previewBanner?.is_active ? "Active" : "Inactive"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {previewBanner?.image?.web && (
-              <div>
-                <h4 className="font-semibold mb-2">Web Banner</h4>
-                <img
-                  src={previewBanner.image.web}
-                  alt="Web banner"
-                  className="w-full rounded-lg border"
-                />
+              <div className="flex flex-col">
+                <h4 className="font-semibold mb-2">Web</h4>
+                <div className="w-full aspect-video bg-muted rounded-lg border flex items-center justify-center overflow-hidden">
+                  <img
+                    src={previewBanner.image.web}
+                    alt="Web banner"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
             )}
             {previewBanner?.image?.mobile && (
-              <div>
-                <h4 className="font-semibold mb-2">Mobile Banner</h4>
-                <img
-                  src={previewBanner.image.mobile}
-                  alt="Mobile banner"
-                  className="w-full max-w-sm rounded-lg border"
-                />
+              <div className="flex flex-col">
+                <h4 className="font-semibold mb-2">Mobile</h4>
+                <div className="w-full aspect-[3/5] bg-muted rounded-lg border flex items-center justify-center overflow-hidden">
+                  <img
+                    src={previewBanner.image.mobile}
+                    alt="Mobile banner"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
             )}
             {previewBanner?.image?.tablet && (
-              <div>
-                <h4 className="font-semibold mb-2">Tablet Banner</h4>
-                <img
-                  src={previewBanner.image.tablet}
-                  alt="Tablet banner"
-                  className="w-full max-w-md rounded-lg border"
-                />
+              <div className="flex flex-col">
+                <h4 className="font-semibold mb-2">Tablet</h4>
+                <div className="w-full aspect-[4/3] bg-muted rounded-lg border flex items-center justify-center overflow-hidden">
+                  <img
+                    src={previewBanner.image.tablet}
+                    alt="Tablet banner"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
             )}
           </div>

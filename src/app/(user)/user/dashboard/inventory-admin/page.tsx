@@ -220,19 +220,19 @@ export default function InventoryAdminDashboard() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Live Products</span>
-              <Badge variant="default">{dashboardData.productStats.liveProducts}</Badge>
+              <Badge variant="default" className="bg-gray-900 text-white">{dashboardData.productStats.liveProducts}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Pending Approval</span>
-              <Badge variant="secondary">{dashboardData.productStats.pendingProducts}</Badge>
+              <Badge variant="secondary" className="bg-gray-700 text-white">{dashboardData.productStats.pendingProducts}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Approved</span>
-              <Badge variant="default">{dashboardData.productStats.approvedProducts}</Badge>
+              <Badge variant="default" className="bg-gray-900 text-white">{dashboardData.productStats.approvedProducts}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Rejected</span>
-              <Badge variant="destructive">{dashboardData.productStats.rejectedProducts}</Badge>
+              <Badge variant="destructive" className="text-white">{dashboardData.productStats.rejectedProducts}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -248,19 +248,19 @@ export default function InventoryAdminDashboard() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Low Stock</span>
-              <Badge variant="secondary">{dashboardData.stockAlerts.lowStockCount}</Badge>
+              <Badge variant="secondary" className="bg-gray-700 text-white">{dashboardData.stockAlerts.lowStockCount}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Out of Stock</span>
-              <Badge variant="destructive">{dashboardData.stockAlerts.outOfStockCount}</Badge>
+              <Badge variant="destructive" className="text-white">{dashboardData.stockAlerts.outOfStockCount}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Critical Stock</span>
-              <Badge variant="destructive">{dashboardData.stockAlerts.criticalStockCount}</Badge>
+              <Badge variant="destructive" className="text-white">{dashboardData.stockAlerts.criticalStockCount}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">In Stock</span>
-              <Badge variant="default">
+              <Badge variant="default" className="bg-gray-900 text-white">
                 {dashboardData.productStats.totalProducts - dashboardData.stockAlerts.outOfStockCount - dashboardData.stockAlerts.lowStockCount}
               </Badge>
             </div>
@@ -278,19 +278,19 @@ export default function InventoryAdminDashboard() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Pending</span>
-              <Badge variant="secondary">{dashboardData.requestStats.pendingRequests}</Badge>
+              <Badge variant="secondary" className="bg-gray-700 text-white">{dashboardData.requestStats.pendingRequests}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">In Review</span>
-              <Badge variant="outline">{dashboardData.requestStats.inReviewRequests}</Badge>
+              <Badge variant="outline" className="bg-gray-800 text-white border-gray-600">{dashboardData.requestStats.inReviewRequests}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Approved</span>
-              <Badge variant="default">{dashboardData.requestStats.approvedRequests}</Badge>
+              <Badge variant="default" className="bg-gray-900 text-white">{dashboardData.requestStats.approvedRequests}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Rejected</span>
-              <Badge variant="destructive">{dashboardData.requestStats.rejectedRequests}</Badge>
+              <Badge variant="destructive" className="text-white">{dashboardData.requestStats.rejectedRequests}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -349,7 +349,7 @@ export default function InventoryAdminDashboard() {
             <Button 
               className="w-full justify-start" 
               variant="outline"
-              onClick={() => router.push("/user/dashboard/dealer")}
+              onClick={() => router.push("/user/dashboard/user")}
             >
               <Building className="mr-2 h-4 w-4" />
               Manage Dealers
@@ -357,7 +357,7 @@ export default function InventoryAdminDashboard() {
             <Button 
               className="w-full justify-start" 
               variant="outline"
-              onClick={() => router.push("/user/dashboard/content")}
+              onClick={() => router.push("/user/dashboard/contentManagement")}
             >
               <FileText className="mr-2 h-4 w-4" />
               Content Management

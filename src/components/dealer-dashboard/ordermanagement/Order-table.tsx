@@ -194,7 +194,9 @@ export default function OrdersTable() {
 
   const handleViewProducts = (order: any) => {
     setSelectedOrderProducts(order.dealerProducts || []);
-    setSelectedOrderId(order.orderId);
+    // Prefer object id for downstream endpoints
+    const objectId = order.id || order._id || order.orderDetails?._id || order.orderId;
+    setSelectedOrderId(objectId);
     setViewModalOpen(true);
   };
 

@@ -379,17 +379,31 @@ export default function DealerProfileDetails() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {profile.assigned_categories && profile.assigned_categories.length > 0 ? (
-              profile.assigned_categories.map((category: any, index: number) => (
-                <Badge key={index} variant="outline" className="text-sm">
-                  {category.category_name || `Category ${index + 1}`}
+        <div className="flex flex-wrap gap-2">
+          {(() => {
+            const categories: any[] = Array.isArray((profile as any).categories_allowed)
+              ? (profile as any).categories_allowed
+              : Array.isArray((profile as any).assigned_categories)
+              ? (profile as any).assigned_categories
+              : [];
+
+            if (!categories || categories.length === 0) {
+              return <span className="text-gray-500">No categories assigned</span>;
+            }
+
+            return categories.map((cat: any, idx: number) => {
+              // Support both id strings and populated objects
+              const label = typeof cat === "string"
+                ? cat
+                : cat?.category_name || cat?.name || cat?._id || `Category ${idx + 1}`;
+              return (
+                <Badge key={idx} variant="outline" className="text-sm">
+                  {label}
                 </Badge>
-              ))
-            ) : (
-              <span className="text-gray-500">No categories assigned</span>
-            )}
-          </div>
+              );
+            });
+          })()}
+        </div>
         </CardContent>
       </Card>
 

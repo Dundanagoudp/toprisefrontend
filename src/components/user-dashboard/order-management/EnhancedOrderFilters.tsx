@@ -237,6 +237,8 @@ export default function EnhancedOrderFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Payment Methods</SelectItem>
+                <SelectItem value="razorpay">Razorpay</SelectItem>
+                <SelectItem value="prepaid">Prepaid</SelectItem>
                 <SelectItem value="COD">COD</SelectItem>
                 <SelectItem value="card">Credit/Debit Card</SelectItem>
                 <SelectItem value="upi">UPI</SelectItem>
@@ -261,36 +263,36 @@ export default function EnhancedOrderFilters({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Date Range (Always Visible) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Date Range</Label>
+              {(filters.dateRange.from || filters.dateRange.to) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDateRangeChange({ from: undefined, to: undefined })}
+                  className="h-6 px-2 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+            <CustomDatePicker
+              value={filters.dateRange}
+              onChange={handleDateRangeChange}
+              placeholder="Pick a date range"
+              className="w-full"
+            />
+          </div>
         </div>
 
         {/* Advanced Filters - Expandable */}
         {isExpanded && (
           <div className="space-y-4 border-t pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Date Range */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Date Range</Label>
-                  {(filters.dateRange.from || filters.dateRange.to) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDateRangeChange({ from: undefined, to: undefined })}
-                      className="h-6 px-2 text-xs"
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Clear
-                    </Button>
-                  )}
-                </div>
-                <CustomDatePicker
-                  value={filters.dateRange}
-                  onChange={handleDateRangeChange}
-                  placeholder="Pick a date range"
-                  className="w-full"
-                />
-              </div>
-
               {/* Order Value Range */}
               <div className="space-y-2">
                 <Label>Order Value Range</Label>
