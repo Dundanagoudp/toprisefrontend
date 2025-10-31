@@ -81,6 +81,65 @@ export async function fetchPicklists(): Promise<PicklistResponse> {
   }
 }
 
+// Fetch picklists assigned to a specific fulfillment staff (employee)
+export async function fetchPicklistsByEmployee(employeeId: string): Promise<{
+  success: boolean;
+  message: string;
+  data: {
+    data: any[];
+    pagination?: any;
+    staffInfo?: any;
+    summary?: any;
+  };
+}> {
+  try {
+    console.log(`[fetchPicklistsByEmployee] Employee ID: ${employeeId}`);
+    const url = `/orders/api/orders/picklists/employee/${employeeId}`;
+    console.log(`[fetchPicklistsByEmployee] GET ${url}`);
+    const response = await apiClient.get(url);
+    try {
+      const count = Array.isArray(response?.data?.data?.data) ? response.data.data.data.length : 0;
+      console.log(`[fetchPicklistsByEmployee] Response success=${response?.data?.success} message="${response?.data?.message}" count=${count}`);
+    } catch {}
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to fetch picklists for employee ${employeeId}:`, error);
+    throw error;
+  }
+}
+
+// Fetch picklist statistics for a specific fulfillment staff
+export async function fetchStaffPicklistStats(staffId: string): Promise<{
+  success: boolean;
+  message: string;
+  data: {
+    data: Array<{
+      staffId: string;
+      staffInfo: any;
+      totalPicklists: number;
+      completed: number;
+      inProgress: number;
+      notStarted: number;
+      lastUpdated: string;
+    }>;
+    pagination: any;
+    summary: { totalPicklists: number; distinctStaff: number };
+    filters: any;
+  };
+}> {
+  try {
+    const url = `/orders/api/orders/picklists/stats/staff?staffId=${encodeURIComponent(staffId)}`;
+    console.log(`[fetchStaffPicklistStats] GET ${url}`);
+    const response = await apiClient.get(url);
+    const total = response?.data?.data?.summary?.totalPicklists ?? 0;
+    console.log(`[fetchStaffPicklistStats] success=${response?.data?.success} totalPicklists=${total}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to fetch staff picklist stats for ${staffId}:`, error);
+    throw error;
+  }
+}
+
 // Create picklist explicitly
 export async function createPicklist(payload: CreatePicklistRequest): Promise<{ success: boolean; message: string }> {
   try {

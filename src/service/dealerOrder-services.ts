@@ -121,3 +121,20 @@ export const getDealerPickList = async (dealerId: string): Promise<DealerPickLis
 };
 
 //  Picklist of orders
+
+/**
+ * Mark a specific SKU (product) on an order as shipped
+ * Endpoint: /orders/api/orders/:orderId/sku/:sku/ship
+ */
+export const shipOrderSku = async (
+  orderId: string,
+  skuProductId: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const res = await apiClient.post(`/orders/api/orders/${orderId}/sku/${skuProductId}/ship`, {});
+    return res.data;
+  } catch (error) {
+    console.error("Error marking SKU as shipped:", error);
+    throw error;
+  }
+};

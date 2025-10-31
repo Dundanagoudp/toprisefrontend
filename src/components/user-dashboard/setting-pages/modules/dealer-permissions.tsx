@@ -202,19 +202,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
   }
 
   const toggleDealerSelection = (userId: string) => {
-    setSelectedDealers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    )
-  }
-
-  const toggleAllDealers = () => {
-    if (selectedDealers.length === dealers.length) {
-      setSelectedDealers([])
-    } else {
-      setSelectedDealers(dealers.map(dealer => dealer.user_id._id))
-    }
+    setSelectedDealers(prev => (prev.includes(userId) ? [] : [userId]))
   }
 
   if (dealersLoading || modulesLoading) {
@@ -281,13 +269,6 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
       <Card>
         <CardHeader>
           <CardTitle>Select Dealers</CardTitle>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              checked={selectedDealers.length === dealers.length && dealers.length > 0}
-              onCheckedChange={toggleAllDealers}
-            />
-            <Label>Select All Dealers</Label>
-          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto">

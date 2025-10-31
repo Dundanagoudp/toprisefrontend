@@ -10,9 +10,9 @@ export default function Page() {
   const auth = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
-    // Redirect Fulfillment-Staff to their specialized fulfillment dashboard
+    // Redirect Fulfillment-Staff to Order Management as the first page
     if (auth?.role === "Fulfillment-Staff") {
-      router.replace("/user/dashboard/fulfillment");
+      router.replace("/user/dashboard/order");
     }
               // Redirect Inventory-Staff to product management
           if (auth?.role === "Inventory-Staff") {
@@ -30,7 +30,7 @@ export default function Page() {
       <div className="flex items-center justify-center h-96">
         <div className="flex items-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
-          <span>Redirecting to Fulfillment Dashboard...</span>
+          <span>Redirecting to Order Management...</span>
         </div>
       </div>
     );

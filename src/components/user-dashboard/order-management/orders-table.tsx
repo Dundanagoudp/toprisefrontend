@@ -70,6 +70,8 @@ import {
   getOrders,
   updateOrderStatusByDealerReq,
   fetchPicklists,
+  fetchPicklistsByEmployee,
+  fetchStaffPicklistStats,
 } from "@/service/order-service";
 import { fetchEnhancedOrderStats } from "@/service/dashboardServices";
 import { EnhancedOrderStatsData, EnhancedOrderStatsQuery } from "@/types/dashboard-Types";
@@ -82,6 +84,7 @@ import {
   fetchOrdersSuccess,
 } from "@/store/slice/order/orderSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { getAuthToken } from "@/utils/auth";
 import useDebounce from "@/utils/useDebounce";
 interface Order {
   id: string;
@@ -109,7 +112,7 @@ export default function OrdersTable() {
   const loading = useAppSelector((state: any) => state.order.loading);
   const error = useAppSelector((state: any) => state.order.error);
   const auth = useAppSelector((state) => state.auth.user);
-  const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(
+  const isAuthorized = ["Super-admin", "Fulfillment-Admin", "Fullfillment-Admin"].includes(
     auth?.role
   );
   const [orderDetails, setOrderDetails] = useState<any>(null);
@@ -173,17 +176,26 @@ export default function OrdersTable() {
         newFilters.dateRange.to !== enhancedFilters.dateRange.to) {
       setDateRangeKey(prev => prev + 1);
     }
+
+    // Always reset to first page when filters change to ensure full page size on first render
+    if (currentPage !== 1) setCurrentPage(1);
   };
   
   // Force re-render when date range changes
   useEffect(() => {
     console.log("Date range key changed, forcing re-render:", dateRangeKey);
   }, [dateRangeKey]);
+
+  // Reset pagination on key filter changes to avoid short first page (e.g., Razorpay)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterPayment, enhancedFilters.paymentMethod, filterStatus, filterOrderSource, searchQuery]);
   
   // Enhanced order stats state
   const [enhancedOrderStats, setEnhancedOrderStats] = useState<EnhancedOrderStatsData | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsFilters, setStatsFilters] = useState<EnhancedOrderStatsQuery>({});
+  const [staffPicklistStats, setStaffPicklistStats] = useState<any>(null);
   
   // Search + Sort combined
   const filteredOrders = useMemo(() => {
@@ -257,7 +269,7 @@ export default function OrdersTable() {
       
       list = list.filter((order: any) => {
         // Get order date and normalize to start of day for comparison
-        const orderDateStr = order.orderDate || order.date;
+        const orderDateStr = order.createdAt || order.orderDate || order.date;
         if (!orderDateStr) return false;
         
         const orderDate = new Date(orderDateStr);
@@ -416,41 +428,110 @@ export default function OrdersTable() {
       dispatch(fetchOrdersRequest());
 
       try {
-        const response = await getOrders();
-        const mappedOrders = response.data.map((order: any) => ({
-          id: order._id,
-          orderId: order.orderId,
-          orderDate: new Date(order.orderDate).toLocaleDateString(), // Format as needed
-          customer: order.customerDetails?.name || "",
-          number: order.customerDetails?.phone || "",
-          payment: order.paymentType,
-          value: `₹${order.order_Amount}`,
-          skus:
-            order.skus?.map((sku: any) => ({
+        // If fulfillment staff, load picklists assigned to employee
+        if (auth?.role === "Fulfillment-Staff") {
+          console.log("[OrdersTable] Role=Fulfillment-Staff. Loading picklists by employee.");
+          let employeeId = "";
+          try {
+            const token = getAuthToken();
+            if (token) {
+              const payloadBase64 = token.split(".")[1];
+              if (payloadBase64) {
+                const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+                const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+                const payloadJson = atob(paddedBase64);
+                const payload = JSON.parse(payloadJson);
+                employeeId = payload.id || payload.userId || "";
+                console.log("[OrdersTable] Decoded employeeId=", employeeId);
+              }
+            }
+          } catch (e) {
+            console.error("Failed to extract employee id from token", e);
+          }
+          if (!employeeId) {
+            throw new Error("Employee ID not found for fulfillment staff");
+          }
+
+          console.log("[OrdersTable] Calling fetchPicklistsByEmployee with:", employeeId);
+          const response = await fetchPicklistsByEmployee(employeeId);
+          console.log("[OrdersTable] fetchPicklistsByEmployee response:", response);
+          const picklists = response?.data?.data || [];
+          console.log("[OrdersTable] Picklists count:", Array.isArray(picklists) ? picklists.length : 0);
+          const mappedOrders = picklists.map((p: any) => {
+            const o = p.orderInfo || {};
+            const skuDetails = o.skuDetails || p.skuList || [];
+            const mappedSkus = (skuDetails || []).map((sku: any) => ({
               sku: sku.sku,
               quantity: sku.quantity,
               productId: sku.productId,
               productName: sku.productName,
-              _id: sku._id,
-            })) || [],
-          skusCount: order.skus?.length || 0,
-          dealers: order.dealerMapping?.length || 0,
-          dealerMapping: order.dealerMapping || [],
-          status: order.status,
-          deliveryCharges: order.deliveryCharges,
-          GST: order.GST,
-          orderType: order.orderType,
-          orderSource: order.orderSource,
-          auditLogs: order.auditLogs || [],
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-        }));
-        dispatch(fetchOrdersSuccess(mappedOrders));
-        console.log(response);
-        setOrders(response.data);
-        timer = setTimeout(() => {
+              _id: sku._id || sku.sku,
+            }));
+            return {
+              id: o._id || p.linkedOrderId || p._id,
+              orderId: o.orderId || p.linkedOrderId,
+              orderDate: o.createdAt ? new Date(o.createdAt).toLocaleDateString() : new Date(p.createdAt || Date.now()).toLocaleDateString(),
+              customer: o.customerDetails?.name || "",
+              number: o.customerDetails?.phone || "",
+              payment: o.paymentType || "",
+              value: o.order_Amount != null ? `₹${o.order_Amount}` : "₹0",
+              skus: mappedSkus,
+              skusCount: mappedSkus.length,
+              dealers: Array.isArray(o.dealerMapping) ? o.dealerMapping.length : 0,
+              dealerMapping: o.dealerMapping || [],
+              status: p.scanStatus || o.status || "",
+              deliveryCharges: o.deliveryCharges,
+              GST: o.GST,
+              orderType: o.orderType,
+              orderSource: o.orderSource,
+              auditLogs: o.auditLogs || [],
+              createdAt: p.createdAt || o.createdAt,
+              updatedAt: p.updatedAt || o.updatedAt,
+            };
+          });
+          console.log("[OrdersTable] Mapped orders count:", mappedOrders.length);
+          dispatch(fetchOrdersSuccess(mappedOrders));
+          setOrders(picklists);
+          timer = setTimeout(() => {
+            setOrders(picklists);
+          }, 2000);
+        } else {
+          const response = await getOrders();
+          const mappedOrders = response.data.map((order: any) => ({
+            id: order._id,
+            orderId: order.orderId,
+            orderDate: new Date(order.orderDate).toLocaleDateString(), // Format as needed
+            customer: order.customerDetails?.name || "",
+            number: order.customerDetails?.phone || "",
+            payment: order.paymentType,
+            value: `₹${order.order_Amount}`,
+            skus:
+              order.skus?.map((sku: any) => ({
+                sku: sku.sku,
+                quantity: sku.quantity,
+                productId: sku.productId,
+                productName: sku.productName,
+                _id: sku._id,
+              })) || [],
+            skusCount: order.skus?.length || 0,
+            dealers: order.dealerMapping?.length || 0,
+            dealerMapping: order.dealerMapping || [],
+            status: order.status,
+            deliveryCharges: order.deliveryCharges,
+            GST: order.GST,
+            orderType: order.orderType,
+            orderSource: order.orderSource,
+            auditLogs: order.auditLogs || [],
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+          }));
+          dispatch(fetchOrdersSuccess(mappedOrders));
+          console.log(response);
           setOrders(response.data);
-        }, 2000);
+          timer = setTimeout(() => {
+            setOrders(response.data);
+          }, 2000);
+        }
       } catch (error) {
         console.error("Failed to fetch orders:", error);
         dispatch(fetchOrdersFailure(error));
@@ -490,36 +571,96 @@ export default function OrdersTable() {
   const refreshOrders = useCallback(async () => {
     try {
       dispatch(fetchOrdersRequest());
-      const response = await getOrders();
-      const mappedOrders = response.data.map((order: any) => ({
-        id: order._id,
-        orderId: order.orderId,
-        orderDate: new Date(order.orderDate).toLocaleDateString(),
-        customer: order.customerDetails?.name || "",
-        number: order.customerDetails?.phone || "",
-        payment: order.paymentType,
-        value: `₹${order.order_Amount}`,
-        skus:
-          order.skus?.map((sku: any) => ({
+      if (auth?.role === "Fulfillment-Staff") {
+        console.log("[OrdersTable.refresh] Role=Fulfillment-Staff. Loading picklists by employee.");
+        let employeeId = "";
+        try {
+          const token = getAuthToken();
+          if (token) {
+            const payloadBase64 = token.split(".")[1];
+            if (payloadBase64) {
+              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+              const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+              const payloadJson = atob(paddedBase64);
+              const payload = JSON.parse(payloadJson);
+              employeeId = payload.id || payload.userId || "";
+              console.log("[OrdersTable.refresh] Decoded employeeId=", employeeId);
+            }
+          }
+        } catch {}
+        if (!employeeId) throw new Error("Employee ID not found for fulfillment staff");
+
+        console.log("[OrdersTable.refresh] Calling fetchPicklistsByEmployee with:", employeeId);
+        const response = await fetchPicklistsByEmployee(employeeId);
+        console.log("[OrdersTable.refresh] fetchPicklistsByEmployee response:", response);
+        const picklists = response?.data?.data || [];
+        console.log("[OrdersTable.refresh] Picklists count:", Array.isArray(picklists) ? picklists.length : 0);
+        const mappedOrders = picklists.map((p: any) => {
+          const o = p.orderInfo || {};
+          const skuDetails = o.skuDetails || p.skuList || [];
+          const mappedSkus = (skuDetails || []).map((sku: any) => ({
             sku: sku.sku,
             quantity: sku.quantity,
             productId: sku.productId,
             productName: sku.productName,
-            _id: sku._id,
-          })) || [],
-        skusCount: order.skus?.length || 0,
-        dealers: order.dealerMapping?.length || 0,
-        dealerMapping: order.dealerMapping || [],
-        status: order.status,
-        deliveryCharges: order.deliveryCharges,
-        GST: order.GST,
-        orderType: order.orderType,
-        orderSource: order.orderSource,
-        auditLogs: order.auditLogs || [],
-        createdAt: order.createdAt,
-        updatedAt: order.updatedAt,
-      }));
-      dispatch(fetchOrdersSuccess(mappedOrders));
+            _id: sku._id || sku.sku,
+          }));
+          return {
+            id: o._id || p.linkedOrderId || p._id,
+            orderId: o.orderId || p.linkedOrderId,
+            orderDate: o.createdAt ? new Date(o.createdAt).toLocaleDateString() : new Date(p.createdAt || Date.now()).toLocaleDateString(),
+            customer: o.customerDetails?.name || "",
+            number: o.customerDetails?.phone || "",
+            payment: o.paymentType || "",
+            value: o.order_Amount != null ? `₹${o.order_Amount}` : "₹0",
+            skus: mappedSkus,
+            skusCount: mappedSkus.length,
+            dealers: Array.isArray(o.dealerMapping) ? o.dealerMapping.length : 0,
+            dealerMapping: o.dealerMapping || [],
+            status: p.scanStatus || o.status || "",
+            deliveryCharges: o.deliveryCharges,
+            GST: o.GST,
+            orderType: o.orderType,
+            orderSource: o.orderSource,
+            auditLogs: o.auditLogs || [],
+            createdAt: p.createdAt || o.createdAt,
+            updatedAt: p.updatedAt || o.updatedAt,
+          };
+        });
+        console.log("[OrdersTable.refresh] Mapped orders count:", mappedOrders.length);
+        dispatch(fetchOrdersSuccess(mappedOrders));
+      } else {
+        const response = await getOrders();
+        const mappedOrders = response.data.map((order: any) => ({
+          id: order._id,
+          orderId: order.orderId,
+          orderDate: new Date(order.orderDate).toLocaleDateString(),
+          customer: order.customerDetails?.name || "",
+          number: order.customerDetails?.phone || "",
+          payment: order.paymentType,
+          value: `₹${order.order_Amount}`,
+          skus:
+            order.skus?.map((sku: any) => ({
+              sku: sku.sku,
+              quantity: sku.quantity,
+              productId: sku.productId,
+              productName: sku.productName,
+              _id: sku._id,
+            })) || [],
+          skusCount: order.skus?.length || 0,
+          dealers: order.dealerMapping?.length || 0,
+          dealerMapping: order.dealerMapping || [],
+          status: order.status,
+          deliveryCharges: order.deliveryCharges,
+          GST: order.GST,
+          orderType: order.orderType,
+          orderSource: order.orderSource,
+          auditLogs: order.auditLogs || [],
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+        }));
+        dispatch(fetchOrdersSuccess(mappedOrders));
+      }
     } catch (error) {
       dispatch(fetchOrdersFailure(error as any));
     }
@@ -529,14 +670,42 @@ export default function OrdersTable() {
   const fetchEnhancedStats = useCallback(async (queryParams: EnhancedOrderStatsQuery = {}) => {
     try {
       setStatsLoading(true);
-      const response = await fetchEnhancedOrderStats(queryParams);
-      setEnhancedOrderStats(response.data);
+      if (auth?.role === "Fulfillment-Staff") {
+        // For Fulfillment-Staff, fetch picklist stats instead
+        let staffId = "";
+        try {
+          const token = getAuthToken();
+          if (token) {
+            const payloadBase64 = token.split(".")[1];
+            if (payloadBase64) {
+              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+              const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+              const payloadJson = atob(paddedBase64);
+              const payload = JSON.parse(payloadJson);
+              staffId = payload.id || payload.userId || "";
+              console.log("[OrdersTable.stats] staffId=", staffId);
+            }
+          }
+        } catch (e) {
+          console.error("[OrdersTable.stats] Failed to extract staff id", e);
+        }
+        if (!staffId) {
+          setStaffPicklistStats(null);
+        } else {
+          const res = await fetchStaffPicklistStats(staffId);
+          console.log("[OrdersTable.stats] staffPicklistStats response:", res);
+          setStaffPicklistStats(res?.data || null);
+        }
+      } else {
+        const response = await fetchEnhancedOrderStats(queryParams);
+        setEnhancedOrderStats(response.data);
+      }
     } catch (error) {
-      console.error("Error fetching enhanced order stats:", error);
+      console.error("Error fetching stats:", error);
     } finally {
       setStatsLoading(false);
     }
-  }, []);
+  }, [auth?.role]);
 
 
   const handleExport = () => {
@@ -598,14 +767,60 @@ export default function OrdersTable() {
   return (
     <div className="w-full space-y-6">
       {/* Enhanced Order Statistics */}
-      <EnhancedOrderStatsCards
-        stats={enhancedOrderStats}
-        loading={statsLoading}
-        filters={statsFilters}
-        onFilterChange={handleStatsFilterChange}
-        onRefresh={handleStatsRefresh}
-        onClearFilters={handleClearStatsFilters}
-      />
+      {auth?.role === "Fulfillment-Staff" ? (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Picklists Summary</CardTitle>
+            <CardDescription>Stats for your assigned picklists</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded border">
+                <div className="text-sm text-gray-600">Total Picklists</div>
+                <div className="text-2xl font-semibold">
+                  {(staffPicklistStats?.summary?.totalPicklists) ?? 0}
+                </div>
+              </div>
+              <div className="p-4 rounded border">
+                <div className="text-sm text-gray-600">Not Started</div>
+                <div className="text-xl font-semibold">
+                  {(() => {
+                    const first = Array.isArray(staffPicklistStats?.data?.data) ? staffPicklistStats.data.data[0] : null;
+                    return first?.notStarted ?? 0;
+                  })()}
+                </div>
+              </div>
+              <div className="p-4 rounded border">
+                <div className="text-sm text-gray-600">In Progress</div>
+                <div className="text-xl font-semibold">
+                  {(() => {
+                    const first = Array.isArray(staffPicklistStats?.data?.data) ? staffPicklistStats.data.data[0] : null;
+                    return first?.inProgress ?? 0;
+                  })()}
+                </div>
+              </div>
+              <div className="p-4 rounded border">
+                <div className="text-sm text-gray-600">Completed</div>
+                <div className="text-xl font-semibold">
+                  {(() => {
+                    const first = Array.isArray(staffPicklistStats?.data?.data) ? staffPicklistStats.data.data[0] : null;
+                    return first?.completed ?? 0;
+                  })()}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <EnhancedOrderStatsCards
+          stats={enhancedOrderStats}
+          loading={statsLoading}
+          filters={statsFilters}
+          onFilterChange={handleStatsFilterChange}
+          onRefresh={handleStatsRefresh}
+          onClearFilters={handleClearStatsFilters}
+        />
+      )}
 
       {/* Enhanced Filters */}
       <EnhancedOrderFilters

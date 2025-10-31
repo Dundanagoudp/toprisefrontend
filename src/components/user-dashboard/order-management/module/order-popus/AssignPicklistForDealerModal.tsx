@@ -34,9 +34,14 @@ const AssignPicklistForDealerModal: React.FC<AssignPicklistForDealerModalProps> 
   useEffect(() => {
     const fetchPicklists = async () => {
       setLoadingAssignPicklists(true)
-      const picklists = await getDealerPickList(dealerId)
-      setAvailablePicklists(picklists)
-      setLoadingAssignPicklists(false)
+      try {
+        const picklists = await getDealerPickList(dealerId)
+        setAvailablePicklists(Array.isArray(picklists) ? picklists : [])
+      } catch (e) {
+        setAvailablePicklists([])
+      } finally {
+        setLoadingAssignPicklists(false)
+      }
     }
 
     const fetchAssignedEmployees = async () => {
@@ -119,7 +124,7 @@ const AssignPicklistForDealerModal: React.FC<AssignPicklistForDealerModalProps> 
                 />
               </SelectTrigger>
               <SelectContent>
-                {availablePicklists.map((pl) => (
+                {(Array.isArray(availablePicklists) ? availablePicklists : []).map((pl) => (
                   <SelectItem key={pl._id} value={pl._id} className="py-3">
                     <div className="flex items-center justify-between w-full">
                       <span className="font-medium">ID: {pl._id}</span>

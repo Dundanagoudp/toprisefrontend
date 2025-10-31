@@ -242,8 +242,8 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   }
 
 
-  const handleCheckboxChange = async (notification: Notification) => {
-    const willSelect = !selectedIds.has(notification._id)
+  const handleCheckboxChange = (notification: Notification) => {
+    // Only select/deselect; do not mark as read automatically via checkbox.
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(notification._id)) {
@@ -253,26 +253,6 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       }
       return next
     })
-    try {
-      if (willSelect && !notification.markAsRead) {
-        const res = await markAsReadAPI(notification._id)
-        if (res.success) {
-          // Update the notification in the local state immediately for real-time feedback
-          setNotificationList(prev => 
-            prev.map(n => 
-              n._id === notification._id 
-                ? { ...n, markAsRead: true, markAsReadAt: new Date().toISOString() }
-                : n
-            )
-          )
-          // Update the count immediately
-          const updatedUnreadCount = notificationList.filter(n => n._id !== notification._id && !n.markAsRead).length
-          onCountUpdate?.(updatedUnreadCount)
-        }
-      }
-    } catch (err) {
-      console.error("Error handling checkbox change:", err)
-    }
   }
 
   const markSelectedAsRead = async () => {

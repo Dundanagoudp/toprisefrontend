@@ -214,6 +214,7 @@ export default function DealerProductsTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("created_at");
   const [sortOrder, setSortOrder] = useState<string>("desc");
   
@@ -280,9 +281,54 @@ export default function DealerProductsTable() {
     fetchProducts(page);
   };
 
-  // Get unique categories and brands for filters
-  const categories = Array.from(new Set(products.map(p => p.category.category_name)));
-  const brands = Array.from(new Set(products.map(p => p.brand.brand_name)));
+  // Build unique category and brand options using object IDs
+  const categoryOptions = Array.from(
+    new Map(
+      products
+        .map(p => p.category)
+        .filter((c: any) => c && c._id && c.category_name)
+        .map((c: any) => [c._id, { id: c._id as string, name: c.category_name as string }])
+    ).values()
+  );
+  const brandOptions = Array.from(
+    new Map(
+      products
+        .map(p => p.brand)
+        .filter((b: any) => b && b._id && b.brand_name)
+        .map((b: any) => [b._id, { id: b._id as string, name: b.brand_name as string }])
+    ).values()
+  );
+
+  const getComputedStatus = (p: DealerProduct): "in-stock" | "low-stock" | "out-of-stock" => {
+    const qty = p?.dealer_info?.quantity_available ?? 0;
+    const inStock = p?.dealer_info?.in_stock ?? qty > 0;
+    if (!inStock || qty <= 0) return "out-of-stock";
+    if (qty > 0 && qty < 5) return "low-stock";
+    return "in-stock";
+  };
+
+  const normalized = (s: string | undefined | null) => String(s || "").toLowerCase();
+
+  const filteredProducts = products.filter((p) => {
+    // Brand filter
+    if (brandFilter !== "all" && String(p.brand?._id || "") !== String(brandFilter)) return false;
+    // Category filter
+    if (categoryFilter !== "all" && String(p.category?._id || "") !== String(categoryFilter)) return false;
+    // Status filter
+    if (statusFilter !== "all") {
+      const st = getComputedStatus(p);
+      if (st !== statusFilter) return false;
+    }
+    // Search filter (name, sku, brand, category)
+    if (searchTerm) {
+      const q = normalized(searchTerm);
+      const hay = [p.product_name, p.sku_code, p.brand?.brand_name, p.category?.category_name]
+        .map(normalized)
+        .join("\n");
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 
   if (loading && products.length === 0) {
     return (
@@ -420,9 +466,9 @@ export default function DealerProductsTable() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {categoryOptions.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -437,9 +483,9 @@ export default function DealerProductsTable() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Brands</SelectItem>
-                  {brands.map((brand) => (
-                    <SelectItem key={brand} value={brand}>
-                      {brand}
+                  {brandOptions.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -498,12 +544,12 @@ export default function DealerProductsTable() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <div className="py-12 text-center">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Products Found</h3>
               <p className="text-gray-600 mb-4">
-                {searchTerm || categoryFilter !== "all" || brandFilter !== "all"
+                {searchTerm || categoryFilter !== "all" || brandFilter !== "all" || statusFilter !== "all"
                   ? "No products match your current filters."
                   : "You haven't added any products yet."}
               </p>
@@ -529,7 +575,7 @@ export default function DealerProductsTable() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
+                  {filteredProducts.map((product) => (
                     <ProductTableRow 
                       key={product._id} 
                       product={product} 

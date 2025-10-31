@@ -12,6 +12,8 @@ import AssignPicklistForDealerModal from "../order-popus/AssignPicklistForDealer
 import MarkPackedModal from "../order-popus/MarkPackedModal"
 import ViewPicklistsModal from "../order-popus/ViewPicklistsModal"
 import { useAppSelector } from "@/store/hooks"
+import { updateOrderStatusByDealer } from "@/service/dealerOrder-services"
+import { getCookie, getAuthToken } from "@/utils/auth"
 
 interface ProductItem {
   _id?: string
@@ -64,7 +66,7 @@ export default function ProductDetailsForOrder({
   // Remove per-product mark packed state - now works per order
   const { showToast } = GlobalToast()
   const auth = useAppSelector((state) => state.auth.user)
-  const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role)
+  const isAuthorized = ["Super-admin", "Fulfillment-Admin", "Fullfillment-Admin"].includes(auth?.role)
   const isPlaceholderString = (value: string) => {
     const v = (value || "").trim().toLowerCase()
     return v === "n/a" || v === "na" || v === "null" || v === "undefined" || v === "-"
@@ -309,6 +311,52 @@ export default function ProductDetailsForOrder({
                     <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveProductForPicklist(productItem); setCreatePicklistOpen(true); }}>
                       <Edit className="h-4 w-4 mr-2" /> Create Picklist
                     </DropdownMenuItem>
+                      <DropdownMenuItem 
+                      className="flex items-center gap-2 rounded hover:bg-neutral-100"
+                      onClick={async () => {
+                        try {
+                          const weightInput = window.prompt("Enter total weight (kg) for shipment:", "");
+                          if (weightInput === null) return;
+                          const totalWeightKg = parseFloat(weightInput);
+                          if (Number.isNaN(totalWeightKg) || totalWeightKg <= 0) {
+                            showToast("Please enter a valid weight in kg", "error");
+                            return;
+                          }
+
+                          let dealerIdResolved = safeDealerId(productItem.dealerId);
+                          if (!dealerIdResolved) {
+                            dealerIdResolved = getCookie("dealerId") || "";
+                            if (!dealerIdResolved) {
+                              const token = getAuthToken();
+                              if (token) {
+                                try {
+                                  const payloadBase64 = token.split(".")[1];
+                                  if (payloadBase64) {
+                                    const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+                                    const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+                                    const payloadJson = atob(paddedBase64);
+                                    const payload = JSON.parse(payloadJson);
+                                    dealerIdResolved = payload.dealerId || payload.id || "";
+                                  }
+                                } catch {}
+                              }
+                            }
+                          }
+
+                          if (!orderId || !dealerIdResolved) {
+                            showToast("Missing order ID or dealer ID", "error");
+                            return;
+                          }
+
+                          await updateOrderStatusByDealer(String(dealerIdResolved), String(orderId), totalWeightKg);
+                          showToast("Order marked as shipped", "success");
+                        } catch (e) {
+                          showToast("Failed to mark as shipped", "error");
+                        }
+                      }}
+                    >
+                      <Truck className="h-4 w-4 mr-2" /> Mark as Shipped
+                    </DropdownMenuItem>
                     <DropdownMenuItem className="flex items-center gap-2 rounded hover:bg-neutral-100" onClick={() => { setActiveAction("markPacked"); setDealerId(safeDealerId(productItem.dealerId)); setActionOpen(true); }}>
                       <Package className="h-4 w-4 mr-2" /> Mark as Packed
                     </DropdownMenuItem>
@@ -483,6 +531,52 @@ export default function ProductDetailsForOrder({
                         }}
                       >
                         <Edit className="h-4 w-4 mr-2" /> Create Picklist
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="flex items-center gap-2 rounded hover:bg-neutral-100" 
+                        onClick={async () => {
+                          try {
+                            const weightInput = window.prompt("Enter total weight (kg) for shipment:", "");
+                            if (weightInput === null) return;
+                            const totalWeightKg = parseFloat(weightInput);
+                            if (Number.isNaN(totalWeightKg) || totalWeightKg <= 0) {
+                              showToast("Please enter a valid weight in kg", "error");
+                              return;
+                            }
+
+                            let dealerIdResolved = safeDealerId(productItem.dealerId);
+                            if (!dealerIdResolved) {
+                              dealerIdResolved = getCookie("dealerId") || "";
+                              if (!dealerIdResolved) {
+                                const token = getAuthToken();
+                                if (token) {
+                                  try {
+                                    const payloadBase64 = token.split(".")[1];
+                                    if (payloadBase64) {
+                                      const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+                                      const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+                                      const payloadJson = atob(paddedBase64);
+                                      const payload = JSON.parse(payloadJson);
+                                      dealerIdResolved = payload.dealerId || payload.id || "";
+                                    }
+                                  } catch {}
+                                }
+                              }
+                            }
+
+                            if (!orderId || !dealerIdResolved) {
+                              showToast("Missing order ID or dealer ID", "error");
+                              return;
+                            }
+
+                            await updateOrderStatusByDealer(String(dealerIdResolved), String(orderId), totalWeightKg);
+                            showToast("Order marked as shipped", "success");
+                          } catch (e) {
+                            showToast("Failed to mark as shipped", "error");
+                          }
+                        }}
+                      >
+                        <Truck className="h-4 w-4 mr-2" /> Mark as Shipped
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         className="flex items-center gap-2 rounded hover:bg-neutral-100" 
