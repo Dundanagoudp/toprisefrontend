@@ -300,12 +300,14 @@ export default function ProductEdit() {
         const data = response.data;
         if (Array.isArray(data) && data.length > 0) {
           setProduct(data[0]);
+          console.log("[ProductEdit] Product loaded:", { _id: data[0]._id, brandType: data[0].brand?.type });
         } else if (
           typeof data === "object" &&
           data !== null &&
           !Array.isArray(data)
         ) {
           setProduct(data as Product);
+          console.log("[ProductEdit] Product loaded (object):", { _id: data._id, brandType: data.brand?.type });
         } else {
           setProduct(null);
           setApiError("Product not found.");
@@ -502,9 +504,12 @@ export default function ProductEdit() {
       try {
         // Fetch brands if vehicle type is available
         if (product.brand?.type) {
+          console.log("[ProductEdit] Fetching dependent brands, brand.type=", product.brand?.type);
           const brandsResponse = await getBrandByType(product.brand.type);
+          console.log("[ProductEdit] Dependent brands response:", brandsResponse);
           if (brandsResponse.success && Array.isArray(brandsResponse.data)) {
             setBrandOptions(brandsResponse.data);
+            console.log("[ProductEdit] Set dependent brandOptions, count=", brandsResponse.data.length);
           }
         }
 
@@ -536,12 +541,15 @@ export default function ProductEdit() {
     if (product && product.brand?.type && brandOptions.length === 0) {
       const fetchBrandsForEdit = async () => {
         try {
+          console.log("[ProductEdit] Fetching brands for edit, brand.type=", product.brand?.type);
           const response = await getBrandByType(product.brand.type);
+          console.log("[ProductEdit] getBrandByType response:", response);
           if (response.success && Array.isArray(response.data)) {
             setBrandOptions(response.data);
+            console.log("[ProductEdit] Set brandOptions, count=", response.data.length);
           }
         } catch (error) {
-          console.error("Failed to fetch brands for edit:", error);
+          console.error("[ProductEdit] Failed to fetch brands for edit:", error);
         }
       };
       fetchBrandsForEdit();
