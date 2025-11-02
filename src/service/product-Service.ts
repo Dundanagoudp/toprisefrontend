@@ -677,12 +677,13 @@ export async function getProductById(
 
 export async function getBrandByType(id: string): Promise<ProductResponse> {
   try {
-    const response = await apiClient.get(
-      `/category/api/brands/brandByType/${id}`
-    );
+    const url = `/category/api/brands/brandByType/${id}`;
+    console.log(`[getBrandByType] GET ${url}`);
+    const response = await apiClient.get(url);
+    console.log(`[getBrandByType] Response: success=${response?.data?.success} data.length=${Array.isArray(response?.data?.data) ? response.data.data.length : 'N/A'}`);
     return response.data;
   } catch (error) {
-    console.error("Failed to fetch categories:", error);
+    console.error(`[getBrandByType] Failed to fetch brands for type ${id}:`, error);
     throw error;
   }
 }
