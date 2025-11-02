@@ -426,26 +426,6 @@ export default function ViewProductDetails() {
               product
                 ? [
                     {
-                      label: "Quantity per Dealer",
-                      value:
-                        product.no_of_stock !== undefined
-                          ? String(product.no_of_stock)
-                          : "-",
-                    },
-                    {
-                      label: "Dealer Priority Override",
-                      value:
-                        product.fulfillment_priority !== undefined
-                          ? String(product.fulfillment_priority)
-                          : "-",
-                    },
-                    {
-                      label: "Last Stock Update",
-                      value: product.available_dealers && Array.isArray(product.available_dealers) && product.available_dealers.length > 0 
-                        ? product.available_dealers[0]?.last_stock_update || "-"
-                        : "-",
-                    },
-                    {
                       label: "Last Inquired At",
                       value: product.last_stock_inquired || "-",
                     },
