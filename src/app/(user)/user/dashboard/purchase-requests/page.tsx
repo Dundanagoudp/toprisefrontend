@@ -19,7 +19,8 @@ import {
   Filter,
   Download,
   FileText,
-  ExternalLink
+  ExternalLink,
+  MoreHorizontal
 } from "lucide-react"
 import SearchInput from "@/components/common/search/SearchInput"
 import { useAppSelector } from "@/store/hooks"
@@ -35,6 +36,12 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination"
 import { SimpleDatePicker } from "@/components/ui/simple-date-picker"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface PurchaseDocument {
   _id: string
@@ -88,6 +95,7 @@ export default function PurchaseRequestsPage() {
   })
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
+  const [isOrderCreated , setIsOrderCreated] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const auth = useAppSelector((state) => state.auth.user)
   const { showToast } = useToast()
@@ -218,15 +226,16 @@ export default function PurchaseRequestsPage() {
   }, [currentPage])
 
   const getStatusBadge = (status: string) => {
+    console.log("Getting status badge for:", status)
     const statusLower = status.toLowerCase()
     
-    if (statusLower.includes("pending")) {
+    if (statusLower.includes("pending-review")) {
       return <Badge className="bg-yellow-100 text-yellow-800">{status}</Badge>
     }
     
     switch (statusLower) {
       case "approved":
-      case "confirmed":
+      case "order-created":
         return <Badge className="bg-green-100 text-green-800">{status}</Badge>
       case "rejected":
       case "cancelled":
@@ -487,30 +496,49 @@ export default function PurchaseRequestsPage() {
                       <TableCell>{getPriorityBadge(request.priority)}</TableCell>
                       <TableCell>{getStatusBadge(request.status)}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="gap-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
-                            onClick={() => router.push(`/user/dashboard/purchase-requests/create-order/${request._id}`)}
-                          >
-                            <ShoppingCart className="h-4 w-4" />
-                            Create Order
-                          </Button>
-                          <Button variant="ghost" size="sm" className="gap-1">
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="gap-1"
-                            onClick={() => router.push(`/user/dashboard/purchase-requests/${request._id}`)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Open
-                          </Button>
-                        </div>
+                        {request.status.toLowerCase() === "order-created" ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/user/dashboard/purchase-requests/${request._id}`)}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          //show drop down to create order
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/user/dashboard/purchase-requests/create-order/${request._id}`)}
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                Create Order
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          // <Button 
+                          //   variant="outline" 
+                          //   size="sm" 
+                          //   className="gap-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
+                          //   onClick={() => router.push(`/user/dashboard/purchase-requests/create-order/${request._id}`)}
+                          // >
+                          //   <ShoppingCart className="h-4 w-4" />
+                          //   Create Order
+                          // </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

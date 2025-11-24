@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast as GlobalToast } from "@/components/ui/toast"
 import { getDealerPickList } from "@/service/dealerOrder-services"
 import type { DealerPickList } from "@/types/dealerOrder-types"
+import { fetchPicklistByOrderId } from "@/service/order-service"
 
 interface ViewPicklistsModalProps {
   open: boolean
@@ -19,31 +20,71 @@ const ViewPicklistsModal: React.FC<ViewPicklistsModalProps> = ({ open, onOpenCha
   const [picklists, setPicklists] = useState<DealerPickList[]>([])
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    const load = async () => {
-      try {
-        if (!dealerId) {
-          setPicklists([])
-          showToast("No dealer found for this order", "error")
-          return
-        }
-        setLoading(true)
-        const data = await getDealerPickList(dealerId)
-        // If orderId is provided and API returns linkedOrderId, optionally filter
-        const filtered =
-          (orderId ? (data || []).filter((pl: any) => String(pl.linkedOrderId) === String(orderId)) : data) || []
-        setPicklists(filtered)
-      } catch (e) {
-        setPicklists([])
-        showToast("Failed to load picklists", "error")
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [open, dealerId, orderId])
+// API service function
+const fetchPicklists = async (orderId: string): Promise<DealerPickList[]> => {
+  try {
+    const response = await fetchPicklistByOrderId(orderId);
+    const data = response?.data || []
 
+    // Normalize incoming API shape (Picklist) to our DealerPickList type
+    const mapped: DealerPickList[] = (data as any[]).map((p, pIndex) => {
+      const picklistId = String(p._id ?? p.id ?? `picklist-${orderId}-${pIndex}`)
+
+      const skuList = (p.skuList || []).map((s: any, sIndex: number) => ({
+        _id: String(s._id ?? s.id ?? `${picklistId}-sku-${sIndex}`),
+        sku: s.sku ?? s.skuCode ?? "",
+        quantity: Number(s.quantity ?? 0),
+        // copy other fields if needed
+      }))
+
+      return {
+        // ensure required string fields are present
+        _id: picklistId,
+        scanStatus: p.scanStatus ?? p.status ?? "unknown",
+        invoiceGenerated: Boolean(p.invoiceGenerated),
+        skuList,
+        // include other properties from the API response if any (kept as-is)
+        ...(p || {}),
+      } as DealerPickList
+    })
+
+    return mapped
+  } catch (error) {
+    console.error("Failed to fetch picklists:", error)
+    throw error
+  }
+}
+
+// Component hook
+useEffect(() => {
+  if (!open) return;
+  
+  const loadPicklists = async () => {
+    if (!dealerId) {
+      setPicklists([]);
+      showToast("No dealer found for this order", "error");
+      return;
+    }
+    if (!orderId) {
+      setPicklists([]);
+      showToast("No order ID provided", "error");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const picklists = await fetchPicklists(orderId);
+      setPicklists(picklists);
+    } catch (error) {
+      setPicklists([]);
+      showToast("Failed to load picklists", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  loadPicklists();
+}, [open, dealerId, orderId]);
   const StatusBadge = ({ status }: { status: string }) => {
     const getStatusColor = (status: string) => {
       switch (status.toLowerCase()) {

@@ -772,7 +772,7 @@ export default function ProductRequests() {
                                 <XCircle className="w-4 h-4 mr-2" />
                                 Reject
                               </DropdownMenuItem>
-                              <DropdownMenuItem
+                              {/* <DropdownMenuItem
                                 onClick={() => {
                                   setSelectedRequestId(request._id);
                                   setIsReviewDialogOpen(true);
@@ -780,7 +780,7 @@ export default function ProductRequests() {
                               >
                                 <Eye className="w-4 h-4 mr-2" />
                                 Put in Review
-                              </DropdownMenuItem>
+                              </DropdownMenuItem> */}
                             </>
                           )}
                           <DropdownMenuItem

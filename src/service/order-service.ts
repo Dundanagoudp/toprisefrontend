@@ -1,6 +1,8 @@
 import { orderResponse, PicklistResponse, AssignDealersRequest, CreatePicklistRequest, AssignPicklistRequest, UpdateOrderStatusByDealerRequest } from "@/types/order-Types";
 import apiClient from "@/apiClient";
 
+import axios from "axios";
+
 export async function getOrders(): Promise<orderResponse> {
   try {
     const response = await apiClient.get(`/orders/api/orders/all`);
@@ -80,28 +82,71 @@ export async function fetchPicklists(): Promise<PicklistResponse> {
     throw error;
   }
 }
+//get picklist by  order id
+export async function fetchPicklistByOrderId(orderId:string):Promise<PicklistResponse>{
+  try{
+    const response = await apiClient.get(`/orders/api/fulfillment/picklist/by-orderId/${orderId}`)
+    return response.data
+  }
+catch(err){
+  console.error("failed to fetch picklist by order id", err)
+  throw err
+}
+}
+//get employee from userid
+export async function fetchEmployeeByUserId(userId:string):Promise<any>{
+  try{
+    const resposne = await apiClient.get(`/users/api/users/employee/getEmployee/byUserId/${userId}`)
+    return resposne.data
+  }
+  catch(err){
+    console.error("failed to fetch user ", err)
+  }
+}
 
 // Fetch picklists assigned to a specific fulfillment staff (employee)
-export async function fetchPicklistsByEmployee(employeeId: string): Promise<{
+export async function fetchPicklistsByEmployee(employeeId: string , page?:number): Promise<{
   success: boolean;
   message: string;
   data: {
-    data: any[];
+    picklists: any[];
     pagination?: any;
     staffInfo?: any;
     summary?: any;
   };
 }> {
-  try {
-    console.log(`[fetchPicklistsByEmployee] Employee ID: ${employeeId}`);
-    const url = `/orders/api/orders/picklists/employee/${employeeId}`;
-    console.log(`[fetchPicklistsByEmployee] GET ${url}`);
+  try { 
+    const url = page 
+      ? `/orders/api/fulfillment/picklists/employee/${employeeId}?page=${page}`
+      : `/orders/api/fulfillment/picklists/employee/${employeeId}`;
     const response = await apiClient.get(url);
     try {
       const count = Array.isArray(response?.data?.data?.data) ? response.data.data.data.length : 0;
-      console.log(`[fetchPicklistsByEmployee] Response success=${response?.data?.success} message="${response?.data?.message}" count=${count}`);
+      const totalPages = response?.data?.data?.pagination?.totalPages || 0;
+      const currentPage = response?.data?.data?.pagination?.currentPage || 1;
+      const itemsPerPage = response?.data?.data?.pagination?.itemsPerPage || 10;
+      const hasNextPage = response?.data?.data?.pagination?.hasNextPage || false;
+      const hasPreviousPage = response?.data?.data?.pagination?.hasPreviousPage || false;
+      const pagination = {
+        totalItems: count,
+        totalPages,
+        currentPage,
+        itemsPerPage,
+        hasNextPage,
+        hasPreviousPage,
+      };
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        data: {
+          picklists: response.data.data,
+          pagination,
+          staffInfo: response.data.staffInfo,
+          summary: response.data.summary,
+        },
+      };
     } catch {}
-    return response.data;
+    return  response.data;
   } catch (error) {
     console.error(`Failed to fetch picklists for employee ${employeeId}:`, error);
     throw error;
@@ -183,7 +228,16 @@ export async function packOrder(orderId: string, payload: { total_weight_kg?: nu
     throw error;
   }
 }
-
+// mark as packed 
+export async function markOrderAsPacked(data: any): Promise<any> {
+  try {
+    const response = await apiClient.put(`/orders/api/orders/update/order-status-by-dealer/by-sku`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to mark order as packed:", error);
+    throw error;
+  }
+}
 // Get all orders from the specified endpoint
 export async function getAllOrders(): Promise<{
   success: boolean;

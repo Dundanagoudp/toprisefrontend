@@ -33,6 +33,7 @@ import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import Emptydata from "../../Emptydata";
+import { DynamicPagination } from "@/components/common/pagination";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -79,16 +80,7 @@ export default function RejectedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        console.log("🔍 RejectedProduct: useEffect triggered");
-        console.log("🔍 RejectedProduct: searchQuery received:", searchQuery);
-        console.log("🔍 RejectedProduct: API call params:", {
-          currentPage,
-          itemsPerPage,
-          status: "Rejected",
-          searchQuery,
-          categoryFilter,
-          subCategoryFilter
-        });
+
         
         const response = await getProductsByPage(
           currentPage,
@@ -99,10 +91,13 @@ export default function RejectedProduct({
           subCategoryFilter
         );
         
-        console.log("🔍 RejectedProduct: API response received:", response);
+    
         if (response.data) {
-          setPaginatedProducts(response.data.products || []);
-          setTotalProducts(response.data.pagination?.totalItems || 0);
+          const rejectedProducts = response.data.products.filter(
+            product => product.live_status === "Rejected"
+          );
+          setPaginatedProducts(rejectedProducts);
+          setTotalProducts(rejectedProducts.length);
           setTotalPages(response.data.pagination?.totalPages || 0);
         } else {
           console.error("Unexpected API response structure:", response.data);
@@ -301,9 +296,9 @@ export default function RejectedProduct({
                     onClick={() => handleViewProduct(product._id)}
                   >
                     <div className="font-medium text-gray-900 b2 font-sans">
-                      {product.manufacturer_part_name.length > 8
-                        ? `${product.manufacturer_part_name.slice(0, 8)}...`
-                        : product.manufacturer_part_name}
+                      {product.product_name.length > 8
+                        ? `${product.product_name.slice(0, 8)}...`
+                        : product.product_name}
                     </div>
                     <div className="text-xs text-gray-500 mt-1 md:hidden">
                       {product.category?.category_name} •{" "}
@@ -396,57 +391,13 @@ export default function RejectedProduct({
             )} of ${totalProducts} products`}
           </div>
           <div className="flex justify-center sm:justify-end">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className={
-                      currentPage === 1
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                  />
-                </PaginationItem>
-
-                {(() => {
-                  let pages = [];
-                  if (totalPages <= 3) {
-                    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-                  } else if (currentPage <= 2) {
-                    pages = [1, 2, 3];
-                  } else if (currentPage >= totalPages - 1) {
-                    pages = [totalPages - 2, totalPages - 1, totalPages];
-                  } else {
-                    pages = [currentPage - 1, currentPage, currentPage + 1];
-                  }
-                  return pages.map((pageNum) => (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        isActive={currentPage === pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className="cursor-pointer"
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ));
-                })()}
-
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    className={
-                      currentPage === totalPages
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+            <DynamicPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalProducts}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
           </div>
         </div>
       )}

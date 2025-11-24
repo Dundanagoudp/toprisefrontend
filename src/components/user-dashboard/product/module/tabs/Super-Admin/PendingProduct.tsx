@@ -42,11 +42,14 @@ import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { useRouter } from "next/navigation";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import Emptydata from "../../Emptydata";
+import { useContext } from "react";
+import { useProductSelection } from "@/contexts/ProductSelectionContext";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DynamicPagination } from "@/components/common/pagination";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
   switch (status) {
-    
     case "Approved":
       return "text-green-600 font-medium";
     case "Rejected":
@@ -81,6 +84,11 @@ export default function PendingProduct({
   const [viewProductLoading, setViewProductLoading] = useState(false);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const {
+    selectedProductIds: selectedItems,
+    setSelectedProductIds: setSelectedItems,
+    toggleProductSelection: handleToggleSelection,
+  } = useProductSelection();
   const itemsPerPage = 10;
   const route = useRouter();
 
@@ -88,17 +96,6 @@ export default function PendingProduct({
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true);
     try {
-      console.log("🔍 PendingProduct: Fetching products");
-      console.log("🔍 PendingProduct: searchQuery received:", searchQuery);
-      console.log("🔍 PendingProduct: API call params:", {
-        currentPage,
-        itemsPerPage,
-        status: "Pending",
-        searchQuery,
-        categoryFilter,
-        subCategoryFilter
-      });
-      
       const response = await getProductsByPage(
         currentPage,
         itemsPerPage,
@@ -107,44 +104,73 @@ export default function PendingProduct({
         categoryFilter,
         subCategoryFilter
       );
-      
-      console.log("🔍 PendingProduct: API response received:", response);
-      
+
       // Handle response safely
       if (response && response.data) {
-        const products = Array.isArray(response.data.products) ? response.data.products : [];
+        const products = Array.isArray(response.data.products)
+          ? response.data.products
+          : [];
         const pagination = response.data.pagination || {};
-        
-        setPaginatedProducts(products);
-        setTotalProducts(pagination.totalItems || 0);
+        const pendingProducts = products.filter(
+          (product) => product.live_status === "Pending"
+        );
+        setPaginatedProducts(pendingProducts);
+        setTotalProducts(pendingProducts.length);
         setTotalPages(pagination.totalPages || 0);
       } else {
         console.error("Unexpected API response structure:", response);
         setPaginatedProducts([]);
         setTotalProducts(0);
         setTotalPages(0);
-        showToast("No products found", "info");
+        showToast("No products found", "error");
       }
     } catch (error: any) {
       console.error("Failed to fetch products:", error);
-      
+
       // Set safe fallback values
       setPaginatedProducts([]);
       setTotalProducts(0);
       setTotalPages(0);
-      
+
       // Show appropriate error message
       const errorMessage = error.message || "Failed to fetch products";
       showToast(errorMessage, "error");
     } finally {
       setLoadingProducts(false);
     }
-  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter, showToast]);
+  }, [
+    currentPage,
+    itemsPerPage,
+    searchQuery,
+    categoryFilter,
+    subCategoryFilter,
+    showToast,
+  ]);
 
   // Fetch products when component mounts or when dependencies change
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts, refreshKey]);
+
+  // handle select all checkbox
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allProductIds = filteredProducts.map((product) => product._id);
+      setSelectedItems(allProductIds);
+    } else {
+      setSelectedItems([]);
+    }
+  };
+  // handle individual row checkbox
+  const handleRowCheckboxChange = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedItems((prevSelected) => [...prevSelected, productId]);
+    } else {
+      setSelectedItems((prevSelected) =>
+        prevSelected.filter((id) => id !== productId)
+      );
+    }
+  };
 
   // Reset to first page when search or filters change
   useEffect(() => {
@@ -205,10 +231,9 @@ export default function PendingProduct({
   };
 
   // Empty state
-  if (!loadingProducts && (filteredProducts.length === 0)) {
+  if (!loadingProducts && filteredProducts.length === 0) {
     return <Emptydata />;
   }
-
 
   const handleStatusChange = async (productId: string, newStatus: string) => {
     try {
@@ -225,7 +250,7 @@ export default function PendingProduct({
         );
         showToast("Product deactivated successfully", "success");
       }
-      
+
       // Refresh the product list after status change
       await fetchProducts();
     } catch (error) {
@@ -233,7 +258,6 @@ export default function PendingProduct({
       showToast("Failed to update product status", "error");
     }
   };
-
 
   // Navigation handlers
   const handleEditProduct = (id: string) => {
@@ -257,6 +281,16 @@ export default function PendingProduct({
         <Table>
           <TableHeader>
             <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
+              <TableHead className="px-6 py-4">
+                <Checkbox
+                  checked={
+                    selectedItems.length === filteredProducts.length &&
+                    filteredProducts.length > 0
+                  }
+                  onCheckedChange={handleSelectAll}
+                  className="rounded border-gray-300"
+                />
+              </TableHead>
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
                 Image
               </TableHead>
@@ -366,6 +400,15 @@ export default function PendingProduct({
                       index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                     }`}
                   >
+                    <TableCell className="px-6 py-4">
+                      <Checkbox
+                        checked={selectedItems.includes(product._id)}
+                        onCheckedChange={() =>
+                          handleToggleSelection(product._id)
+                        }
+                        className="rounded border-gray-300"
+                      />
+                    </TableCell>
                     <TableCell className="px-6 py-4 font-[Poppins]">
                       <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                         <Image
@@ -382,12 +425,12 @@ export default function PendingProduct({
                       onClick={() => handleViewProduct(product._id)}
                     >
                       <div className="font-medium text-gray-900 b2 font-sans">
-                        {product.manufacturer_part_name?.length > 8
-                          ? `${product.manufacturer_part_name.substring(
+                        {product.product_name?.length > 8
+                          ? `${product.product_name.substring(
                               0,
                               8
                             )}...`
-                          : product.manufacturer_part_name}
+                          : product.product_name}
                       </div>
                       <div className="text-xs text-gray-500 mt-1 md:hidden">
                         {product.category?.category_name} •{" "}
@@ -517,67 +560,17 @@ export default function PendingProduct({
             )} of ${totalProducts} products`}
           </div>
           {/* Pagination Controls */}
-          <div className="flex justify-center sm:justify-end">
-            <Pagination>
-              <PaginationContent>
-                {/* Previous Button */}
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className={
-                      currentPage === 1
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                  />
-                </PaginationItem>
-
-                {/* Numbered Page Buttons (max 3) */}
-                {(() => {
-                  let pages = [];
-                  if (totalPages <= 3) {
-                    // Case 1: Few pages, just show all
-                    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-                  } else if (currentPage <= 2) {
-                    // Case 2: Near the start
-                    pages = [1, 2, 3];
-                  } else if (currentPage >= totalPages - 1) {
-                    // Case 3: Near the end
-                    pages = [totalPages - 2, totalPages - 1, totalPages];
-                  } else {
-                    // Case 4: Middle pages
-                    pages = [currentPage - 1, currentPage, currentPage + 1];
-                  }
-
-                  return pages.map((pageNum) => (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        isActive={currentPage === pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className="cursor-pointer"
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ));
-                })()}
-
-                {/* Next Button */}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    className={
-                      currentPage === totalPages
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
+          {totalProducts > 10 && (
+            <div className="flex justify-center sm:justify-end">
+              <DynamicPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalProducts}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
       )}
 

@@ -13,12 +13,12 @@ export default function DashboardShimmer({ className = "" }: DashboardShimmerPro
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-2">
-        <div className="w-full sm:max-w-md">
+        {/* <div className="w-full sm:max-w-md">
           <div className="flex items-center gap-2 h-10 rounded-lg bg-[#EBEBEB] px-4 py-0 shadow-sm">
             <Skeleton className="h-5 w-5 rounded" />
             <Skeleton className="h-4 w-32" />
           </div>
-        </div>
+        </div> */}
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
           <div className="relative w-full sm:w-auto">
             <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">

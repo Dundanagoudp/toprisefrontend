@@ -1,0 +1,173 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchOrdersRequest, fetchOrdersSuccess, fetchOrdersFailure } from "@/store/slice/order/orderSlice";
+import { getOrders } from "@/service/order-service";
+import { fetchEnhancedOrderStats } from "@/service/dashboardServices";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import DynamicButton from "@/components/common/button/button";
+import EnhancedOrderFilters from "@/components/user-dashboard/order-management/EnhancedOrderFilters";
+import EnhancedOrderStatsCards from "@/components/user-dashboard/order-management/EnhancedOrderStatsCards";
+import { useRouter } from "next/navigation";
+import { MoreHorizontal, Eye } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DynamicPagination } from "@/components/common/pagination";
+
+// Strict Type Definition
+interface AdminOrder {
+  id: string;
+  orderId: string;
+  customer: string;
+  amount: string;
+  status: string;
+  date: string;
+  dealers: number;
+}
+
+export default function AdminOrdersTable() {
+  const dispatch = useAppDispatch();
+  const route = useRouter();
+  const { orders, loading } = useAppSelector((state) => state.order);
+  
+  // Local State
+  const [stats, setStats] = useState<any>(null);
+  const [filters, setFilters] = useState<any>({ status: "all", search: "" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const itemsPerPage = 10;
+
+  // Data Fetching
+  useEffect(() => {
+    const init = async () => {
+      dispatch(fetchOrdersRequest());
+      try {
+        const [orderRes, statsRes] = await Promise.all([
+          getOrders(),
+          fetchEnhancedOrderStats({})
+        ]);
+
+        // Normalize Data
+        const mapped = orderRes.data.map((o: any) => ({
+            id: o._id,
+            orderId: o.orderId,
+            customer: o.customerDetails?.name || "N/A",
+            amount: `₹${o.order_Amount}`,
+            status: o.status,
+            date: new Date(o.orderDate).toLocaleDateString(),
+            dealers: o.dealerMapping?.length || 0,
+        }));
+
+        dispatch(fetchOrdersSuccess(mapped));
+        setStats(statsRes.data);
+        const anyOrderRes = orderRes as any;
+        setTotalOrders(anyOrderRes.pagination?.totalItems || mapped.length);
+        setTotalPages(anyOrderRes.pagination?.totalPages || Math.ceil(mapped.length / itemsPerPage));
+      } catch (err: any) {
+        dispatch(fetchOrdersFailure(err.message));
+      }
+    };
+    init();
+  }, [dispatch, currentPage]);
+
+  // Client-side Filtering (Replace with Server-side in future)
+  const filteredData = useMemo(() => {
+    return orders.filter((o: any) => {
+        const matchSearch = !filters.search || 
+            o.orderId.toLowerCase().includes(filters.search.toLowerCase()) || 
+            o.customer.toLowerCase().includes(filters.search.toLowerCase());
+        const matchStatus = filters.status === "all" || o.status.toLowerCase() === filters.status.toLowerCase();
+        return matchSearch && matchStatus;
+    });
+  }, [orders, filters]);
+
+  return (
+    <div className="space-y-6">
+      <EnhancedOrderStatsCards 
+        stats={stats} 
+        loading={loading} 
+        filters={filters} 
+        onFilterChange={(k, v) => setFilters((prev: any) => ({...prev, [k]: v}))} 
+        onRefresh={() => {}} 
+        onClearFilters={() => setFilters({})}
+      />
+
+      <EnhancedOrderFilters 
+        onFiltersChange={setFilters} 
+        loading={loading} 
+        onExport={() => alert("Exporting...")}
+        onRefresh={() => dispatch(fetchOrdersRequest())}
+      />
+
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Order Management</CardTitle>
+            <DynamicButton text="Dashboard" variant="outline" onClick={() => route.push("/user/dashboard/orders-dashboard")} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Dealers</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow> : 
+               filteredData.map((order: AdminOrder) => (
+                <TableRow key={order.id}>
+                  <TableCell className="font-medium">{order.orderId}</TableCell>
+                  <TableCell>{order.date}</TableCell>
+                  <TableCell>{order.customer}</TableCell>
+                  <TableCell>{order.amount}</TableCell>
+                  <TableCell>{order.dealers}</TableCell>
+                  <TableCell>{order.status}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger><MoreHorizontal className="w-4 h-4" /></DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => route.push(`/user/dashboard/order/orderdetails/${order.id}`)}>
+                            <Eye className="mr-2 h-4 w-4"/> View
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {totalOrders > 0 && totalPages > 1 && (
+        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+          <div className="text-sm text-gray-600 text-center sm:text-left">
+            {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
+              currentPage * itemsPerPage,
+              totalOrders
+            )} of ${totalOrders} orders`}
+          </div>
+          <div className="flex justify-center sm:justify-end">
+            <DynamicPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalOrders}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

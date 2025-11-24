@@ -237,13 +237,10 @@ export default function EnhancedOrderFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Payment Methods</SelectItem>
-                <SelectItem value="razorpay">Razorpay</SelectItem>
+               
                 <SelectItem value="prepaid">Prepaid</SelectItem>
                 <SelectItem value="COD">COD</SelectItem>
-                <SelectItem value="card">Credit/Debit Card</SelectItem>
-                <SelectItem value="upi">UPI</SelectItem>
-                <SelectItem value="netbanking">Net Banking</SelectItem>
-                <SelectItem value="wallet">Digital Wallet</SelectItem>
+
               </SelectContent>
             </Select>
           </div>

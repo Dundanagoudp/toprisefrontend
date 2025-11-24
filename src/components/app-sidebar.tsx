@@ -77,7 +77,6 @@ const sidebarVisibilityConfig = {
       "Catalogues",
       "Order Management",
       "Order Returns",
-      "Pickup",
     ],
   },
   "Inventory-Staff": {
@@ -89,7 +88,6 @@ const sidebarVisibilityConfig = {
       "Payment & Details",
       "Order Management",
       "Order Returns",
-      "Pickup",
       "Content Management",
       "Support Tickets",
       "Settings",
@@ -107,7 +105,6 @@ const sidebarVisibilityConfig = {
       "Payment & Details",
       "Order Management",
       "Order Returns",
-      "Pickup",
       "Support Tickets",
       "Settings",
       "Reports",
