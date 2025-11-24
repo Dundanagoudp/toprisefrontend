@@ -14,36 +14,39 @@ export default function ProductDetailsWrapper({ productId }: ProductDetailsWrapp
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadProduct = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Try to get product data from sessionStorage first
-        const storedProduct = sessionStorage.getItem('selectedProduct');
-        if (storedProduct) {
-          const parsedProduct = JSON.parse(storedProduct);
-          console.log('Product loaded from sessionStorage:', parsedProduct);
-          console.log('Permission matrix:', parsedProduct.permission_matrix);
-          setProduct(parsedProduct);
-          // Clear the stored data after use
-          sessionStorage.removeItem('selectedProduct');
-        } else {
-          // Fallback to API call
-          const productData = await getDealerProductById(productId);
-          console.log('Product loaded from API:', productData);
-          console.log('Permission matrix:', productData.permission_matrix);
+        // Always fetch from API
+        const productData = await getDealerProductById(productId);
+        //log the fetched product data
+        console.log("Fetched product data:", productData);
+        if (isMounted) {
           setProduct(productData);
         }
+        //log the permission matrix
+        console.log("Product Permission Matrix:", productData?.permission_matrix?.canView);
       } catch (err) {
         console.error("Failed to load product:", err);
-        setError("Failed to load product details");
+        if (isMounted) {
+          setError("Failed to load product details");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadProduct();
+
+    return () => {
+      isMounted = false;
+    };
   }, [productId]);
 
   if (loading) {

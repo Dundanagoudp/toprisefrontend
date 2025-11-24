@@ -43,9 +43,9 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
       console.log("Banner API response:", response); // Debug log
       
       // Handle the specific API response structure: response.data.data
-      let bannersData = [];
+      let bannersData: Banner[] = [];
       if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
-        bannersData = response.data.data;
+        bannersData = response.data.data as Banner[];
       }
       
       setBanners(bannersData);
@@ -131,7 +131,7 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
-                <TableHead>Brand</TableHead>
+                {/* <TableHead>Brand</TableHead> */}
                 <TableHead>Vehicle Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Images</TableHead>
@@ -142,9 +142,9 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
               {filteredBanners.map((banner) => (
                 <TableRow key={banner._id}>
                   <TableCell className="font-medium">{banner.title}</TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{banner.brand_id?.brand_name || 'N/A'}</Badge>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">{banner.vehicle_type?.type_name || 'N/A'}</Badge>
                   </TableCell>

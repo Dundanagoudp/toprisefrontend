@@ -290,13 +290,13 @@ export default function Dashboard() {
           <>
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-          <SearchInput
+          {/* <SearchInput
             value={searchValue}
             onChange={setSearchValue}
             onClear={() => setSearchValue("")}
             placeholder="Search Spare parts"
             className="w-full sm:max-w-md"
-          />
+          /> */}
 
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
             <div className="relative w-full sm:w-auto">
@@ -450,7 +450,7 @@ export default function Dashboard() {
         </div>
 
         {/* Returns Dashboard */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <ChartCard
             title="Returns Overview"
             className="lg:col-span-2 rounded-[15px] p-4"
@@ -476,9 +476,9 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          </ChartCard>
+          </ChartCard> */}
           
-          <ChartCard
+          {/* <ChartCard
             title="Return Trends"
             className="rounded-[15px] p-4"
             contentClassName="h-48"
@@ -503,8 +503,8 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          </ChartCard>
-        </div>
+          </ChartCard> */}
+        {/* </div> */}
           </>
         )}
       </div>

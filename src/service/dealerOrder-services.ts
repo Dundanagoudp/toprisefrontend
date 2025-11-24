@@ -108,10 +108,13 @@ export const updateOrderStatusByDealer = async (
  * @param dealerId - The dealer ID to fetch pick list for
  * @returns Promise<DealerPickList[]>
  */
-export const getDealerPickList = async (dealerId: string): Promise<DealerPickList[]> => {
+
+
+// getDealer by employee id and order id
+export const getDealerPickList = async (dealerId: string, orderId: string): Promise<DealerPickList[]> => {
   try {
     const response = await apiClient.get<DealerPickListApiResponse>(
-      `/orders/api/orders/picklists/dealer/${dealerId}`
+      `/orders/api/fulfillment/orders/employee/${dealerId}?linkedOrderId=${orderId}`
     );
     return response.data.data;
   } catch (error) {

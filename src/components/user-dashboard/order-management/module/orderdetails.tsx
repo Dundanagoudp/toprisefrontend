@@ -205,30 +205,26 @@ export default function OrderDetailsView() {
   const auth = useAppSelector((state: any) => state.auth.user);
   const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role);
   
+  // Fetch order data
+  const fetchOrder = async () => {
+    dispatch(fetchOrderByIdRequest());
+    try {
+      const response = await getOrderById(orderId);
+      const item = response.data;
+      console.log("Fetched order data:", item);
+      dispatch(fetchOrderByIdSuccess(item));
+      setLoading(false);
+    } catch (error: any) {
+      console.error(`Failed to fetch order with id ${orderId}:`, error);
+      dispatch(fetchOrderByIdFailure(error.message));
+      setLoading(false);
+    }
+  };
+
   // Simulate loading
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    async function fetchOrder() {
-      dispatch(fetchOrderByIdRequest());
-      try {
-        const response = await getOrderById(orderId);
-
-        const item = response.data;
-        dispatch(fetchOrderByIdSuccess(item));
-
-        timer = setTimeout(() => {
-          setLoading(false);
-        }, 2000);
-      } catch (error: any) {
-        console.error(`Failed to fetch order with id ${orderId}:`, error);
-        dispatch(fetchOrderByIdFailure(error.message));
-        setLoading(false);
-      }
-    }
     fetchOrder();
-
-    return () => clearTimeout(timer);
-  }, []);
+  }, [orderId]);
 
   // Compute tracking steps from live order data
   const trackingSteps = useMemo(() => {
@@ -623,7 +619,7 @@ export default function OrderDetailsView() {
                     Delivery Address
                   </p>
                   <p className="font-medium text-gray-900 text-sm sm:text-base">
-                    {orderById?.customerDetails?.address || "-"},{" "}
+                    {(orderById?.customerDetails?.address || "-").replace(/^\{|\}$/g, '','')},{" "}
                     {orderById?.customerDetails?.pincode || ""}
                   </p>
                 </div>
@@ -755,6 +751,7 @@ export default function OrderDetailsView() {
             onProductEyeClick={handleProductEyeClick}
             onDealerEyeClick={handleDealerEyeClick}
             orderId={orderId}
+            onRefresh={fetchOrder}
           />
 
           {/* Order Summary */}

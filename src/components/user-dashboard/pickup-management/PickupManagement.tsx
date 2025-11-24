@@ -467,7 +467,7 @@ export default function PickupManagement() {
                 <TableHead>Created Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Items</TableHead>
-                <TableHead>Overdue</TableHead>
+                {/* <TableHead>Overdue</TableHead> */}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -527,7 +527,7 @@ export default function PickupManagement() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     {pickup.isOverdue ? (
                       <Badge variant="destructive" className="bg-red-100 text-red-800">
                         <AlertTriangle className="w-3 h-3 mr-1" />
@@ -539,7 +539,7 @@ export default function PickupManagement() {
                         On Time
                       </Badge>
                     )}
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
