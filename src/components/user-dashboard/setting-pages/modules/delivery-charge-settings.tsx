@@ -47,7 +47,7 @@ export function DeliveryChargeSettings() {
   return (
     <div className="p-6 space-y-6">
       {/* Delivery Settings Card */}
-      <Card>
+      {/* <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
@@ -72,7 +72,7 @@ export function DeliveryChargeSettings() {
             <div className="font-medium text-green-600">Active</div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* SMTP Settings Card */}
       <Card>

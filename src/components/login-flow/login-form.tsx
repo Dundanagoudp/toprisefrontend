@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginSuccess } from "@/store/slice/auth/authSlice";
 import { useToast } from "@/components/ui/toast";
 import { Eye, EyeOff } from "lucide-react";
+import { getDealerById } from "@/service/dealerServices";
 
 
 
@@ -55,7 +56,8 @@ export function LoginForm({
     setError(null);
     try {
       const response = await loginUser({ email, password });
-      console.log("Login response:", response);
+      // const dealerData =  await getDealerById(response.data.user._id);
+      // console.log("Dealer Data:", dealerData);
       if (response.data) {
         const { token, user } = response.data;
         const { role, last_login, _id } = user;

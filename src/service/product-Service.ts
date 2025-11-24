@@ -79,10 +79,11 @@ export async function getProductsByPage(
   limit: number,
   status?: string,
   searchQuery?: string,
-  categoryFilter?: string,
-  subCategoryFilter?: string
+  category?: string,
+  sub_category?: string
 ): Promise<ProductResponse> {
   try {
+    console.log("🔎 getProductsByPage called with:", { page, limit, status, searchQuery, category, sub_category });
     // Validate input parameters
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
@@ -101,52 +102,34 @@ export async function getProductsByPage(
       }
     }
 
-    if (categoryFilter && categoryFilter.trim() !== "") {
+    if (category && category.trim() !== "") {
       // Check if it's an ID (24 character hex string) or a name
-      const isId = /^[0-9a-fA-F]{24}$/.test(categoryFilter.trim());
+      const isId = /^[0-9a-fA-F]{24}$/.test(category.trim());
       if (isId) {
-        url += `&categoryId=${encodeURIComponent(categoryFilter.trim())}`;
+        url += `&category=${encodeURIComponent(category.trim())}`;
       } else {
-        url += `&category=${encodeURIComponent(categoryFilter.trim())}`;
+        url += `&category=${encodeURIComponent(category.trim())}`;
       }
     }
 
-    if (subCategoryFilter && subCategoryFilter.trim() !== "") {
+    if (sub_category && sub_category.trim() !== "") {
       // Check if it's an ID (24 character hex string) or a name
-      const isId = /^[0-9a-fA-F]{24}$/.test(subCategoryFilter.trim());
+      const isId = /^[0-9a-fA-F]{24}$/.test(sub_category.trim());
       if (isId) {
-        url += `&subCategoryId=${encodeURIComponent(subCategoryFilter.trim())}`;
+        url += `&sub_category=${encodeURIComponent(sub_category.trim())}`;
       } else {
-        url += `&subCategory=${encodeURIComponent(subCategoryFilter.trim())}`;
+        url += `&sub_category=${encodeURIComponent(sub_category.trim())}`;
       }
     }
 
-    console.log("🔍 API URL for getProductsByPage:", url);
-    console.log("🔍 Search parameters - query:", searchQuery, "categoryFilter:", categoryFilter, "subCategoryFilter:", subCategoryFilter);
-    console.log("🔍 Category filter type:", typeof categoryFilter, "Is ID:", categoryFilter ? /^[0-9a-fA-F]{24}$/.test(categoryFilter.trim()) : false);
-    console.log("🔍 Subcategory filter type:", typeof subCategoryFilter, "Is ID:", subCategoryFilter ? /^[0-9a-fA-F]{24}$/.test(subCategoryFilter.trim()) : false);
-    console.log("🔍 Full search query details:", {
-      searchQuery,
-      searchQueryType: typeof searchQuery,
-      searchQueryLength: searchQuery?.length,
-      isSearchQueryEmpty: !searchQuery || searchQuery.trim() === "",
-      sanitizedQuery: searchQuery
-        ? searchQuery.trim().replace(/[<>]/g, "")
-        : "",
-    });
+    // Log constructed URL for debugging (helps verify that status/category/sub_category are present)
+    try {
+      console.log("🔗 getProductsByPage URL ->", url);
+    } catch (e) {
+      // ignore logging errors
+    }
 
     const response = await apiClient.get(url);
-    console.log("API response for getProductsByPage:", response.data);
-    console.log("API response pagination:", response.data?.data?.pagination);
-    console.log(
-      "API response totalItems:",
-      response.data?.data?.pagination?.totalItems
-    );
-    console.log(
-      "API response totalPages:",
-      response.data?.data?.pagination?.totalPages
-    );
-
     // Validate response structure
     if (!response.data) {
       throw new Error("Invalid API response: No data received");
@@ -648,6 +631,17 @@ export async function getSubcategories(): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch subcategories:", error);
+    throw error;
+  }
+}
+//get Subcategories by category id
+export async function getSubcategoriesByCategoryId(categoryId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/subcategory/by-category/${categoryId}`);
+    return response.data;
+  }
+catch(error) {
+    console.error("Failed to fetch subcategories by category ID:", error);
     throw error;
   }
 }
@@ -1244,7 +1238,7 @@ export async function updateBanner(bannerId: string, bannerData: FormData): Prom
 
 export async function updateBannerStatus(bannerId: string, isActive: boolean): Promise<ApiResponse<Banner>> {
   try {
-    const response = await apiClient.put(`/category/api/banners/admin/updateStatus/${bannerId}`, {
+    const response = await apiClient.put(`/category/api/banner/updateStatus/${bannerId}`, {
       is_active: isActive,
     });
     return response.data;
@@ -1439,6 +1433,50 @@ export async function riseTicket(data: any): Promise<TicketResponse> {
   }
   catch(error: any){
     console.error("Failed to rise ticket:", error);
+    throw error;
+  }
+}
+
+// get all years
+export async function getAllYears(): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/year`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch all years:", error);
+    throw error;
+  }
+}
+// delete  year
+export async function deleteYear(yearId: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(`/category/api/year/${yearId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete year:", error);
+    throw error;
+  }
+}
+// update year
+export async function updateYear( id: string, data: any): Promise<any> {
+  try {
+    const response = await apiClient.put(`/category/api/year/${id}`, data);
+    return response.data;
+  }
+  catch (err: any) {
+    console.error("Failed to update year:", err);
+    throw err;
+  }
+
+}
+
+//create year
+export async function createYear(data: any): Promise<any> {
+  try {
+    const response = await apiClient.post(`/category/api/year`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create year:", error);
     throw error;
   }
 }

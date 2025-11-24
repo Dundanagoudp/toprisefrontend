@@ -201,7 +201,7 @@ export function PincodeModal({ pincode, onSubmit, onCancel }: PincodeModalProps)
       </Card>
 
       {/* Delivery Settings */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Truck className="w-5 h-5 text-[#C72920]" />
@@ -265,7 +265,7 @@ export function PincodeModal({ pincode, onSubmit, onCancel }: PincodeModalProps)
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Payment & Status */}
       <Card>

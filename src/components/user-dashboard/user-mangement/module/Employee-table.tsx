@@ -368,9 +368,9 @@ export default function EmployeeTable({
       <table className="w-full min-w-[800px]">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+            {/* <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
               <Checkbox />
-            </th>
+            </th> */}
             <th 
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
               onClick={() => handleSort("name")}
@@ -446,9 +446,9 @@ export default function EmployeeTable({
             // Actual data rows
             paginatedData.map((employee) => (
               <tr key={employee._id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="p-3 md:p-4">
+                {/* <td className="p-3 md:p-4">
                   <Checkbox />
-                </td>
+                </td> */}
                 <td className="p-3 md:p-4 font-medium text-gray-900 text-sm">{employee.First_name}</td>
                 <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.employee_id}</td>
                 <td className="p-3 md:p-4 text-gray-600 text-sm">{employee.email}</td>

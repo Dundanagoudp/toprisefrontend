@@ -257,7 +257,7 @@ export default function PaymentDetailedStats({ className = "" }: PaymentDetailed
         <div className="flex items-center justify-between">
           <TabsList className="grid w-full grid-cols-4 max-w-md">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
+            {/* <TabsTrigger value="trends">Trends</TabsTrigger> */}
             <TabsTrigger value="methods">Methods</TabsTrigger>
             <TabsTrigger value="recent">Recent</TabsTrigger>
           </TabsList>
@@ -356,9 +356,9 @@ export default function PaymentDetailedStats({ className = "" }: PaymentDetailed
           </Card>
         </TabsContent>
 
-        <TabsContent value="trends" className="space-y-6">
+        {/* <TabsContent value="trends" className="space-y-6"> */}
           {/* Daily Trends */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
@@ -381,10 +381,10 @@ export default function PaymentDetailedStats({ className = "" }: PaymentDetailed
                 ))}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Monthly Trends */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
@@ -407,8 +407,8 @@ export default function PaymentDetailedStats({ className = "" }: PaymentDetailed
                 ))}
               </div>
             </CardContent>
-          </Card>
-        </TabsContent>
+          </Card> */}
+        {/* </TabsContent> */}
 
         <TabsContent value="methods" className="space-y-6">
           {/* Payment Methods */}
