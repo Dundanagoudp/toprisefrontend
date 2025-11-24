@@ -17,7 +17,7 @@ interface UpdateModalProps {
   onClose: () => void;
   onUpdate: (formData: FormData) => Promise<void>;
   item: any;
-  type: 'category' | 'subcategory' | 'brand' | 'model' | 'variant';
+  type: 'category' | 'subcategory' | 'brand' | 'model' | 'variant'|'year';
   vehicleTypes?: any[];
   categories?: any[];
   brands?: any[];

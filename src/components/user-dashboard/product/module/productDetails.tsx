@@ -60,49 +60,48 @@ export default function ViewProductDetails() {
     }
   };
   // Function to handle product approval
-  const handleStatusChange = async (newStatus: string) => {
+const handleStatusChange = async (newStatus: string) => {
     setStatus(newStatus);
+    
     if (newStatus === "Approved") {
       await aproveProduct(id.id);
-      // Refresh product data after status change
-      await refreshProductData();
+      await fetchProductData(); 
     } else if (newStatus === "Pending") {
       await deactivateProduct(id.id);
-      // Refresh product data after status change
-      await refreshProductData();
-    }
-    else if (newStatus === "Rejected") {
+      await fetchProductData(); 
+    } else if (newStatus === "Rejected") {
       setIsRejectDialogOpen(true);
     }
   };
+  
 
   // Function to refresh product data
-  const refreshProductData = async () => {
+const fetchProductData = async () => {
+    dispatch(fetchProductByIdRequest());
     try {
-      dispatch(fetchProductByIdRequest());
       const response = await getProductById(id.id);
+      console.log("Product data response:", response);
       const data = response.data;
-      let prod: Product | null = null;
-      if (Array.isArray(data) && data.length > 0) {
-        prod = data[0];
-      } else if (
-        typeof data === "object" &&
-        data !== null &&
-        !Array.isArray(data)
-      ) {
-        prod = data as any;
-      }
+      console.log("Product data:", data);
+
+      // Cleaned up the array check
+      const prod: Product | null = Array.isArray(data) ? data[0] : (data as Product);
+
       setProduct(prod);
       dispatch(fetchProductByIdSuccess(prod));
-      if (prod && prod.live_status) {
+      
+      if (prod?.live_status) {
         setStatus(prod.live_status);
       }
-      console.log("Product data refreshed:", response);
     } catch (error) {
-      console.error("Error refreshing product data:", error);
+      console.error(error);
       dispatch(fetchProductByIdFailure(error as string));
     }
   };
+  React.useEffect(() => {
+    fetchProductData();
+  }, [id.id]);
+// open light box for images 
 
   // Function to handle product rejection
   const handleRejectProduct = async (data: { reason: string }) => {
@@ -122,7 +121,7 @@ export default function ViewProductDetails() {
       showToast("Product rejected successfully", "success");
       
       // Refresh product data after rejection
-      await refreshProductData();
+      await fetchProductData();
     } catch (error: any) {
       console.error("Error rejecting product:", error);
       const errorMessage = error.message || "Failed to reject product";
@@ -134,34 +133,7 @@ export default function ViewProductDetails() {
     router.push(`/user/dashboard/product/productedit/${idObj.id}`);
   };
   React.useEffect(() => {
-    const fetchProducts = async () => {
-        dispatch(fetchProductByIdRequest());
-      try {
-        const response = await getProductById(id.id);
-        // response is ProductResponse, which has data: Product[]
-        const data = response.data;
-        let prod: Product | null = null;
-        if (Array.isArray(data) && data.length > 0) {
-          prod = data[0];
-        } else if (
-          typeof data === "object" &&
-          data !== null &&
-          !Array.isArray(data)
-        ) {
-          prod = data as any;
-        }
-        setProduct(prod);
-        dispatch(fetchProductByIdSuccess(prod));
-        if (prod && prod.live_status) {
-          setStatus(prod.live_status);
-        }
-        console.log("getProducts API response:", response);
-      } catch (error) {
-        console.error("getProducts API error:", error);
-        dispatch(fetchProductByIdFailure(error as string));
-      }
-    };
-    fetchProducts();
+
   }, []);
 
   // Update status if product changes
@@ -193,7 +165,6 @@ export default function ViewProductDetails() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Created">Created</SelectItem>
                 <SelectItem value="Approved">Approved</SelectItem>
                 <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Rejected">Rejected</SelectItem>
@@ -285,7 +256,7 @@ export default function ViewProductDetails() {
                     },
                     {
                       label: "Is Universal",
-                      value: product.is_universal ? "True" : "False",
+                      value: product.is_universal ? "Yes" : "No",
                     },
                   ]
                 : []
@@ -299,10 +270,10 @@ export default function ViewProductDetails() {
             data={
               product
                 ? [
-                    {
-                      label: "Key Specifications",
-                      value: product.key_specifications || "-",
-                    },
+                    // {
+                    //   label: "Key Specifications",
+                    //   value: product.key_specifications || "-",
+                    // },
                     {
                       label: "Dimensions",
                       value: product.weight ? `${product.weight} kg` : "-",
@@ -319,8 +290,8 @@ export default function ViewProductDetails() {
                     },
                     {
                       label: "Is Consumable",
-                      value: product.is_consumable ? "True" : "False",
-                    },
+                      value: product.is_consumable ? "Yes" : "No",
+                    }
                   ]
                 : []
             }
@@ -364,12 +335,12 @@ export default function ViewProductDetails() {
                 )}
               </div>
               <div className="mt-4 space-y-2">
-                <div className="flex justify-between items-center">
+                {/* <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 ">Video URL</span>
-                  {/* No videoUrl in Product, so show N/A */}
+               
                   <span className="text-sm text-gray-400">N/A</span>
-                </div>
-                <div className="flex justify-between items-center">
+                </div> */}
+                {/* <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">
                     Brochure Available
                   </span>
@@ -378,7 +349,7 @@ export default function ViewProductDetails() {
                       ? product.brochure_available ? "True" : "False"
                       : "False"}
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
           </Productcard>
@@ -397,6 +368,12 @@ export default function ViewProductDetails() {
                         : "-",
                     },
                     {
+                      label: "Selling Price",
+                      value: product.selling_price
+                        ? `₹${product.selling_price}`
+                        : "-",
+                    },
+                    {
                       label: "GST %",
                       value: product.gst_percentage
                         ? String(product.gst_percentage)
@@ -404,7 +381,7 @@ export default function ViewProductDetails() {
                     },
                     {
                       label: "Returnable",
-                      value: product.is_returnable ? "True" : "False",
+                      value: product.is_returnable ? "Yes" : "No",
                     },
                     {
                       label: "Return Policy",
@@ -422,29 +399,18 @@ export default function ViewProductDetails() {
           <Productcard
             title="Dealer-Level Mapping & Routing"
             description="the core identifiers that define the product's identity, brand, and origin."
-            data={
-              product
-                ? [
-                    {
-                      label: "Last Inquired At",
-                      value: product.last_stock_inquired || "-",
-                    },
-                  ]
-                : []
-            }
+            data={[]}
           >
-            {product && product.available_dealers && Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium text-gray-700">Available Dealers</h4>
-                  <DynamicButton
-                    variant="outline"
-                    customClassName="text-red-600 border-red-200 hover:bg-red-50 text-sm px-1 py-1"
-                    onClick={() => setShowDealersModal(true)}
-                    icon={<Eye className="w-4 h-4" />}
-                    text="View All"
-                  />
-                </div>
+               {product && product.available_dealers && Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && (
+              <div className="mt-1">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Available Dealers</h4>
+                <DynamicButton
+                  variant="outline"
+                  customClassName="text-red-600 border-red-200 hover:bg-red-50 text-sm px-2 py-1"
+                  onClick={() => setShowDealersModal(true)}
+                  icon={<Eye className="w-4 h-4" />}
+                  text={`${product.available_dealers.length} Dealers Available`}
+                />
               </div>
             )}
           </Productcard>

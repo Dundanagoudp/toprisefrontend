@@ -200,7 +200,7 @@ export async function getDealerProducts(
 // Get a single product by ID
 export async function getDealerProductById(productId: string): Promise<DealerProduct> {
   try {
-    console.log(`[getDealerProductById] Fetching product with ID: ${productId}`);
+
     
     const response = await apiClient.get(`/category/products/v1/get-ProductById/${productId}`);
     

@@ -29,6 +29,7 @@ import {
   getModelByBrand,
   getModels,
   getSubCategories,
+  getSubcategoriesByCategoryId,
   getTypes,
   getvarientByModel,
   getYearRange,
@@ -41,9 +42,25 @@ import { useRouter } from "next/navigation";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import DynamicButton from "../../../common/button/button";
 
+// Helper function for numeric input validation
+const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (
+    !/[0-9]/.test(e.key) &&
+    e.key !== "Backspace" &&
+    e.key !== "Delete" &&
+    e.key !== "ArrowLeft" &&
+    e.key !== "ArrowRight" &&
+    e.key !== "Tab"
+  ) {
+    e.preventDefault();
+  }
+};
+
 const schema = z.object({
   // Core Product Identity
-  manufacturer_part_name: z.string().optional(),
+  manufacturer_part_name: z
+    .string()
+    .min(1, "Manufacturer Part Number is required"),
   product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().optional(),
   hsn_code: z.number().optional(),
@@ -52,9 +69,9 @@ const schema = z.object({
   product_type: z.string().min(1, "Product type is required"),
   vehicle_type: z.string().optional(),
   // Added fields
-  no_of_stock: z.coerce
-    .number()
-    .int({ message: "No. of Stock must be an integer" }),
+  // no_of_stock: z.coerce
+  //   .number()
+  //   .int({ message: "No. of Stock must be an integer" }),
 
   updatedBy: z.string().optional(),
   admin_notes: z.string().optional(),
@@ -69,7 +86,10 @@ const schema = z.object({
   is_consumable: z.boolean().optional(),
   // Technical Specifications
   keySpecifications: z.string().optional(),
-  weight: z.coerce.number().min(0, "Weight must be a positive number").optional(),
+  weight: z.coerce
+    .number()
+    .min(0, "Weight must be a positive number")
+    .optional(),
   certifications: z.string().optional(),
   warranty: z.number().optional(),
   // Media & Documentation
@@ -84,14 +104,18 @@ const schema = z.object({
   is_returnable: z.boolean(),
   return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
-  dealerAssignments: z.array(z.object({
-    dealerId: z.string().min(1, "Dealer is required"),
-    quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
-    margin: z.coerce.number().optional(),
-    priority: z.coerce.number().optional(),
-  })).optional(),
+  dealerAssignments: z
+    .array(
+      z.object({
+        dealerId: z.string().min(1, "Dealer is required"),
+        quantity: z.coerce.number(),
+        margin: z.coerce.number(),
+        priority: z.coerce.number(),
+      })
+    )
+    .optional(),
   quantityPerDealer: z.string().optional(),
-  dealerMargin: z.string().optional(),
+  dealerMargin: z.number().optional(),
   dealerPriorityOverride: z.string().optional(),
   stockExpiryRule: z.string().optional(),
   lastStockUpdate: z.string().optional(),
@@ -124,6 +148,7 @@ export default function AddProducts() {
     useState<string>("");
   const { showToast } = useGlobalToast();
   const [selectedbrandId, setSelectedBrandId] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
   const [modelId, setModelId] = useState<string>("");
@@ -131,15 +156,15 @@ export default function AddProducts() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [dealerOptions, setDealerOptions] = useState<any[]>([]);
-  const [dealerAssignments, setDealerAssignments] = useState<Array<{
-    dealerId: string;
-    quantity: number;
-    margin?: number;
-    priority?: number;
-  }>>([]);
+  const [dealerAssignments, setDealerAssignments] = useState<
+    Array<{
+      dealerId: string;
+      quantity: number;
+      margin?: number;
+      priority?: number;
+    }>
+  >([]);
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
-
-
 
   const {
     register,
@@ -171,37 +196,23 @@ export default function AddProducts() {
             getYearRange(),
             getAllDealers(),
           ]);
-        
-        // console.log("Raw API responses:", {
-        //   categories,
-        //   subCategories,
-        //   types,
-        //   yearRanges,
-        //   dealers
-        // });
 
         // Check if the response structure is correct and handle different structures
         const categoryData = categories?.data || categories || [];
-        const subCategoryData = subCategories?.data?.products || subCategories?.data || subCategories || [];
+        const subCategoryData =
+          subCategories?.data ||
+          subCategories ||
+          [];
         const typeData = types?.data?.products || types?.data || types || [];
-        const yearRangeData = yearRanges?.data?.products || yearRanges?.data || yearRanges || [];
+        const yearRangeData =
+          yearRanges?.data?.products || yearRanges?.data || yearRanges || [];
         const dealerData = dealers?.data || dealers || [];
 
-        // console.log("Processed data:", {
-        //   categoryData,
-        //   subCategoryData,
-        //   typeData,
-        //   yearRangeData,
-        //   dealerData
-        // });
-
         setCategoryOptions(Array.isArray(categoryData) ? categoryData : []);
-        setSubCategoryOptions(Array.isArray(subCategoryData) ? subCategoryData : []);
+        // setSubCategoryOptions(Array.isArray(subCategoryData) ? subCategoryData : []); // Don't set all subcategories initially
         setTypeOptions(Array.isArray(typeData) ? typeData : []);
         setYearRangeOptions(Array.isArray(yearRangeData) ? yearRangeData : []);
         setDealerOptions(Array.isArray(dealerData) ? dealerData : []);
-        
-        console.log("Successfully fetched and set all initial data");
       } catch (error) {
         console.error("Failed to fetch initial data in parallel:", error);
         // Set empty arrays as fallback
@@ -210,11 +221,41 @@ export default function AddProducts() {
         setTypeOptions([]);
         setYearRangeOptions([]);
         setDealerOptions([]);
-        showToast("Failed to load initial data. Please refresh the page.", "error");
+        showToast(
+          "Failed to load initial data. Please refresh the page.",
+          "error"
+        );
       }
     };
     fetchInitialData();
   }, []);
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    if (!selectedCategoryId) {
+      setSubCategoryOptions([]); // Clear if no category selected
+      return;
+    }
+    const fetchSubCategoriesByCategory = async () => {
+      try {
+        console.log("Fetching subcategories for category ID:", selectedCategoryId);
+        const response = await getSubcategoriesByCategoryId(selectedCategoryId);
+        console.log("Subcategories response:", response);
+
+        // Handle different response structures
+        const subCategoryData =
+          response?.data?.products || response?.data || response || [];
+        console.log("Processed subcategory data:", subCategoryData);
+
+        setSubCategoryOptions(Array.isArray(subCategoryData) ? subCategoryData : []);
+      } catch (error) {
+        console.error("Failed to fetch subcategories by category:", error);
+        setSubCategoryOptions([]);
+        showToast("Failed to load subcategories for selected category", "error");
+      }
+    };
+    fetchSubCategoriesByCategory();
+  }, [selectedCategoryId]);
 
   // Model options (fetch brands by type)
   useEffect(() => {
@@ -227,11 +268,12 @@ export default function AddProducts() {
         console.log("Fetching brands for type ID:", selectedProductTypeId);
         const response = await getBrandByType(selectedProductTypeId);
         console.log("Brands response:", response);
-        
+
         // Handle different response structures
-        const brandData = response?.data?.products || response?.data || response || [];
+        const brandData =
+          response?.data?.products || response?.data || response || [];
         console.log("Processed brand data:", brandData);
-        
+
         setFilteredBrandOptions(Array.isArray(brandData) ? brandData : []);
       } catch (error) {
         console.error("Failed to fetch brands by type:", error);
@@ -253,11 +295,12 @@ export default function AddProducts() {
         console.log("Fetching models for brand ID:", selectedbrandId);
         const response = await getModelByBrand(selectedbrandId);
         console.log("Models response:", response);
-        
+
         // Handle different response structures
-        const modelData = response?.data?.products || response?.data || response || [];
+        const modelData =
+          response?.data?.products || response?.data || response || [];
         console.log("Processed model data:", modelData);
-        
+
         setModelOptions(Array.isArray(modelData) ? modelData : []);
       } catch (error) {
         console.error("Failed to fetch models by brand:", error);
@@ -279,11 +322,12 @@ export default function AddProducts() {
         console.log("Fetching variants for model ID:", modelId);
         const response = await getvarientByModel(modelId);
         console.log("Variants response:", response);
-        
+
         // Handle different response structures
-        const variantData = response?.data?.products || response?.data || response || [];
+        const variantData =
+          response?.data?.products || response?.data || response || [];
         console.log("Processed variant data:", variantData);
-        
+
         setVarientOptions(Array.isArray(variantData) ? variantData : []);
       } catch (error) {
         console.error("Failed to fetch variant options:", error);
@@ -305,17 +349,23 @@ export default function AddProducts() {
         return;
       }
       // Add created_by and dealer assignments to data
-      const dataWithCreatedBy = { 
-        ...data, 
+      const dataWithCreatedBy = {
+        ...data,
         created_by: userId,
-        dealerAssignments: dealerAssignments
+        dealerAssignments: dealerAssignments,
       };
       const formData = new FormData();
       Object.entries(dataWithCreatedBy).forEach(([key, value]) => {
         if (key !== "images" && key !== "searchTagsArray") {
           if (key === "dealerAssignments" && Array.isArray(value)) {
             // Special handling for dealerAssignments array
-            formData.append("dealerAssignments", JSON.stringify(value));
+             value.forEach((assignment, index) => {
+              formData.append(`available_dealers[${index}][dealers_Ref]`, assignment.dealerId);
+              formData.append(`available_dealers[${index}][quantity_per_dealer]`, assignment.quantity.toString());
+              formData.append(`available_dealers[${index}][dealer_margin]`, (assignment.margin || 0).toString());
+              formData.append(`available_dealers[${index}][dealer_priority_override]`, (assignment.priority || 0).toString());
+              formData.append(`available_dealers[${index}][inStock]`, (assignment.quantity > 0).toString());
+            });
           } else if (Array.isArray(value)) {
             // For arrays, append as comma-separated string (FormData does not support arrays natively)
             formData.append(key, value.join(","));
@@ -340,7 +390,7 @@ export default function AddProducts() {
       setImageFiles([]);
       setImagePreviews([]);
       reset(); // Reset the form after successful submission
-      
+
       // Navigate back to products page after successful creation
       setTimeout(() => {
         router.push("/user/dashboard/product");
@@ -366,7 +416,7 @@ export default function AddProducts() {
       }
     }
   };
-    if (!auth || !allowedRoles.includes(auth.user.role)) {
+  if (!auth || !allowedRoles.includes(auth.user.role)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-red-600 font-bold">
@@ -384,7 +434,9 @@ export default function AddProducts() {
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">
             Add Product
           </h1>
-          <p className="text-base font-medium font-sans text-gray-500">Add your product description</p>
+          <p className="text-base font-medium font-sans text-gray-500">
+            Add your product description
+          </p>
         </div>
         {/* Save button removed from here */}
       </div>
@@ -411,7 +463,7 @@ export default function AddProducts() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* No. of Stock */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="noOfStock" className="text-base font-medium font-sans">
                 No. of Stock
               </Label>
@@ -429,30 +481,14 @@ export default function AddProducts() {
                   {errors.no_of_stock.message}
                 </span>
               )}
-            </div>
-            {/* Manufacturer Part Number */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="manufacturerPartNumber"
-                className="text-base font-medium font-sans"
-              >
-                Manufacturer Part Number (MPN)
-              </Label>
-              <Input
-                id="manufacturerPartNumber"
-                placeholder="Part Number"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("manufacturer_part_name")}
-              />
-              {errors.manufacturer_part_name && (
-                <span className="text-red-500 text-sm">
-                  {errors.manufacturer_part_name.message}
-                </span>
-              )}
-            </div>
+            </div> */}
+
             {/* Product Name */}
             <div className="space-y-2">
-              <Label htmlFor="productName" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="productName"
+                className="text-base font-medium font-sans"
+              >
                 Product Name <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -467,10 +503,34 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
+            {/* Manufacturer Part Number */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="manufacturerPartNumber"
+                className="text-base font-medium font-sans"
+              >
+                Manufacturer Part Number (MPN){" "}
+                <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="manufacturerPartNumber"
+                placeholder="Part Number"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("manufacturer_part_name")}
+              />
+              {errors.manufacturer_part_name && (
+                <span className="text-red-500 text-sm">
+                  {errors.manufacturer_part_name.message}
+                </span>
+              )}
+            </div>
 
             {/* HSN Code */}
             <div className="space-y-2">
-              <Label htmlFor="hsnCode" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="hsnCode"
+                className="text-base font-medium font-sans"
+              >
                 HSN Code
               </Label>
               <Input
@@ -478,6 +538,7 @@ export default function AddProducts() {
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 type="number"
+                onKeyDown={handleNumericKeyDown}
                 {...register("hsn_code", {
                   valueAsNumber: true,
                   required: "HSN Code is required",
@@ -495,11 +556,18 @@ export default function AddProducts() {
             </div>
             {/* Category */}
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="category"
+                className="text-base font-medium font-sans"
+              >
                 Category <span className="text-red-500">*</span>
               </Label>
               <Select
-                onValueChange={(value) => setValue("category", value)}
+                onValueChange={(value) => {
+                  setValue("category", value);
+                  setSelectedCategoryId(value);
+                  setValue("sub_category", ""); // Reset subcategory when category changes
+                }}
                 value={undefined} // Let react-hook-form control value if needed
               >
                 <SelectTrigger
@@ -530,7 +598,10 @@ export default function AddProducts() {
             </div>
             {/* Sub-category */}
             <div className="space-y-2">
-              <Label htmlFor="subCategory" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="subCategory"
+                className="text-base font-medium font-sans"
+              >
                 Sub-category <span className="text-red-500">*</span>
               </Label>
               <Select
@@ -543,9 +614,13 @@ export default function AddProducts() {
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subCategoryOptions.length === 0 ? (
-                    <SelectItem value="loading" disabled>
-                      Loading...
+                  {!selectedCategoryId ? (
+                    <SelectItem value="no-category" disabled>
+                      Please select category first
+                    </SelectItem>
+                  ) : subCategoryOptions.length === 0 ? (
+                    <SelectItem value="no-subcategories" disabled>
+                      No subcategories found
                     </SelectItem>
                   ) : (
                     subCategoryOptions.map((cat) => (
@@ -564,7 +639,10 @@ export default function AddProducts() {
             </div>
             {/* Product Type (OE, OEM, Aftermarket) */}
             <div className="space-y-2">
-              <Label htmlFor="productType" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="productType"
+                className="text-base font-medium font-sans"
+              >
                 Product Type <span className="text-red-500">*</span>
               </Label>
               <Select
@@ -591,7 +669,10 @@ export default function AddProducts() {
             </div>
             {/* Vehicle Type (keep as is) */}
             <div className="space-y-2">
-              <Label htmlFor="vehicleType" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="vehicleType"
+                className="text-base font-medium font-sans"
+              >
                 Vehicle Type
               </Label>
               <Select
@@ -644,7 +725,10 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Make */}
             <div className="space-y-2">
-              <Label htmlFor="brand" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="brand"
+                className="text-base font-medium font-sans"
+              >
                 Brand
               </Label>
               <Select
@@ -698,7 +782,10 @@ export default function AddProducts() {
 
             {/* Model */}
             <div className="space-y-2">
-              <Label htmlFor="model" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="model"
+                className="text-base font-medium font-sans"
+              >
                 Model <span className="text-red-500">*</span>
               </Label>
               <Select
@@ -739,7 +826,10 @@ export default function AddProducts() {
             </div>
             {/* Year Range */}
             <div className="space-y-2">
-              <Label htmlFor="yearRange" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="yearRange"
+                className="text-base font-medium font-sans"
+              >
                 Year Range
               </Label>
               <Select onValueChange={(value) => setValue("year_range", value)}>
@@ -771,7 +861,10 @@ export default function AddProducts() {
             </div>
             {/* Variant */}
             <div className="space-y-2">
-              <Label htmlFor="variant" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="variant"
+                className="text-base font-medium font-sans"
+              >
                 Variant <span className="text-red-500">*</span>
               </Label>
               <Select onValueChange={(value) => setValue("variant", value)}>
@@ -808,7 +901,10 @@ export default function AddProducts() {
             </div>
             {/* Fitment Notes */}
             <div className="space-y-2">
-              <Label htmlFor="fitmentNotes" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="fitmentNotes"
+                className="text-base font-medium font-sans"
+              >
                 Fitment Notes
               </Label>
               <Input
@@ -825,7 +921,10 @@ export default function AddProducts() {
             </div>
             {/* Is Universal */}
             <div className="space-y-2">
-              <Label htmlFor="isUniversal" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="isUniversal"
+                className="text-base font-medium font-sans"
+              >
                 Is Universal
               </Label>
               <Select
@@ -888,8 +987,11 @@ export default function AddProducts() {
             </div>
             {/* Weight */}
             <div className="space-y-2">
-              <Label htmlFor="weight" className="text-base font-medium font-sans">
-                Weight (kg)
+              <Label
+                htmlFor="weight"
+                className="text-base font-medium font-sans"
+              >
+                Weight (kg)<span className="text-red-500">*</span>
               </Label>
               <Input
                 id="weight"
@@ -898,6 +1000,7 @@ export default function AddProducts() {
                 min="0"
                 placeholder="Enter Weight in kg"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                onKeyDown={handleNumericKeyDown}
                 {...register("weight")}
               />
               {errors.weight && (
@@ -908,7 +1011,10 @@ export default function AddProducts() {
             </div>
             {/* Certifications */}
             <div className="space-y-2">
-              <Label htmlFor="certifications" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="certifications"
+                className="text-base font-medium font-sans"
+              >
                 Certifications
               </Label>
               <Input
@@ -925,8 +1031,11 @@ export default function AddProducts() {
             </div>
             {/* Warranty */}
             <div className="space-y-2">
-              <Label htmlFor="warranty" className="text-base font-medium font-sans">
-                Warranty
+              <Label
+                htmlFor="warranty"
+                className="text-base font-medium font-sans"
+              >
+                Warranty in Months
               </Label>
               <Input
                 id="warranty"
@@ -935,6 +1044,7 @@ export default function AddProducts() {
                 min="0"
                 placeholder="Enter Warranty"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                onKeyDown={handleNumericKeyDown}
                 {...register("warranty", {
                   setValueAs: (v) => (v === "" ? undefined : Number(v)),
                 })}
@@ -947,7 +1057,10 @@ export default function AddProducts() {
             </div>
             {/* Is Consumable */}
             <div className="space-y-2">
-              <Label htmlFor="isConsumable" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="isConsumable"
+                className="text-base font-medium font-sans"
+              >
                 Is Consumable
               </Label>
               <Select
@@ -983,14 +1096,17 @@ export default function AddProducts() {
               Media & Documentation
             </CardTitle>
             <p className="text-sm text-[#737373] font-medium font-sans">
-              Upload product images, videos, and brochures to enhance product
-              representation and credibility.
+              Upload product images to enhance product representation and
+              credibility.
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Images */}
             <div className="space-y-2">
-              <Label htmlFor="images" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="images"
+                className="text-base font-medium font-sans"
+              >
                 Images
               </Label>
               <input
@@ -1006,11 +1122,17 @@ export default function AddProducts() {
                   files.forEach((file) => {
                     const reader = new FileReader();
                     reader.onloadend = () => {
-                      setImagePreviews((prev) => [...prev, reader.result as string]);
+                      setImagePreviews((prev) => [
+                        ...prev,
+                        reader.result as string,
+                      ]);
                     };
                     reader.readAsDataURL(file);
                   });
-                  setValue("images", files.length > 0 ? files.map(f => f.name).join(",") : ""); // for validation
+                  setValue(
+                    "images",
+                    files.length > 0 ? files.map((f) => f.name).join(",") : ""
+                  ); // for validation
                 }}
               />
               <Button
@@ -1018,7 +1140,9 @@ export default function AddProducts() {
                 className="bg-gray-50 border border-gray-200 rounded-[8px] p-4 w-full text-left text-gray-700 hover:bg-gray-100"
                 onClick={() => document.getElementById("images")?.click()}
               >
-                {imageFiles.length > 0 ? `${imageFiles.length} image(s) selected` : "Choose Images"}
+                {imageFiles.length > 0
+                  ? `${imageFiles.length} image(s) selected`
+                  : "Choose Images"}
               </Button>
               {imagePreviews.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -1033,8 +1157,12 @@ export default function AddProducts() {
                         type="button"
                         className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
                         onClick={() => {
-                          setImageFiles((prev) => prev.filter((_, i) => i !== idx));
-                          setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+                          setImageFiles((prev) =>
+                            prev.filter((_, i) => i !== idx)
+                          );
+                          setImagePreviews((prev) =>
+                            prev.filter((_, i) => i !== idx)
+                          );
                         }}
                         title="Remove"
                       >
@@ -1051,7 +1179,7 @@ export default function AddProducts() {
               )}
             </div>
             {/* Video URL */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="videoUrl" className="text-base font-medium font-sans">
                 Video URL
               </Label>
@@ -1066,7 +1194,7 @@ export default function AddProducts() {
                   {errors.videoUrl.message}
                 </span>
               )}
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
@@ -1092,6 +1220,7 @@ export default function AddProducts() {
                 type="number"
                 placeholder="Enter MRP"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                onKeyDown={handleNumericKeyDown}
                 {...register("mrp_with_gst", { valueAsNumber: true })}
               />
               {errors.mrp_with_gst && (
@@ -1102,7 +1231,10 @@ export default function AddProducts() {
             </div>
             {/* Selling Price (Required) */}
             <div className="space-y-2">
-              <Label htmlFor="selling_price" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="selling_price"
+                className="text-base font-medium font-sans"
+              >
                 Selling Price <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -1116,6 +1248,18 @@ export default function AddProducts() {
                   valueAsNumber: true,
                   required: true,
                 })}
+                onKeyDown={(e) => {
+                  if (
+                    !/[0-9]/.test(e.key) &&
+                    e.key !== "Backspace" &&
+                    e.key !== "Delete" &&
+                    e.key !== "ArrowLeft" &&
+                    e.key !== "ArrowRight" &&
+                    e.key !== "Tab"
+                  ) {
+                    e.preventDefault();
+                  }
+                }}
               />
               {errors.selling_price && (
                 <span className="text-red-500 text-sm">
@@ -1133,6 +1277,7 @@ export default function AddProducts() {
                 type="number"
                 placeholder="Enter GST"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                onKeyDown={handleNumericKeyDown}
                 {...register("gst_percentage", {
                   valueAsNumber: true,
                 })}
@@ -1145,7 +1290,10 @@ export default function AddProducts() {
             </div>
             {/* Returnable */}
             <div className="space-y-2">
-              <Label htmlFor="returnable" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="returnable"
+                className="text-base font-medium font-sans"
+              >
                 Returnable
               </Label>
               <Select
@@ -1173,7 +1321,10 @@ export default function AddProducts() {
             </div>
             {/* Return Policy */}
             <div className="space-y-2">
-              <Label htmlFor="returnPolicy" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="returnPolicy"
+                className="text-base font-medium font-sans"
+              >
                 Return Policy <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -1206,7 +1357,9 @@ export default function AddProducts() {
             <div className="col-span-2 space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-base font-medium font-sans">
-                  Dealer Assignments {dealerAssignments.length > 0 && `(${dealerAssignments.length} assigned)`}
+                  Dealer Assignments{" "}
+                  {dealerAssignments.length > 0 &&
+                    `(${dealerAssignments.length} assigned)`}
                 </Label>
                 <Button
                   type="button"
@@ -1217,7 +1370,7 @@ export default function AddProducts() {
                       dealerId: "",
                       quantity: 1,
                       margin: 0,
-                      priority: 0
+                      priority: 0,
                     };
                     setDealerAssignments([...dealerAssignments, newAssignment]);
                   }}
@@ -1226,16 +1379,21 @@ export default function AddProducts() {
                   + Add Dealer
                 </Button>
               </div>
-              
+
               {dealerAssignments.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
                   <p className="text-sm">No dealers assigned yet</p>
-                  <p className="text-xs mt-1">Click "Add Dealer" to assign dealers to this product</p>
+                  <p className="text-xs mt-1">
+                    Click "Add Dealer" to assign dealers to this product
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {dealerAssignments.map((assignment, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div
+                      key={index}
+                      className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                    >
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {/* Dealer Selection */}
                         <div className="space-y-2">
@@ -1253,36 +1411,56 @@ export default function AddProducts() {
                             </SelectTrigger>
                             <SelectContent>
                               {dealerOptions
-                                .filter(dealer => !dealerAssignments.some((a, i) => i !== index && a.dealerId === dealer._id))
+                                .filter(
+                                  (dealer) =>
+                                    !dealerAssignments.some(
+                                      (a, i) =>
+                                        i !== index && a.dealerId === dealer._id
+                                    )
+                                )
                                 .map((dealer) => (
-                                  <SelectItem key={dealer._id} value={dealer._id}>
-                                    {dealer.legal_name || dealer.dealerName || dealer.firstName + ' ' + dealer.lastName || dealer._id}
+                                  <SelectItem
+                                    key={dealer._id}
+                                    value={dealer._id}
+                                  >
+                                    {dealer.legal_name ||
+                                      dealer.dealerName ||
+                                      dealer.firstName +
+                                        " " +
+                                        dealer.lastName ||
+                                      dealer._id}
                                   </SelectItem>
                                 ))}
                             </SelectContent>
                           </Select>
                         </div>
-                        
+
                         {/* Quantity */}
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium">Quantity</Label>
+                          <Label className="text-xs font-medium">
+                            Quantity
+                          </Label>
                           <Input
                             type="number"
                             min="1"
                             value={assignment.quantity}
                             onChange={(e) => {
                               const updated = [...dealerAssignments];
-                              updated[index].quantity = parseInt(e.target.value) || 1;
+                              updated[index].quantity =
+                                parseInt(e.target.value) || 1;
                               setDealerAssignments(updated);
                             }}
+                            onKeyDown={handleNumericKeyDown}
                             className="bg-white border-gray-200 rounded-[6px] p-2 text-xs"
                             placeholder="Qty"
                           />
                         </div>
-                        
+
                         {/* Margin */}
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium">Margin %</Label>
+                          <Label className="text-xs font-medium">
+                            Margin %
+                          </Label>
                           <Input
                             type="number"
                             min="0"
@@ -1290,17 +1468,21 @@ export default function AddProducts() {
                             value={assignment.margin || ""}
                             onChange={(e) => {
                               const updated = [...dealerAssignments];
-                              updated[index].margin = parseFloat(e.target.value) || 0;
+                              updated[index].margin =
+                                parseFloat(e.target.value) || 0;
                               setDealerAssignments(updated);
                             }}
+                            onKeyDown={handleNumericKeyDown}
                             className="bg-white border-gray-200 rounded-[6px] p-2 text-xs"
                             placeholder="Margin"
                           />
                         </div>
-                        
+
                         {/* Priority & Remove */}
                         <div className="space-y-2">
-                          <Label className="text-xs font-medium">Priority</Label>
+                          <Label className="text-xs font-medium">
+                            Priority
+                          </Label>
                           <div className="flex gap-2">
                             <Input
                               type="number"
@@ -1308,9 +1490,11 @@ export default function AddProducts() {
                               value={assignment.priority || ""}
                               onChange={(e) => {
                                 const updated = [...dealerAssignments];
-                                updated[index].priority = parseInt(e.target.value) || 0;
+                                updated[index].priority =
+                                  parseInt(e.target.value) || 0;
                                 setDealerAssignments(updated);
                               }}
+                              onKeyDown={handleNumericKeyDown}
                               className="bg-white border-gray-200 rounded-[6px] p-2 text-xs flex-1"
                               placeholder="Priority"
                             />
@@ -1319,7 +1503,9 @@ export default function AddProducts() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                const updated = dealerAssignments.filter((_, i) => i !== index);
+                                const updated = dealerAssignments.filter(
+                                  (_, i) => i !== index
+                                );
                                 setDealerAssignments(updated);
                               }}
                               className="px-2 py-2 text-red-600 hover:bg-red-50"
@@ -1335,24 +1521,29 @@ export default function AddProducts() {
               )}
             </div>
             {/* Dealer Margin % */}
-            <div className="space-y-2">
-              <Label htmlFor="dealerMargin" className="text-base font-medium font-sans">
+            {/* <div className="space-y-2">
+              <Label
+                htmlFor="dealerMargin"
+                className="text-base font-medium font-sans"
+              >
                 Dealer Margin %
               </Label>
               <Input
                 id="dealerMargin"
                 placeholder="Enter Margin"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                onKeyDown={handleNumericKeyDown}
                 {...register("dealerMargin")}
+
               />
               {errors.dealerMargin && (
                 <span className="text-red-500 text-sm">
                   {errors.dealerMargin.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Dealer Priority Override */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label
                 htmlFor="dealerPriorityOverride"
                 className="text-base font-medium font-sans"
@@ -1370,10 +1561,13 @@ export default function AddProducts() {
                   {errors.dealerPriorityOverride.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Stock Expiry Rule */}
             <div className="space-y-2">
-              <Label htmlFor="stockExpiryRule" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="stockExpiryRule"
+                className="text-base font-medium font-sans"
+              >
                 Stock Expiry Rule
               </Label>
               <Input
@@ -1390,7 +1584,10 @@ export default function AddProducts() {
             </div>
             {/* Last Stock Update */}
             <div className="space-y-2">
-              <Label htmlFor="lastStockUpdate" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="lastStockUpdate"
+                className="text-base font-medium font-sans"
+              >
                 Last Stock Update
               </Label>
               <Input
@@ -1407,7 +1604,10 @@ export default function AddProducts() {
             </div>
             {/* Admin Notes */}
             <div className="space-y-2">
-              <Label htmlFor="adminNotes" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="adminNotes"
+                className="text-base font-medium font-sans"
+              >
                 Admin Notes
               </Label>
               <Input
@@ -1439,7 +1639,10 @@ export default function AddProducts() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* SEO Title */}
             <div className="space-y-2">
-              <Label htmlFor="seoTitle" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="seoTitle"
+                className="text-base font-medium font-sans"
+              >
                 SEO Title
               </Label>
               <Input
@@ -1456,7 +1659,10 @@ export default function AddProducts() {
             </div>
             {/* Search Tags (chip input) */}
             <div className="space-y-2">
-              <Label htmlFor="searchTagsArray" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="searchTagsArray"
+                className="text-base font-medium font-sans"
+              >
                 Search Tags
               </Label>
               <TagsInput
@@ -1477,7 +1683,10 @@ export default function AddProducts() {
             </div>
             {/* SEO Description */}
             <div className="space-y-2">
-              <Label htmlFor="seoDescription" className="text-base font-medium font-sans">
+              <Label
+                htmlFor="seoDescription"
+                className="text-base font-medium font-sans"
+              >
                 SEO Description
               </Label>
               <Input
@@ -1495,17 +1704,15 @@ export default function AddProducts() {
           </CardContent>
         </Card>
         <div className="flex justify-end pt-4">
-
           <DynamicButton
-          variant="default"
-          type="submit"
-          customClassName="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
-          disabled={submitLoading}
-          loading={submitLoading}
-          loadingText="Adding..."
-          text="Add Product"
+            variant="default"
+            type="submit"
+            customClassName="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-sm"
+            disabled={submitLoading}
+            loading={submitLoading}
+            loadingText="Adding..."
+            text="Add Product"
           />
-          
         </div>
       </form>
     </div>

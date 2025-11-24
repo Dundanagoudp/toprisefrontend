@@ -89,13 +89,14 @@ export default function Addemployee() {
       };
 
       const response = await addEmployee(payload);
+      console.log("Add Employee API response:", response);
 
       // Check if employee was created successfully
-      if (response.success) {
+      if (response) {
         // Enhanced success notification
-        console.log("Employee created successfully, showing toast...");
+ 
         showToast(
-          `🎉 Employee "${formData.fullName}" (${formData.employeeId}) has been added to the system successfully! They can now log in with their credentials.`,
+          `Employee "${formData.fullName}" added successfully!  `,
           "success"
         );
 

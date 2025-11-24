@@ -261,6 +261,20 @@ export const getPickupStatistics = async (): Promise<any> => {
     throw error;
   }
 };
+//start picklist inspection api
+export const inspectPicklist = async (
+  picklistId: string, 
+  employeeId: string,
+  data?: any
+): Promise<any> => {
+  try {
+    const response = await apiClient.get(`api/orders/api/fulfillment/picklist/start-inspection/${picklistId}/${employeeId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error inspecting picklist:', error);
+    throw error;
+  }
+}
 
 // Bulk operations
 export const bulkUpdatePickupStatus = async (

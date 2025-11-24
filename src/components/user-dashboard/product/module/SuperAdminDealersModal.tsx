@@ -78,7 +78,9 @@ const SuperAdminDealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, o
       const dealerResults = await Promise.all(dealerPromises)
       const nameMap: Record<string, string> = {}
       dealerResults.forEach(result => {
-        nameMap[result.id] = result.name
+        if (result.id !== undefined) {
+          nameMap[result.id] = result.name
+        }
       })
       setDealerNames(nameMap)
     } catch (error) {

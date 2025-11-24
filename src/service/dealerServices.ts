@@ -92,6 +92,7 @@ export async function getAllCSlaTypes(): Promise<SlaTypesResponse> {
 // Get dealers by category ID
 export async function getDealersByCategory(categoryId: string): Promise<ApiResponse<Dealer[]>> {
   try {
+    console.log("Fetching dealers for category:", categoryId);
     const response = await apiClient.get(`/users/api/users/get/dealerByCategoryName/${categoryId}`)
     console.log("[getDealersByCategory] Full response:", response);
     console.log("[getDealersByCategory] Response data:", response.data);
