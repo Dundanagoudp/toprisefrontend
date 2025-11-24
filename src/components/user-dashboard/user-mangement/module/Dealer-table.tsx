@@ -536,8 +536,13 @@ export default function Dealertable({
           ))}
         </tbody>
       </table>
-
-      {/* Dynamic Pagination */}
+{/* Dynamic pagincaiton with showing total items and items per page*/}
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-gray-600">
+              Showing {currentPage * itemsPerPage - itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} items
+            </p>
+          
+                  {/* Dynamic Pagination */}
       <DynamicPagination
         currentPage={currentPage}
         totalPages={totalPages}
@@ -545,6 +550,8 @@ export default function Dealertable({
         totalItems={totalItems}
         itemsPerPage={itemsPerPage}
       />
+          </div>
+
       <AssignSLAForm
         open={slaFormOpen}
         onClose={() => setSlaFormOpen(false)}

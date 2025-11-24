@@ -51,7 +51,7 @@ interface ProductViewProps {
 export default function DealerProductView({ product }: ProductViewProps) {
   const { showToast } = useToast();
   const router = useRouter();
-
+  // console.log("Rendering DealerProductView with product:", product);
   const handleEdit = () => {
     router.push(`/dealer/dashboard/product/productedit/${product._id}`);
   };

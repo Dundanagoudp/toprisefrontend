@@ -23,9 +23,11 @@ import ContentMangementBulk from "./uploadbulkpopup/contentMangementBulk";
 import Image from "next/image";
 import { getContentStats } from "@/service/product-Service";
 import { Skeleton } from "@/components/ui/skeleton";
+import ShowYear from "./TabComponent/showYear";
+import CreateYearModal from "./CreateYearModal";
 
 // Tab types
-type TabType = "Model" | "Brand" | "Variant" | "Category" | "Subcategory" | "Banner";
+type TabType = "Model" | "Brand" | "Variant" | "Category" | "Subcategory" | "Banner" | "year";
 
 // Tab configuration interface for scalability
 interface TabConfig {
@@ -53,7 +55,7 @@ export default function ShowContent() {
   // Get initial tab from URL or default to "Category"
   const getInitialTab = (): TabType => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner"];
+    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner","year"];
     return validTabs.includes(tabFromUrl) ? tabFromUrl : "Category";
   };
   
@@ -74,6 +76,7 @@ export default function ShowContent() {
   const [openBrand, setOpenBrand] = useState(false);
   const [openVariant, setOpenVariant] = useState(false);
   const [openBanner, setOpenBanner] = useState(false);
+  const [openYear, setOpenYear] = useState(false);
   const [openBulkUpload, setOpenBulkUpload] = useState(false);
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false);
   const { showToast } = useGlobalToast();
@@ -88,6 +91,7 @@ export default function ShowContent() {
     brands: number;
     models: number;
     variants: number;
+    years: number;
   } | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -95,7 +99,7 @@ export default function ShowContent() {
   // Sync tab state with URL changes (browser back/forward)
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner"];
+    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner" ,"year"];
     if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
@@ -107,7 +111,16 @@ export default function ShowContent() {
       try {
         setStatsLoading(true);
         const stats = await getContentStats();
-        setContentStats(stats);
+        // Normalize stats to ensure the `years` property always exists
+        const normalized = {
+          categories: stats?.categories ?? 0,
+          subcategories: stats?.subcategories ?? 0,
+          brands: stats?.brands ?? 0,
+          models: stats?.models ?? 0,
+          variants: stats?.variants ?? 0,
+          years: stats?.years ?? 0,
+        };
+        setContentStats(normalized);
       } catch (error) {
         console.error("Failed to fetch content stats:", error);
         showToast("Failed to load content statistics", "error");
@@ -151,6 +164,7 @@ export default function ShowContent() {
     Category: "Search Categories...",
     Subcategory: "Search Subcategories...",
     Banner: "Search Banners...",
+    year: "Search Years...",
   };
 
   // Add your subcategory-specific logic here
@@ -168,6 +182,9 @@ export default function ShowContent() {
   const handleBannerAction = useCallback(() => {
     setOpenBanner(true);
   }, []);
+  const handleYearAction = useCallback(() => {
+    setOpenYear(true);
+  }, []);
 
   const handleUploadBulk = useCallback(() => {
     setOpenBulkUpload(true);
@@ -178,7 +195,15 @@ export default function ShowContent() {
     try {
       setStatsLoading(true);
       const stats = await getContentStats();
-      setContentStats(stats);
+      const normalized = {
+        categories: stats?.categories ?? 0,
+        subcategories: stats?.subcategories ?? 0,
+        brands: stats?.brands ?? 0,
+        models: stats?.models ?? 0,
+        variants: stats?.variants ?? 0,
+        years: stats?.years ?? 0,
+      };
+      setContentStats(normalized);
     } catch (error) {
       console.error("Failed to refresh content stats:", error);
     } finally {
@@ -235,6 +260,15 @@ export default function ShowContent() {
   const handleBannerSuccess = useCallback(() => {
     // Trigger refresh for banner tab
     if (activeTab === "Banner") {
+      setRefreshKey(prev => prev + 1);
+    }
+    // Refresh content stats
+    refreshContentStats();
+  }, [activeTab, refreshContentStats]);
+
+  const handleYearSuccess = useCallback(() => {
+    // Trigger refresh for year tab
+    if (activeTab === "year") {
       setRefreshKey(prev => prev + 1);
     }
     // Refresh content stats
@@ -316,6 +350,15 @@ export default function ShowContent() {
           action: handleBannerAction,
         },
       },
+      {
+        id: "year",
+        label: "Year",
+        component: ShowYear,
+        buttonConfig: {
+          text: "Add Year",
+          action: handleYearAction,
+        }
+      }
     ],
     [
       handleCategoryAction,
@@ -323,6 +366,7 @@ export default function ShowContent() {
       handleModelAction,
       handleBrandAction,
       handleBannerAction,
+      handleYearAction,
     ]
   );
 
@@ -472,6 +516,11 @@ export default function ShowContent() {
         onClose={() => setOpenBulkUpload(false)}
         mode="upload"
         contentType={getContentTypeForBulkUpload(activeTab)}
+      />
+      <CreateYearModal
+        open={openYear}
+        onClose={() => setOpenYear(false)}
+        onSuccess={handleYearSuccess}
       />
     </div>
   );

@@ -79,11 +79,14 @@ export default function CreateOrderPage() {
   const [products, setProducts] = useState<any[]>([])
   const [searchingProducts, setSearchingProducts] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([])
+  const [isStandard , setIsStandard] = useState(false)
+  const [isExpress , setIsExpress] = useState(false)
   
   // Order details
   const [deliveryCharges, setDeliveryCharges] = useState<number>(0)
   const [paymentType, setPaymentType] = useState<string>("COD")
   const [deliveryType, setDeliveryType] = useState<string>("Standard")
+  const [typeOfDelivery , setTypeOfDelivery] = useState("standard")
   const [submitting, setSubmitting] = useState(false)
 
   // Fetch document details
@@ -181,6 +184,7 @@ export default function CreateOrderPage() {
       showToast("Product already added to order", "warning")
       return
     }
+    console.log("Adding product to order:", product)
 
     const gstPercentage = product.gst_percentage || 18
     const sellingPrice = product.selling_price || product.dealer_price || 0
@@ -261,7 +265,8 @@ export default function CreateOrderPage() {
         order_Amount: grandTotal,
         deliveryCharges: deliveryCharges,
         paymentType: paymentType,
-        type_of_delivery: deliveryType
+        type_of_delivery: deliveryType,
+        delivery_type: typeOfDelivery || "standard"
       }
 
       console.log("Creating order with payload:", payload)
@@ -563,26 +568,47 @@ export default function CreateOrderPage() {
                   <SelectContent>
                     <SelectItem value="COD">Cash on Delivery</SelectItem>
                     <SelectItem value="Prepaid">Prepaid</SelectItem>
-                    <SelectItem value="UPI">UPI</SelectItem>
-                    <SelectItem value="Card">Card</SelectItem>
-                    <SelectItem value="Net Banking">Net Banking</SelectItem>
+       
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="delivery-type">Delivery Type *</Label>
-                <Select value={deliveryType} onValueChange={setDeliveryType}>
-                  <SelectTrigger id="delivery-type">
-                    <SelectValue placeholder="Select delivery type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Standard">Standard</SelectItem>
-                    <SelectItem value="Express">Express</SelectItem>
-                    <SelectItem value="Same Day">Same Day</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+           <div className="space-y-2">
+  <Label htmlFor="delivery-type">Delivery Type *</Label>
+  <Select
+    value={deliveryType}
+    onValueChange={(value) => {
+      setDeliveryType(value);
+      setIsExpress(value === "Express");
+      setIsStandard(value === "Standard");
+    }}
+  >
+    <SelectTrigger id="delivery-type">
+      <SelectValue placeholder="Select delivery type" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="Standard" >Standard</SelectItem>
+      <SelectItem value="Express">Express</SelectItem>
+    </SelectContent>
+  </Select>
+  {isExpress && (
+    <>
+      <Label htmlFor="express-delivery-date">Express Delivery Date *</Label>
+      <Select
+      value={typeOfDelivery}
+      onValueChange={setTypeOfDelivery}
+      >
+        <SelectTrigger id="express-delivery-date">
+          <SelectValue placeholder="Select express delivery option" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="standard">Same Day Delivery</SelectItem>
+          <SelectItem value="regular">Delivery in 3 Days</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  )}
+</div>
 
               <div className="space-y-2">
                 <Label htmlFor="delivery-charges">Delivery Charges (₹)</Label>
@@ -591,7 +617,7 @@ export default function CreateOrderPage() {
                   type="number"
                   min="0"
                   value={deliveryCharges}
-                  onChange={(e) => setDeliveryCharges(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setDeliveryCharges(parseFloat(e.target.value) )}
                   placeholder="0"
                 />
               </div>
@@ -622,10 +648,17 @@ export default function CreateOrderPage() {
               </div>
 
               <div className="pt-4 space-y-2">
+                {isStandard && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800 font-medium">
+                      Standard delivery come soon
+                    </p>
+                  </div>
+                )}
                 <Button
                   className="w-full bg-[#C72920] hover:bg-[#A01E1A] text-white"
                   onClick={handleCreateOrder}
-                  disabled={submitting || selectedProducts.length === 0}
+                  disabled={submitting || selectedProducts.length === 0 || isStandard}
                 >
                   {submitting ? (
                     <>

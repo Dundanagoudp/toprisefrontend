@@ -18,12 +18,15 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, getCategories, getSubCategories } from "@/service/product-Service";
+import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, rejectBulkProducts, getCategories, getSubCategories } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
 import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
 import { fetchAndDownloadCSV } from "@/components/common/ExportCsv";
+import { SelectContext } from "@/utils/SelectContext";
+import { ProductSelectionProvider, useProductSelection } from "@/contexts/ProductSelectionContext";
+
 
 type TabType = "Approved" | "Pending" | "Rejected";
 interface TabConfig {
@@ -44,7 +47,7 @@ interface TabConfig {
   };
 }
 
-export default function ProductManagement() {
+function ProductManagementContent() {
   const [activeTab, setActiveTab] = useState<TabType>("Approved");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,10 +70,12 @@ const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff", "Fulfillment-Admin"];
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
   const [subCategories, setSubCategories] = useState<any[]>([]);
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
   const [selectedSubCategoryName, setSelectedSubCategoryName] = useState<string | null>(null);
+  const { selectedProductIds, clearSelection } = useProductSelection();
 const getStatusColor = (status: string) => {
   switch (status) {
 
@@ -95,8 +100,7 @@ const getStatusColor = (status: string) => {
       setSearchQuery(sanitizedQuery);
       setIsSearching(false);
       
-      console.log("🔍 ProductManagement: searchQuery updated to:", sanitizedQuery);
-      console.log("🔍 ProductManagement: Search will trigger re-render in tab components");
+  
     } catch (error) {
       console.error("❌ Error in performSearch:", error);
       setSearchQuery("");
@@ -190,16 +194,13 @@ const getStatusColor = (status: string) => {
     console.log("ProductManagement: searchQuery changed to:", searchQuery);
   }, [searchQuery]);
 
+  useEffect(() => {
+    console.log("🔄 selectedCategoryId state changed to:", selectedCategoryId);
+  }, [selectedCategoryId]);
+
   // Debug: Monitor category and subcategory filter changes
   useEffect(() => {
-    console.log("🔍 ProductManagement: Filter state changed");
-    console.log("🔍 Category ID:", selectedCategoryId);
-    console.log("🔍 Category Name:", selectedCategoryName);
-    console.log("🔍 Subcategory ID:", selectedSubCategoryId);
-    console.log("🔍 Subcategory Name:", selectedSubCategoryName);
-    console.log("🔍 Total categories:", categories.length);
-    console.log("🔍 Total subcategories:", subCategories.length);
-    console.log("🔍 Filtered subcategories:", filteredSubCategories.length);
+
     
     // Trigger refresh when filters change
     setRefreshKey(prev => prev + 1);
@@ -256,15 +257,7 @@ const getStatusColor = (status: string) => {
     const TabComponent = currentTabConfig.component;
     if (!TabComponent) return null;
     
-    console.log("🔍 ProductManagement: renderTabContent called");
-    console.log("🔍 Current searchQuery:", searchQuery);
-    console.log("🔍 Current activeTab:", activeTab);
-    console.log("🔍 Passing props to", currentTabConfig.id, "component:", {
-      searchQuery,
-      selectedTab,
-      categoryFilter: selectedCategoryId || undefined,
-      subCategoryFilter: selectedSubCategoryId || undefined
-    });
+
     
     // Validate that we're passing IDs, not names
     if (selectedCategoryId && !/^[0-9a-fA-F]{24}$/.test(selectedCategoryId)) {
@@ -274,6 +267,8 @@ const getStatusColor = (status: string) => {
       console.warn("⚠️ Subcategory filter is not a valid ID:", selectedSubCategoryId);
     }
     
+
+
     return (
       <TabComponent
         searchQuery={searchQuery}
@@ -364,18 +359,26 @@ const getStatusColor = (status: string) => {
                                   <button
                                     className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedCategoryName === (cat?.category_name || cat?.name) ? "bg-gray-100" : ""}`}
                                     onClick={() => { 
-                                      const categoryId = cat?._id || cat?.id;
+                                      const rawCategoryId = cat?._id ?? cat?.id ?? cat?.category_id;
+                                      const normalizedCategoryId = typeof rawCategoryId === "string"
+                                        ? rawCategoryId.trim()
+                                        : rawCategoryId !== undefined && rawCategoryId !== null
+                                          ? String(rawCategoryId)
+                                          : "";
                                       const categoryName = cat?.category_name || cat?.name;
-                                      console.log("Category selected - ID:", categoryId, "Name:", categoryName);
-                                      console.log("Full category object:", cat);
-                                      
-                                      // Validate that we have a valid ID
-                                      if (!categoryId || !/^[0-9a-fA-F]{24}$/.test(categoryId)) {
-                                        console.error("❌ Invalid category ID:", categoryId);
+                         
+
+                                      if (!normalizedCategoryId) {
+                                        console.error("❌ Missing category identifier in:", cat);
                                         return;
                                       }
-                                      
-                                      setSelectedCategoryId(categoryId);
+
+                                      if (!/^[0-9a-fA-F]{24}$/.test(normalizedCategoryId)) {
+                                        console.warn("⚠️ Category ID is not a 24-char hex string. Proceeding with value:", normalizedCategoryId);
+                                      }
+
+                                      setSelectedCategoryId(normalizedCategoryId);
+                             
                                       setSelectedCategoryName(categoryName || null); 
                                       setSelectedSubCategoryId(null);
                                       setSelectedSubCategoryName(null); 
@@ -414,18 +417,25 @@ const getStatusColor = (status: string) => {
                                   <button
                                     className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedSubCategoryName === (sub?.subcategory_name || sub?.name) ? "bg-gray-100" : ""}`}
                                     onClick={() => { 
-                                      const subcategoryId = sub?._id || sub?.id;
+                                      const rawSubcategoryId = sub?._id ?? sub?.id ?? sub?.subcategory_id;
+                                      const normalizedSubcategoryId = typeof rawSubcategoryId === "string"
+                                        ? rawSubcategoryId.trim()
+                                        : rawSubcategoryId !== undefined && rawSubcategoryId !== null
+                                          ? String(rawSubcategoryId)
+                                          : "";
+                                      const subcategoryId = normalizedSubcategoryId;
+
                                       const subcategoryName = sub?.subcategory_name || sub?.name;
-                                      console.log("Subcategory selected - ID:", subcategoryId, "Name:", subcategoryName);
-                                      console.log("Full subcategory object:", sub);
+                           
                                       
                                       // Validate that we have a valid ID
                                       if (!subcategoryId || !/^[0-9a-fA-F]{24}$/.test(subcategoryId)) {
-                                        console.error("❌ Invalid subcategory ID:", subcategoryId);
+                                     
                                         return;
                                       }
                                       
                                       setSelectedSubCategoryId(subcategoryId);
+                                    
                                       setSelectedSubCategoryName(subcategoryName || null);
                                     }}
                                   >
@@ -453,13 +463,13 @@ const getStatusColor = (status: string) => {
                 text="Export"
                 onClick={handleDownload}
               />
-              <DynamicButton
+              {/* <DynamicButton
                 variant="outline"
                 customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
                 text="Logs"
                 onClick={() => route.push('/user/dashboard/product/Logs')}
                 icon={<FileBarChart className="w-4 h-4 mr-2" />}
-              />
+              /> */}
             </div>
             
             {/* Bottom Row: Action Buttons */}
@@ -509,6 +519,15 @@ const getStatusColor = (status: string) => {
                     icon={<Pencil />}
                     text="Assign Dealer"
                   />
+                  {selectedProductIds.length > 0 && (
+                    <DynamicButton
+                      variant="default"
+                      customClassName="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-3 py-2 min-w-[120px] sm:min-w-[140px] justify-center font-[Poppins] font-regular flex-shrink-0"
+                      onClick={() => setIsRejectDialogOpen(true)}
+                      icon={<AlertTriangle className="w-4 h-4" />}
+                      text={`Reject (${selectedProductIds.length})`}
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -527,6 +546,7 @@ const getStatusColor = (status: string) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
+                  
                   className={`
                     flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm font-mono transition-colors whitespace-nowrap flex-shrink-0
                     ${
@@ -554,12 +574,34 @@ const getStatusColor = (status: string) => {
       <RejectReason
         isOpen={isRejectDialogOpen}
         onClose={() => setIsRejectDialogOpen(false)}
-        onSubmit={(data) => {
+        onSubmit={async (data) => {
+          if (selectedProductIds.length > 0) {
+            try {
+              const payload = {
+                reason: data.reason,
+                rejectedBy: auth._id,
+                productIds: selectedProductIds,
+              };
+              await rejectBulkProducts(payload);
+              showToast("Products rejected successfully", "success");
+              clearSelection();
+              setRefreshKey((prev) => prev + 1);
+            } catch (error) {
+              console.error(error);
+              showToast("Failed to reject products", "error");
+            }
+          }
           setIsRejectDialogOpen(false);
-          // Trigger refresh after bulk rejection
-          setRefreshKey(prev => prev + 1);
         }}
       />
     </div>
+  );
+}
+
+export default function ProductManagement() {
+  return (
+    <ProductSelectionProvider>
+      <ProductManagementContent />
+    </ProductSelectionProvider>
   );
 }
