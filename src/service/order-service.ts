@@ -3,9 +3,9 @@ import apiClient from "@/apiClient";
 
 import axios from "axios";
 
-export async function getOrders(): Promise<orderResponse> {
+export async function getOrders(page:number,limit:number): Promise<orderResponse> {
   try {
-    const response = await apiClient.get(`/orders/api/orders/all`);
+    const response = await apiClient.get(`/orders/api/orders/all?page=${page}&limit=${limit}`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch orders:", error);

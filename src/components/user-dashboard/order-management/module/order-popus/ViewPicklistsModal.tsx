@@ -74,6 +74,8 @@ useEffect(() => {
     setLoading(true);
     try {
       const picklists = await fetchPicklists(orderId);
+      //log picklists
+      
       setPicklists(picklists);
     } catch (error) {
       setPicklists([]);
@@ -169,7 +171,7 @@ useEffect(() => {
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-semibold text-gray-900">Picklist ID</TableHead>
                       <TableHead className="font-semibold text-gray-900">Status</TableHead>
-                      <TableHead className="font-semibold text-gray-900">Invoice</TableHead>
+                      {/* <TableHead className="font-semibold text-gray-900">Invoice</TableHead> */}
                       <TableHead className="font-semibold text-gray-900">SKUs</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -184,7 +186,7 @@ useEffect(() => {
                         <TableCell>
                           <StatusBadge status={pl.scanStatus} />
                         </TableCell>
-                        <TableCell>
+                        {/* <TableCell>
                           <div className="flex items-center gap-2">
                             {pl.invoiceGenerated ? (
                               <>
@@ -198,7 +200,7 @@ useEffect(() => {
                               </>
                             )}
                           </div>
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell>
                           <div className="space-y-1 max-w-[250px]">
                             {(pl.skuList || []).map((s) => (

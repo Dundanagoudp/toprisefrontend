@@ -17,6 +17,7 @@ interface CreatePicklistProps {
   orderId: string
   defaultDealerId?: string
   defaultSkuList?: Array<{ sku: string; quantity: number; barcode?: string }>
+  groupedDealerSkus?: Record<string, Array<{ sku: string; quantity: number }>>
 }
 
 type SkuRow = { sku: string; quantity: number; barcode?: string }
@@ -27,6 +28,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
   orderId,
   defaultDealerId = "",
   defaultSkuList = [],
+  groupedDealerSkus = {},
 }) => {
   const { showToast } = GlobalToast()
   const [dealerId, setDealerId] = useState<string>(defaultDealerId)
@@ -49,6 +51,17 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
       setBarcodeVisible({})
     }
   }, [open, defaultDealerId, defaultSkuList])
+
+  // When dealerId changes and groupedDealerSkus is provided, auto-populate skuRows if empty/default
+  useEffect(() => {
+    if (!open) return
+    if (dealerId && groupedDealerSkus[dealerId]) {
+      const grouped = groupedDealerSkus[dealerId]
+      if (grouped.length > 0) {
+        setSkuRows(grouped.map(g => ({ sku: g.sku, quantity: g.quantity })))
+      }
+    }
+  }, [dealerId, groupedDealerSkus, open])
 
   // Load assigned employees for dealer when dealerId becomes available
   useEffect(() => {
@@ -157,6 +170,33 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
         </DialogHeader>
 
         <div className="py-6 space-y-6">
+          {/* Dealer selection (auto groups SKUs) */}
+          {Object.keys(groupedDealerSkus).length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+                </svg>
+                Dealer (Grouped by SKU)
+              </Label>
+              <Select value={dealerId} onValueChange={(val) => setDealerId(val)}>
+                <SelectTrigger className="min-w-[300px] h-10 border-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400">
+                  <SelectValue placeholder="Select dealer to auto-fill SKUs" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(groupedDealerSkus).map(dId => (
+                    <SelectItem key={dId} value={dId} className="py-2">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{dId}</span>
+                        <span className="text-xs text-gray-500">{groupedDealerSkus[dId].length} SKU(s)</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

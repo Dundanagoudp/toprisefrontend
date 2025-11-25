@@ -201,7 +201,7 @@ export default function OrderDetailsView() {
   ); // Ensure it's treated as an object
   const loadingById = useAppSelector((state: any) => state.orderById.loading);
   const errorById = useAppSelector((state: any) => state.orderById.error);
-  console.log(orderById);
+
   const auth = useAppSelector((state: any) => state.auth.user);
   const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role);
   
@@ -211,7 +211,7 @@ export default function OrderDetailsView() {
     try {
       const response = await getOrderById(orderId);
       const item = response.data;
-      console.log("Fetched order data:", item);
+
       dispatch(fetchOrderByIdSuccess(item));
       setLoading(false);
     } catch (error: any) {

@@ -29,9 +29,12 @@ interface AdminOrder {
 export default function AdminOrdersTable() {
   const dispatch = useAppDispatch();
   const route = useRouter();
-  const { orders, loading } = useAppSelector((state) => state.order);
+  // const { orders, loading } = useAppSelector((state) => state.order);
   
   // Local State
+  // get the order from local state 
+  const [Orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
   const [stats, setStats] = useState<any>(null);
   const [filters, setFilters] = useState<any>({ status: "all", search: "" });
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,17 +43,25 @@ export default function AdminOrdersTable() {
   const itemsPerPage = 10;
 
   // Data Fetching
-  useEffect(() => {
+useEffect(() => {
     const init = async () => {
       dispatch(fetchOrdersRequest());
       try {
+        setLoading(true);
         const [orderRes, statsRes] = await Promise.all([
-          getOrders(),
+          getOrders(currentPage, itemsPerPage),
           fetchEnhancedOrderStats({})
         ]);
 
-        // Normalize Data
-        const mapped = orderRes.data.map((o: any) => ({
+        // Normalize Data - Fix: Access orders from orderRes.data.orders
+        // Support both response shapes: { orders: Order[], pagination: {...} } or Order[] directly
+        const apiData: any = orderRes.data;
+        const rawOrders: any[] = Array.isArray(apiData)
+          ? apiData
+          : Array.isArray(apiData.orders)
+            ? apiData.orders
+            : [];
+        const mapped = rawOrders.map((o: any) => ({
             id: o._id,
             orderId: o.orderId,
             customer: o.customerDetails?.name || "N/A",
@@ -59,14 +70,18 @@ export default function AdminOrdersTable() {
             date: new Date(o.orderDate).toLocaleDateString(),
             dealers: o.dealerMapping?.length || 0,
         }));
-
+        console.log("Mapped Orders:", mapped);
+        setOrders(mapped);
         dispatch(fetchOrdersSuccess(mapped));
         setStats(statsRes.data);
-        const anyOrderRes = orderRes as any;
-        setTotalOrders(anyOrderRes.pagination?.totalItems || mapped.length);
-        setTotalPages(anyOrderRes.pagination?.totalPages || Math.ceil(mapped.length / itemsPerPage));
+        // Handle pagination if present, else fallback
+        setTotalOrders(apiData.pagination?.totalItems || mapped.length);
+        setTotalPages(apiData.pagination?.totalPages || Math.ceil(mapped.length / itemsPerPage));
       } catch (err: any) {
         dispatch(fetchOrdersFailure(err.message));
+      }
+      finally {
+        setLoading(false);
       }
     };
     init();
@@ -74,14 +89,14 @@ export default function AdminOrdersTable() {
 
   // Client-side Filtering (Replace with Server-side in future)
   const filteredData = useMemo(() => {
-    return orders.filter((o: any) => {
+    return Orders.filter((o: any) => {
         const matchSearch = !filters.search || 
             o.orderId.toLowerCase().includes(filters.search.toLowerCase()) || 
             o.customer.toLowerCase().includes(filters.search.toLowerCase());
         const matchStatus = filters.status === "all" || o.status.toLowerCase() === filters.status.toLowerCase();
         return matchSearch && matchStatus;
     });
-  }, [orders, filters]);
+  }, [Orders, filters]);
 
   return (
     <div className="space-y-6">
