@@ -222,7 +222,22 @@ const handlePayment = async () => {
       return;
     }
 
-    const paymentBody = preparePaymentBody(user, cart, deliveryType, selectedAddress);
+    const paymentBody = preparePaymentBody(user, cart, deliveryType, selectedAddress, pincodeData);
+    
+    // Log the complete request body for Online Payment
+    console.log("=== ONLINE PAYMENT REQUEST BODY ===");
+    console.log("Payment Method: Online Payment (Prepaid)");
+    console.log("Full Request Body:", JSON.stringify(paymentBody, null, 2));
+    console.log("Request Body Details:");
+    console.log("- User ID:", paymentBody.userId);
+    console.log("- Amount:", paymentBody.amount);
+    console.log("- Order Type:", paymentBody.orderType);
+    console.log("- Order Source:", paymentBody.orderSource);
+    console.log("- Customer Details:", paymentBody.customerDetails);
+    console.log("- Delivery Type:", deliveryType);
+    console.log("- Selected Address:", selectedAddress);
+    console.log("- Pincode Data:", pincodeData);
+    console.log("=====================================");
     
     const responseData = await paymentCreation(paymentBody);
     console.log("API raw response:", responseData);

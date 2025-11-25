@@ -61,7 +61,7 @@ export const prepareOrderBody = (
       ? pincodeData?.delivery_charges ?? cart.deliveryCharge ?? 0
       : cart.deliveryCharge ?? 0,
     GST: cart.total_mrp_gst_amount ?? 0,
-    typeOfDelivery: isOnline
+    type_of_delivery: isOnline
       ? "Express"
       : deliveryType === "Standard"
       ? "Standard"
@@ -75,7 +75,8 @@ export const preparePaymentBody = (
   user: AppUser,
   cart: Cart,
   deliveryType: string,
-  selectedAddress?: any
+  selectedAddress?: any,
+  pincodeData?: any
 ) => {
   const address = selectedAddress || user.address?.[0] || {};
   const delivery_type = mapDeliveryTypeForApi(deliveryType);
@@ -94,6 +95,9 @@ export const preparePaymentBody = (
       email: user.email || "",
     },
     type_of_delivery: "Express", // always Express for Online payments
+    delivery_charges: deliveryType.startsWith("express")
+      ? pincodeData?.delivery_charges ?? cart.deliveryCharge ?? 0
+      : cart.deliveryCharge ?? 0,
     delivery_type, // "endofday" | "standard"
   };
 };

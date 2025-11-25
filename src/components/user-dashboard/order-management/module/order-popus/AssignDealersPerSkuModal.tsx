@@ -8,13 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DynamicButton } from "@/components/common/button"
 import { useToast as GlobalToast } from "@/components/ui/toast"
 import { assignDealersToOrder } from "@/service/order-service"
-import { getAllDealers } from "@/service/dealerServices"
+import { getAllDealers, getDealersForAssignedProducts } from "@/service/dealerServices"
 import type { Dealer } from "@/types/dealer-types"
 import { Package, Users, ArrowRight } from "lucide-react"
 
 interface ProductItem {
   sku?: string
   dealerId: any
+  productId?: string
 }
 
 interface AssignDealersPerSkuModalProps {
@@ -61,7 +62,8 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
     const loadDealers = async () => {
       try {
         setLoadingDealers(true)
-        const res = await getAllDealers()
+        const productIds = (products || []).map(p => p?.productId).filter(Boolean) as string[]
+        const res = await getDealersForAssignedProducts(productIds as any)
         setDealers(((res as any)?.data || []) as Dealer[])
       } catch {
         setDealers([])
