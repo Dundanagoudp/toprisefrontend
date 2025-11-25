@@ -166,6 +166,10 @@ export async function getProductsByPage(
   }
 }
 
+
+
+
+
 //get products by dealer added
 export async function getDealerProductsByPage(
   page: number,
@@ -284,7 +288,7 @@ export async function rejectProduct(
 ): Promise<ProductResponse> {
   try {
     const { data: responseData } = await apiClient.patch(
-      `/category/products/v1/reject/${productId}`,
+      `/products/products/v1/reject/${productId}`,
       data
     );
     return responseData;
@@ -354,6 +358,52 @@ export async function rejectSingleProduct(
     }
   }
 }
+
+/**
+ * Update QC status for a product
+ * @param productId - Product ID
+ * @param qcStatus - New QC status (Approved, Rejected, or Pending)
+ * @returns Promise resolving to product response
+ */
+export async function updateQcStatus(
+  productId: string,
+  qcStatus: 'Approved' | 'Rejected' | 'Pending'
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.patch(
+      `/category/products/v1/update/qcStatus/${productId}`,
+      { qcStatus }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to update QC status:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update live status for products to control shop visibility
+ * @param productIds - Array of product IDs
+ * @param status - New live status (Approved or Rejected)
+ * @returns Promise resolving to product response
+ */
+export async function updateProductStatus(
+  productIds: string[],
+  status: 'Approved' | 'Rejected'
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.put('/category/products/v1/update/liveStatus', {
+      ids: productIds,
+      status
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to update product status:', error);
+    throw error;
+  }
+}
+
+
 
 export async function deactivateProduct(
   productId: string
@@ -434,7 +484,7 @@ export async function approveSingleProduct(
 ): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
-      `/category/products/v1/approve/${productId}`
+      `/products/products/v1/approve/${productId}`
     );
     return response.data;
   } catch (error) {

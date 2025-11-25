@@ -4,12 +4,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchProductsWithLiveStatus,
   updateProductLiveStatus,
+  updateProductQcStatus,
 } from "@/store/slice/product/productLiveStatusSlice";
 import {
   aproveProduct,
   deactivateProduct,
   getProducts,
   getProductsByPage,
+  approveSingleProduct,
+  updateProductStatus,
+  rejectSingleProduct,
+  updateQcStatus,
 } from "@/service/product-Service";
 
 import Image from "next/image";
@@ -56,6 +61,7 @@ import { getAllDealers } from "@/service/dealerServices";
 import { assignDealersToProduct } from "@/service/product-Service";
 import { useProductSelection } from "@/contexts/ProductSelectionContext";
 import { DynamicPagination } from "@/components/common/pagination";
+import RejectReason from "./dialogue/RejectReason";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -85,6 +91,7 @@ export default function ApprovedProduct({
   refreshKey?: number;
 }) {
   const dispatch = useAppDispatch();
+  const auth = useAppSelector((state) => state.auth);
   // Use the correct state for products with live status
 
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
@@ -116,6 +123,9 @@ export default function ApprovedProduct({
     }>
   >([]);
   const [assigningDealers, setAssigningDealers] = useState(false);
+  // QC rejection dialog state
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [qcRejectTargetId, setQcRejectTargetId] = useState<string | null>(null);
 
   // Extract fetchProducts function so it can be called from multiple places
   const fetchProducts = useCallback(async () => {
@@ -315,6 +325,60 @@ export default function ApprovedProduct({
     }
   };
 
+  const handleQcStatusChange = async (
+    productId: string,
+    newStatus: 'Approved' | 'Pending' | 'Rejected'
+  ) => {
+    if (newStatus === 'Rejected') {
+      setQcRejectTargetId(productId);
+      setIsRejectDialogOpen(true);
+      return;
+    }
+    
+    try {
+      if (newStatus === 'Approved') {
+        await aproveProduct(productId);
+          dispatch(updateProductQcStatus({ id: productId, qcStatus: newStatus }));
+      }
+
+    
+    
+      showToast(`QC status set to ${newStatus.toLowerCase()}`,'success');
+      await fetchProducts();
+    } catch (error) {
+      console.error('Failed to update QC status:', error);
+      showToast('Failed to update QC status','error');
+    }
+  };
+
+  const handleRejectSubmit = async (data: { reason: string }) => {
+    if (!qcRejectTargetId) return;
+    try {
+      await rejectSingleProduct(qcRejectTargetId, data.reason, auth?.user?._id);
+      dispatch(updateProductQcStatus({ id: qcRejectTargetId, qcStatus: 'Rejected' }));
+      showToast('Product rejected','success');
+      await fetchProducts();
+    } catch (error: any) {
+      console.error('Failed to reject product:', error);
+      showToast(error?.message || 'Failed to reject product','error');
+    } finally {
+      setIsRejectDialogOpen(false);
+      setQcRejectTargetId(null);
+    }
+  };
+
+  const handleLiveStatusChange = async (productId: string, newStatus: 'Approved' | 'Rejected') => {
+    try {
+      await updateProductStatus([productId], newStatus);
+      showToast(`Product ${newStatus === 'Approved' ? 'approved for shop' : 'removed from shop'}`, "success");
+      dispatch(updateProductLiveStatus({ id: productId, liveStatus: newStatus }));
+      await fetchProducts();
+    } catch (error) {
+      console.error("Failed to update product status:", error);
+      showToast("Failed to update product status", "error");
+    }
+  };
+
   const handleStatusChange = async (productId: string, newStatus: string) => {
     try {
       if (newStatus === "Active") {
@@ -433,10 +497,10 @@ const handleSelectAll = (checked: boolean) => {
               )}
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-sans">
-              QC Status
+              Product Status
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-sans">
-              Product status
+              Product Live status
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-sans">
               Action
@@ -570,11 +634,37 @@ const handleSelectAll = (checked: boolean) => {
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-sans">
-                      <span
-                        className={`b2 ${getStatusColor(product.Qc_status)}`}
-                      >
-                        {product.Qc_status}
-                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(product.Qc_status)}`}
+                          >
+                            <span className="b2">{product.Qc_status}</span>
+                            <ChevronDown className="h-4 w-4 ml-2" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="min-w-[120px]">
+                          <DropdownMenuItem
+                            onClick={() => handleQcStatusChange(product._id, "Approved")}
+                            className="text-green-600 focus:text-green-600"
+                          >
+                            Approve
+                          </DropdownMenuItem>
+                          {/* <DropdownMenuItem
+                            onClick={() => handleQcStatusChange(product._id, "Pending")}
+                            className="text-yellow-600 focus:text-yellow-600"
+                          >
+                            Pending
+                          </DropdownMenuItem> */}
+                          <DropdownMenuItem
+                            onClick={() => handleQcStatusChange(product._id, "Rejected")}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            Reject
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-sans">
                       <DropdownMenu>
@@ -594,20 +684,16 @@ const handleSelectAll = (checked: boolean) => {
                           className="min-w-[120px]"
                         >
                           <DropdownMenuItem
-                            onClick={() =>
-                              handleStatusChange(product._id, "Active")
-                            }
+                            onClick={() => handleLiveStatusChange(product._id, "Approved")}
                             className="text-green-600 focus:text-green-600"
                           >
-                            Activate
+                            Approve
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() =>
-                              handleStatusChange(product._id, "Inactive")
-                            }
+                            onClick={() => handleLiveStatusChange(product._id, "Rejected")}
                             className="text-red-600 focus:text-red-600"
                           >
-                            Deactivate
+                            Reject
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -861,6 +947,15 @@ const handleSelectAll = (checked: boolean) => {
           )}
         </DialogContent>
       </Dialog>
+      {/* QC Reject Reason Dialog */}
+      <RejectReason
+        isOpen={isRejectDialogOpen}
+        onClose={() => {
+          setIsRejectDialogOpen(false);
+          setQcRejectTargetId(null);
+        }}
+        onSubmit={handleRejectSubmit}
+      />
     </div>
   );
 }

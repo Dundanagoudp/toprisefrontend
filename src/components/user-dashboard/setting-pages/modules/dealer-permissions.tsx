@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, Save, X } from "lucide-react"
+import { Plus, Trash2, Save, X, Eye, Edit, FileUp } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getAllDealers } from "@/service/dealerServices"
+import { getAllDealers, setDealerPermissions } from "@/service/dealerServices"
 import { 
   addDealerPermissions, 
   updateDealerPermissions, 
@@ -20,6 +20,8 @@ import {
 } from "@/service/settingServices"
 import type { Dealer } from "@/types/dealer-types"
 import type { PermissionModule } from "@/types/setting-Types"
+import { MultiSelectField } from "@/components/ui/multi-select-field"
+import { PRODUCT_FIELDS, getFieldLabel } from "@/lib/constants/product-fields"
 
 interface DealerPermissionsProps {
   className?: string
@@ -31,13 +33,16 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
   const [selectedModule, setSelectedModule] = useState("")
   const [selectedRole, setSelectedRole] = useState("admin")
   const [selectedDealers, setSelectedDealers] = useState<string[]>([])
-  const [permissions, setPermissions] = useState({
-    allowedFields: [] as string[],
-    read: false,
-    write: false,
-    update: false,
-    delete: false
-  })
+  
+  // New nested permission structure
+  const [readFields, setReadFields] = useState<string[]>([])
+  const [readEnabled, setReadEnabled] = useState(false)
+  const [updateFields, setUpdateFields] = useState<string[]>([])
+  const [updateEnabled, setUpdateEnabled] = useState(false)
+  const [isDelete, setIsDelete] = useState(false)
+  const [isAdd, setIsAdd] = useState(false)
+  const [isUpdateStock, setIsUpdateStock] = useState(false)
+  
   const [allowedFieldsInput, setAllowedFieldsInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [dealersLoading, setDealersLoading] = useState(false)
@@ -98,11 +103,14 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
 
       const requestData = {
         module: selectedModule,
-        role: selectedRole, // Use selected role
+        role: selectedRole,
         userIds: selectedDealers,
         permissions: {
-          ...permissions,
-          allowedFields
+          allowedFields,
+          read: false,
+          write: false,
+          update: false,
+          delete: false
         }
       }
 
@@ -110,15 +118,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
       showToast("Permissions added successfully", "success")
       
       // Reset form
-      setSelectedDealers([])
-      setPermissions({
-        allowedFields: [],
-        read: false,
-        write: false,
-        update: false,
-        delete: false
-      })
-      setAllowedFieldsInput("")
+      resetForm()
     } catch (error) {
       console.error("Error adding permissions:", error)
       showToast("Failed to add permissions", "error")
@@ -144,11 +144,14 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
 
       const requestData = {
         module: selectedModule,
-        role: selectedRole, // Use selected role
+        role: selectedRole,
         userIds: selectedDealers,
         permissions: {
-          ...permissions,
-          allowedFields
+          allowedFields,
+          read: false,
+          write: false,
+          update: false,
+          delete: false
         }
       }
 
@@ -156,18 +159,62 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
       showToast("Permissions updated successfully", "success")
       
       // Reset form
-      setSelectedDealers([])
-      setPermissions({
-        allowedFields: [],
-        read: false,
-        write: false,
-        update: false,
-        delete: false
-      })
-      setAllowedFieldsInput("")
+      resetForm()
     } catch (error) {
       console.error("Error updating permissions:", error)
       showToast("Failed to update permissions", "error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSetDealerPermissions = async () => {
+    if (selectedDealers.length === 0) {
+      showToast("Please select at least one dealer", "error")
+      return
+    }
+
+    // Validate that at least one permission is enabled
+    if (!readEnabled && !updateEnabled && !isDelete && !isAdd && !isUpdateStock) {
+      showToast("Please enable at least one permission", "error")
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Construct the nested permission structure
+      const permissionsPayload = {
+        readPermissions: {
+          isEnabled: readEnabled,
+          allowed_fields: readFields
+        },
+        updatePermissions: {
+          isEnabled: updateEnabled,
+          allowed_fields: updateFields
+        },
+        isDelete,
+        isAdd,
+        isUpdateStock
+      }
+
+      // Call setDealerPermissions for each selected dealer
+      const promises = selectedDealers.map(dealerId =>
+        setDealerPermissions(dealerId, permissionsPayload)
+      )
+
+      await Promise.all(promises)
+      
+      showToast(
+        `Permissions set successfully for ${selectedDealers.length} dealer${selectedDealers.length > 1 ? 's' : ''}`,
+        "success"
+      )
+      
+      // Reset form
+      resetForm()
+    } catch (error) {
+      console.error("Error setting dealer permissions:", error)
+      showToast("Failed to set dealer permissions", "error")
     } finally {
       setLoading(false)
     }
@@ -205,6 +252,18 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
     setSelectedDealers(prev => (prev.includes(userId) ? [] : [userId]))
   }
 
+  const resetForm = () => {
+    setSelectedDealers([])
+    setReadFields([])
+    setReadEnabled(false)
+    setUpdateFields([])
+    setUpdateEnabled(false)
+    setIsDelete(false)
+    setIsAdd(false)
+    setIsUpdateStock(false)
+    setAllowedFieldsInput("")
+  }
+
   if (dealersLoading || modulesLoading) {
     return (
       <div className="space-y-4">
@@ -221,6 +280,27 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Dealer Permissions</h2>
         <p className="text-gray-600">Manage permissions for dealers across different modules</p>
+
+            {/* Info Alert */}
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="pt-6">
+                <div className="flex gap-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">i</span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-blue-900 mb-2">Permission Management Options</h3>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li><strong>Set Dealer Permissions:</strong> Configure granular read/update/action permissions for product fields</li>
+                      <li><strong>Module Permissions:</strong> Manage module-level permissions (legacy system for batch operations)</li>
+                      <li><strong>Field Selection:</strong> Use the searchable dropdown to select specific fields or "Select All" for unrestricted access</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
       </div>
 
       {/* Module Selection */}
@@ -245,7 +325,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
       </Card>
 
       {/* Role Selection */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Select Role</CardTitle>
         </CardHeader>
@@ -263,7 +343,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
             </SelectContent>
           </Select>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Dealer Selection */}
       <Card>
@@ -309,64 +389,162 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
           <CardTitle>Permissions Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Permission Toggles */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={permissions.read}
-                onCheckedChange={(checked) => setPermissions(prev => ({ ...prev, read: !!checked }))}
-              />
-              <Label>Read</Label>
+          {/* Read Permissions */}
+          <div className="space-y-4 p-4 border rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={readEnabled}
+                  onCheckedChange={(checked) => setReadEnabled(!!checked)}
+                  id="read-enabled"
+                />
+                <Label htmlFor="read-enabled" className="flex items-center gap-2 cursor-pointer">
+                  <Eye className="w-4 h-4" />
+                  <span className="font-semibold">Read Permissions</span>
+                </Label>
+              </div>
+              {readEnabled && (
+                <Badge variant="secondary">
+                  {readFields.length} field{readFields.length !== 1 ? 's' : ''} selected
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={permissions.write}
-                onCheckedChange={(checked) => setPermissions(prev => ({ ...prev, write: !!checked }))}
-              />
-              <Label>Write</Label>
+            {readEnabled && (
+              <div>
+                <Label>Allowed Fields for Reading</Label>
+                <MultiSelectField
+                  options={PRODUCT_FIELDS.map(field => ({
+                    value: field.value,
+                    label: field.label,
+                    category: field.category
+                  }))}
+                  selected={readFields}
+                  onChange={setReadFields}
+                  placeholder="Select fields that can be read..."
+                  searchPlaceholder="Search fields..."
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select specific fields or leave empty to allow all fields
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Update Permissions */}
+          <div className="space-y-4 p-4 border rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={updateEnabled}
+                  onCheckedChange={(checked) => setUpdateEnabled(!!checked)}
+                  id="update-enabled"
+                />
+                <Label htmlFor="update-enabled" className="flex items-center gap-2 cursor-pointer">
+                  <Edit className="w-4 h-4" />
+                  <span className="font-semibold">Update Permissions</span>
+                </Label>
+              </div>
+              {updateEnabled && (
+                <Badge variant="secondary">
+                  {updateFields.length} field{updateFields.length !== 1 ? 's' : ''} selected
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={permissions.update}
-                onCheckedChange={(checked) => setPermissions(prev => ({ ...prev, update: !!checked }))}
-              />
-              <Label>Update</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={permissions.delete}
-                onCheckedChange={(checked) => setPermissions(prev => ({ ...prev, delete: !!checked }))}
-              />
-              <Label>Delete</Label>
+            {updateEnabled && (
+              <div>
+                <Label>Allowed Fields for Updating</Label>
+                <MultiSelectField
+                  options={PRODUCT_FIELDS.map(field => ({
+                    value: field.value,
+                    label: field.label,
+                    category: field.category
+                  }))}
+                  selected={updateFields}
+                  onChange={setUpdateFields}
+                  placeholder="Select fields that can be updated..."
+                  searchPlaceholder="Search fields..."
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select specific fields or leave empty to allow all fields
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Action Permissions */}
+          <div className="space-y-4 p-4 border rounded-lg">
+            <h4 className="font-semibold">Action Permissions</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={isAdd}
+                  onCheckedChange={(checked) => setIsAdd(!!checked)}
+                  id="is-add"
+                />
+                <Label htmlFor="is-add" className="cursor-pointer">Can Add New Products</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={isDelete}
+                  onCheckedChange={(checked) => setIsDelete(!!checked)}
+                  id="is-delete"
+                />
+                <Label htmlFor="is-delete" className="cursor-pointer">Can Delete Products</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={isUpdateStock}
+                  onCheckedChange={(checked) => setIsUpdateStock(!!checked)}
+                  id="is-update-stock"
+                />
+                <Label htmlFor="is-update-stock" className="cursor-pointer flex items-center gap-1">
+                  <FileUp className="w-4 h-4" />
+                  Can Update Stock
+                </Label>
+              </div>
             </div>
           </div>
 
-          {/* Allowed Fields */}
-          <div>
-            <Label htmlFor="allowedFields">Allowed Fields (comma-separated)</Label>
-            <Input
-              id="allowedFields"
-              placeholder="field1, field2, field3"
-              value={allowedFieldsInput}
-              onChange={(e) => setAllowedFieldsInput(e.target.value)}
-              className="mt-1"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Leave empty to allow all fields, or specify specific fields separated by commas
-            </p>
-          </div>
+          {/* Permission Summary */}
+          {(readEnabled || updateEnabled || isDelete || isAdd || isUpdateStock) && (
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold mb-2">Permission Summary</h4>
+              <ul className="space-y-1 text-sm">
+                {readEnabled && (
+                  <li>✓ Read access to {readFields.length > 0 ? `${readFields.length} specific fields` : 'all fields'}</li>
+                )}
+                {updateEnabled && (
+                  <li>✓ Update access to {updateFields.length > 0 ? `${updateFields.length} specific fields` : 'all fields'}</li>
+                )}
+                {isAdd && <li>✓ Can add new products</li>}
+                {isDelete && <li>✓ Can delete products</li>}
+                {isUpdateStock && <li>✓ Can update stock quantities</li>}
+              </ul>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-4">
         <Button
+          onClick={handleSetDealerPermissions}
+          disabled={loading || selectedDealers.length === 0}
+          className="bg-red-600 hover:bg-red-700"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          Set Dealer Permissions
+        </Button>
+        
+        <Button
           onClick={handleAddPermissions}
           disabled={loading || !selectedModule || selectedDealers.length === 0}
           className="bg-green-600 hover:bg-green-700"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Add Permissions
+          Add Module Permissions
         </Button>
         
         <Button
@@ -375,7 +553,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Save className="w-4 h-4 mr-2" />
-          Update Permissions
+          Update Module Permissions
         </Button>
         
         <Button
@@ -384,7 +562,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
           variant="destructive"
         >
           <Trash2 className="w-4 h-4 mr-2" />
-          Remove Permissions
+          Remove Module Permissions
         </Button>
       </div>
 
