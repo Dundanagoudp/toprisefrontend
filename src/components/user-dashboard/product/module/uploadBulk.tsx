@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { FileUp, ImageUp, X } from "lucide-react";
 import React, { ChangeEvent, useState, useEffect } from "react";
-import { uploadBulkProducts , editBulkProducts} from "@/service/product-Service";
+import { uploadBulkProducts , editBulkProducts, bulkDealerAssignment} from "@/service/product-Service";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import {
     Dialog,
@@ -113,13 +113,16 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
         }
       }
       if (mode === 'edit') {
+        if (imageZipFile) {
+          formData.append('imageZip', imageZipFile);
+        }
         if (csvFile) {
-          formData.append('editsFile', csvFile);
+          formData.append('dataFile', csvFile);
         }
       }
       if (mode === 'uploadDealer') {
         if (csvFile) {
-          formData.append('file', csvFile);
+          formData.append('dataFile', csvFile);
         }
       }
    
@@ -136,13 +139,16 @@ export default function UploadBulkCard ({ isOpen, onClose, mode = 'upload' }: Up
         }
         else if (mode === 'uploadDealer') {
           setUploadMessage('📤 Uploading dealer products from CSV...');
-          response = await uploadDealerBulk(formData);
+          // response = await uploadDealerBulk(formData);  
+          response = await bulkDealerAssignment(formData);
+          console.log("response", response);
           showToast("Uploaded successfully", "success");
           console.log('Uploading dealer bulk upload with formData:');
         }
         else {
           setUploadMessage('📤 Uploading products and images...');
           response = await uploadBulkProducts(formData);
+          console.log("response", response);
           showToast("Uploaded successfully", "success");
           console.log('Uploading bulk upload with formData:');
         }

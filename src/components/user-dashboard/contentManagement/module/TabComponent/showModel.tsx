@@ -14,6 +14,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import UpdateModal from "../UpdateModal";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
+import { set } from "zod";
 
 export default function ShowModel({ searchQuery }: { searchQuery: string }) {
         const [model, setModel] = useState<any[]>([]);
@@ -140,6 +141,7 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
         };
 
         const handleEditModel = (model: any) => {
+          // console.log("Editing model:", model);
             setSelectedModel(model);
             setUpdateModalOpen(true);
         };
@@ -258,7 +260,7 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
                         : "bg-orange-100 text-orange-800"
                     }`}
                   >
-                    {item?.model_Status || "Draft"}
+                    {item.status|| "Draft"}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -266,7 +268,7 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleEditModel(item)}
+                      onClick={() => handleEditModel(item,)}
                     >
                       Edit
                     </Button>
