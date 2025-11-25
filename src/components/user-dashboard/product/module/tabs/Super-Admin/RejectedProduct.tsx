@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { fetchProductsWithLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
-import { getProducts, getProductsByPage } from "@/service/product-Service";
+import { 
+  fetchProductsWithLiveStatus,
+  updateProductLiveStatus,
+  updateProductQcStatus,
+} from "@/store/slice/product/productLiveStatusSlice";
+import { 
+  getProducts, 
+  getProductsByPage,
+  approveSingleProduct,
+  updateProductStatus,
+  deactivateProduct,
+  aproveProduct,
+} from "@/service/product-Service";
 import Image from "next/image";
 import {
   Table,
@@ -28,12 +39,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, ChevronDown } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import Emptydata from "../../Emptydata";
 import { DynamicPagination } from "@/components/common/pagination";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -73,6 +85,7 @@ export default function RejectedProduct({
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const route = useRouter();
+  const { showToast } = useGlobalToast();
   const itemsPerPage = 10;
 
   // Fetch products when component mounts or when pagination changes
@@ -155,6 +168,42 @@ export default function RejectedProduct({
   const handleViewProduct = (id: string) => {
     route.push(`/user/dashboard/product/product-details/${id}`);
   };
+
+  const handleQcStatusChange = async (productId: string, newStatus: 'Approved' | 'Pending') => {
+    try {
+      if (newStatus === 'Approved') {
+        await aproveProduct(productId);
+        showToast('Product approved', "success");
+      } 
+      dispatch(updateProductQcStatus({ id: productId, qcStatus: newStatus }));
+      const response = await getProductsByPage(currentPage, itemsPerPage, "Rejected", searchQuery, categoryFilter, subCategoryFilter);
+      if (response.data) {
+        const rejectedProducts = response.data.products.filter(product => product.live_status === "Rejected");
+        setPaginatedProducts(rejectedProducts);
+      }
+    } catch (error) {
+      console.error("Failed to update QC status:", error);
+      showToast("Failed to update QC status", "error");
+    }
+  };
+
+  const handleLiveStatusChange = async (productId: string, newStatus: 'Approved' | 'Rejected') => {
+    try {
+      await updateProductStatus([productId], newStatus);
+      showToast(`Product ${newStatus === 'Approved' ? 'approved for shop' : 'removed from shop'}`, "success");
+      dispatch(updateProductLiveStatus({ id: productId, liveStatus: newStatus }));
+      // Refresh products
+      const response = await getProductsByPage(currentPage, itemsPerPage, "Rejected", searchQuery, categoryFilter, subCategoryFilter);
+      if (response.data) {
+        const rejectedProducts = response.data.products.filter(product => product.live_status === "Rejected");
+        setPaginatedProducts(rejectedProducts);
+      }
+    } catch (error) {
+      console.error("Failed to update product status:", error);
+      showToast("Failed to update product status", "error");
+    }
+  };
+
   //sorting products by name
   const handleSortByName = () => {
     if (sortField === "product_name") {
@@ -339,14 +388,58 @@ export default function RejectedProduct({
                     </span>
                   </TableCell>
                   <TableCell className="px-6 py-4 font-[Red Hat Display]">
-                    <span className={`b2`}>{product.Qc_status}</span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(product.Qc_status)}`}
+                        >
+                          <span className="b2">{product.Qc_status}</span>
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="min-w-[120px]">
+                        <DropdownMenuItem
+                          onClick={() => handleQcStatusChange(product._id, "Approved")}
+                          className="text-green-600 focus:text-green-600"
+                        >
+                          Approve
+                        </DropdownMenuItem>
+                        {/* <DropdownMenuItem
+                          onClick={() => handleQcStatusChange(product._id, "Pending")}
+                          className="text-yellow-600 focus:text-yellow-600"
+                        >
+                          Pending
+                        </DropdownMenuItem> */}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                   <TableCell className="px-6 py-4 font-[Red Hat Display]">
-                    <span
-                      className={`b2 ${getStatusColor(product.live_status)}`}
-                    >
-                      {product.live_status}
-                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(product.live_status)}`}
+                        >
+                          <span className="b2">{product.live_status}</span>
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="min-w-[120px]">
+                        <DropdownMenuItem
+                          onClick={() => handleLiveStatusChange(product._id, "Approved")}
+                          className="text-green-600 focus:text-green-600"
+                        >
+                          Approve
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleLiveStatusChange(product._id, "Rejected")}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          Reject
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                   <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
                     <DropdownMenu>

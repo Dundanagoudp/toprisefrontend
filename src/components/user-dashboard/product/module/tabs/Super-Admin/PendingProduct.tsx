@@ -4,12 +4,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchProductsWithLiveStatus,
   updateProductLiveStatus,
+  updateProductQcStatus,
 } from "@/store/slice/product/productLiveStatusSlice";
 import {
   aproveProduct,
   deactivateProduct,
   getProducts,
   getProductsByPage,
+  approveSingleProduct,
+  updateProductStatus,
 } from "@/service/product-Service";
 import Image from "next/image";
 import {
@@ -235,10 +238,39 @@ export default function PendingProduct({
     return <Emptydata />;
   }
 
+  const handleQcStatusChange = async (productId: string, newStatus: 'Approved' | 'Pending') => {
+    try {
+      if (newStatus === 'Approved') {
+        await approveSingleProduct(productId);
+        showToast('Product approved', "success");
+      } else {
+        await deactivateProduct(productId);
+        showToast('Product set to pending', "success");
+      }
+      dispatch(updateProductQcStatus({ id: productId, qcStatus: newStatus }));
+      await fetchProducts();
+    } catch (error) {
+      console.error("Failed to update QC status:", error);
+      showToast("Failed to update QC status", "error");
+    }
+  };
+
+  const handleLiveStatusChange = async (productId: string, newStatus: 'Approved' | 'Rejected') => {
+    try {
+      await updateProductStatus([productId], newStatus);
+      showToast(`Product ${newStatus === 'Approved' ? 'approved for shop' : 'removed from shop'}`, "success");
+      dispatch(updateProductLiveStatus({ id: productId, liveStatus: newStatus }));
+      await fetchProducts();
+    } catch (error) {
+      console.error("Failed to update product status:", error);
+      showToast("Failed to update product status", "error");
+    }
+  };
+
   const handleStatusChange = async (productId: string, newStatus: string) => {
     try {
       if (newStatus === "Active") {
-        await aproveProduct(productId);
+        await approveSingleProduct(productId);
         dispatch(
           updateProductLiveStatus({ id: productId, liveStatus: "Approved" })
         );
@@ -473,11 +505,31 @@ export default function PendingProduct({
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-[Red Hat Display]">
-                      <span
-                        className={`b2 ${getStatusColor(product.Qc_status)}`}
-                      >
-                        {product.Qc_status}
-                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(product.Qc_status)}`}
+                          >
+                            <span className="b2">{product.Qc_status}</span>
+                            <ChevronDown className="h-4 w-4 ml-2" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="min-w-[120px]">
+                          <DropdownMenuItem
+                            onClick={() => handleQcStatusChange(product._id, "Approved")}
+                            className="text-green-600 focus:text-green-600"
+                          >
+                            Approve
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleQcStatusChange(product._id, "Pending")}
+                            className="text-yellow-600 focus:text-yellow-600"
+                          >
+                            Pending
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-sans">
                       <DropdownMenu>
@@ -497,20 +549,16 @@ export default function PendingProduct({
                           className="min-w-[120px]"
                         >
                           <DropdownMenuItem
-                            onClick={() =>
-                              handleStatusChange(product._id, "Active")
-                            }
+                            onClick={() => handleLiveStatusChange(product._id, "Approved")}
                             className="text-green-600 focus:text-green-600"
                           >
-                            Activate
+                            Approve
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() =>
-                              handleStatusChange(product._id, "Inactive")
-                            }
+                            onClick={() => handleLiveStatusChange(product._id, "Rejected")}
                             className="text-red-600 focus:text-red-600"
                           >
-                            Deactivate
+                            Reject
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

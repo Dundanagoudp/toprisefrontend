@@ -50,6 +50,15 @@ const productLiveStatusSlice = createSlice({
       }
     },
     
+    // Update a specific product's QC status
+    updateProductQcStatus: (state, action: PayloadAction<{ id: string; qcStatus: string }>) => {
+      const { id, qcStatus } = action.payload;
+      const productIndex = state.products.findIndex(product => product.id === id);
+      if (productIndex !== -1) {
+        state.products[productIndex].qcStatus = qcStatus;
+      }
+    },
+    
     // Filter products by live status
     getProductsByLiveStatus: (state, action: PayloadAction<string>) => {
       
@@ -92,6 +101,7 @@ export const {
   setLoading,
   fetchProductsWithLiveStatus,
   updateProductLiveStatus,
+  updateProductQcStatus,
   getProductsByLiveStatus,
   setError,
   clearError,

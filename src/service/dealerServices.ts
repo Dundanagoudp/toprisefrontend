@@ -413,3 +413,19 @@ export async function getDealerProfileDetails(dealerId?: string): Promise<Dealer
     throw error;
   }
 }
+
+
+
+
+//set dealer permissions 
+export async function setDealerPermissions(dealerId: string, permissions: any): Promise<ApiResponse<Dealer>> {
+  try {
+    const response = await apiClient.patch(`/users/api/users/dealer/setPermiossions/${dealerId}`, {
+      permissions
+    })
+    return response.data
+  } catch (error) {
+    console.error(`Failed to set permissions for dealer with id ${dealerId}:`, error)
+    throw error
+  }
+}
