@@ -516,7 +516,7 @@ export default function PickupManagement() {
                     )}
                   </TableCell>
                   <TableCell>{pickup.createdAt ? formatDate(pickup.createdAt) : 'N/A'}</TableCell>
-                  <TableCell>{getStatusBadge(pickup.scanStatus || 'Not Started')}</TableCell>
+                  <TableCell>{getStatusBadge(pickup.scanStatus )}</TableCell>
                   <TableCell>
                     <div className="text-sm">
                       {pickup.totalItems || pickup.skuList?.length || 0} item{(pickup.totalItems || pickup.skuList?.length || 0) !== 1 ? 's' : ''}
