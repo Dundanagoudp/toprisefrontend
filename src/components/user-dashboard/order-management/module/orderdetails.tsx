@@ -189,7 +189,7 @@ export default function OrderDetailsView() {
 
   const params = useParams<Params>();
   const orderId = params.id;
-  console.log(orderId);
+
   // Product modal state
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);

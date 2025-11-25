@@ -17,7 +17,7 @@ export default function OrdersTable() {
   }
 
   if (role === "Fulfillment-Staff") {
-    return <StaffPicklistsTable />;
+    return <StaffPicklistsTable/>;
   }
 
   // Fallback / Unauthorized

@@ -24,6 +24,16 @@ export async function getAllDealers(): Promise<ApiResponse<Dealer[]>> {
     throw error
   }
 }
+//get Dealer for assigned products
+export async function getDealersForAssignedProducts(productId: string): Promise<ApiResponse<Dealer[]>> {
+  try {
+    const response = await apiClient.get(`/users/api/users/get/dealer-for-assign/${productId}`)
+    return response.data
+  } catch (error) {
+    console.error("Failed to fetch dealers for assigned products:", error)
+    throw error
+  }
+}
 
 // Get dealer by id
 export async function getDealerById(id: string): Promise<ApiResponse<Dealer>> {

@@ -38,6 +38,7 @@ import {
 import {
   fetchEmployeeByUserId,
   fetchPicklistsByEmployee,
+  getOrderById,
 } from "@/service/order-service";
 import OrdersDashboard from "../../orders-dashboard";
 import { s } from "node_modules/framer-motion/dist/types.d-Cjd591yU";
@@ -117,6 +118,7 @@ const ProductRow = ({
   isStaff,
   hasPicklist,
   scanStatus,
+  orderStatus,
 }: any) => {
   const [expanded, setExpanded] = useState(false);
   // hide isInspectionInProgress flag when scanStatus is "In Progress" and "Completed"
@@ -125,6 +127,22 @@ const ProductRow = ({
   //hide isStopInspection flag when scanStatus is "In Progress" and "Completed"
   const isStopInspection =
     scanStatus === "In Progress" || scanStatus === "Completed";
+  // Prefer item-level tracking status; fallback to overall orderStatus
+  const packedSource = (
+    item?.tracking_info?.status || orderStatus || ""
+  ).toLowerCase();
+  const isOrderPacked =
+    packedSource === "packed" || packedSource === "packed completed";
+
+  // Debug once if orderStatus absent but item shows packed
+  useEffect(() => {
+    if (!orderStatus && packedSource.includes("packed")) {
+      console.warn(
+        "[ProductRow] Using item.tracking_info.status for packed state since orderStatus is empty",
+        item?.tracking_info?.status
+      );
+    }
+  }, [orderStatus, packedSource, item?.tracking_info?.status]);
 
   return (
     <div className="flex flex-col gap-3 p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center">
@@ -227,71 +245,53 @@ const ProductRow = ({
       </div>
 
       {/* Actions */}
-            {scanStatus === "Completed" ? (
-            <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">
-              Packed Completed
-            </Badge>
-          ):(  <div className="lg:col-span-2 flex justify-end">
-        {(isAuth || isStaff) && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <DynamicButton variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreHorizontal className="h-4 w-4" />
-              </DynamicButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {isAuth && !safeDealerId(item.dealerId) && (
-                <DropdownMenuItem
-                  onClick={() => actions.trigger("assignDealers", item)}
-                >
-                  <UserCheck className="h-4 w-4 mr-2" /> Assign Dealers
-                </DropdownMenuItem>
-              )}
-              {isAuth && safeDealerId(item.dealerId) && !hasPicklist && (
-                <DropdownMenuItem
-                  onClick={() => actions.trigger("createPicklist", item)}
-                >
-                  <Edit className="h-4 w-4 mr-2" /> Create Picklist
-                </DropdownMenuItem>
-              )}
-              
-              {isAuth && (
-                <>
-                  {scanStatus !== "Completed" && (
-                    <DropdownMenuItem
-                      onClick={() => actions.trigger("markPacked", item)}
-                    >
-                      <Package className="h-4 w-4 mr-2" /> Mark Packed
-                    </DropdownMenuItem>
-                  )}
-                </>
-              )}
-              {isStaff && !isInspectionInProgress && (
-                <DropdownMenuItem
-                  onClick={() => actions.trigger("inspect", item)}
-                >
-                  <ClipboardCheck className="h-4 w-4 mr-2" /> Inspect Picklist
-                </DropdownMenuItem>
-              )}
-              {isStaff  && isStopInspection && scanStatus !== "Completed" && (
-                <DropdownMenuItem
-                  onClick={() => actions.trigger("stopInspect", item)}
-                >
-                  <CircleX className="h-4 w-4 mr-2" /> Stop Inspection
-                </DropdownMenuItem>
-              )}
-              {/* show mark as packed for staff */}
-              {isStaff && (
-                <DropdownMenuItem
-                  onClick={() => actions.trigger("markPacked", item)}
-                >
-                  <Package className="h-4 w-4 mr-2" /> Mark Packed
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <div className="lg:col-span-2 flex justify-end">
+        {isOrderPacked ? (
+          <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">Packed Completed</Badge>
+        ) : (
+          (isAuth || isStaff) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <DynamicButton variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </DynamicButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {isAuth && !safeDealerId(item.dealerId) && (
+                  <DropdownMenuItem onClick={() => actions.trigger("assignDealers", item)}>
+                    <UserCheck className="h-4 w-4 mr-2" /> Assign Dealers
+                  </DropdownMenuItem>
+                )}
+                {isAuth && safeDealerId(item.dealerId) && !hasPicklist && (
+                  <DropdownMenuItem onClick={() => actions.trigger("createPicklist", item)}>
+                    <Edit className="h-4 w-4 mr-2" /> Create Picklist
+                  </DropdownMenuItem>
+                )}
+                {isAuth && scanStatus !== "Completed" && (
+                  <DropdownMenuItem onClick={() => actions.trigger("markPacked", item)}>
+                    <Package className="h-4 w-4 mr-2" /> Mark Packed
+                  </DropdownMenuItem>
+                )}
+                {isStaff && !isInspectionInProgress && (
+                  <DropdownMenuItem onClick={() => actions.trigger("inspect", item)}>
+                    <ClipboardCheck className="h-4 w-4 mr-2" /> Inspect Picklist
+                  </DropdownMenuItem>
+                )}
+                {isStaff && isStopInspection && scanStatus !== "Completed" && (
+                  <DropdownMenuItem onClick={() => actions.trigger("stopInspect", item)}>
+                    <CircleX className="h-4 w-4 mr-2" /> Stop Inspection
+                  </DropdownMenuItem>
+                )}
+                {isStaff && (
+                  <DropdownMenuItem onClick={() => actions.trigger("markPacked", item)}>
+                    <Package className="h-4 w-4 mr-2" /> Mark Packed
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
         )}
-      </div>)}
+      </div>
     
     </div>
   );
@@ -316,6 +316,7 @@ export default function ProductDetailsForOrder({
 
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ProductItem | null>(null);
+  
   const [modalsOpen, setModalsOpen] = useState({
     action: false,
     viewPick: false,
@@ -327,6 +328,7 @@ export default function ProductDetailsForOrder({
   >(new Map());
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string>("");
 
   // Group products by dealerId -> array of sku + quantity
   const dealerSkuGroups: Record<string, Array<{ sku: string; quantity: number }>> = React.useMemo(() => {
@@ -392,6 +394,17 @@ export default function ProductDetailsForOrder({
   useEffect(() => {
     fetchEmployeeDetails();
     fetchPicklists();
+    if (orderId) {
+      getOrderById(orderId)
+        .then((res) => {
+          const status = res?.data?.[0]?.status || "";
+          setOrderStatus(status);
+        })
+        
+        .catch(() => {
+          setOrderStatus("");
+        });
+    }
   }, [orderId]);
 
   const handleAction = async (type: string, item: ProductItem) => {
@@ -560,6 +573,7 @@ export default function ProductDetailsForOrder({
                 isStaff={isFulfillmentStaff}
                 hasPicklist={picklistSkus.has(item.sku || "")}
                 scanStatus={picklistScanStatuses.get(item.sku || "")}
+                orderStatus={orderStatus}
               />
             ))}
             {!products?.length && (
