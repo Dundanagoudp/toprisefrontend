@@ -9,17 +9,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
-  ChevronDown,
+  ChevronRight,
   Edit,
   Package,
-  HandHeart,
   Truck,
   UserCheck,
   Eye,
   MoreHorizontal,
-  Info,
-  ChevronRight,
   ClipboardCheck,
+  CircleX,
 } from "lucide-react";
 import { DynamicButton } from "@/components/common/button";
 import CreatePicklist from "./CreatePicklist";
@@ -30,8 +28,19 @@ import ViewPicklistsModal from "../order-popus/ViewPicklistsModal";
 import { useAppSelector } from "@/store/hooks";
 import { updateOrderStatusByDealer } from "@/service/dealerOrder-services";
 import { getCookie, getAuthToken } from "@/utils/auth";
-import { getAllPicklists, inspectPicklist } from "@/service/pickup-service";
-import { fetchEmployeeByUserId, fetchPicklistsByEmployee } from "@/service/order-service";
+import {
+  getAllPicklists,
+  getPicklistById,
+  getPicklistByOrderId,
+  inspectPicklist,
+  stopPicklistInspection,
+} from "@/service/pickup-service";
+import {
+  fetchEmployeeByUserId,
+  fetchPicklistsByEmployee,
+} from "@/service/order-service";
+import OrdersDashboard from "../../orders-dashboard";
+import { s } from "node_modules/framer-motion/dist/types.d-Cjd591yU";
 
 interface ProductItem {
   _id?: string;
@@ -44,14 +53,8 @@ interface ProductItem {
   gst: number | string;
   totalPrice: number;
   image?: string;
-  // Tracking information
-  tracking_info?: {
-    status: string;
-  };
-  return_info?: {
-    is_returned: boolean;
-    return_id: string | null;
-  };
+  tracking_info?: { status: string };
+  return_info?: { is_returned: boolean; return_id: string | null };
   dealerMapped?: any[];
   gst_percentage?: string;
   mrp_gst_amount?: number;
@@ -67,6 +70,234 @@ interface ProductDetailsForOrderProps {
   onRefresh?: () => void;
 }
 
+// Helpers
+const safeDealerId = (dealer: any): string => {
+  if (!dealer) return "";
+  if (typeof dealer === "string") {
+    const lower = dealer.trim().toLowerCase();
+    return ["n/a", "na", "null", "undefined", "-"].includes(lower)
+      ? ""
+      : dealer;
+  }
+  if (typeof dealer === "number")
+    return Number.isFinite(dealer) ? String(dealer) : "";
+  const id = dealer._id || dealer.id;
+  if (typeof id === "string") {
+    const lower = id.trim().toLowerCase();
+    return ["n/a", "na", "null", "undefined", "-"].includes(lower) ? "" : id;
+  }
+  return id ? String(id) : "";
+};
+
+const getDealerCount = (dealer: any): number => {
+  if (!dealer) return 0;
+  if (Array.isArray(dealer))
+    return dealer.map(safeDealerId).filter(Boolean).length;
+  return safeDealerId(dealer) ? 1 : 0;
+};
+
+const getStatusBadge = (status: string) => {
+  const s = status?.toLowerCase() || "pending";
+  const styles: Record<string, string> = {
+    pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    processing: "bg-blue-100 text-blue-800 border-blue-200",
+    shipped: "bg-purple-100 text-purple-800 border-purple-200",
+    delivered: "bg-green-100 text-green-800 border-green-200",
+    cancelled: "bg-red-100 text-red-800 border-red-200",
+    returned: "bg-orange-100 text-orange-800 border-orange-200",
+  };
+  return styles[s] || styles.pending;
+};
+
+// Unified Product Row Component
+const ProductRow = ({
+  item,
+  actions,
+  isAuth,
+  isStaff,
+  hasPicklist,
+  scanStatus,
+}: any) => {
+  const [expanded, setExpanded] = useState(false);
+  // hide isInspectionInProgress flag when scanStatus is "In Progress" and "Completed"
+  const isInspectionInProgress =
+    scanStatus === "In Progress" || scanStatus === "Completed";
+  //hide isStopInspection flag when scanStatus is "In Progress" and "Completed"
+  const isStopInspection =
+    scanStatus === "In Progress" || scanStatus === "Completed";
+
+  return (
+    <div className="flex flex-col gap-3 p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center">
+      {/* Product Name & SKU */}
+      <div className="lg:col-span-3">
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-900">
+            {item.productName}
+          </span>
+          <span className="text-xs text-gray-500">SKU: {item.sku}</span>
+          <button
+            onClick={() => actions.viewProduct(item)}
+            className="lg:hidden text-xs text-blue-600 mt-1 flex items-center gap-1"
+          >
+            <Eye className="w-3 h-3" /> View Details
+          </button>
+        </div>
+      </div>
+
+      {/* Quantity */}
+      <div className="flex justify-between lg:block lg:col-span-1">
+        <span className="lg:hidden text-sm text-gray-500 font-medium">
+          Qty:
+        </span>
+        <span className="text-sm text-gray-900">{item.quantity || 1}</span>
+      </div>
+
+      {/* Dealers */}
+      <div className="flex justify-between items-center lg:justify-start lg:col-span-2 lg:gap-2">
+        <span className="lg:hidden text-sm text-gray-500 font-medium">
+          Dealers:
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">{getDealerCount(item.dealerId)}</span>
+          <button
+            onClick={() => actions.viewDealer(safeDealerId(item.dealerId))}
+            className="text-gray-400 hover:text-blue-600"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Status & Tracking */}
+      <div className="flex flex-col gap-2 lg:col-span-2">
+        <div className="flex items-center justify-between lg:justify-start lg:gap-2">
+          <span className="lg:hidden text-sm text-gray-500 font-medium">
+            Status:
+          </span>
+          <Badge
+            className={`text-xs px-2 py-0.5 ${getStatusBadge(
+              item.tracking_info?.status
+            )}`}
+          >
+            {item.tracking_info?.status || "Pending"}
+          </Badge>
+        </div>
+
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1 text-xs text-blue-600 hover:underline w-fit"
+        >
+          <ChevronRight
+            className={`w-3 h-3 transition-transform ${
+              expanded ? "rotate-90" : ""
+            }`}
+          />{" "}
+          Tracking Info
+        </button>
+
+        {expanded && (
+          <div className="bg-gray-50 p-2 rounded text-xs space-y-1 border border-gray-100 mt-1">
+            <p>
+              <span className="font-semibold">SKU:</span> {item.sku}
+            </p>
+            <p>
+              <span className="font-semibold">GST:</span> {item.gst_percentage}%
+            </p>
+            <p>
+              <span className="font-semibold">Total:</span> ₹
+              {item.totalPrice?.toLocaleString()}
+            </p>
+            {item.return_info?.is_returned && (
+              <p className="text-orange-600">
+                Returned: {item.return_info.return_id}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Price */}
+      <div className="flex justify-between lg:block lg:col-span-2">
+        <span className="lg:hidden text-sm text-gray-500 font-medium">
+          Total:
+        </span>
+        <span className="text-sm font-medium">
+          ₹{item.totalPrice?.toLocaleString()}
+        </span>
+      </div>
+
+      {/* Actions */}
+            {scanStatus === "Completed" ? (
+            <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">
+              Packed Completed
+            </Badge>
+          ):(  <div className="lg:col-span-2 flex justify-end">
+        {(isAuth || isStaff) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <DynamicButton variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </DynamicButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {isAuth && !safeDealerId(item.dealerId) && (
+                <DropdownMenuItem
+                  onClick={() => actions.trigger("assignDealers", item)}
+                >
+                  <UserCheck className="h-4 w-4 mr-2" /> Assign Dealers
+                </DropdownMenuItem>
+              )}
+              {isAuth && safeDealerId(item.dealerId) && !hasPicklist && (
+                <DropdownMenuItem
+                  onClick={() => actions.trigger("createPicklist", item)}
+                >
+                  <Edit className="h-4 w-4 mr-2" /> Create Picklist
+                </DropdownMenuItem>
+              )}
+              
+              {isAuth && (
+                <>
+                  {scanStatus !== "Completed" && (
+                    <DropdownMenuItem
+                      onClick={() => actions.trigger("markPacked", item)}
+                    >
+                      <Package className="h-4 w-4 mr-2" /> Mark Packed
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
+              {isStaff && !isInspectionInProgress && (
+                <DropdownMenuItem
+                  onClick={() => actions.trigger("inspect", item)}
+                >
+                  <ClipboardCheck className="h-4 w-4 mr-2" /> Inspect Picklist
+                </DropdownMenuItem>
+              )}
+              {isStaff  && isStopInspection && scanStatus !== "Completed" && (
+                <DropdownMenuItem
+                  onClick={() => actions.trigger("stopInspect", item)}
+                >
+                  <CircleX className="h-4 w-4 mr-2" /> Stop Inspection
+                </DropdownMenuItem>
+              )}
+              {/* show mark as packed for staff */}
+              {isStaff && (
+                <DropdownMenuItem
+                  onClick={() => actions.trigger("markPacked", item)}
+                >
+                  <Package className="h-4 w-4 mr-2" /> Mark Packed
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>)}
+    
+    </div>
+  );
+};
+
+// Main Component
 export default function ProductDetailsForOrder({
   products,
   onProductEyeClick,
@@ -74,25 +305,6 @@ export default function ProductDetailsForOrder({
   orderId = "",
   onRefresh,
 }: ProductDetailsForOrderProps) {
-  //log teh products
-  console.log("products of order ", products);
-  // const [picklistOpen, setPicklistOpen] = useState(false) // removed; creation moved to dealer modal
-  // const [activeDealerId, setActiveDealerId] = useState<string>("")
-  const [viewPicklistsOpen, setViewPicklistsOpen] = useState(false);
-  const [actionOpen, setActionOpen] = useState(false);
-  const [activeAction, setActiveAction] = useState<
-    "assignDealers" | "assignPicklist" | "markPacked" | "createPicklist" | null
-  >(null);
-  const [dealerId, setDealerId] = useState("");
-  const [activeSku, setActiveSku] = useState("");
-  const [createPicklistOpen, setCreatePicklistOpen] = useState(false);
-  const [activeProductForPicklist, setActiveProductForPicklist] =
-    useState<ProductItem | null>(null);
-  const [expandedTracking, setExpandedTracking] = useState<Set<string>>(
-    new Set()
-  );
-  const [picklistSkus, setPicklistSkus] = useState<Set<string>>(new Set());
-  // Remove per-product mark packed state - now works per order
   const { showToast } = GlobalToast();
   const auth = useAppSelector((state) => state.auth.user);
   const isAuthorized = [
@@ -102,19 +314,75 @@ export default function ProductDetailsForOrder({
   ].includes(auth?.role);
   const isFulfillmentStaff = auth?.role === "Fulfillment-Staff";
 
-  const fetchPicklists = async () => {
+  const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ProductItem | null>(null);
+  const [modalsOpen, setModalsOpen] = useState({
+    action: false,
+    viewPick: false,
+    createPick: false,
+  });
+  const [picklistSkus, setPicklistSkus] = useState<Set<string>>(new Set());
+  const [picklistScanStatuses, setPicklistScanStatuses] = useState<
+    Map<string, string>
+  >(new Map());
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Group products by dealerId -> array of sku + quantity
+  const dealerSkuGroups: Record<string, Array<{ sku: string; quantity: number }>> = React.useMemo(() => {
+    const map: Record<string, Array<{ sku: string; quantity: number }>> = {};
+    (products || []).forEach((p) => {
+      const dId = safeDealerId(p.dealerId);
+      if (!dId || !p.sku) return;
+      if (!map[dId]) map[dId] = [];
+      map[dId].push({ sku: p.sku, quantity: p.quantity || 1 });
+    });
+    return map;
+  }, [products]);
+
+  // get employee details
+  const fetchEmployeeDetails = async () => {
     try {
-      const response = await getAllPicklists();
-      if (response.success && response.data?.data) {
-        const skusWithPicklist = new Set<string>();
-        response.data.data.forEach((picklist: any) => {
-          if (picklist.linkedOrderId === orderId) {
-            picklist.skuList?.forEach((item: any) => {
-              if (item.sku) skusWithPicklist.add(item.sku);
+      const token = getAuthToken();
+      if (!token) return;
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const userIdFromToken = payload.id || payload.userId;
+      setUserId(userIdFromToken);
+
+      const empRes = await fetchEmployeeByUserId(userIdFromToken);
+      const empId = empRes?.employee?._id;
+
+      if (empId) {
+        setEmployeeId(empId);
+      }
+    } catch (error) {
+      console.error("Failed to fetch employee details:", error);
+    }
+  };
+
+  const fetchPicklists = async () => {
+    if (!orderId) return;
+    try {
+      const response = await getPicklistById(orderId);
+      if (response.success && response.data) {
+        const skus = new Set<string>();
+        const scanStatuses = new Map<string, string>();
+
+        response.data
+          .filter((p: any) => p.linkedOrderId === orderId)
+          .forEach((picklist: any) => {
+            picklist.skuList?.forEach((skuItem: any) => {
+              if (skuItem.sku) {
+                skus.add(skuItem.sku);
+                // Store the picklist-level scanStatus for each SKU
+                scanStatuses.set(skuItem.sku, picklist.scanStatus);
+              }
             });
-          }
-        });
-        setPicklistSkus(skusWithPicklist);
+          });
+
+        setPicklistSkus(skus);
+        setPicklistScanStatuses(scanStatuses);
       }
     } catch (error) {
       console.error("Failed to fetch picklists:", error);
@@ -122,879 +390,280 @@ export default function ProductDetailsForOrder({
   };
 
   useEffect(() => {
-    if (orderId) fetchPicklists();
+    fetchEmployeeDetails();
+    fetchPicklists();
   }, [orderId]);
 
-  const handleInspectPicklist = async (sku: string) => {
-    try {
-      const token = getAuthToken();
-      if (!token) {
-        showToast("Authentication required", "error");
-        return;
+  const handleAction = async (type: string, item: ProductItem) => {
+    setSelectedItem(item);
+
+    if (type === "markShipped") {
+      try {
+        const weightInput = window.prompt(
+          "Enter total weight (kg) for shipment:",
+          ""
+        );
+        if (weightInput === null) return;
+        const totalWeightKg = parseFloat(weightInput);
+        if (Number.isNaN(totalWeightKg) || totalWeightKg <= 0) {
+          showToast("Please enter a valid weight in kg", "error");
+          return;
+        }
+
+        let dealerIdResolved = safeDealerId(item.dealerId);
+        if (!dealerIdResolved) {
+          dealerIdResolved = getCookie("dealerId") || "";
+          if (!dealerIdResolved) {
+            const token = getAuthToken();
+            if (token) {
+              try {
+                const payload = JSON.parse(atob(token.split(".")[1]));
+                dealerIdResolved = payload.dealerId || payload.id || "";
+              } catch {}
+            }
+          }
+        }
+
+        if (!orderId || !dealerIdResolved) {
+          showToast("Missing order ID or dealer ID", "error");
+          return;
+        }
+
+        await updateOrderStatusByDealer(
+          String(dealerIdResolved),
+          String(orderId),
+          totalWeightKg
+        );
+        showToast("Order marked as shipped", "success");
+        onRefresh?.();
+      } catch (e) {
+        showToast("Failed to mark as shipped", "error");
       }
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const userId = payload.id || payload.userId;
-
-      const empRes = await fetchEmployeeByUserId(userId);
-      const empId = empRes?.employee?._id;
-
-      if (!empId) {
-        showToast("Employee ID not found", "error");
-        return;
-      }
-
-      const picklistRes = await fetchPicklistsByEmployee(empId);
-      const picklists = picklistRes.data?.picklists || [];
-      const targetPicklist = picklists.find(
-        (pl: any) =>
-          pl.linkedOrderId === orderId &&
-          pl.skuList?.some((item: any) => item.sku === sku)
-      );
-
-      if (!targetPicklist) {
-        showToast("No picklist found for this SKU", "error");
-        return;
-      }
-
-      const result = await inspectPicklist(targetPicklist._id, empId);
-      if (result.success) {
-        showToast("Picklist inspection started", "success");
-        window.location.href = `/user/dashboard/picklist?picklistId=${targetPicklist._id}`;
-      }
-    } catch (error) {
-      console.error("Inspect picklist error:", error);
-      showToast("Failed to start inspection", "error");
+      return;
     }
-  };
-  const isPlaceholderString = (value: string) => {
-    const v = (value || "").trim().toLowerCase();
-    return (
-      v === "n/a" ||
-      v === "na" ||
-      v === "null" ||
-      v === "undefined" ||
-      v === "-"
-    );
-  };
 
-  const safeDealerId = (dealer: any): string => {
-    if (dealer == null) return "";
-    if (typeof dealer === "string")
-      return isPlaceholderString(dealer) ? "" : dealer;
-    if (typeof dealer === "number")
-      return Number.isFinite(dealer) ? String(dealer) : "";
-    const id = dealer._id || dealer.id;
-    if (typeof id === "string" && isPlaceholderString(id)) return "";
-    return id ? String(id) : "";
-  };
+    if (type === "inspect") {
+      try {
+        if (!employeeId) {
+          showToast("Employee ID not found", "error");
+          return;
+        }
 
-  const getDealerCount = (dealer: any): number => {
-    if (dealer == null) return 0;
-    if (Array.isArray(dealer))
-      return dealer.map(safeDealerId).filter(Boolean).length;
-    if (typeof dealer === "string") return safeDealerId(dealer) ? 1 : 0;
-    if (typeof dealer === "number") return Number.isFinite(dealer) ? 1 : 0;
-    if (typeof dealer === "object") return safeDealerId(dealer) ? 1 : 0;
-    return 0;
-  };
+        const picklistRes = await getPicklistByOrderId(orderId, employeeId);
 
-  // Helper function to get status badge classes
-  const getStatusBadgeClasses = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "processing":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "shipped":
-        return "bg-purple-100 text-purple-800 border-purple-200";
-      case "delivered":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "cancelled":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "returned":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        const picklistId = picklistRes?.data?.picklists?.[0]?.picklistId;
+        if (!picklistId) {
+          showToast("No picklist found", "error");
+          return;
+        }
+
+        const result = await inspectPicklist(picklistId, employeeId, {
+          sku: item.sku,
+        });
+        if (result.success) {
+          showToast("Picklist inspection started", "success");
+          // window.location.href = `/user/dashboard/picklist?picklistId=${picklistId}`;
+        }
+      } catch (error) {
+        console.error("Inspect picklist error:", error);
+        showToast("Failed to start inspection", "error");
+      }
+      return;
     }
-  };
+    // top stop inspection
+    if (type === "stopInspect") {
+      try {
+        if (!employeeId) {
+          showToast("Employee ID not found", "error");
+          return;
+        }
 
-  // Helper function to toggle tracking expansion
-  const toggleTrackingExpansion = (productId: string) => {
-    const newExpanded = new Set(expandedTracking);
-    if (newExpanded.has(productId)) {
-      newExpanded.delete(productId);
+        const picklistRes = await getPicklistByOrderId(orderId, employeeId);
+        const picklistId = picklistRes?.data?.picklists?.[0]?.picklistId;
+        if (!picklistId) {
+          showToast("No picklist found", "error");
+          return;
+        }
+        const stopInspect = await stopPicklistInspection(
+          picklistId,
+          employeeId,
+          { sku: item.sku }
+        );
+        if (stopInspect.success) {
+          showToast("Picklist inspection stopped", "success");
+          // window.location.href = `/user/dashboard/picklist?picklistId=${picklistId}`;
+        }
+      } catch (error) {
+        console.error("Stop inspect picklist error:", error);
+        showToast("Failed to stop inspection", "error");
+      }
+      return;
+    }
+
+    if (type === "createPicklist") {
+      setModalsOpen((p) => ({ ...p, createPick: true }));
     } else {
-      newExpanded.add(productId);
+      setActiveAction(type);
+      setModalsOpen((p) => ({ ...p, action: true }));
     }
-    setExpandedTracking(newExpanded);
   };
 
-  // cleaned unused dealer-loading and assignment helpers
+  const actionHandlers = {
+    trigger: handleAction,
+    viewProduct: onProductEyeClick,
+    viewDealer: onDealerEyeClick,
+  };
+
+  // Determine if all product picklist scan statuses are Completed
+  const allScanCompleted = products?.length
+    ? products.every(
+        (p) => picklistScanStatuses.get(p.sku || "") === "Completed"
+      )
+    : false;
 
   return (
     <>
       <Card className="border border-gray-200 shadow-sm">
-        <CardHeader className="pb-3 lg:pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <CardHeader className="pb-4 border-b">
+          <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
-                Product Details
-              </CardTitle>
-              <p className="text-xs sm:text-sm text-gray-600">
-                Product that order by the customer
+              <CardTitle className="text-lg">Product Details</CardTitle>
+              <p className="text-sm text-gray-600">
+                Products ordered by the customer
               </p>
             </div>
-            <div className="flex flex-col items-start gap-1 text-xs sm:text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <span>No.of Product:</span>
-                <span className="font-medium">{products?.length || 0}</span>
+            <span className="text-sm text-gray-500">
+              {products?.length || 0} Products
+            </span>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {/* Desktop Header */}
+          <div className="hidden lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center bg-gray-50 p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b">
+            <div className="lg:col-span-3">Product Name</div>
+            <div className="lg:col-span-1">Qty</div>
+            <div className="lg:col-span-2">Dealers</div>
+            <div className="lg:col-span-2">Status</div>
+            <div className="lg:col-span-2">Total</div>
+            <div className="lg:col-span-2 text-right">Actions</div>
+          </div>
+
+          {/* Product List */}
+          <div className="divide-y divide-gray-100">
+            {products?.map((item: ProductItem, i: number) => (
+              <ProductRow
+                key={item._id || i}
+                item={item}
+                actions={actionHandlers}
+                isAuth={isAuthorized}
+                isStaff={isFulfillmentStaff}
+                hasPicklist={picklistSkus.has(item.sku || "")}
+                scanStatus={picklistScanStatuses.get(item.sku || "")}
+              />
+            ))}
+            {!products?.length && (
+              <div className="p-8 text-center text-gray-500">
+                No products found.
               </div>
-              {/* Tracking Summary */}
-              {products && products.length > 0 && (
-                <div className="flex items-center gap-4 text-xs">
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                    <span>
-                      Pending:{" "}
-                      {
-                        products.filter(
-                          (p) => p.tracking_info?.status === "Pending"
-                        ).length
-                      }
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    <span>
-                      Processing:{" "}
-                      {
-                        products.filter(
-                          (p) => p.tracking_info?.status === "Processing"
-                        ).length
-                      }
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span>
-                      Delivered:{" "}
-                      {
-                        products.filter(
-                          (p) => p.tracking_info?.status === "Delivered"
-                        ).length
-                      }
-                    </span>
-                  </div>
-                  {products.some((p) => p.return_info?.is_returned) && (
-                    <div className="flex items-center gap-1">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                      <span>
-                        Returned:{" "}
-                        {
-                          products.filter((p) => p.return_info?.is_returned)
-                            .length
-                        }
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-              {products && products.length > 3 && (
+            )}
+          </div>
+
+          {/* Footer Action */}
+          {isAuthorized && products && products.length > 0 && (
+            <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
+              <DynamicButton
+                text="View All Picklists"
+                variant="outline"
+                onClick={() => {
+                  const firstDealer = products[0]?.dealerId;
+                  const dId = safeDealerId(firstDealer);
+                  if (!dId) {
+                    showToast("No dealer found for this order", "error");
+                    return;
+                  }
+                  setSelectedItem(products[0]);
+                  setModalsOpen((p) => ({ ...p, viewPick: true }));
+                }}
+              />
+              {/* hide is scan status is "Completed" */}
+              {!allScanCompleted && (
                 <DynamicButton
-                  text="View All"
-                  customClassName="px-2 py-1 text-xs h-7 min-w-0"
+                  text="Create Picklist"
+                  onClick={() => {
+                    setSelectedItem(null); // no pre-selected item
+                    setModalsOpen((p) => ({ ...p, createPick: true }));
+                  }}
                 />
               )}
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {/* Desktop Table View - Fixed width columns */}
-          <div className="hidden xl:block">
-            <div className="w-full bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-              <table className="w-full table-fixed">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[25%]">
-                      Product Name
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[8%]">
-                      Qty
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[12%]">
-                      Dealers
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[12%]">
-                      Status
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[10%]">
-                      MRP
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[10%]">
-                      GST
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[12%]">
-                      Total Price
-                    </th>
-                    {(isAuthorized || isFulfillmentStaff) && (
-                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wider w-[15%]">
-                        Actions
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {products?.map((productItem: ProductItem, index: number) => (
-                    <tr
-                      key={productItem._id || index}
-                      className="hover:bg-gray-50 transition-colors duration-150"
-                    >
-                      <td className="py-4 px-6 align-middle w-[25%]">
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {productItem.productName}
-                              </p>
-                              <button
-                                onClick={() => onProductEyeClick(productItem)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                                aria-label="View product details"
-                              >
-                                <Eye className="w-4 h-4 flex-shrink-0" />
-                              </button>
-                            </div>
-                            {productItem.sku && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                SKU: {productItem.sku}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 align-middle w-[8%]">
-                        <span className="text-sm font-medium text-gray-900">
-                          {productItem.quantity || 1}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 align-middle w-[12%]">
-                        <div className="flex items-center">
-                          <span className="text-sm font-medium text-gray-900">
-                            {getDealerCount(productItem.dealerId)}
-                          </span>
-                          <button
-                            onClick={() =>
-                              onDealerEyeClick(
-                                safeDealerId(productItem.dealerId)
-                              )
-                            }
-                            className="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
-                            aria-label="View dealers"
-                          >
-                            <Eye className="w-4 h-4 flex-shrink-0" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 align-middle w-[12%]">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1">
-                            <Badge
-                              className={`px-2 py-1 text-xs ${getStatusBadgeClasses(
-                                productItem.tracking_info?.status || "Pending"
-                              )}`}
-                            >
-                              {productItem.tracking_info?.status || "Pending"}
-                            </Badge>
-                            {productItem.return_info?.is_returned && (
-                              <Badge className="px-2 py-1 text-xs bg-orange-100 text-orange-800 border-orange-200">
-                                Returned
-                              </Badge>
-                            )}
-                          </div>
-                          {productItem.dealerMapped &&
-                            productItem.dealerMapped.length > 0 && (
-                              <div className="text-xs text-gray-500">
-                                {productItem.dealerMapped.length} dealer
-                                {productItem.dealerMapped.length > 1
-                                  ? "s"
-                                  : ""}{" "}
-                                assigned
-                              </div>
-                            )}
-                          {/* Expandable tracking details */}
-                          <button
-                            onClick={() =>
-                              toggleTrackingExpansion(
-                                productItem._id ||
-                                  productItem.productId ||
-                                  index.toString()
-                              )
-                            }
-                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                          >
-                            <ChevronRight
-                              className={`h-3 w-3 transition-transform ${
-                                expandedTracking.has(
-                                  productItem._id ||
-                                    productItem.productId ||
-                                    index.toString()
-                                )
-                                  ? "rotate-90"
-                                  : ""
-                              }`}
-                            />
-                            Details
-                          </button>
-                          {expandedTracking.has(
-                            productItem._id ||
-                              productItem.productId ||
-                              index.toString()
-                          ) && (
-                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs space-y-1">
-                              <div>
-                                <span className="font-medium">SKU:</span>{" "}
-                                {productItem.sku}
-                              </div>
-                              <div>
-                                <span className="font-medium">Quantity:</span>{" "}
-                                {productItem.quantity}
-                              </div>
-                              {productItem.return_info?.return_id && (
-                                <div>
-                                  <span className="font-medium">
-                                    Return ID:
-                                  </span>{" "}
-                                  {productItem.return_info.return_id}
-                                </div>
-                              )}
-                              {productItem.gst_percentage && (
-                                <div>
-                                  <span className="font-medium">GST %:</span>{" "}
-                                  {productItem.gst_percentage}%
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[10%]">
-                        ₹
-                        {Number(
-                          productItem.product_total ??
-                            productItem.totalPrice ??
-                            0
-                        ).toLocaleString()}
-                      </td>
-                      <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[10%]">
-                        {productItem.gst_percentage}%
-                      </td>
-                      <td className="py-4 px-4 text-sm font-medium text-gray-900 w-[12%]">
-                        ₹{productItem.totalPrice.toLocaleString()}
-                      </td>
-                      {(isAuthorized || isFulfillmentStaff) && (
-                        <td className="py-4 px-4 align-middle w-[15%]">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <DynamicButton
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 hover:bg-gray-100"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </DynamicButton>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1"
-                            >
-                              {/* --- SECTION 1: ADMIN ONLY ACTIONS --- */}
-                              {isAuthorized && (
-                                <>
-                                  {!safeDealerId(productItem.dealerId) && (
-                                    <DropdownMenuItem
-                                      className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                                      onClick={() => {
-                                        setActiveAction("assignDealers");
-                                        setActionOpen(true);
-                                      }}
-                                    >
-                                      <UserCheck className="h-4 w-4 mr-2" />{" "}
-                                      Assign Dealers
-                                    </DropdownMenuItem>
-                                  )}
-
-                                  {safeDealerId(productItem.dealerId) &&
-                                    !picklistSkus.has(
-                                      productItem.sku || ""
-                                    ) && (
-                                      <DropdownMenuItem
-                                        className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                                        onClick={() => {
-                                          setActiveProductForPicklist(
-                                            productItem
-                                          );
-                                          setCreatePicklistOpen(true);
-                                        }}
-                                      >
-                                        <Edit className="h-4 w-4 mr-2" /> Create
-                                        Picklist
-                                      </DropdownMenuItem>
-                                    )}
-
-                                  <DropdownMenuItem
-                                    className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                                    onClick={async () => {
-                                      // ... (Your Mark Shipped Logic) ...
-                                    }}
-                                  >
-                                    <Truck className="h-4 w-4 mr-2" /> Mark as
-                                    Shipped
-                                  </DropdownMenuItem>
-
-                                  <DropdownMenuItem
-                                    className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                                    onClick={() => {
-                                      setActiveAction("markPacked");
-                                      setDealerId(
-                                        safeDealerId(productItem.dealerId)
-                                      );
-                                      setActiveSku(productItem.sku || "");
-                                      setActionOpen(true);
-                                    }}
-                                  >
-                                    <Package className="h-4 w-4 mr-2" /> Mark as
-                                    Packed
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-
-                              {/* --- SECTION 2: STAFF ONLY ACTIONS --- */}
-                              {isFulfillmentStaff && (
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                                  onClick={() =>
-                                    handleInspectPicklist(productItem.sku || "")
-                                  }
-                                >
-                                  <ClipboardCheck className="h-4 w-4 mr-2" />{" "}
-                                  Inspect Picklist
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Global View Picklists action */}
-              {isAuthorized && (
-                <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
-                  <DynamicButton
-                    text="View Picklists"
-                    customClassName="px-6 py-2 text-sm font-medium rounded-md shadow-sm border"
-                    onClick={() => {
-                      const firstDealer =
-                        products && products.length > 0
-                          ? products[0].dealerId
-                          : "";
-                      const dId = safeDealerId(firstDealer as any);
-                      if (!dId) {
-                        showToast("No dealer found for this order", "error");
-                        return;
-                      }
-                      setDealerId(dId);
-                      setViewPicklistsOpen(true);
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Card View for Mobile and Tablet */}
-          <div className="xl:hidden p-4 space-y-3">
-            {products?.map((productItem: ProductItem) => (
-              <div
-                key={productItem._id}
-                className="border border-gray-200 rounded-lg p-3"
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-medium text-gray-900 text-sm truncate flex-1">
-                        {productItem.productName}
-                      </h3>
-                      <button
-                        onClick={() => onProductEyeClick(productItem)}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                        aria-label="View product details"
-                      >
-                        <Eye className="w-4 h-4 flex-shrink-0" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-600">
-                            Dealers:
-                          </span>
-                          <span className="text-xs text-gray-900 font-semibold">
-                            {getDealerCount(productItem.dealerId)}
-                          </span>
-                          <button
-                            onClick={() =>
-                              onDealerEyeClick(
-                                safeDealerId(productItem.dealerId)
-                              )
-                            }
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                            aria-label="View dealers"
-                          >
-                            <Eye className="w-4 h-4 flex-shrink-0" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Status Information */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-600">Status:</span>
-                          <div className="flex items-center gap-1">
-                            <Badge
-                              className={`px-2 py-1 text-xs ${getStatusBadgeClasses(
-                                productItem.tracking_info?.status || "Pending"
-                              )}`}
-                            >
-                              {productItem.tracking_info?.status || "Pending"}
-                            </Badge>
-                            {productItem.return_info?.is_returned && (
-                              <Badge className="px-2 py-1 text-xs bg-orange-100 text-orange-800 border-orange-200">
-                                Returned
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        {productItem.dealerMapped &&
-                          productItem.dealerMapped.length > 0 && (
-                            <div className="text-xs text-gray-500">
-                              {productItem.dealerMapped.length} dealer
-                              {productItem.dealerMapped.length > 1
-                                ? "s"
-                                : ""}{" "}
-                              assigned
-                            </div>
-                          )}
-                        {/* Expandable tracking details for mobile */}
-                        <button
-                          onClick={() =>
-                            toggleTrackingExpansion(
-                              productItem._id ||
-                                productItem.productId ||
-                                "mobile"
-                            )
-                          }
-                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          <ChevronRight
-                            className={`h-3 w-3 transition-transform ${
-                              expandedTracking.has(
-                                productItem._id ||
-                                  productItem.productId ||
-                                  "mobile"
-                              )
-                                ? "rotate-90"
-                                : ""
-                            }`}
-                          />
-                          Tracking Details
-                        </button>
-                        {expandedTracking.has(
-                          productItem._id || productItem.productId || "mobile"
-                        ) && (
-                          <div className="mt-2 p-3 bg-gray-50 rounded text-xs space-y-2">
-                            <div>
-                              <span className="font-medium">SKU:</span>{" "}
-                              {productItem.sku}
-                            </div>
-                            <div>
-                              <span className="font-medium">Quantity:</span>{" "}
-                              {productItem.quantity}
-                            </div>
-                            {productItem.return_info?.return_id && (
-                              <div>
-                                <span className="font-medium">Return ID:</span>{" "}
-                                {productItem.return_info.return_id}
-                              </div>
-                            )}
-                            {productItem.gst_percentage && (
-                              <div>
-                                <span className="font-medium">GST %:</span>{" "}
-                                {productItem.gst_percentage}%
-                              </div>
-                            )}
-                            {productItem.mrp_gst_amount && (
-                              <div>
-                                <span className="font-medium">MRP + GST:</span>{" "}
-                                ₹{productItem.mrp_gst_amount}
-                              </div>
-                            )}
-                            {productItem.gst_amount && (
-                              <div>
-                                <span className="font-medium">GST Amount:</span>{" "}
-                                ₹{productItem.gst_amount}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="min-w-0">
-                          <span className="text-xs text-gray-600 block">
-                            MRP
-                          </span>
-                          <span className="text-xs text-gray-900 font-semibold break-words">
-                            ₹{productItem.mrp.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs text-gray-600 block">
-                            GST
-                          </span>
-                          <span className="text-xs text-gray-900 font-semibold break-words">
-                            {productItem.gst}%
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs text-gray-600 block">
-                            Total Price
-                          </span>
-                          <span className="text-xs text-gray-900 font-semibold break-words">
-                            ₹{productItem.totalPrice.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {isAuthorized && (
-                  <div className="flex justify-end mt-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <DynamicButton
-                          variant="outline"
-                          size="sm"
-                          className="h-8 bg-white border border-gray-300 rounded-md shadow-sm w-20 justify-between text-xs"
-                        >
-                          Actions
-                          <ChevronDown className="h-4 w-4 ml-1" />
-                        </DynamicButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="w-48 rounded-lg shadow-lg border border-neutral-200 p-1"
-                      >
-                        {!safeDealerId(productItem.dealerId) && (
-                          <DropdownMenuItem
-                            className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                            onClick={() => {
-                              setActiveAction("assignDealers");
-                              setActionOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4 mr-2" /> Assign Dealers
-                          </DropdownMenuItem>
-                        )}
-                        {!picklistSkus.has(productItem.sku || "") && (
-                          <DropdownMenuItem
-                            className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                            onClick={() => {
-                              setActiveProductForPicklist(productItem);
-                              setCreatePicklistOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4 mr-2" /> Create Picklist
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                          onClick={async () => {
-                            try {
-                              const weightInput = window.prompt(
-                                "Enter total weight (kg) for shipment:",
-                                ""
-                              );
-                              if (weightInput === null) return;
-                              const totalWeightKg = parseFloat(weightInput);
-                              if (
-                                Number.isNaN(totalWeightKg) ||
-                                totalWeightKg <= 0
-                              ) {
-                                showToast(
-                                  "Please enter a valid weight in kg",
-                                  "error"
-                                );
-                                return;
-                              }
-
-                              let dealerIdResolved = safeDealerId(
-                                productItem.dealerId
-                              );
-                              if (!dealerIdResolved) {
-                                dealerIdResolved = getCookie("dealerId") || "";
-                                if (!dealerIdResolved) {
-                                  const token = getAuthToken();
-                                  if (token) {
-                                    try {
-                                      const payloadBase64 = token.split(".")[1];
-                                      if (payloadBase64) {
-                                        const base64 = payloadBase64
-                                          .replace(/-/g, "+")
-                                          .replace(/_/g, "/");
-                                        const paddedBase64 = base64.padEnd(
-                                          base64.length +
-                                            ((4 - (base64.length % 4)) % 4),
-                                          "="
-                                        );
-                                        const payloadJson = atob(paddedBase64);
-                                        const payload = JSON.parse(payloadJson);
-                                        dealerIdResolved =
-                                          payload.dealerId || payload.id || "";
-                                      }
-                                    } catch {}
-                                  }
-                                }
-                              }
-
-                              if (!orderId || !dealerIdResolved) {
-                                showToast(
-                                  "Missing order ID or dealer ID",
-                                  "error"
-                                );
-                                return;
-                              }
-
-                              await updateOrderStatusByDealer(
-                                String(dealerIdResolved),
-                                String(orderId),
-                                totalWeightKg
-                              );
-                              showToast("Order marked as shipped", "success");
-                            } catch (e) {
-                              showToast("Failed to mark as shipped", "error");
-                            }
-                          }}
-                        >
-                          <Truck className="h-4 w-4 mr-2" /> Mark as Shipped
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="flex items-center gap-2 rounded hover:bg-neutral-100"
-                          onClick={() => {
-                            setActiveAction("markPacked");
-                            setDealerId(safeDealerId(productItem.dealerId));
-                            setActiveSku(productItem.sku || "");
-                            setActionOpen(true);
-                          }}
-                        >
-                          <Package className="h-4 w-4 mr-2" /> Mark as Packed
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
-
-                {/* View Picklists button for mobile view */}
-                <div className="flex justify-end mt-3">
-                  <DynamicButton
-                    text="View Picklists"
-                    variant="outline"
-                    customClassName="px-4 py-2 text-xs font-medium rounded-md shadow-sm border w-full"
-                    onClick={() => {
-                      const dId = safeDealerId(productItem.dealerId);
-                      if (!dId) {
-                        showToast("No dealer found for this product", "error");
-                        return;
-                      }
-                      setDealerId(dId);
-                      setViewPicklistsOpen(true);
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          )}
         </CardContent>
       </Card>
-      {/* Separated modals for actions */}
-      <AssignDealersPerSkuModal
-        open={isAuthorized && actionOpen && activeAction === "assignDealers"}
-        onOpenChange={(open) => {
-          if (!open) {
-            setActionOpen(false);
-            setActiveAction(null);
-            onRefresh?.();
-          } else {
-            setActionOpen(true);
-          }
-        }}
-        orderId={orderId}
-        products={(products || []).map((p) => ({
-          sku: p.sku,
-          dealerId: p.dealerId,
-        }))}
-      />
-      <MarkPackedModal
-        open={isAuthorized && actionOpen && activeAction === "markPacked"}
-        onOpenChange={(open) => {
-          if (!open) {
-            setActionOpen(false);
-            setActiveAction(null);
-            onRefresh?.();
-          } else {
-            setActionOpen(true);
-          }
-        }}
-        orderId={orderId}
-        dealerId={dealerId}
-        sku={activeSku}
-      />
-      {/* Removed local CreatePicklist modal; use dealer modal's create flow */}
 
-      <ViewPicklistsModal
-        open={isAuthorized && viewPicklistsOpen}
-        onOpenChange={setViewPicklistsOpen}
-        dealerId={dealerId}
-        orderId={orderId}
-      />
+      {/* Modals */}
+      {modalsOpen.action && (
+        <>
+          <AssignDealersPerSkuModal
+            open={activeAction === "assignDealers"}
+            onOpenChange={(o: boolean) => {
+              setModalsOpen((p) => ({ ...p, action: o }));
+              if (!o) {
+                setActiveAction(null);
+                onRefresh?.();
+              }
+            }}
+            orderId={orderId}
+            products={(products || []).map((p) => ({
+              sku: p.sku,
+              dealerId: p.dealerId,
+            }))}
+          />
+          <MarkPackedModal
+            open={activeAction === "markPacked"}
+            onOpenChange={(o: boolean) => {
+              setModalsOpen((p) => ({ ...p, action: o }));
+              if (!o) {
+                setActiveAction(null);
+                onRefresh?.();
+              }
+            }}
+            orderId={orderId}
+            dealerId={safeDealerId(selectedItem?.dealerId)}
+            sku={selectedItem?.sku || ""}
+          />
+        </>
+      )}
 
       <CreatePicklist
-        open={isAuthorized && createPicklistOpen}
+        open={modalsOpen.createPick}
         onClose={() => {
-          setCreatePicklistOpen(false);
+          setModalsOpen((p) => ({ ...p, createPick: false }));
           fetchPicklists();
           onRefresh?.();
         }}
         orderId={orderId}
-        defaultDealerId={
-          activeProductForPicklist?.dealerId
-            ? safeDealerId(activeProductForPicklist.dealerId)
-            : ""
-        }
+        defaultDealerId={safeDealerId(selectedItem?.dealerId)}
         defaultSkuList={
-          activeProductForPicklist
+          selectedItem
             ? [
                 {
-                  sku: activeProductForPicklist.sku || "",
-                  quantity: activeProductForPicklist.quantity || 1,
+                  sku: selectedItem.sku || "",
+                  quantity: selectedItem.quantity || 1,
                 },
               ]
             : []
         }
+        groupedDealerSkus={dealerSkuGroups}
+      />
+
+      <ViewPicklistsModal
+        open={modalsOpen.viewPick}
+        onOpenChange={(o: boolean) =>
+          setModalsOpen((p) => ({ ...p, viewPick: o }))
+        }
+        dealerId={safeDealerId(selectedItem?.dealerId)}
+        orderId={orderId}
       />
     </>
   );
