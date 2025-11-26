@@ -65,10 +65,12 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
   const [returnModalOpen, setReturnModalOpen] = useState(false)
   const [returnReason, setReturnReason] = useState('')
   const [returnDescription, setReturnDescription] = useState('')
-  const [returnImages, setReturnImages] = useState<string[]>([])
-  const [returnQuantity, setReturnQuantity] = useState(1)
+  const [returnImages, setReturnImages] = useState<File[]>([])
+  const [skuReturnQuantities, setSkuReturnQuantities] = useState<{[key: string]: number}>({})
   const [returnLoading, setReturnLoading] = useState(false)
   const [riseTicketModalOpen, setRiseTicketModalOpen] = useState(false)
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
+  
   useEffect(() => {
     const fetchProducts = async () => {
       if (!order?.skus) {
@@ -198,41 +200,84 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
   }
 
   const handleReturnProduct = () => {
+    // Initialize quantities for all SKUs (excluding those with existing returns)
+    const initialQuantities: {[key: string]: number} = {}
+    order.skus.forEach((sku: any) => {
+      // Set to 0 if return already exists, otherwise allow selection
+      initialQuantities[sku.sku] = sku.return_info?.return_id ? 0 : 0
+    })
+    setSkuReturnQuantities(initialQuantities)
     setReturnModalOpen(true)
   }
 
   const handleSubmitReturn = async () => {
     if (!returnReason.trim()) {
       showToast('Please provide a reason for return', 'error')
-
       return
     }
     if (!returnDescription.trim()) {
       showToast('Please provide a description for return', 'error')
-  
+      return
+    }
+
+    // Get SKUs with quantities > 0
+    const skusToReturn = Object.entries(skuReturnQuantities).filter(([_, qty]) => qty > 0)
+    
+    if (skusToReturn.length === 0) {
+      showToast('Please select at least one product with quantity to return', 'error')
       return
     }
 
     setReturnLoading(true)
     try {
-      const response = await createReturnRequest({
-        orderId: order._id,
-        sku: order.skus[0].sku,
-        customerId: order.customerDetails.userId,
-        quantity: returnQuantity,
-        returnReason: returnReason,
-        returnDescription: returnDescription,
-        returnImages: returnImages
+      // Upload images first if any
+      let imageUrls: string[] = []
+      if (returnImages.length > 0) {
+        const formData = new FormData()
+        returnImages.forEach((file) => {
+          formData.append('images', file)
+        })
+
+        try {
+          // Upload images to your backend
+          const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/orders/api/upload-return-images`, {
+            method: 'POST',
+            body: formData,
+          })
+          
+          if (uploadResponse.ok) {
+            const uploadData = await uploadResponse.json()
+            imageUrls = uploadData.imageUrls || []
+          }
+        } catch (uploadError) {
+          console.error('Failed to upload images:', uploadError)
+          showToast('Warning: Failed to upload images, proceeding without them', 'warning')
+        }
+      }
+
+      // Create return requests for each SKU
+      const returnPromises = skusToReturn.map(([sku, quantity]) => {
+        return createReturnRequest({
+          orderId: order._id,
+          sku: sku,
+          customerId: order.customerDetails.userId,
+          quantity: quantity,
+          returnReason: returnReason,
+          returnDescription: returnDescription,
+          returnImages: imageUrls
+        })
       })
 
-      console.log(response)
-      showToast('Return request submitted successfully! Our team will contact you shortly.', 'success')
+      await Promise.all(returnPromises)
+
+      showToast(`Return request${skusToReturn.length > 1 ? 's' : ''} submitted successfully! Our team will contact you shortly.`, 'success')
 
       setReturnModalOpen(false)
       setReturnReason('')
       setReturnDescription('')
       setReturnImages([])
-      setReturnQuantity(1)
+      setImagePreviewUrls([])
+      setSkuReturnQuantities({})
     } catch (error) {
       console.error('Failed to submit return request:', error)
       showToast('Failed to submit return request. Please try again.', 'error')
@@ -304,7 +349,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
               variant="outline"
               size="sm"
               onClick={handleReturnProduct}
-              disabled={!isReturnEligible(order)}
+              disabled={!isReturnEligible(order) || order.skus?.every((sku: any) => sku.return_info?.return_id)}
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Return Product
@@ -456,32 +501,49 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {products.map((product, index) => (
-                      <div key={index} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                          <img 
-                            src={buildImageUrl(product.images?.[0])} 
-                            alt={product.product_name}
-                            className="w-full h-full object-cover"
-                          />
+                    {products.map((product, index) => {
+                      const orderSku = order.skus?.find((s: any) => s.sku === product.sku)
+                      const hasReturn = orderSku?.return_info?.return_id
+                      
+                      return (
+                        <div key={index} className={`flex items-center gap-4 p-4 border rounded-lg transition-colors ${hasReturn ? 'bg-orange-50 border-orange-200' : 'hover:bg-gray-50'}`}>
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            <img 
+                              src={buildImageUrl(product.images?.[0])} 
+                              alt={product.product_name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-2">
+                              <h3 className="font-medium text-gray-900 truncate flex-1">
+                                {product.product_name}
+                              </h3>
+                              {hasReturn && (
+                                <Badge className="bg-orange-100 text-orange-800 text-xs shrink-0">
+                                  Return Initiated
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">SKU: {product.sku}</p>
+                            <p className="text-sm text-gray-600">Quantity: {product.quantity}</p>
+                            {hasReturn && (
+                              <p className="text-xs text-orange-600 font-medium mt-1">
+                                Return ID: {orderSku.return_info.return_id}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-900">
+                              ₹{product.totalPrice?.toLocaleString() || '0'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              ₹{product.selling_price?.toLocaleString() || '0'} each
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 truncate">
-                            {product.product_name}
-                          </h3>
-                          <p className="text-sm text-gray-600">SKU: {product.sku}</p>
-                          <p className="text-sm text-gray-600">Quantity: {product.quantity}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">
-                            ₹{product.totalPrice?.toLocaleString() || '0'}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            ₹{product.selling_price?.toLocaleString() || '0'} each
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -641,25 +703,112 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
 
     {/* Return Product Modal */}
     <Dialog open={returnModalOpen} onOpenChange={setReturnModalOpen}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Return Product</DialogTitle>
+          <DialogTitle>Return Products</DialogTitle>
+          <p className="text-sm text-gray-600 mt-1">Select products and quantities you want to return</p>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="quantity">Quantity to Return *</Label>
-            <input
-              id="quantity"
-              type="number"
-              min={1}
-              max={order.skus[0]?.quantity || 1}
-              value={returnQuantity}
-              onChange={(e) => setReturnQuantity(Math.min(order.skus[0]?.quantity || 1, Math.max(1, parseInt(e.target.value) || 1)))}
-              className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">Max: {order.skus[0]?.quantity || 1}</p>
+          {/* Product Selection */}
+          <div className="bg-gray-50 border rounded-lg p-4 space-y-4">
+            <Label className="text-sm font-semibold text-gray-900">Select Products to Return *</Label>
+            
+            {order.skus?.map((sku: any, index: number) => {
+              const product = products.find(p => p.sku === sku.sku)
+              const currentQuantity = skuReturnQuantities[sku.sku] || 0
+              
+              return (
+                <div key={sku.sku} className="bg-white border rounded-lg p-4 space-y-3">
+                  <div className="flex items-start gap-4">
+                    {/* Product Image */}
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <img 
+                        src={buildImageUrl(product?.images?.[0])} 
+                        alt={product?.product_name || sku.productName}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Product Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-medium text-gray-900 truncate">
+                          {product?.product_name || sku.productName || 'Product'}
+                        </h4>
+                        {sku.return_info?.return_id && (
+                          <Badge className="bg-orange-100 text-orange-800 text-xs shrink-0">
+                            Return Initiated
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 font-mono">SKU: {sku.sku}</p>
+                      <p className="text-sm text-gray-600">Ordered: {sku.quantity} unit{sku.quantity > 1 ? 's' : ''}</p>
+                      {sku.return_info?.return_id && (
+                        <p className="text-xs text-orange-600 font-medium mt-1">
+                          Return ID: {sku.return_info.return_id}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Quantity Selector */}
+                  <div>
+                    <Label htmlFor={`quantity-${index}`} className="text-sm text-gray-700">Return Quantity</Label>
+                    {sku.return_info?.return_id ? (
+                      <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                        <p className="text-sm text-orange-800">
+                          A return request has already been initiated for this product.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newQty = Math.max(0, currentQuantity - 1)
+                          setSkuReturnQuantities(prev => ({ ...prev, [sku.sku]: newQty }))
+                        }}
+                        disabled={currentQuantity === 0}
+                      >
+                        -
+                      </Button>
+                      <input
+                        id={`quantity-${index}`}
+                        type="number"
+                        min={0}
+                        max={sku.quantity}
+                        value={currentQuantity}
+                        onChange={(e) => {
+                          const newQty = Math.min(sku.quantity, Math.max(0, parseInt(e.target.value) || 0))
+                          setSkuReturnQuantities(prev => ({ ...prev, [sku.sku]: newQty }))
+                        }}
+                        className="w-20 text-center px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newQty = Math.min(sku.quantity, currentQuantity + 1)
+                          setSkuReturnQuantities(prev => ({ ...prev, [sku.sku]: newQty }))
+                        }}
+                        disabled={currentQuantity >= sku.quantity}
+                      >
+                        +
+                      </Button>
+                      <span className="text-sm text-gray-500 ml-2">Max: {sku.quantity}</span>
+                    </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
+
+          <Separator />
 
           <div>
             <Label htmlFor="reason">Reason for Return *</Label>
@@ -688,16 +837,20 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
           <div>
             <Label>Images (Optional)</Label>
             <div className="mt-2 space-y-2">
-              {returnImages.length > 0 && (
+              {imagePreviewUrls.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {returnImages.map((img, idx) => (
+                  {imagePreviewUrls.map((img, idx) => (
                     <div key={idx} className="relative w-20 h-20 border rounded">
                       <img src={img} alt={`Return ${idx + 1}`} className="w-full h-full object-cover rounded" />
                       <button
                         type="button"
                         onClick={() => {
                           const newImages = returnImages.filter((_, i) => i !== idx)
+                          const newPreviews = imagePreviewUrls.filter((_, i) => i !== idx)
                           setReturnImages(newImages)
+                          setImagePreviewUrls(newPreviews)
+                          // Revoke the removed preview URL
+                          URL.revokeObjectURL(img)
                         }}
                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                       >
@@ -718,23 +871,59 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                     multiple
                     onChange={(e) => {
                       const files = Array.from(e.target.files || [])
-                      const imageUrls = files.map(file => URL.createObjectURL(file))
-                      setReturnImages(prev => [...prev, ...imageUrls].slice(0, 5))
+                      const remainingSlots = 5 - returnImages.length
+                      const filesToAdd = files.slice(0, remainingSlots)
+                      
+                      // Create preview URLs
+                      const newPreviewUrls = filesToAdd.map(file => URL.createObjectURL(file))
+                      
+                      setReturnImages(prev => [...prev, ...filesToAdd])
+                      setImagePreviewUrls(prev => [...prev, ...newPreviewUrls])
+                      
+                      // Reset input
+                      e.target.value = ''
                     }}
                     className="hidden"
                   />
                 </label>
               )}
+              <p className="text-xs text-gray-500">Upload up to 5 images (JPG, PNG). Images help us process your return faster.</p>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" onClick={() => setReturnModalOpen(false)} disabled={returnLoading}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmitReturn} disabled={returnLoading || !returnReason.trim() || !returnDescription.trim()}>
-              {returnLoading ? "Submitting..." : "Submit Return Request"}
-            </Button>
+          <div className="flex justify-between items-center gap-3 pt-4">
+            <div className="text-sm text-gray-600">
+              {Object.values(skuReturnQuantities).reduce((sum, qty) => sum + qty, 0) > 0 && (
+                <span className="font-medium">
+                  Returning {Object.values(skuReturnQuantities).reduce((sum, qty) => sum + qty, 0)} item(s) from {Object.values(skuReturnQuantities).filter(qty => qty > 0).length} product(s)
+                </span>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setReturnModalOpen(false)
+                  // Cleanup preview URLs
+                  imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
+                  setImagePreviewUrls([])
+                }} 
+                disabled={returnLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmitReturn} 
+                disabled={
+                  returnLoading || 
+                  !returnReason.trim() || 
+                  !returnDescription.trim() ||
+                  Object.values(skuReturnQuantities).reduce((sum, qty) => sum + qty, 0) === 0
+                }
+              >
+                {returnLoading ? "Submitting..." : "Submit Return Request"}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
