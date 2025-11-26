@@ -27,6 +27,14 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -45,7 +53,7 @@ import {
 import SearchFiltersModal from "./modules/modalpopus/searchfilters";
 import SearchInput from "@/components/common/search/SearchInput";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { getReturnRequests } from "@/service/return-service";
+import { getReturnRequests, initiateBorzoPickup } from "@/service/return-service";
 import { ReturnRequest, ReturnRequestsResponse } from "@/types/return-Types";
 import ValidateReturnRequest from "./modules/modalpopus/Validate";
 
@@ -123,6 +131,13 @@ export default function ReturnClaims() {
     open: false,
     returnId: null,
   });
+
+  // Borzo confirmation dialog state
+  const [borzoConfirmDialog, setBorzoConfirmDialog] = useState<{
+    open: boolean;
+    returnId: string | null;
+  }>({ open: false, returnId: null });
+  const [borzoLoading, setBorzoLoading] = useState(false);
 
   // Fetch return requests from API
   const fetchReturnRequests = async () => {
@@ -293,6 +308,29 @@ export default function ReturnClaims() {
     if (success) {
       // Refresh the return requests to get updated status
       fetchReturnRequests();
+    }
+  };
+
+  // Handle Borzo confirmation dialog open
+  const handleOpenBorzoConfirm = (returnId: string) => {
+    setBorzoConfirmDialog({ open: true, returnId });
+  };
+
+  // Handle Borzo confirmation
+  const handleConfirmBorzo = async () => {
+    if (!borzoConfirmDialog.returnId) return;
+    
+    setBorzoLoading(true);
+    try {
+      const response = await initiateBorzoPickup(borzoConfirmDialog.returnId);
+      if (response.success) {
+        await fetchReturnRequests();
+        setBorzoConfirmDialog({ open: false, returnId: null });
+      }
+    } catch (error) {
+      console.error("Failed to initiate Borzo pickup:", error);
+    } finally {
+      setBorzoLoading(false);
     }
   };
 
@@ -721,11 +759,10 @@ export default function ReturnClaims() {
                                   <DropdownMenuItem
                                     className="cursor-pointer"
                                     onClick={() =>
-                                      handleOpenSchedulePickup(request._id)
+                                      handleOpenBorzoConfirm(request._id)
                                     }
                                   >
-                                    <Edit className="h-4 w-4 mr-2" /> Schedule
-                                    Pickup
+                                    <Edit className="h-4 w-4 mr-2" /> Initiate Borzo
                                   </DropdownMenuItem>
                                 )}
 
@@ -923,6 +960,32 @@ export default function ReturnClaims() {
           returnId={initiateRefundDialog.returnId}
           onSubmit={() => handleInitiateRefundComplete(true)}
         />
+
+        <Dialog 
+          open={borzoConfirmDialog.open} 
+          onOpenChange={(open) => !borzoLoading && setBorzoConfirmDialog({ ...borzoConfirmDialog, open })}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Initiate Borzo Pickup</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to initiate Borzo pickup for this return request?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setBorzoConfirmDialog({ open: false, returnId: null })}
+                disabled={borzoLoading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmBorzo} disabled={borzoLoading}>
+                {borzoLoading ? "Processing..." : "Confirm"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
     </div>
   );

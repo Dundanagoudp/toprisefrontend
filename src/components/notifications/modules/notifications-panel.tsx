@@ -199,16 +199,17 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       const response = await markAsReadAPI(id)
       if (response.success) {
         // Update the notification in the local state immediately for real-time feedback
-        setNotificationList(prev => 
-          prev.map(notification => 
+        setNotificationList(prev => {
+          const updated = prev.map(notification => 
             notification._id === id 
               ? { ...notification, markAsRead: true, markAsReadAt: new Date().toISOString() }
               : notification
           )
-        )
-        // Update the count immediately
-        const updatedUnreadCount = notificationList.filter(n => n._id !== id && !n.markAsRead).length
-        onCountUpdate?.(updatedUnreadCount)
+          // Calculate the updated unread count from the new state
+          const updatedUnreadCount = updated.filter(n => !n.markAsRead).length
+          onCountUpdate?.(updatedUnreadCount)
+          return updated
+        })
       }
     } catch (err) {
       console.error("Error marking notification as read:", err)
@@ -223,21 +224,21 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
         setError("Authentication required")
         return
       }
+      
+      console.log("Marking all as read for userId:", userId)
       const response = await markAllAsReadAPI(userId)
+      console.log("Mark all as read response:", response)
+      
       if (response.success) {
-        // Update all notifications to read status immediately for real-time feedback
-        setNotificationList(prev => 
-          prev.map(notification => ({ 
-            ...notification, 
-            markAsRead: true, 
-            markAsReadAt: new Date().toISOString() 
-          }))
-        )
-        // Update the count to 0 immediately
-        onCountUpdate?.(0)
+        // Refetch notifications from backend to ensure data is synced
+        await fetchNotifications()
+      } else {
+        setError(response.message || "Failed to mark all as read")
+        console.error("Mark all as read failed:", response)
       }
     } catch (err) {
       console.error("Error marking all as read:", err)
+      setError("Failed to mark all as read. Please try again.")
     }
   }
 
@@ -264,16 +265,17 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
       // Check if all requests were successful
       if (responses.every(res => res.success)) {
         // Update all selected notifications to read status immediately for real-time feedback
-        setNotificationList(prev => 
-          prev.map(notification => 
+        setNotificationList(prev => {
+          const updated = prev.map(notification => 
             idsToMark.includes(notification._id)
               ? { ...notification, markAsRead: true, markAsReadAt: new Date().toISOString() }
               : notification
           )
-        )
-        // Update the count immediately
-        const updatedUnreadCount = notificationList.filter(n => !idsToMark.includes(n._id) && !n.markAsRead).length
-        onCountUpdate?.(updatedUnreadCount)
+          // Calculate the updated unread count from the new state
+          const updatedUnreadCount = updated.filter(n => !n.markAsRead).length
+          onCountUpdate?.(updatedUnreadCount)
+          return updated
+        })
         // Clear selection
         setSelectedIds(new Set())
       }

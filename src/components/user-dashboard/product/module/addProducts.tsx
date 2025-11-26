@@ -76,7 +76,7 @@ const schema = z.object({
   updatedBy: z.string().optional(),
   admin_notes: z.string().optional(),
   // Vehicle Compatibility
-  make: z.string().min(1, "Make is required"),
+  // make: z.string().min(1, "Make is required"),
   // make2: z.string().optional(),
   model: z.string().min(1, "Model is required"),
   year_range: z.string().optional(),
@@ -102,7 +102,7 @@ const schema = z.object({
 
   // Return & Availability
   is_returnable: z.boolean(),
-  return_policy: z.string().min(1, "Return Policy is required"),
+  // return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
   dealerAssignments: z
     .array(
@@ -763,7 +763,7 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="make" className="text-base font-medium font-sans">
                 Make <span className="text-red-500">*</span>
               </Label>
@@ -778,7 +778,7 @@ export default function AddProducts() {
                   {errors.make.message}
                 </span>
               )}
-            </div>
+            </div> */}
 
             {/* Model */}
             <div className="space-y-2">
@@ -1320,7 +1320,7 @@ export default function AddProducts() {
               )}
             </div>
             {/* Return Policy */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label
                 htmlFor="returnPolicy"
                 className="text-base font-medium font-sans"
@@ -1338,7 +1338,7 @@ export default function AddProducts() {
                   {errors.return_policy.message}
                 </span>
               )}
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 

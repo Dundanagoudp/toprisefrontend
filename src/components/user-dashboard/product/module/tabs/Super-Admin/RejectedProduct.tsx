@@ -12,6 +12,7 @@ import {
   updateProductStatus,
   deactivateProduct,
   aproveProduct,
+  getProductsByFilterWithIds,
 } from "@/service/product-Service";
 import Image from "next/image";
 import {
@@ -67,12 +68,18 @@ export default function RejectedProduct({
   selectedTab,
   categoryFilter,
   subCategoryFilter,
+  brandFilter,
+  modelFilter,
+  variantFilter,
   refreshKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
   categoryFilter?: string;
   subCategoryFilter?: string;
+  brandFilter?: string;
+  modelFilter?: string;
+  variantFilter?: string;
   refreshKey?: number;
 }) {
   const dispatch = useAppDispatch();
@@ -93,16 +100,40 @@ export default function RejectedProduct({
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-
-        
-        const response = await getProductsByPage(
-          currentPage,
-          itemsPerPage,
-          "Rejected",
-          searchQuery,
-          categoryFilter,
-          subCategoryFilter
-        );
+        // Map current sort field/direction to API sort_by values
+        let sortByValue: string | undefined;
+        if (sortField === "manufacturer_part_name") {
+          sortByValue = sortDirection === "asc" ? "A-Z" : "Z-A";
+        } else if (sortField === "mrp_with_gst") {
+          sortByValue = sortDirection === "asc" ? "L-H" : "H-L";
+        }
+        let response;
+        if (brandFilter || modelFilter || variantFilter) {
+          response = await getProductsByFilterWithIds(
+            "",
+            brandFilter || "",
+            modelFilter || "",
+            variantFilter || "",
+            categoryFilter || "",
+            subCategoryFilter || "",
+            sortByValue,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            searchQuery || ""
+          );
+        } else {
+          response = await getProductsByPage(
+            currentPage,
+            itemsPerPage,
+            "Rejected",
+            searchQuery,
+            categoryFilter,
+            subCategoryFilter,
+            sortByValue
+          );
+        }
         
     
         if (response.data) {
@@ -123,42 +154,18 @@ export default function RejectedProduct({
     };
 
     fetchProducts();
-  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter, refreshKey]);
+  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter, brandFilter, modelFilter, variantFilter, sortField, sortDirection, refreshKey]);
 
   // Reset to first page when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, categoryFilter, subCategoryFilter]);
+  }, [searchQuery, categoryFilter, subCategoryFilter, brandFilter, modelFilter, variantFilter]);
 
-  // Filter products by search query only (pagination is handled server-side)
+  // Server handles search/sort; return products as-is
   const filteredProducts = React.useMemo(() => {
     if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
-
-    // Note: Search filtering is now handled by the API
-    // This memo now only handles sorting since filtering is done server-side
-    let filtered = [...paginatedProducts];
-
-    // Step 2: Sort filtered products based on sortField and sortDirection
-    if (sortField === "product_name") {
-      filtered.sort((a, b) => {
-        const nameA = a.name?.toLowerCase() || "";
-        const nameB = b.name?.toLowerCase() || "";
-        if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
-        if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
-        return 0;
-      });
-    } else if (sortField === "mrp_with_gst") {
-      filtered.sort((a, b) => {
-        const priceA = Number(a.mrp_with_gst) || 0;
-        const priceB = Number(b.mrp_with_gst) || 0;
-        if (priceA < priceB) return sortDirection === "asc" ? -1 : 1;
-        if (priceA > priceB) return sortDirection === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [paginatedProducts, sortField, sortDirection]);
+    return [...paginatedProducts];
+  }, [paginatedProducts]);
 
 
   const handleEditProduct = (id: string) => {
@@ -206,10 +213,10 @@ export default function RejectedProduct({
 
   //sorting products by name
   const handleSortByName = () => {
-    if (sortField === "product_name") {
+    if (sortField === "manufacturer_part_name") {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortField("product_name");
+      setSortField("manufacturer_part_name");
       setSortDirection("asc");
     }
   };
@@ -241,7 +248,7 @@ export default function RejectedProduct({
               onClick={handleSortByName}
             >
               Name
-              {sortField === "product_name" && (
+              {sortField === "manufacturer_part_name" && (
                 <span className="ml-1">
                   {sortDirection === "asc" ? "▲" : "▼"}
                 </span>

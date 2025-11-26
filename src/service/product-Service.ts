@@ -80,7 +80,8 @@ export async function getProductsByPage(
   status?: string,
   searchQuery?: string,
   category?: string,
-  sub_category?: string
+  sub_category?: string,
+  sort_by?: string
 ): Promise<ProductResponse> {
   try {
     console.log("🔎 getProductsByPage called with:", { page, limit, status, searchQuery, category, sub_category });
@@ -120,6 +121,10 @@ export async function getProductsByPage(
       } else {
         url += `&sub_category=${encodeURIComponent(sub_category.trim())}`;
       }
+    }
+
+    if (sort_by && sort_by.trim() !== "") {
+      url += `&sort_by=${encodeURIComponent(sort_by.trim())}`;
     }
 
     // Log constructed URL for debugging (helps verify that status/category/sub_category are present)

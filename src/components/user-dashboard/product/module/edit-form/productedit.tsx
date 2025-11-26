@@ -88,7 +88,7 @@ const schema = z.object({
   selling_price: z.number().min(1, "Selling Price is required"),
   // Return & Availability
   is_returnable: z.string().min(1, "is_returnable is required"),
-  return_policy: z.string().min(1, "Return Policy is required"),
+  // return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
   dealerAssignments: z
     .array(
@@ -488,7 +488,7 @@ export default function ProductEdit() {
           mrp_with_gst: product.mrp_with_gst || 0,
           gst_percentage: product.gst_percentage || 0,
           is_returnable: product.is_returnable ? "yes" : "no",
-          return_policy: product.return_policy || "",
+          // return_policy: product.return_policy || "",
           dealerAssignments: [],
           LastinquiredAt: product.last_stock_inquired || "",
           seo_title: product.seo_title || "",
@@ -1674,7 +1674,7 @@ const onSubmit = async (data: FormValues) => {
                   )}
                 </div>
                 {/* Return Policy */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label
                     htmlFor="return_policy"
                     className="text-sm font-medium"
@@ -1692,7 +1692,7 @@ const onSubmit = async (data: FormValues) => {
                       {errors.return_policy.message}
                     </span>
                   )}
-                </div>
+                </div> */}
               </CardContent>
             </Card>
             {/* Dealer-Level Mapping & Routing */}

@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, rejectBulkProducts, getCategories, getSubCategories } from "@/service/product-Service";
+import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, rejectBulkProducts, getCategories, getSubCategories, getBrand, getModelsByBrand, getVariantsByModel } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
@@ -73,8 +73,17 @@ const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff", "Fulf
   
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
   const [subCategories, setSubCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [models, setModels] = useState<any[]>([]);
+  const [variants, setVariants] = useState<any[]>([]);
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
   const [selectedSubCategoryName, setSelectedSubCategoryName] = useState<string | null>(null);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [selectedBrandName, setSelectedBrandName] = useState<string | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [selectedModelName, setSelectedModelName] = useState<string | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedVariantName, setSelectedVariantName] = useState<string | null>(null);
   const { selectedProductIds, clearSelection } = useProductSelection();
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -107,18 +116,62 @@ const getStatusColor = (status: string) => {
       setIsSearching(false);
     }
   }, []);
+  // Initial loads
   useEffect(() => {
-    const loadSubCategories = async () => {
+    (async () => {
       try {
-        const res = await getSubCategories();
-        const data = res?.data || [];
-        setSubCategories(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to fetch subcategories:", error);
+        const [catRes, subRes, brandRes] = await Promise.all([
+          getCategories(), // categories array
+          getSubCategories(), // subcategories array
+          getBrand(), // brands likely under data.products
+        ]);
+        setCategories(Array.isArray(catRes?.data) ? catRes.data : []);
+        setSubCategories(Array.isArray(subRes?.data) ? subRes.data : []);
+        setBrands(Array.isArray(brandRes?.data?.products) ? brandRes.data.products : []);
+      } catch (e) {
+        console.error("Failed initial filter fetch", e);
       }
-    };
-    loadSubCategories();
+    })();
   }, []);
+
+  // Load models when brand changes
+  useEffect(() => {
+    if (!selectedBrandId) {
+      setModels([]);
+      setSelectedModelId(null); setSelectedModelName(null);
+      setVariants([]); setSelectedVariantId(null); setSelectedVariantName(null);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await getModelsByBrand(selectedBrandId);
+        const data = Array.isArray(res?.data?.products) ? res.data.products : [];
+        setModels(data);
+      } catch (e) {
+        console.error("Failed to fetch models", e);
+        setModels([]);
+      }
+    })();
+  }, [selectedBrandId]);
+
+  // Load variants when model changes
+  useEffect(() => {
+    if (!selectedModelId) {
+      setVariants([]);
+      setSelectedVariantId(null); setSelectedVariantName(null);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await getVariantsByModel(selectedModelId);
+        const data = Array.isArray(res?.data?.products) ? res.data.products : [];
+        setVariants(data);
+      } catch (e) {
+        console.error("Failed to fetch variants", e);
+        setVariants([]);
+      }
+    })();
+  }, [selectedModelId]);
 
   // Filter subcategories based on selected category
   const filteredSubCategories = useMemo(() => {
@@ -173,18 +226,7 @@ const getStatusColor = (status: string) => {
     setSearchQuery("");
     setIsSearching(false);
   };
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const res = await getCategories();
-        const data = res?.data || [];
-        setCategories(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
-      }
-    };
-    loadCategories();
-  }, []);
+  // refreshKey triggers when any filter changes we care about
 
 
 
@@ -204,7 +246,7 @@ const getStatusColor = (status: string) => {
     
     // Trigger refresh when filters change
     setRefreshKey(prev => prev + 1);
-  }, [selectedCategoryId, selectedSubCategoryId, filteredSubCategories]);
+  }, [selectedCategoryId, selectedSubCategoryId, filteredSubCategories, selectedBrandId, selectedModelId, selectedVariantId]);
 
   const handleUploadBulk = () => {
     setBulkMode("upload");
@@ -275,6 +317,9 @@ const getStatusColor = (status: string) => {
         selectedTab={selectedTab}
         categoryFilter={selectedCategoryId || undefined}
         subCategoryFilter={selectedSubCategoryId || undefined}
+        brandFilter={selectedBrandId || undefined}
+        modelFilter={selectedModelId || undefined}
+        variantFilter={selectedVariantId || undefined}
         refreshKey={refreshKey}
       />
     );
@@ -333,7 +378,7 @@ const getStatusColor = (status: string) => {
                         </button>
                       </div>
                     )}
-                    <Accordion type="multiple" defaultValue={["category", "subcategory"]}>
+                    <Accordion type="multiple" defaultValue={[]}>  {/* collapsed by default */}
                       <AccordionItem value="category">
                         <AccordionTrigger className="text-sm font-medium">Category</AccordionTrigger>
                         <AccordionContent>
@@ -391,6 +436,112 @@ const getStatusColor = (status: string) => {
                             ) : (
                               <li className="text-xs text-gray-500 px-2">No categories found</li>
                             )}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="brand">
+                        <AccordionTrigger className="text-sm font-medium">Brand</AccordionTrigger>
+                        <AccordionContent>
+                          {selectedBrandName && (
+                            <div className="flex justify-end mb-2">
+                              <button
+                                className="text-xs text-[#C72920] underline"
+                                onClick={() => {
+                                  setSelectedBrandId(null); setSelectedBrandName(null);
+                                  setSelectedModelId(null); setSelectedModelName(null);
+                                  setSelectedVariantId(null); setSelectedVariantName(null);
+                                }}
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                          <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
+                            {brands && brands.length > 0 ? brands.map((b: any) => (
+                              <li key={b?._id || b?.id}>
+                                <button
+                                  className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedBrandName === (b?.brand_name || b?.name) ? 'bg-gray-100' : ''}`}
+                                  onClick={() => {
+                                    const id = (b?._id || b?.id || '').toString().trim();
+                                    const name = b?.brand_name || b?.name;
+                                    if (!id) return;
+                                    setSelectedBrandId(id); setSelectedBrandName(name || null);
+                                    setSelectedModelId(null); setSelectedModelName(null);
+                                    setSelectedVariantId(null); setSelectedVariantName(null);
+                                  }}
+                                >
+                                  {b?.brand_name || b?.name}
+                                </button>
+                              </li>
+                            )) : <li className="text-xs text-gray-500 px-2">No brands found</li>}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="model">
+                        <AccordionTrigger className="text-sm font-medium">Model</AccordionTrigger>
+                        <AccordionContent>
+                          {selectedModelName && (
+                            <div className="flex justify-end mb-2">
+                              <button
+                                className="text-xs text-[#C72920] underline"
+                                onClick={() => {
+                                  setSelectedModelId(null); setSelectedModelName(null);
+                                  setSelectedVariantId(null); setSelectedVariantName(null);
+                                }}
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                          <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
+                            {models && models.length > 0 ? models.map((m: any) => (
+                              <li key={m?._id || m?.id}>
+                                <button
+                                  className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedModelName === (m?.model_name || m?.name) ? 'bg-gray-100' : ''}`}
+                                  onClick={() => {
+                                    const id = (m?._id || m?.id || '').toString().trim();
+                                    const name = m?.model_name || m?.name;
+                                    if (!id) return;
+                                    setSelectedModelId(id); setSelectedModelName(name || null);
+                                    setSelectedVariantId(null); setSelectedVariantName(null);
+                                  }}
+                                >
+                                  {m?.model_name || m?.name}
+                                </button>
+                              </li>
+                            )) : <li className="text-xs text-gray-500 px-2">{selectedBrandId ? 'No models found for brand' : 'Select a brand first'}</li>}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="variant">
+                        <AccordionTrigger className="text-sm font-medium">Variant</AccordionTrigger>
+                        <AccordionContent>
+                          {selectedVariantName && (
+                            <div className="flex justify-end mb-2">
+                              <button
+                                className="text-xs text-[#C72920] underline"
+                                onClick={() => { setSelectedVariantId(null); setSelectedVariantName(null); }}
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                          <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
+                            {variants && variants.length > 0 ? variants.map((v: any) => (
+                              <li key={v?._id || v?.id}>
+                                <button
+                                  className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedVariantName === (v?.variant_name || v?.name) ? 'bg-gray-100' : ''}`}
+                                  onClick={() => {
+                                    const id = (v?._id || v?.id || '').toString().trim();
+                                    const name = v?.variant_name || v?.name;
+                                    if (!id) return;
+                                    setSelectedVariantId(id); setSelectedVariantName(name || null);
+                                  }}
+                                >
+                                  {v?.variant_name || v?.name}
+                                </button>
+                              </li>
+                            )) : <li className="text-xs text-gray-500 px-2">{selectedModelId ? 'No variants found for model' : 'Select a model first'}</li>}
                           </ul>
                         </AccordionContent>
                       </AccordionItem>

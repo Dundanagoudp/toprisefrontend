@@ -1157,7 +1157,7 @@ export default function SLAViolationsAndReporting() {
         <TabsContent value="statistical" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Risk Level Distribution */}
-            <Card className="bg-white border-gray-200">
+            {/* <Card className="bg-white border-gray-200">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">Risk Level Distribution</CardTitle>
                 <CardDescription>Breakdown of dealers by risk level</CardDescription>
@@ -1202,7 +1202,7 @@ export default function SLAViolationsAndReporting() {
                   </div>
                   
                   {/* Total Validation */}
-                  <div className="border-t pt-3 mt-3">
+                  {/* <div className="border-t pt-3 mt-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">Total Dealers</span>
                       <span className="text-sm font-semibold text-gray-900">
@@ -1217,9 +1217,9 @@ export default function SLAViolationsAndReporting() {
                       Expected: {dashboardData?.dealersWithViolations?.totalDealers || 0} dealers
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </div> */}
+              {/* </CardContent> 
+           </Card> */}
 
             {/* SLA Performance Metrics */}
             <Card className="bg-white border-gray-200">
@@ -1509,7 +1509,7 @@ export default function SLAViolationsAndReporting() {
               </div>
             </div>
             
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label htmlFor="violation-minutes">Violation Minutes *</Label>
               <Input
                 id="violation-minutes"
@@ -1518,9 +1518,9 @@ export default function SLAViolationsAndReporting() {
                 onChange={(e) => setCreateViolationData(prev => ({ ...prev, violation_minutes: parseInt(e.target.value) || 0 }))}
                 placeholder="Enter violation minutes"
               />
-            </div>
+            </div> */}
             
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label htmlFor="notes">Notes *</Label>
               <Textarea
                 id="notes"
@@ -1540,7 +1540,7 @@ export default function SLAViolationsAndReporting() {
                 className="rounded border-gray-300"
               />
               <Label htmlFor="contact-dealer">Contact dealer about this violation</Label>
-            </div>
+            </div> */}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
@@ -1582,7 +1582,7 @@ export default function SLAViolationsAndReporting() {
                 </SelectContent>
               </Select>
             </div>
-            
+{/*             
             <div className="grid gap-2">
               <Label htmlFor="risk-filter">Risk Level</Label>
               <Select value={filterRiskLevel} onValueChange={setFilterRiskLevel}>
@@ -1596,7 +1596,7 @@ export default function SLAViolationsAndReporting() {
                   <SelectItem value="low">Low Risk</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
             
             <div className="grid gap-2">
               <Label htmlFor="violations-filter">Violations Count</Label>

@@ -13,6 +13,8 @@ import {
   getProductsByPage,
   approveSingleProduct,
   updateProductStatus,
+  rejectSingleProduct,
+  getProductsByFilterWithIds,
 } from "@/service/product-Service";
 import Image from "next/image";
 import {
@@ -49,6 +51,7 @@ import { useContext } from "react";
 import { useProductSelection } from "@/contexts/ProductSelectionContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DynamicPagination } from "@/components/common/pagination";
+import RejectReason from "./dialogue/RejectReason";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -69,15 +72,22 @@ export default function PendingProduct({
   selectedTab,
   categoryFilter,
   subCategoryFilter,
+  brandFilter,
+  modelFilter,
+  variantFilter,
   refreshKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
   categoryFilter?: string;
   subCategoryFilter?: string;
+  brandFilter?: string;
+  modelFilter?: string;
+  variantFilter?: string;
   refreshKey?: number;
 }) {
   const dispatch = useAppDispatch();
+  const auth = useAppSelector((state) => state.auth);
   const { showToast } = useGlobalToast();
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
@@ -87,6 +97,8 @@ export default function PendingProduct({
   const [viewProductLoading, setViewProductLoading] = useState(false);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [qcRejectTargetId, setQcRejectTargetId] = useState<string | null>(null);
   const {
     selectedProductIds: selectedItems,
     setSelectedProductIds: setSelectedItems,
@@ -99,14 +111,41 @@ export default function PendingProduct({
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true);
     try {
-      const response = await getProductsByPage(
-        currentPage,
-        itemsPerPage,
-        "Pending",
-        searchQuery,
-        categoryFilter,
-        subCategoryFilter
-      );
+      // Map current sort field/direction to API sort_by values
+      let sortByValue: string | undefined;
+      if (sortField === "manufacturer_part_name") {
+        sortByValue = sortDirection === "asc" ? "A-Z" : "Z-A";
+      } else if (sortField === "price" || sortField === "mrp_with_gst") {
+        // Component shows price from product.price; other places use mrp_with_gst
+        sortByValue = sortDirection === "asc" ? "L-H" : "H-L";
+      }
+      let response;
+      if (brandFilter || modelFilter || variantFilter) {
+        response = await getProductsByFilterWithIds(
+          "",
+          brandFilter || "",
+          modelFilter || "",
+          variantFilter || "",
+          categoryFilter || "",
+          subCategoryFilter || "",
+          sortByValue,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          searchQuery || ""
+        );
+      } else {
+        response = await getProductsByPage(
+          currentPage,
+          itemsPerPage,
+          "Pending",
+          searchQuery,
+          categoryFilter,
+          subCategoryFilter,
+          sortByValue
+        );
+      }
 
       // Handle response safely
       if (response && response.data) {
@@ -147,6 +186,11 @@ export default function PendingProduct({
     searchQuery,
     categoryFilter,
     subCategoryFilter,
+    brandFilter,
+    modelFilter,
+    variantFilter,
+    sortField,
+    sortDirection,
     showToast,
   ]);
 
@@ -180,40 +224,11 @@ export default function PendingProduct({
     setCurrentPage(1);
   }, [searchQuery, categoryFilter, subCategoryFilter]);
 
-  // Filter and sort products
+  // Server handles search/sort; return products as-is
   const filteredProducts = React.useMemo(() => {
     if (!paginatedProducts) return [];
-
-    let filtered = [...paginatedProducts];
-
-    // Note: Search filtering is now handled by the API
-    // This memo now only handles sorting since filtering is done server-side
-
-    // Sort if sort field is specified
-    if (sortField) {
-      filtered.sort((a, b) => {
-        // Handle sorting for product name
-        if (sortField === "manufacturer_part_name") {
-          const nameA = a.manufacturer_part_name?.toLowerCase() || "";
-          const nameB = b.manufacturer_part_name?.toLowerCase() || "";
-          if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
-          if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
-          return 0;
-        }
-        // Handle sorting for price (assuming there's a price field)
-        if (sortField === "price") {
-          const priceA = Number(a.price) || 0;
-          const priceB = Number(b.price) || 0;
-          if (priceA < priceB) return sortDirection === "asc" ? -1 : 1;
-          if (priceA > priceB) return sortDirection === "asc" ? 1 : -1;
-          return 0;
-        }
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [paginatedProducts, sortField, sortDirection]);
+    return [...paginatedProducts];
+  }, [paginatedProducts]);
 
   const handleSortByName = () => {
     if (sortField === "manufacturer_part_name") {
@@ -225,10 +240,10 @@ export default function PendingProduct({
   };
 
   const handleSortByPrice = () => {
-    if (sortField === "price") {
+    if (sortField === "mrp_with_gst" || sortField === "price") {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortField("price");
+      setSortField("mrp_with_gst");
       setSortDirection("asc");
     }
   };
@@ -238,20 +253,39 @@ export default function PendingProduct({
     return <Emptydata />;
   }
 
-  const handleQcStatusChange = async (productId: string, newStatus: 'Approved' | 'Pending') => {
+  const handleQcStatusChange = async (productId: string, newStatus: 'Approved' | 'Rejected') => {
+    if (newStatus === 'Rejected') {
+      setQcRejectTargetId(productId);
+      setIsRejectDialogOpen(true);
+      return;
+    }
+    
     try {
       if (newStatus === 'Approved') {
         await approveSingleProduct(productId);
         showToast('Product approved', "success");
-      } else {
-        await deactivateProduct(productId);
-        showToast('Product set to pending', "success");
       }
       dispatch(updateProductQcStatus({ id: productId, qcStatus: newStatus }));
       await fetchProducts();
     } catch (error) {
       console.error("Failed to update QC status:", error);
       showToast("Failed to update QC status", "error");
+    }
+  };
+
+  const handleRejectSubmit = async (data: { reason: string }) => {
+    if (!qcRejectTargetId) return;
+    try {
+      await rejectSingleProduct(qcRejectTargetId, data.reason, auth?.user?._id);
+      dispatch(updateProductQcStatus({ id: qcRejectTargetId, qcStatus: 'Rejected' }));
+      showToast('Product rejected', 'success');
+      await fetchProducts();
+    } catch (error: any) {
+      console.error('Failed to reject product:', error);
+      showToast(error?.message || 'Failed to reject product', 'error');
+    } finally {
+      setIsRejectDialogOpen(false);
+      setQcRejectTargetId(null);
     }
   };
 
@@ -332,7 +366,7 @@ export default function PendingProduct({
               >
                 <div className="flex items-center">
                   Name
-                  {sortField === "product_name" && (
+                  {sortField === "manufacturer_part_name" && (
                     <span className="ml-1">
                       {sortDirection === "asc" ? (
                         <ChevronUp className="w-4 h-4 text-[#C72920]" />
@@ -360,7 +394,7 @@ export default function PendingProduct({
                 onClick={handleSortByPrice}
               >
                 Price
-                {sortField === "price" && (
+                {sortField === "mrp_with_gst" && (
                   <span className="ml-1">
                     {sortDirection === "asc" ? (
                       <ChevronUp className="w-4 h-4 text-[#C72920]" />
@@ -373,9 +407,9 @@ export default function PendingProduct({
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
                 QC Status
               </TableHead>
-              <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+              {/* <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
                 Product status
-              </TableHead>
+              </TableHead> */}
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-center min-w-[80px] font-[Red Hat Display]">
                 Action
               </TableHead>
@@ -523,15 +557,15 @@ export default function PendingProduct({
                             Approve
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleQcStatusChange(product._id, "Pending")}
+                            onClick={() => handleQcStatusChange(product._id, "Rejected")}
                             className="text-yellow-600 focus:text-yellow-600"
                           >
-                            Pending
+                            Reject
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                    <TableCell className="px-6 py-4 font-sans">
+                    {/* <TableCell className="px-6 py-4 font-sans">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -562,7 +596,7 @@ export default function PendingProduct({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell className="px-6 py-4 text-center font-sans">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -633,6 +667,16 @@ export default function PendingProduct({
           </div>
         </div>
       )}
+
+      {/* QC Reject Reason Dialog */}
+      <RejectReason
+        isOpen={isRejectDialogOpen}
+        onClose={() => {
+          setIsRejectDialogOpen(false);
+          setQcRejectTargetId(null);
+        }}
+        onSubmit={handleRejectSubmit}
+      />
     </div>
   );
 }

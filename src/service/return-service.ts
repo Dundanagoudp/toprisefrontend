@@ -23,11 +23,13 @@ export const getReturnRequestsById = async (
 };
 
 export const validateReturnRequest = async (
-  returnId: string
+  returnId: string,
+  payload?: any
 ): Promise<ReturnRequestsResponse> => {
   try {
     const response = await apiClient.put(
-      `/orders/api/returns/${returnId}/validate`
+      `/orders/api/returns/validate-return/${returnId}`,
+      payload ?? {}
     );
     return response.data;
   } catch (error) {
@@ -35,6 +37,38 @@ export const validateReturnRequest = async (
     throw error;
   }
 };
+
+
+//initiate borzo pickup
+export const initiateBorzoPickup = async (returnId: string) : Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(
+      `/orders/api/returns/Intiate-Borzo-Return/${returnId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error initiating borzo pickup:", error);
+    throw error;
+  }
+}
+
+
+//start inspection
+export const startInspection = async (
+  returnId: string,
+  data: any,
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(
+      `/orders/api/returns/start-Inspection/${returnId}`,data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error starting inspection:", error);
+    throw error;
+  }
+}
+
 export const schedulePickup = async (
   returnId: string,
   payload: {

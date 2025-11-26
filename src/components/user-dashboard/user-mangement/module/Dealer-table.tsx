@@ -1,5 +1,5 @@
 "use client"
-import { MoreHorizontal, ChevronUp, ChevronDown, Loader2 } from "lucide-react"
+import { MoreHorizontal, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
@@ -167,17 +167,6 @@ export default function Dealertable({
     }
   }
 
-  const getSortIcon = (field: string) => {
-    if (sortField !== field) {
-      return <ChevronUp className="w-4 h-4 text-gray-400" />
-    }
-    return sortDirection === "asc" ? (
-      <ChevronUp className="w-4 h-4 text-[#C72920]" />
-    ) : (
-      <ChevronDown className="w-4 h-4 text-[#C72920]" />
-    )
-  }
-
   const getStatusBadge = (isActive: boolean) => {
     return (
       <span
@@ -230,7 +219,6 @@ export default function Dealertable({
               >
                 <div className="flex items-center gap-1">
                   Legal Name
-                  {getSortIcon("legalName")}
                 </div>
               </th>
               <th
@@ -239,7 +227,6 @@ export default function Dealertable({
               >
                 <div className="flex items-center gap-1">
                   Trade Name
-                  {getSortIcon("tradeName")}
                 </div>
               </th>
               <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
@@ -257,7 +244,6 @@ export default function Dealertable({
               >
                 <div className="flex items-center gap-1">
                   Status
-                  {getSortIcon("status")}
                 </div>
               </th>
               <th
@@ -265,11 +251,11 @@ export default function Dealertable({
                 onClick={() => handleSort("category")}
               >
                 <div className="flex items-center gap-1">
-                  Category
-                  {getSortIcon("category")}
+                  Brands
                 </div>
+               
               </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"></th>
+              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"> Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -341,7 +327,6 @@ export default function Dealertable({
             >
               <div className="flex items-center gap-1">
                 Legal Name
-                {getSortIcon("legalName")}
               </div>
             </th>
             <th
@@ -350,7 +335,6 @@ export default function Dealertable({
             >
               <div className="flex items-center gap-1">
                 Trade Name
-                {getSortIcon("tradeName")}
               </div>
             </th>
             <th
@@ -359,7 +343,6 @@ export default function Dealertable({
             >
               <div className="flex items-center gap-1">
                 Email/Phone
-                {getSortIcon("email")}
               </div>
             </th>
             <th
@@ -368,7 +351,6 @@ export default function Dealertable({
             >
               <div className="flex items-center gap-1">
                 Contact Person
-                {getSortIcon("contactPerson")}
               </div>
             </th>
             <th
@@ -377,7 +359,6 @@ export default function Dealertable({
             >
               <div className="flex items-center gap-1">
                 Role
-                {getSortIcon("role")}
               </div>
             </th>
             <th
@@ -386,7 +367,6 @@ export default function Dealertable({
             >
               <div className="flex items-center gap-1">
                 Status
-                {getSortIcon("status")}
               </div>
             </th>
             <th
@@ -395,7 +375,6 @@ export default function Dealertable({
             >
               <div className="flex items-center gap-1">
                 Category
-                {getSortIcon("category")}
               </div>
             </th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12"></th>

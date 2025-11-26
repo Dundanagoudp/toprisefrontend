@@ -15,6 +15,7 @@ import {
   updateProductStatus,
   rejectSingleProduct,
   updateQcStatus,
+  getProductsByFilterWithIds,
 } from "@/service/product-Service";
 
 import Image from "next/image";
@@ -82,12 +83,18 @@ export default function ApprovedProduct({
   selectedTab,
   categoryFilter,
   subCategoryFilter,
+  brandFilter,
+  modelFilter,
+  variantFilter,
   refreshKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
   categoryFilter?: string;
   subCategoryFilter?: string;
+  brandFilter?: string;
+  modelFilter?: string;
+  variantFilter?: string;
   refreshKey?: number;
 }) {
   const dispatch = useAppDispatch();
@@ -132,14 +139,41 @@ export default function ApprovedProduct({
     setLoadingProducts(true);
     const status = "Approved";
     try {
-      const res = await getProductsByPage(
-        currentPage,
-        itemsPerPage,
-        status,
-        searchQuery,
-        categoryFilter,
-        subCategoryFilter
-      );
+      // Map current sort field/direction to API sort_by values
+      let sortByValue: string | undefined;
+      if (sortField === "manufacturer_part_name") {
+        sortByValue = sortDirection === "asc" ? "A-Z" : "Z-A";
+      } else if (sortField === "mrp_with_gst") {
+        sortByValue = sortDirection === "asc" ? "L-H" : "H-L";
+      }
+      let res;
+      if (brandFilter || modelFilter || variantFilter) {
+        // use advanced filter endpoint
+        res = await getProductsByFilterWithIds(
+          "", // product_type unused here
+          brandFilter || "",
+          modelFilter || "",
+          variantFilter || "",
+          categoryFilter || "",
+          subCategoryFilter || "",
+          sortByValue,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          searchQuery || ""
+        );
+      } else {
+        res = await getProductsByPage(
+          currentPage,
+          itemsPerPage,
+          status,
+          searchQuery,
+          categoryFilter,
+          subCategoryFilter,
+          sortByValue
+        );
+      }
       console.log("ApprovedProduct: API response:", res);
 
       const data = res.data;
@@ -177,6 +211,11 @@ export default function ApprovedProduct({
     searchQuery,
     categoryFilter,
     subCategoryFilter,
+    brandFilter,
+    modelFilter,
+    variantFilter,
+    sortField,
+    sortDirection,
   ]);
 
   // Fetch products on component mount
@@ -195,35 +234,9 @@ export default function ApprovedProduct({
     if (!paginatedProducts || !Array.isArray(paginatedProducts)) {
       return [];
     }
-
-    // If no sorting is applied, return products as-is
-    if (!sortField) {
-      return [...paginatedProducts];
-    }
-
-    let sorted = [...paginatedProducts];
-
-    // Sort
-    if (sortField === "manufacturer_part_name") {
-      sorted.sort((a, b) => {
-        const nameA = a.manufacturer_part_name?.toLowerCase() || "";
-        const nameB = b.manufacturer_part_name?.toLowerCase() || "";
-        if (nameA < nameB) return sortDirection === "asc" ? -1 : 1;
-        if (nameA > nameB) return sortDirection === "asc" ? 1 : -1;
-        return 0;
-      });
-    } else if (sortField === "mrp_with_gst") {
-      sorted.sort((a, b) => {
-        const priceA = Number(a.mrp_with_gst) || 0;
-        const priceB = Number(b.mrp_with_gst) || 0;
-        if (priceA < priceB) return sortDirection === "asc" ? -1 : 1;
-        if (priceA > priceB) return sortDirection === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return sorted;
-  }, [paginatedProducts, sortField, sortDirection]);
+    // Server handles sorting; return as-is
+    return [...paginatedProducts];
+  }, [paginatedProducts]);
 
   // Update total products count when sorted products change
   // useEffect(() => {
@@ -459,7 +472,7 @@ const handleSelectAll = (checked: boolean) => {
               onClick={handleSortByName}
             >
               Name
-              {sortField === "product_name" && (
+              {sortField === "manufacturer_part_name" && (
                 <span className="ml-1">
                   {sortDirection === "asc" ? (
                     <ChevronUp className="w-4 h-4 text-[#C72920]" />
@@ -486,7 +499,7 @@ const handleSelectAll = (checked: boolean) => {
               onClick={handleSortByPrice}
             >
               Price
-              {sortField === "price" && (
+              {sortField === "mrp_with_gst" && (
                 <span className="ml-1">
                   {sortDirection === "asc" ? (
                     <ChevronUp className="w-4 h-4 text-[#C72920]" />
