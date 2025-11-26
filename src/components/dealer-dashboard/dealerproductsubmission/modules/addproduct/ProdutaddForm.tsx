@@ -283,7 +283,7 @@ export default function DealerAddProducts() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* No. of Stock */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="noOfStock" className="text-base font-medium font-sans">
                 No. of Stock
               </Label>
@@ -299,6 +299,23 @@ export default function DealerAddProducts() {
               {errors.no_of_stock && (
                 <span className="text-red-500 text-sm">
                   {errors.no_of_stock.message}
+                </span>
+              )}
+            </div> */}
+               {/* Product Name */}
+            <div className="space-y-2">
+              <Label htmlFor="productName" className="text-base font-medium font-sans">
+                Product Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="productName"
+                placeholder="Enter Product Name"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("product_name")}
+              />
+              {errors.product_name && (
+                <span className="text-red-500 text-sm">
+                  {errors.product_name.message}
                 </span>
               )}
             </div>
@@ -322,23 +339,7 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-            {/* Product Name */}
-            <div className="space-y-2">
-              <Label htmlFor="productName" className="text-base font-medium font-sans">
-                Product Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="productName"
-                placeholder="Enter Product Name"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("product_name")}
-              />
-              {errors.product_name && (
-                <span className="text-red-500 text-sm">
-                  {errors.product_name.message}
-                </span>
-              )}
-            </div>
+         
 
             {/* HSN Code */}
             <div className="space-y-2">
@@ -937,7 +938,7 @@ export default function DealerAddProducts() {
               )}
             </div>
             {/* Video URL */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="videoUrl" className="text-base font-medium font-sans">
                 Video URL
               </Label>
@@ -952,7 +953,7 @@ export default function DealerAddProducts() {
                   {errors.videoUrl.message}
                 </span>
               )}
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 

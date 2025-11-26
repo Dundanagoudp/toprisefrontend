@@ -86,7 +86,7 @@ import {
   bulkRejectProductRequests,
   exportProductRequests,
 } from "@/service/product-request-service";
-import { approveSingleProduct, rejectSingleProduct } from "@/service/product-Service";
+import { approveSingleProduct, aproveDealerProduct, aproveProduct, rejectSingleProduct } from "@/service/product-Service";
 import {
   ProductRequest,
   ProductRequestStats,
@@ -286,7 +286,7 @@ export default function ProductRequests() {
   // Handle actions
   const handleApprove = async (requestId: string) => {
     try {
-      await approveSingleProduct(requestId);
+      await aproveDealerProduct(requestId);
       showToast("Product approved successfully", "success");
       fetchRequests();
       fetchStats();
@@ -335,7 +335,9 @@ export default function ProductRequests() {
     }
 
     try {
-      const promises = selectedRequests.map(productId => approveSingleProduct(productId));
+      console.log("Bulk approving products:", selectedRequests);
+      const promises = selectedRequests.map(productId => aproveDealerProduct(productId));
+      console.log("Bulk approving products:", selectedRequests);
       await Promise.all(promises);
       showToast("Products approved successfully", "success");
       setSelectedRequests([]);
@@ -758,7 +760,7 @@ export default function ProductRequests() {
                                                      {((request as any).Qc_status === "Pending") && (
                             <>
                               <DropdownMenuItem
-                                onClick={() => handleApprove(request._id)}
+                                onClick={() => (handleApprove(request._id),console.log("Approved request with ID:", request._id))}
                               >
                                 <CheckCircle className="w-4 h-4 mr-2" />
                                 Approve

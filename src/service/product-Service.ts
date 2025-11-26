@@ -4,6 +4,8 @@ import { BrandsApiResponse } from "@/types/catalogue-types";
 import type { Category as ProductCategory } from "@/types/product-Types";
 import apiClient from "@/apiClient";
 
+
+import { getAuthToken } from "@/utils/auth";
 // Banner types
 export interface Banner {
   _id: string;
@@ -62,6 +64,7 @@ export interface BannerResponse {
 }
 import { PurchaseOrdersResponse, TicketResponse } from "@/types/Ticket-types";
 import { ReturnRequestsResponse } from "@/types/return-Types";
+import axios from "axios";
 
 
 export async function getProducts(): Promise<ProductResponse> {
@@ -280,6 +283,30 @@ export async function aproveProduct(
     throw error;
   }
 }
+
+
+// aprove dealer product 
+export async function aproveDealerProduct(productId:string): Promise<ProductResponse> {
+  try {
+    console.log("Approving dealer product with ID:", productId);
+    // Fix: Added {} as second argument
+    const response = await axios.patch(
+      `https://api.toprise.in/products/products/v1/approve/${productId}`, 
+      {}, 
+      {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to approve product:", error);
+    throw error;
+  }
+}
+
 /**
  * Rejects a product by sending a PATCH request with rejection details
  * @param data - FormData containing rejection information

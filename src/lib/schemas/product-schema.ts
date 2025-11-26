@@ -11,9 +11,9 @@ export const dealerProductSchema = z.object({
   product_type: z.string().min(1, "Product type is required"),
   vehicle_type: z.string().optional(),
   // Added fields
-  no_of_stock: z.coerce
-    .number()
-    .int({ message: "No. of Stock must be an integer" }),
+  // no_of_stock: z.coerce
+  //   .number()
+  //   .int({ message: "No. of Stock must be an integer" }),
 
   updatedBy: z.string().optional(),
   admin_notes: z.string().optional(),
