@@ -77,34 +77,74 @@ export default function PaymentDetails() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
+
+  const [tempStatus, setTempStatus] = useState("all");
+const [tempMethod, setTempMethod] = useState("all");
+const [tempDate, setTempDate] = useState("all");
+
   // Fetch payments with pagination
   useEffect(() => {
-    const fetchPaymentDetails = async () => {
-      try {
-        setLoading(true);
-        const response = await getPaymentDetails(currentPage, itemsPerPage);
-        
-        if (response.data?.data) {
-          setPayments(response.data.data);
-          setTotalPages(response.data.pagination.totalPages);
-          setTotalItems(response.data.pagination.totalItems);
-        } else {
-          console.warn("Invalid response structure:", response);
-          setPayments([]);
-          setTotalPages(0);
-          setTotalItems(0);
-        }
-      } catch (error) {
-        console.log("error in payment details", error);
-        setPayments([]);
-        setTotalPages(0);
-        setTotalItems(0);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPaymentDetails();
-  }, [currentPage]);
+  const fetchPaymentDetails = async () => {
+    try {
+      setLoading(true);
+
+      const { start, end } = getDateRange();
+
+      const response = await getPaymentDetails(currentPage, itemsPerPage, {
+        payment_status: filterStatus,
+        payment_method: filterPaymentMethod,
+        startDate: start,
+        endDate: end
+      });
+
+      setPayments(response.data.data);
+      setTotalPages(response.data.pagination.totalPages);
+      setTotalItems(response.data.pagination.totalItems);
+
+    } catch (error) {
+      console.log("error in payment details", error);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchPaymentDetails();
+}, [currentPage, filterStatus, filterPaymentMethod, filterDateRange]);
+// }, [currentPage]);
+
+
+  const getDateRange = () => {
+  const now = new Date();
+  let start = null;
+  let end = now.toISOString().split("T")[0]; // yyyy-mm-dd
+
+  switch (filterDateRange) {
+    case "today":
+      start = end;
+      break;
+    case "week":
+      const week = new Date();
+      week.setDate(now.getDate() - 7);
+      start = week.toISOString().split("T")[0];
+      break;
+    case "month":
+      const month = new Date();
+      month.setMonth(now.getMonth() - 1);
+      start = month.toISOString().split("T")[0];
+      break;
+    case "year":
+      const year = new Date();
+      year.setFullYear(now.getFullYear() - 1);
+      start = year.toISOString().split("T")[0];
+      break;
+    default:
+      start = null;
+  }
+
+  return { start, end };
+};
+
   // Removed mock data - now using real API data
 
   // Filter and sort payments (client-side for current page)
@@ -265,23 +305,33 @@ export default function PaymentDetails() {
 
   // Filter handlers
   const handleClearFilters = () => {
-    setFilterStatus("all");
-    setFilterPaymentMethod("all");
-    setFilterDateRange("all");
-    setCurrentPage(1); // Reset to first page when clearing filters
-  };
+  setTempStatus("all");
+  setTempMethod("all");
+  setTempDate("all");
 
-  const handleApplyFilters = () => {
-    setShowFilters(false);
-    setCurrentPage(1); // Reset to first page when applying filters
-  };
+  setFilterStatus("all");
+  setFilterPaymentMethod("all");
+  setFilterDateRange("all");
+
+  setCurrentPage(1);
+};
+
+ const handleApplyFilters = () => {
+  setFilterStatus(tempStatus);
+  setFilterPaymentMethod(tempMethod);
+  setFilterDateRange(tempDate);
+
+  setCurrentPage(1);
+  setShowFilters(false);
+};
+
   
   // Reset page when filter changes
-  useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [filterStatus, filterPaymentMethod, filterDateRange]);
+  // useEffect(() => {
+  //   if (currentPage !== 1) {
+  //     setCurrentPage(1);
+  //   }
+  // }, [filterStatus, filterPaymentMethod, filterDateRange]);
 
   const getAppliedFiltersCount = () => {
     let count = 0;
@@ -636,34 +686,38 @@ export default function PaymentDetails() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="status-filter">Payment Status</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
+              {/* <Select value={filterStatus} onValueChange={setFilterStatus}> */}
+              <Select value={tempStatus} onValueChange={setTempStatus}>
+
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="created">Created</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
+                  <SelectItem value="Paid">Paid</SelectItem>
+                  {/* <SelectItem value="pending">Pending</SelectItem> */}
+                  <SelectItem value="Failed">Failed</SelectItem>
+                  <SelectItem value="Created">Created</SelectItem>
+                  {/* <SelectItem value="refunded">Refunded</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
             
             <div className="grid gap-2">
               <Label htmlFor="method-filter">Payment Method</Label>
-              <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}>
+              {/* <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}> */}
+              <Select value={tempMethod} onValueChange={setTempMethod}>
+
                 <SelectTrigger>
                   <SelectValue placeholder="Select method" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Methods</SelectItem>
-                  <SelectItem value="razorpay">Razorpay</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="Razorpay">Razorpay</SelectItem>
+                  <SelectItem value="COD">COD</SelectItem>
+                  {/* <SelectItem value="upi">UPI</SelectItem>
                   <SelectItem value="netbanking">Net Banking</SelectItem>
-                  <SelectItem value="wallet">Wallet</SelectItem>
+                  <SelectItem value="wallet">Wallet</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
@@ -671,7 +725,9 @@ export default function PaymentDetails() {
             
             <div className="grid gap-2">
               <Label htmlFor="date-filter">Date Range</Label>
-              <Select value={filterDateRange} onValueChange={setFilterDateRange}>
+              {/* <Select value={filterDateRange} onValueChange={setFilterDateRange}> */}
+              <Select value={tempDate} onValueChange={setTempDate}>
+
                 <SelectTrigger>
                   <SelectValue placeholder="Select date range" />
                 </SelectTrigger>

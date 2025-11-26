@@ -63,13 +63,50 @@ export default function UpdateModal({
       let status = item.status || item.brand_Status || item.category_Status || item.subcategory_status || item.model_Status || item.variant_status || 'active';
       
       // Map all content type status values to dropdown options
-      if (type === 'category' || type === 'subcategory' || type === 'brand' || type === 'model' || type === 'variant') {
+      // if (type === 'category' || type === 'subcategory' || type === 'brand' || type === 'model' || type === 'variant') {
+      //   if (status === 'Created' || status === 'active') {
+      //     status = 'active';
+      //   } else if (status === 'Draft' || status === 'inactive') {
+      //     status = 'inactive';
+      //   }
+      // }
+     
+      if(type === 'category' ){
+        if (status === 'Created' || status === 'active') {
+          status = 'Active';
+        } else if (status === 'Draft' || status === 'inactive') {
+          status = 'Inactive';
+        }
+
+      }else if(type === 'subcategory' ){
+        if (status === 'Created' || status === 'active') {
+          status = 'Active';
+        } else if (status === 'Draft' || status === 'inactive') {
+          status = 'Inactive';
+        }
+      }else if(type === 'brand' ){
+         if (status === 'Created' || status === 'active') {
+          status = 'active';
+        } else if (status === 'Draft' || status === 'inactive') {
+          status = 'inactive';
+        }
+        
+      }else if(type === 'model' ){
+        if (status === 'Created' || status === 'active') {
+          status = 'Active';
+        } else if (status === 'Draft' || status === 'inactive') {
+          status = 'Inactive';
+        }
+        
+      }else if(type === 'variant' ){
         if (status === 'Created' || status === 'active') {
           status = 'active';
         } else if (status === 'Draft' || status === 'inactive') {
           status = 'inactive';
         }
       }
+       console.log("type: ", type, "  status:", status);
+
       // Extract vehicle type properly for categories
       const vehicleType = (typeof item.type === 'object' ? item.type?._id : item.type) || item.vehicleType_id || item.type_id || '';
       
@@ -145,7 +182,40 @@ export default function UpdateModal({
       const submitFormData = new FormData();
       
       console.log("Submitting update for", type, "with data:", formData);
-      
+      if(type === 'category' ){
+        if (formData.status === 'Active') {
+          formData.status = 'Active';
+        } else if ( formData.status === 'Inactive') {
+          formData.status = 'Inactive';
+        }
+
+      }else if(type === 'subcategory' ){
+        if (formData.status === 'Active') {
+          formData.status = 'Active';
+        } else if ( formData.status === 'Inactive') {
+          formData.status = 'Inactive';
+        }
+      }else if(type === 'brand' ){
+        if (formData.status === 'Active') {
+          formData.status = 'active';
+        } else if ( formData.status === 'Inactive') {
+          formData.status = 'inactive';
+        }
+        
+      }else if(type === 'model' ){
+        if (formData.status === 'Active') {
+          formData.status = 'Active';
+        } else if ( formData.status === 'Inactive') {
+          formData.status = 'Inactive';
+        }
+        
+      }else if(type === 'variant' ){
+        if (formData.status === 'Active') {
+          formData.status = 'active';
+        } else if ( formData.status === 'Inactive') {
+          formData.status = 'inactive';
+        }
+      }
       // Add type-specific name fields
       if (type === 'category') {
         submitFormData.append('category_name', formData.name);

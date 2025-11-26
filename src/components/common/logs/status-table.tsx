@@ -1,10 +1,9 @@
 "use client";
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -16,491 +15,486 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 import DynamicButton from "../button/button";
 import SearchInput from "../search/SearchInput";
-import { useAppSelector } from "@/store/hooks";
-import { useCallback, useEffect, useState } from "react";
-import useDebounce from "@/utils/useDebounce";
-import { uploadLogs } from "@/service/product-Service";
 import { useRouter } from "next/navigation";
-import { uploadLogStorage, type StoredUploadLog } from "@/service/uploadLogService";
 import { Download } from "lucide-react";
-
-// Format date as 'DD MMM YYYY / hh:mmA' (e.g., 05 Jan 2025 / 11:00PM)
 import formatDate from "@/utils/formateDate";
 
-export default function statusTable() {
-  const [searchInput, setSearchInput] = useState(""); // Input field value
-  const [searchQuery, setSearchQuery] = useState(""); // Actual search query for filtering
+import {
+  getProductBulkUploadLogs,
+  deleteSingleProductBulkUploadLogs,
+  deleteAllProductBulkUploadLogs,
+} from "@/service/bulkupload-service";
+
+export default function StatusTable() {
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState<any>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(
     null
   );
-  const [logs, setLogs] = useState<StoredUploadLog[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
 
-  const auth = useAppSelector((state) => state.auth.user);
   const router = useRouter();
+
+  // -----------------------------------------
+  // SEARCH
+  // -----------------------------------------
   const performSearch = useCallback((query: string) => {
     setSearchQuery(query);
     setIsSearching(false);
   }, []);
 
-  const { debouncedCallback: debouncedSearch, cleanup: cleanupDebounce } =
-    useDebounce(performSearch, 500);
-
-  // Load upload logs from local storage
-  const loadUploadLogs = useCallback(() => {
-    try {
-      setLoading(true);
-      const storedLogs = uploadLogStorage.getAllLogsArray();
-      console.log("Upload logs loaded from storage:", storedLogs);
-      console.log("Number of logs found:", storedLogs.length);
-      storedLogs.forEach((log, index) => {
-        console.log(`Log ${index}:`, {
-          id: log.id,
-          sessionId: log.sessionId,
-          status: log.status,
-          hasLogData: !!log.logData,
-          logDataKeys: log.logData ? Object.keys(log.logData) : 'No logData'
-        });
-      });
-      setLogs(storedLogs);
-    } catch (error) {
-      console.error("Failed to load upload logs", error);
-      setLogs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadUploadLogs();
-  }, [loadUploadLogs]);
-
-  // Function to refresh logs
-  const refreshLogs = useCallback(() => {
-    loadUploadLogs();
-  }, [loadUploadLogs]);
-
-  // Function to export logs as CSV
-  const exportLogsAsCSV = useCallback(() => {
-    try {
-      if (logs.length === 0) {
-        alert('No logs to export');
-        return;
-      }
-
-      // Create CSV headers
-      const headers = [
-        'Session ID',
-        'Upload Type',
-        'Status',
-        'Created By',
-        'Created At',
-        'Duration (s)',
-        'Total Rows',
-        'Inserted',
-        'Successful Products',
-        'Failed Products',
-        'Total Images',
-        'OK Images',
-        'Skip Images',
-        'Fail Images',
-        'Message'
-      ];
-
-      // Create CSV rows
-      const csvRows = logs.map(log => [
-        log.sessionId || '',
-        log.uploadType || '',
-        log.logData?.status || log.status || '',
-        log.createdBy || '',
-        new Date(log.createdAt).toLocaleString(),
-        log.logData?.durationSec || '',
-        log.logData?.totalRows || 0,
-        log.logData?.inserted || 0,
-        log.logData?.successLogs?.totalSuccessful || 0,
-        log.logData?.failureLogs?.totalFailed || 0,
-        log.logData?.imgSummary?.total || 0,
-        log.logData?.imgSummary?.ok || 0,
-        log.logData?.imgSummary?.skip || 0,
-        log.logData?.imgSummary?.fail || 0,
-        log.logData?.message || ''
-      ]);
-
-      // Combine headers and rows
-      const csvContent = [headers, ...csvRows]
-        .map(row => row.map(field => `"${field}"`).join(','))
-        .join('\n');
-
-      // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `upload_logs_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      console.log('CSV export completed successfully');
-    } catch (error) {
-      console.error('Failed to export CSV:', error);
-      alert('Failed to export CSV. Please try again.');
-    }
-  }, [logs]);
-
-
-  // Handle search input change
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
     setIsSearching(value.trim() !== "");
-    debouncedSearch(value);
+    performSearch(value);
   };
 
-  // Clear search
   const handleClearSearch = () => {
     setSearchInput("");
     setSearchQuery("");
-    setIsSearching(false);
   };
-  // Use logs data if available, otherwise use empty array
-  const rows = logs && logs.length > 0 ? logs : [];
 
-  // Calculate totals
-  const uploadedCount = rows.filter(
-    (row: any) => row.status === "Created" || row.status === "Completed"
-  ).length;
-  const rejectedCount = rows.filter((row: any) => row.status === "Reject").length;
+  // -----------------------------------------
+  // FETCH LOGS FROM API
+  // -----------------------------------------
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+
+      const response = await getProductBulkUploadLogs();
+      console.log("Product bulk upload logs:", response);
+
+      const formattedLogs = response.map((item: any) => ({
+        id: item._id,
+        sessionId: item.sessionId,
+        createdAt: item.created_at,
+        status: item.status,
+        createdBy: item.created_by,
+
+        logData: {
+          totalRows: item.no_of_products || 0,
+          inserted: item.total_products_successful || 0,
+
+          successLogs: {
+            totalSuccessful: item.total_products_successful || 0,
+            products: item.logs.filter((l: any) => l.message === "Created"|| l.message === "Updated"),
+          },
+
+          failureLogs: {
+            totalFailed: item.total_products_failed || 0,
+            products: item.logs.filter((l: any) => l.message !== "Created"),
+          },
+        },
+      }));
+
+      setLogs(formattedLogs);
+    } catch (err) {
+      console.error("Error fetching logs:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  // -----------------------------------------
+  // SELECT / UNSELECT
+  // -----------------------------------------
+  const toggleSelect = (id: string) => {
+    setSelectedLogs((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLogs.length === rows.length) {
+      setSelectedLogs([]);
+    } else {
+      setSelectedLogs(rows.map((log) => log.id));
+    }
+  };
+
+  // -----------------------------------------
+  // DELETE SINGLE
+  // -----------------------------------------
+  const deleteSingleLog = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this log?")) return;
+
+    try {
+      await deleteSingleProductBulkUploadLogs(id);
+      fetchLogs();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // -----------------------------------------
+  // DELETE MULTIPLE
+  // -----------------------------------------
+  const deleteMultipleLogs = async () => {
+    if (!confirm(`Delete ${selectedLogs.length} logs?`)) return;
+
+    try {
+      await deleteAllProductBulkUploadLogs(selectedLogs);
+      setSelectedLogs([]);
+      fetchLogs();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // -----------------------------------------
+  // EXPORT ALL CSV
+  // -----------------------------------------
+  const exportLogsAsCSV = () => {
+    if (logs.length === 0) return alert("No logs to export");
+
+    const headers = [
+      "Session ID",
+      "Status",
+      "Created By",
+      "Created At",
+      "Total Rows",
+      "Successful",
+      "Failed",
+      "Message",
+    ];
+
+    const csvRows = logs.map((log) => [
+      log.sessionId,
+      log.status,
+      log.createdBy,
+      new Date(log.createdAt).toLocaleString(),
+      log.logData.totalRows,
+      log.logData.successLogs.totalSuccessful,
+      log.logData.failureLogs.totalFailed,
+      "",
+    ]);
+
+    const content = [headers, ...csvRows]
+      .map((r) => r.map((c) => `"${c}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([content], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bulk_upload_logs.csv";
+    a.click();
+  };
+
+  // -----------------------------------------
+  // EXPORT SINGLE LOG CSV  (NEW FEATURE)
+  // -----------------------------------------
+  const exportSingleLog = (log: any) => {
+    if (!log) return;
+
+    const headers = ["Product ID", "SKU", "Message", "Type"];
+
+    const successRows = log.logData.successLogs.products.map((p: any) => [
+      p.productId || "",
+      p.sku || "",
+      p.message || "",
+      "SUCCESS",
+    ]);
+
+    const failedRows = log.logData.failureLogs.products.map((p: any) => [
+      p.productId || "",
+      p.sku || "",
+      p.message || "",
+      "FAILED",
+    ]);
+
+    const metaRows = [
+      ["Session ID", log.sessionId],
+      ["Status", log.status],
+      ["Created At", new Date(log.createdAt).toLocaleString()],
+      ["Created By", log.createdBy],
+      ["Total Rows", log.logData.totalRows],
+      ["Inserted", log.logData.inserted],
+      ["Success Count", log.logData.successLogs.totalSuccessful],
+      ["Failed Count", log.logData.failureLogs.totalFailed],
+      [],
+      headers,
+    ];
+
+    const allRows = [...successRows, ...failedRows];
+
+    const csvData = [...metaRows, ...allRows]
+      .map((row) => row.map((c) => `"${c}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvData], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `upload_log_${log.sessionId}.csv`;
+    a.click();
+  };
+
+  // -----------------------------------------
+  // SEARCH RESULT ROWS
+  // -----------------------------------------
+  const rows = logs.filter((log) =>
+    searchQuery
+      ? log.sessionId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.createdBy?.toLowerCase().includes(searchQuery.toLowerCase())
+      : true
+  );
+
+  const uploadedCount = rows.length;
+  const rejectedCount = rows.filter((r) => r.status === "Rejected").length;
 
   return (
     <div className="w-full">
       <Card className="shadow-sm rounded-none">
-        <CardHeader className="space-y-4 sm:space-y-6">
-          <div className="flex flex-col   w-full">
-            <div className="flex flex-row  w-full border-b border-gray-200  ">
-              <CardTitle className="text-[#000000] font-semibold text-lg ">
-                Product Logs
-              </CardTitle>
-            </div>
-            <div className="w-full mt-4 flex flex-row  justify-between items-center">
-              <div className="flex flex-row gap-6 items-center ">
-                <SearchInput
+        <CardHeader>
+          <div className="flex flex-col border-b pb-4">
+            <CardTitle className="font-semibold text-lg">Product Logs</CardTitle>
+
+            <div className="mt-4 flex justify-between items-center">
+              <div className="flex gap-6 items-center">
+                {/* <SearchInput
                   value={searchInput}
                   onChange={handleSearchChange}
                   onClear={handleClearSearch}
                   isLoading={isSearching}
-                  placeholder="Search Spare parts"
-                />
-                <span className="text-[#1D1D1B] font-medium font-sans">
-                  {` uploaded : ${uploadedCount}`}
-                </span>
-                <span className="text-[#1D1D1B] font-medium font-sans">
-                  {` Rejected : ${rejectedCount}`}
-                </span>
+                  placeholder="Search Session or Creator"
+                /> */}
+
+                <span>Uploaded: {uploadedCount}</span>
+                <span>Rejected: {rejectedCount}</span>
               </div>
+
               <div className="flex gap-2">
-                <DynamicButton 
-                  variant="outline" 
-                  text={loading ? "Refreshing..." : "Refresh"} 
-                  onClick={refreshLogs}
-                  disabled={loading}
+                <DynamicButton
+                  text={loading ? "Refreshing..." : "Refresh"}
+                  variant="outline"
+                  onClick={fetchLogs}
                 />
-                <DynamicButton 
-                  variant="outline" 
-                  text="Export CSV" 
+
+                <DynamicButton
+                  text="Export CSV"
+                  variant="outline"
+                  icon={<Download className="h-4 w-4" />}
                   onClick={exportLogsAsCSV}
-                  disabled={loading || logs.length === 0}
-                  icon={<Download className="w-4 h-4 mr-2" />}
                 />
-                <DynamicButton variant="default" text="Done" onClick={() => router.push('/user/dashboard/product')} />
+
+                <DynamicButton
+                  text="Done"
+                  variant="default"
+                  onClick={() => router.push("/user/dashboard/product")}
+                />
               </div>
             </div>
           </div>
+
+          {selectedLogs.length > 0 && (
+            <div className="p-3 bg-red-50 border rounded-md mt-4 flex justify-between items-center">
+              <span className="text-red-700 font-medium">
+                {selectedLogs.length} selected
+              </span>
+
+              <DynamicButton
+                text="Delete Selected"
+                variant="destructive"
+                onClick={deleteMultipleLogs}
+              />
+            </div>
+          )}
         </CardHeader>
 
-        <CardContent className="px-4">
-          <div className=" bg-white shadow-sm">
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-                <span className="ml-2 text-gray-600">Loading logs...</span>
-              </div>
-            ) : rows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No logs found</h3>
-                <p className="text-gray-500 text-center mb-4">
-                  No product upload logs are available yet. Upload some products to see logs here.
-                </p>
-                <DynamicButton 
-                  variant="default" 
-                  text="Refresh" 
-                  onClick={refreshLogs}
-                />
-              </div>
-            ) : (
+        <CardContent>
+          {loading ? (
+            <div className="py-8 text-center">Loading...</div>
+          ) : rows.length === 0 ? (
+            <div className="py-8 text-center">No logs found</div>
+          ) : (
             <Table>
               <TableHeader>
-                <TableRow className="bg-transparent">
-                  <TableHead className="font-medium text-gray-700 font-sans">
-                    Time Date
+                <TableRow>
+                  <TableHead>
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedLogs.length === rows.length && rows.length > 0
+                      }
+                      onChange={toggleSelectAll}
+                    />
                   </TableHead>
-                  <TableHead className="font-medium text-gray-700">
-                    Status
-                  </TableHead>
-                  <TableHead className="font-medium text-gray-700">
-                    Total No of Product
-                  </TableHead>
-                  <TableHead className="font-medium text-gray-700">
-                    Successful Uploads
-                  </TableHead>
-                  <TableHead className="font-medium text-gray-700">
-                    Failed Uploads
-                  </TableHead>
-                  <TableHead className="font-medium text-gray-700">
-                    View Details
-                  </TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Success</TableHead>
+                  <TableHead>Failed</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
-                {rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                      No upload logs found. Upload some products to see logs here.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  rows.map((log: StoredUploadLog, index: number) => (
-                  <React.Fragment key={log.id || index}>
-                    <TableRow
-                      className={
-                        log.status === "failed"
-                          ? "bg-red-50 hover:bg-red-100"
-                          : "bg-green-50 hover:bg-green-100"
-                      }
-                    >
-                      <TableCell className="font-medium text-gray-900">
+                {rows.map((log) => (
+                  <React.Fragment key={log.id}>
+                    <TableRow>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedLogs.includes(log.id)}
+                          onChange={() => toggleSelect(log.id)}
+                        />
+                      </TableCell>
+
+                      <TableCell>
                         {formatDate(log.createdAt, {
                           includeTime: true,
                           timeFormat: "12h",
                         })}
                       </TableCell>
+
                       <TableCell>
-                        <Badge
-                          variant={
-                            log.status === "failed"
-                              ? "destructive"
-                              : log.status === "completed"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className={
-                            log.status === "failed"
-                              ? "bg-red-100 text-red-800 hover:bg-red-200"
-                              : log.status === "completed"
-                              ? "bg-green-100 text-green-800 hover:bg-green-200"
-                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                          }
-                        >
-                          {log.logData?.status || log.status}
-                        </Badge>
+                        <Badge>{log.status}</Badge>
                       </TableCell>
-                      <TableCell className="text-gray-900">
-                        {log.logData?.totalRows || 0}
+
+                      <TableCell>{log.logData.totalRows}</TableCell>
+                      <TableCell>
+                        {log.logData.successLogs.totalSuccessful}
                       </TableCell>
-                      <TableCell className="text-gray-900">
-                        {log.logData?.successLogs?.totalSuccessful || 0}
+                      <TableCell>
+                        {log.logData.failureLogs.totalFailed}
                       </TableCell>
-                      <TableCell className="text-gray-900">
-                        {log.logData?.failureLogs?.totalFailed || 0}
-                      </TableCell>
-                      <TableCell className="text-gray-900">
-                        <DynamicButton
-                          variant="outline"
-                          text={
-                            expandedSessionId === log.sessionId
-                              ? "Hide Details"
-                              : "View Details"
-                          }
-                          onClick={() =>
-                            setExpandedSessionId(
+
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {/* View / Hide */}
+                          <DynamicButton
+                            variant="outline"
+                            text={
                               expandedSessionId === log.sessionId
-                                ? null
-                                : log.sessionId
-                            )
-                          }
-                        />
+                                ? "Hide"
+                                : "View"
+                            }
+                            onClick={() =>
+                              setExpandedSessionId(
+                                expandedSessionId === log.sessionId
+                                  ? null
+                                  : log.sessionId
+                              )
+                            }
+                          />
+
+                          {/* Export Single */}
+                          <DynamicButton
+                            variant="outline"
+                            text="Export"
+                            onClick={() => exportSingleLog(log)}
+                          />
+
+                          {/* Delete */}
+                          <DynamicButton
+                            variant="destructive"
+                            text="Delete"
+                            onClick={() => deleteSingleLog(log.id)}
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
+
+                    {/* Expanded Row */}
                     {expandedSessionId === log.sessionId && (
                       <TableRow>
-                        <TableCell colSpan={6} className="bg-gray-50 p-0">
-                          <div className="p-4">
-                            <h4 className="font-semibold text-gray-900 mb-4">Upload Session Details</h4>
-                            
-                            {/* Session Info */}
-                            <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-                              <div>
-                                <span className="font-medium text-gray-700">Session ID:</span>{" "}
-                                {log.sessionId}
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">Upload Type:</span>{" "}
-                                {log.uploadType === 'bulk_upload' ? 'Bulk Upload' : 
-                                 log.uploadType === 'bulk_edit' ? 'Bulk Edit' : 
-                                 log.uploadType === 'dealer_upload' ? 'Dealer Upload' : 'Unknown'}
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">Created By:</span>{" "}
-                                {log.createdBy}
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">Duration:</span>{" "}
-                                {log.logData?.durationSec || 'N/A'}s
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">Total Rows:</span>{" "}
-                                {log.logData?.totalRows || 0}
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">Inserted:</span>{" "}
-                                {log.logData?.inserted || 0}
-                              </div>
-                            </div>
+                        <TableCell colSpan={7} className="bg-gray-50 p-4">
+                          <h4 className="font-semibold mb-2">
+                            Session Details
+                          </h4>
 
-                            {/* Image Summary */}
-                            {log.logData?.imgSummary && (
-                              <div className="mb-6">
-                                <h5 className="font-medium text-blue-700 mb-2">Image Summary</h5>
-                                <div className="grid grid-cols-4 gap-4 text-sm">
-                                  <div className="bg-blue-50 p-3 rounded">
-                                    <div className="font-medium text-blue-800">Total</div>
-                                    <div className="text-lg font-bold text-blue-900">{log.logData.imgSummary.total}</div>
-                                  </div>
-                                  <div className="bg-green-50 p-3 rounded">
-                                    <div className="font-medium text-green-800">OK</div>
-                                    <div className="text-lg font-bold text-green-900">{log.logData.imgSummary.ok}</div>
-                                  </div>
-                                  <div className="bg-yellow-50 p-3 rounded">
-                                    <div className="font-medium text-yellow-800">Skip</div>
-                                    <div className="text-lg font-bold text-yellow-900">{log.logData.imgSummary.skip}</div>
-                                  </div>
-                                  <div className="bg-red-50 p-3 rounded">
-                                    <div className="font-medium text-red-800">Fail</div>
-                                    <div className="text-lg font-bold text-red-900">{log.logData.imgSummary.fail}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Success Logs */}
-                            {log.logData?.successLogs?.totalSuccessful > 0 && (
-                              <div className="mb-6">
-                                <h5 className="font-medium text-green-700 mb-3">Successful Products ({log.logData?.successLogs?.totalSuccessful})</h5>
-                                <div className="overflow-x-auto">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="font-medium text-gray-700">Product ID</TableHead>
-                                        <TableHead className="font-medium text-gray-700">SKU</TableHead>
-                                        <TableHead className="font-medium text-gray-700">Product Name</TableHead>
-                                        <TableHead className="font-medium text-gray-700">Status</TableHead>
-                                        <TableHead className="font-medium text-gray-700">QC Status</TableHead>
-                                        <TableHead className="font-medium text-gray-700">Images</TableHead>
-                                        <TableHead className="font-medium text-gray-700">Message</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {log.logData?.successLogs?.products?.map((product, idx) => (
-                                        <TableRow key={idx} className="bg-green-50">
-                                          <TableCell className="text-sm">{String(product.productId || '')}</TableCell>
-                                          <TableCell className="text-sm font-medium">{String(product.sku || '')}</TableCell>
-                                          <TableCell className="text-sm">{String(product.productName || '')}</TableCell>
-                                          <TableCell>
-                                            <Badge className="bg-green-100 text-green-800">
-                                              {String(product.status || '')}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell>
-                                            <Badge className="bg-blue-100 text-blue-800">
-                                              {String(product.qcStatus || '')}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell className="text-sm">{typeof product.images === 'number' ? product.images : String(product.images || 0)}</TableCell>
-                                          <TableCell className="text-sm">{String(product.message || '')}</TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Failure Logs */}
-                            {log.logData?.failureLogs?.totalFailed > 0 && (
-                              <div className="mb-6">
-                                <h5 className="font-medium text-red-700 mb-3">Failed Products ({log.logData?.failureLogs?.totalFailed})</h5>
-                                <div className="overflow-x-auto">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="font-medium text-gray-700">Product ID</TableHead>
-                                        <TableHead className="font-medium text-gray-700">SKU</TableHead>
-                                        <TableHead className="font-medium text-gray-700">Product Name</TableHead>
-                                        <TableHead className="font-medium text-gray-700">Status</TableHead>
-                                        <TableHead className="font-medium text-gray-700">Message</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {log.logData?.failureLogs?.products?.map((product, idx) => (
-                                        <TableRow key={idx} className="bg-red-50">
-                                          <TableCell className="text-sm">{String(product.productId || '')}</TableCell>
-                                          <TableCell className="text-sm font-medium">{String(product.sku || '')}</TableCell>
-                                          <TableCell className="text-sm">{String(product.productName || '')}</TableCell>
-                                          <TableCell>
-                                            <Badge className="bg-red-100 text-red-800">
-                                              {String(product.status || '')}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableCell className="text-sm text-red-600">{String(product.message || '')}</TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Errors */}
-                            {log.logData?.errors && log.logData.errors.length > 0 && (
-                              <div>
-                                <h5 className="font-medium text-red-700 mb-2">Errors</h5>
-                                <ul className="list-disc list-inside text-sm text-red-600">
-                                  {log.logData.errors.map((error: string, idx: number) => (
-                                    <li key={idx}>{error}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
+                          <div className="grid grid-cols-2 gap-4">
+                            <p>
+                              <b>Session ID:</b> {log.sessionId}
+                            </p>
+                            <p>
+                              <b>Created By:</b> {log.createdBy}
+                            </p>
+                            <p>
+                              <b>Total Rows:</b> {log.logData.totalRows}
+                            </p>
+                            <p>
+                              <b>Inserted:</b> {log.logData.inserted}
+                            </p>
                           </div>
+
+                          {/* Success Logs */}
+                          {log.logData.successLogs.totalSuccessful > 0 && (
+                            <>
+                              <h5 className="mt-4 font-semibold text-green-700">
+                                Successful Products
+                              </h5>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Product ID</TableHead>
+                                    <TableHead>Message</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {log.logData.successLogs.products.map(
+                                    (p: any, idx: number) => (
+                                      <TableRow key={idx}>
+                                        <TableCell>{p.productId}</TableCell>
+                                        <TableCell>{p.message}</TableCell>
+                                      </TableRow>
+                                    )
+                                  )}
+                                </TableBody>
+                              </Table>
+                            </>
+                          )}
+
+                          {/* Failure Logs */}
+                          {log.logData.failureLogs.totalFailed > 0 && (
+                            <>
+                              <h5 className="mt-4 font-semibold text-red-700">
+                                Failed Products
+                              </h5>
+
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Product ID</TableHead>
+                                    <TableHead>Message</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {log.logData.failureLogs.products.map(
+                                    (p: any, idx: number) => (
+                                      <TableRow key={idx}>
+                                        <TableCell>{p.productId}</TableCell>
+                                        <TableCell className="text-red-600">
+                                          {p.message}
+                                        </TableCell>
+                                      </TableRow>
+                                    )
+                                  )}
+                                </TableBody>
+                              </Table>
+                            </>
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
                   </React.Fragment>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
-            )}
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
