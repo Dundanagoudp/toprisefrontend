@@ -79,13 +79,14 @@ const schema = z.object({
   // make: z.string().min(1, "Make is required"),
   // make2: z.string().optional(),
   model: z.string().min(1, "Model is required"),
-  year_range: z.string().optional(),
+  year_range: z.array(z.string()).optional(),
+
   variant: z.string().min(1, "Variant is required"),
   fitment_notes: z.string().optional(),
   is_universal: z.boolean().optional(),
   is_consumable: z.boolean().optional(),
   // Technical Specifications
-  keySpecifications: z.string().optional(),
+  key_specifications: z.string().optional(),
   weight: z.coerce
     .number()
     .min(0, "Weight must be a positive number")
@@ -366,7 +367,12 @@ export default function AddProducts() {
               formData.append(`available_dealers[${index}][dealer_priority_override]`, (assignment.priority || 0).toString());
               formData.append(`available_dealers[${index}][inStock]`, (assignment.quantity > 0).toString());
             });
-          } else if (Array.isArray(value)) {
+          }
+          else if (key === "year_range" && Array.isArray(value)) {
+      value.forEach((id) => formData.append("year_range[]", id));
+    }
+          
+          else if (Array.isArray(value)) {
             // For arrays, append as comma-separated string (FormData does not support arrays natively)
             formData.append(key, value.join(","));
           } else if (typeof value === "number") {
@@ -658,7 +664,7 @@ export default function AddProducts() {
                 <SelectContent>
                   <SelectItem value="OE">OE</SelectItem>
                   <SelectItem value="OEM">OEM</SelectItem>
-                  <SelectItem value="AfterMarket">Aftermarket</SelectItem>
+                  <SelectItem value="AFTERMARKET">Aftermarket</SelectItem>
                 </SelectContent>
               </Select>
               {errors.product_type && (
@@ -825,40 +831,51 @@ export default function AddProducts() {
               )}
             </div>
             {/* Year Range */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="yearRange"
-                className="text-base font-medium font-sans"
-              >
-                Year Range
-              </Label>
-              <Select onValueChange={(value) => setValue("year_range", value)}>
-                <SelectTrigger
-                  id="yearRange"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearRangeOptions.length === 0 ? (
-                    <SelectItem value="loading" disabled>
-                      Loading...
-                    </SelectItem>
-                  ) : (
-                    yearRangeOptions.map((option) => (
-                      <SelectItem key={option._id} value={option._id}>
-                        {option.year_name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.year_range && (
-                <span className="text-red-500 text-sm">
-                  {errors.year_range.message}
-                </span>
-              )}
-            </div>
+            {/* Year Range (Multiple Select) */}
+<div className="space-y-2">
+  <Label
+    htmlFor="yearRange"
+    className="text-base font-medium font-sans"
+  >
+    Year Range (Multiple Allowed)
+  </Label>
+
+  <div className="border rounded-lg p-3 bg-gray-50 max-h-52 overflow-y-auto">
+    {yearRangeOptions.length === 0 ? (
+      <p className="text-gray-500 text-sm">Loading...</p>
+    ) : (
+      yearRangeOptions.map((option) => {
+        const selected = Array.isArray(watch("year_range"))
+          ? watch("year_range")
+          : [];
+
+        const isChecked = selected.includes(option._id);
+
+        return (
+          <div key={option._id} className="flex items-center gap-2 py-1">
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={() => {
+                const updated = isChecked
+                  ? selected.filter((id) => id !== option._id)
+                  : [...selected, option._id];
+
+                setValue("year_range", updated);
+              }}
+            />
+            <span className="text-sm">{option.year_name}</span>
+          </div>
+        );
+      })
+    )}
+  </div>
+
+  {errors.year_range && (
+    <span className="text-red-500 text-sm">{errors.year_range.message}</span>
+  )}
+</div>
+
             {/* Variant */}
             <div className="space-y-2">
               <Label
@@ -968,20 +985,20 @@ export default function AddProducts() {
             {/* Key Specifications */}
             <div className="space-y-2">
               <Label
-                htmlFor="keySpecifications"
+                htmlFor="key_specifications"
                 className="text-base font-medium font-sans"
               >
                 Key Specifications
               </Label>
               <Input
-                id="keySpecifications"
+                id="key_specifications"
                 placeholder="Enter Key Specifications"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("keySpecifications")}
+                {...register("key_specifications")}
               />
-              {errors.keySpecifications && (
+              {errors.key_specifications && (
                 <span className="text-red-500 text-sm">
-                  {errors.keySpecifications.message}
+                  {errors.key_specifications.message}
                 </span>
               )}
             </div>
