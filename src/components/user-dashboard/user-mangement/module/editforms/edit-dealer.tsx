@@ -469,12 +469,12 @@ export default function EditDealer() {
           {/* Categories & Access */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Categories & Access</CardTitle>
+              <CardTitle className="text-red-600 font-semibold text-lg">Brands & Access</CardTitle>
               <p className="text-sm text-gray-500">Product categories and access permissions.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Categories Allowed *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Brands Allowed *</label>
                 {/* Multi-select Dropdown */}
                 <MultiSelectDropdown
                   options={allCategories}

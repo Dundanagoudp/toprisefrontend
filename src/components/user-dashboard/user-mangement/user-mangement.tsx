@@ -176,11 +176,11 @@ export default function Usermangement() {
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-4 md:mb-6">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
             <GlobalFilters 
-              type={activeTab as "employee" | "dealer" | "users"}
+              type={activeTab === "dealer" ? "users" : (activeTab as "employee" | "dealer" | "users")}
               search={search}
               onSearchChange={handleSearchChange}
-              currentRole={role || "all"}
-              onRoleChange={handleRoleChange}
+              currentRole={activeTab === "dealer" ? "all" : (role || "all")}
+              onRoleChange={activeTab === "dealer" ? () => {} : handleRoleChange}
               currentStatus={status || "all"}
               onStatusChange={handleStatusChange}
               currentRegion={region || "all"}

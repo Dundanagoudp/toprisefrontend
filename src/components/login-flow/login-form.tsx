@@ -13,15 +13,14 @@ import { loginSuccess } from "@/store/slice/auth/authSlice";
 import { useToast } from "@/components/ui/toast";
 import { Eye, EyeOff } from "lucide-react";
 import { getDealerById } from "@/service/dealerServices";
-
-
+import LogoNoname from "../../../public/assets/LogoNoname.png";
 
 const sidebarVisibilityConfig = {
-  'Fulfillment-Admin': {
+  "Fulfillment-Admin": {
     hide: [""],
     show: [""],
   },
-  'Fullfillment-staff': {
+  "Fullfillment-staff": {
     hide: [""],
     show: [],
   },
@@ -77,19 +76,18 @@ export function LoginForm({
           router.replace("/dealer/dashboard");
         } else if (role === "Fulfillment-Admin") {
           router.replace("/user/dashboard");
-        } else if (role === "Fulfillment-Staff" || role === "Fullfillment-staff") {
+        } else if (
+          role === "Fulfillment-Staff" ||
+          role === "Fullfillment-staff"
+        ) {
           router.replace("/user/dashboard/order");
-        }
-        else if (role === "Inventory-Staff") {
+        } else if (role === "Inventory-Staff") {
           router.replace("/user/dashboard/product");
-        }
-        else if (role === "Inventory-Admin") {
+        } else if (role === "Inventory-Admin") {
           router.replace("/user/dashboard/inventory-admin");
-        }
-        else if (role === "User" ) {
+        } else if (role === "User") {
           router.replace("/shop");
-        }
-        else {
+        } else {
           router.replace("/user/dashboard");
         }
       } else {
@@ -110,9 +108,16 @@ export function LoginForm({
           <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">
-                  Welcome <span className="text-primary-red">back</span>
-                </h1>
+                <div className="flex items-center justify-center mb-2">
+                  <img
+                    src={LogoNoname.src}
+                    alt="Logo"
+                    className="h-16 w-16 "
+                  />
+                  <h1 className="text-2xl font-bold">
+                    Welcome <span className="text-primary-red">back</span>
+                  </h1>
+                </div>
                 <p className="text-muted-foreground text-balance text-sm">
                   Sign In to your Dashboard
                 </p>
@@ -190,7 +195,7 @@ export function LoginForm({
                   "Login"
                 )}
               </Button>
-{/* 
+              {/* 
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
                   Or

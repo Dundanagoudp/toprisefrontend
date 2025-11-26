@@ -40,8 +40,8 @@ const data = {
   },
   teams: [
     {
-      name: "Toprise Ventures",
-      logo: GalleryVerticalEnd,
+      name: "Platform",
+      // logo: GalleryVerticalEnd,
       plan: "",
     },
   ],

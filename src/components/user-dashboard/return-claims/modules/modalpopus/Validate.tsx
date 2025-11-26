@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
-import { validateReturnRequest } from "@/service/return-service"
+import { validateReturnRequest, getReturnRequestsById } from "@/service/return-service"
 
 interface ValidateReturnRequestProps {
   open: boolean;
@@ -30,7 +30,25 @@ export default function ValidateReturnRequest({
     setError(null)
     
     try {
-      const response = await validateReturnRequest(returnId)
+      // Fetch return details to construct required validation payload
+      const details: any = await getReturnRequestsById(returnId)
+      const data = (details && details.data) ? details.data : details
+
+      const payload = {
+        orderId: data?.orderId || data?.order?._id,
+        sku: data?.sku || data?.product?.sku,
+        customerId: data?.customerId || data?.customer?._id,
+        quantity: String(data?.quantity ?? 1),
+        returnReason: data?.returnReason || "",
+        returnDescription: data?.returnDescription || "",
+        returnImages: Array.isArray(data?.returnImages) ? data.returnImages : [],
+      }
+
+      if (!payload.orderId || !payload.sku || !payload.customerId) {
+        throw new Error("Missing required return details to validate.")
+      }
+
+      const response = await validateReturnRequest(returnId, payload)
       if (response.success) {
         setSuccess(true)
         onValidationComplete?.(true)
@@ -40,7 +58,9 @@ export default function ValidateReturnRequest({
       }
     } catch (err: any) {
       console.error("Error validating return request:", err)
-      setError(err.response?.data?.message || "An error occurred while validating the return request.")
+      setError(
+        err?.message || err?.response?.data?.message || "An error occurred while validating the return request."
+      )
     } finally {
       setIsValidating(false)
     }

@@ -518,7 +518,7 @@ export default function AddDealer() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Categories Allowed *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Brands Allowed *</label>
                 {/* Multi-select Dropdown */}
                 <MultiSelectDropdown
                   options={allCategories}

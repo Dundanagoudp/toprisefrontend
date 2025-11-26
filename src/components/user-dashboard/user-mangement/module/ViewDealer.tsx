@@ -233,7 +233,7 @@ export default function ViewDealer() {
         {/* Operational Access & Categories */}
         <Card className="border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-black-600 font-semibold text-lg">Operational Access & Categories</CardTitle>
+            <CardTitle className="text-black-600 font-semibold text-lg">Operational Access & Brands</CardTitle>
             <p className="text-sm text-gray-500">Define what the dealer can access and what they're allowed to sell</p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">

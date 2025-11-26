@@ -401,7 +401,7 @@ export default function SLAViolationsDashboard() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="dealers">Dealers</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
+          {/* <TabsTrigger value="trends">Trends</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">

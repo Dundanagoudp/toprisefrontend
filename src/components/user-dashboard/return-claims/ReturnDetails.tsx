@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchEmployeeByUserId } from "@/service/order-service";
+import { getUserIdFromToken } from "@/utils/auth";
 import { 
   ArrowLeft, 
   Eye, 
@@ -40,13 +42,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getReturnRequestsById } from "@/service/return-service";
+import { getReturnRequestsById, startInspection } from "@/service/return-service";
 import { ReturnRequest } from "@/types/return-Types";
 import ValidateReturnRequest from "./modules/modalpopus/Validate";
 import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog";
 import CompletePickupDialog from "./modules/modalpopus/CompletePickupDialog";
 import InspectDialog from "./modules/modalpopus/inspectDialog";
 import InitiateRefundForm from "./modules/modalpopus/InitiateReturn";
+import { useAppSelector } from "@/store/hooks";
 
 interface ReturnDetailsProps {
   returnId: string;
@@ -56,8 +59,12 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const router = useRouter();
   const { updateLabel } = useBreadcrumb();
   const [returnRequest, setReturnRequest] = useState<ReturnRequest | null>(null);
+  const userId = useAppSelector((state) => state.auth.user._id);
+  const userRole = useAppSelector((state) => state.auth.user?.role);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inspectionLoading, setInspectionLoading] = useState(false);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
   const breadcrumbUpdatedRef = useRef(false);
 
   // Dialog states
@@ -70,6 +77,32 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   useEffect(() => {
     fetchReturnDetails();
   }, [returnId]);
+
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      try {
+
+        
+        if (userId) {
+
+          const response = await fetchEmployeeByUserId(userId);
+          console.log("Employee API response:", response.data);
+          
+          if (response.success ) {
+            console.log("Employee ID fetched successfully:", response.employee._id);
+            setEmployeeId(response.employee._id);
+          } else {
+            console.error("Failed to get employee ID from response:", response);
+          }
+        } else {
+          console.error("No user ID found in token");
+        }
+      } catch (error) {
+        console.error("Failed to fetch employee ID:", error);
+      }
+    };
+    fetchEmployee();
+  }, []);
 
   const fetchReturnDetails = async () => {
     try {
@@ -100,6 +133,73 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
       setLoading(false);
     }
   };
+
+  // Start inspection handler
+  const handleStartInspection = async () => {
+
+    
+    const isSuperAdmin = userRole === "Super-admin";
+    
+    if (!isSuperAdmin && !employeeId) {
+      console.error("Employee ID not available. Please ensure you are logged in.");
+      alert("Unable to start inspection: Employee ID not found. Please try refreshing the page or logging in again.");
+      return;
+    }
+    
+    setInspectionLoading(true);
+    try {
+      // Build request body based on user role
+      const requestBody: any = {
+        inspectedBy: userId,
+        isSuperAdmin
+      };
+      
+      // Only add inspectedBy if not super admin
+      if (!isSuperAdmin) {
+        requestBody.inspectedBy = employeeId;
+      }
+      
+      console.log("Calling startInspection API with:", {
+        returnId,
+        ...requestBody
+      });
+      
+      const response = await startInspection(returnId, requestBody);
+      
+      console.log("Start Inspection API response:", response);
+      
+      if (response.success) {
+        console.log("Inspection started successfully, refreshing details...");
+        await fetchReturnDetails();
+        alert("Inspection started successfully!");
+      } else {
+        console.error("API returned success: false", response);
+        alert(`Failed to start inspection: ${response.message || "Unknown error"}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to start inspection:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status
+      });
+      alert(`Error starting inspection: ${error?.response?.data?.message || error?.message || "Unknown error"}`);
+    } finally {
+      setInspectionLoading(false);
+    }
+  };
+
+// complete inspection handler
+const handleCompleteInspection = async () => {
+    if(!returnId) {
+      return;
+    }
+    try {
+
+    }
+}
+
+
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-3 py-1 rounded-full text-xs font-medium border";
@@ -278,6 +378,18 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
         </div>
         
         <div className="flex items-center gap-3">
+          {returnRequest.returnStatus === "Shipment_Completed" && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleStartInspection}
+              disabled={inspectionLoading}
+              className="flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              {inspectionLoading ? "Starting..." : "Start Inspection"}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
