@@ -49,6 +49,9 @@ import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog";
 import CompletePickupDialog from "./modules/modalpopus/CompletePickupDialog";
 import InspectDialog from "./modules/modalpopus/inspectDialog";
 import InitiateRefundForm from "./modules/modalpopus/InitiateReturn";
+import CompleteInspectionDialog from "./modules/modalpopus/CompleteInspectionDialog";
+import OnlineRefundDialog from "./modules/modalpopus/OnlineRefundDialog";
+import ManualRefundDialog from "./modules/modalpopus/ManualRefundDialog";
 import { useAppSelector } from "@/store/hooks";
 
 interface ReturnDetailsProps {
@@ -73,6 +76,9 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const [completePickupDialog, setCompletePickupDialog] = useState(false);
   const [inspectDialog, setInspectDialog] = useState(false);
   const [initiateRefundDialog, setInitiateRefundDialog] = useState(false);
+  const [completeInspectionDialog, setCompleteInspectionDialog] = useState(false);
+  const [onlineRefundDialog, setOnlineRefundDialog] = useState(false);
+  const [manualRefundDialog, setManualRefundDialog] = useState(false);
 
   useEffect(() => {
     fetchReturnDetails();
@@ -190,13 +196,23 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   };
 
 // complete inspection handler
-const handleCompleteInspection = async () => {
-    if(!returnId) {
-      return;
-    }
-    try {
+const handleCompleteInspection = () => {
+    setCompleteInspectionDialog(true);
+}
 
-    }
+const handleRefund = () => {
+  if (!returnRequest) return;
+  
+  // Check refund method
+  const refundMethod = returnRequest.refund?.refundMethod;
+  
+  if (refundMethod === "Original_Payment_Method") {
+    // Open online refund dialog
+    setOnlineRefundDialog(true);
+  } else {
+    // Open manual refund dialog for other methods
+    setManualRefundDialog(true);
+  }
 }
 
 
@@ -378,6 +394,12 @@ const handleCompleteInspection = async () => {
         </div>
         
         <div className="flex items-center gap-3">
+          {returnRequest.returnStatus === "Shipment_Intiated" && (
+            <Badge className="px-3 py-2 bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              Product should be delivered first for inspection
+            </Badge>
+          )}
           {returnRequest.returnStatus === "Shipment_Completed" && (
             <Button
               variant="default"
@@ -388,6 +410,30 @@ const handleCompleteInspection = async () => {
             >
               <Eye className="h-4 w-4" />
               {inspectionLoading ? "Starting..." : "Start Inspection"}
+            </Button>
+          )}
+                 {returnRequest.returnStatus === "Inspection_Started" && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleCompleteInspection}
+              disabled={inspectionLoading}
+              className="flex items-center gap-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              {inspectionLoading ? "Processing..." : "Complete Inspection"}
+            </Button>
+          )}
+                    {returnRequest.returnStatus === "Inspection_Completed" && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleRefund}
+              disabled={inspectionLoading}
+              className="flex items-center gap-2"
+            >
+              <DollarSign className="h-4 w-4" />
+              {inspectionLoading ? "Processing..." : "Process Refund"}
             </Button>
           )}
           <Button
@@ -1000,6 +1046,44 @@ const handleCompleteInspection = async () => {
           setInitiateRefundDialog(false);
         }}
       />
+      
+      <CompleteInspectionDialog
+        open={completeInspectionDialog}
+        onClose={() => setCompleteInspectionDialog(false)}
+        onComplete={(success) => {
+          if (success) {
+            fetchReturnDetails();
+          }
+          setCompleteInspectionDialog(false);
+        }}
+        returnId={returnId}
+        returnRequest={returnRequest}
+      />
+      
+      <OnlineRefundDialog
+        open={onlineRefundDialog}
+        onClose={() => setOnlineRefundDialog(false)}
+        onComplete={(success) => {
+          if (success) {
+            fetchReturnDetails();
+          }
+          setOnlineRefundDialog(false);
+        }}
+        returnId={returnId}
+      />
+      
+      {/* <ManualRefundDialog
+        open={manualRefundDialog}
+        onClose={() => setManualRefundDialog(false)}
+        onComplete={(success) => {
+          if (success) {
+            fetchReturnDetails();
+          }
+          setManualRefundDialog(false);
+        }}
+        returnId={returnId}
+        returnRequest={returnRequest}
+      /> */}
     </div>
   );
 }
