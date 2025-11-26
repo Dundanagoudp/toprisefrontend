@@ -153,11 +153,11 @@ export default function PendingProduct({
           ? response.data.products
           : [];
         const pagination = response.data.pagination || {};
-        const pendingProducts = products.filter(
-          (product) => product.live_status === "Pending"
-        );
-        setPaginatedProducts(pendingProducts);
-        setTotalProducts(pendingProducts.length);
+          // const pendingProducts = products.filter(
+          //   (product) => product.Qc_status === "Pending"
+          // );
+        setPaginatedProducts(products);
+        setTotalProducts(products.length);
         setTotalPages(pagination.totalPages || 0);
       } else {
         console.error("Unexpected API response structure:", response);
@@ -262,7 +262,7 @@ export default function PendingProduct({
     
     try {
       if (newStatus === 'Approved') {
-        await approveSingleProduct(productId);
+        await aproveProduct(productId);
         showToast('Product approved', "success");
       }
       dispatch(updateProductQcStatus({ id: productId, qcStatus: newStatus }));
@@ -632,29 +632,28 @@ export default function PendingProduct({
       </div>
 
       {/* Pagination */}
-      {totalProducts > 0 && totalPages > 1 && (
-        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
-          {/* Left: Showing X-Y of Z products */}
-          <div className="text-sm text-gray-600 text-center sm:text-left">
-            {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
-              currentPage * itemsPerPage,
-              totalProducts
-            )} of ${totalProducts} products`}
-          </div>
-          {/* Pagination Controls */}
-          {totalProducts > 10 && (
-            <div className="flex justify-center sm:justify-end">
-              <DynamicPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalProducts}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-              />
-            </div>
-          )}
-        </div>
-      )}
+       {totalProducts > 0 && totalPages > 1 && (
+         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
+           {/* Left: Showing X-Y of Z products */}
+           <div className="text-sm text-gray-600 text-center sm:text-left">
+             {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
+               currentPage * itemsPerPage,
+               totalProducts
+             )} of ${totalProducts} products`}
+           </div>
+           {/* Pagination Controls */}
+ 
+           <div className="flex justify-center sm:justify-end">
+            <DynamicPagination
+             currentPage={currentPage}
+             totalPages={totalPages}
+             totalItems={totalProducts}
+             itemsPerPage={itemsPerPage}
+             onPageChange={setCurrentPage}
+           />
+           </div>
+         </div>
+       )}
 
       {/* Loading spinner for product view */}
       {viewProductLoading && (
