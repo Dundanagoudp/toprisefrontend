@@ -66,13 +66,14 @@ const schema = z.object({
   make: z.string().min(1, "Make is required"),
   make2: z.string().optional(),
   model: z.string().min(1, "Model is required"),
-  year_range: z.string().optional(),
+  year_range: z.array(z.string()).optional(),
+
   variant: z.string().min(1, "Variant is required"),
   fitment_notes: z.string().optional(),
   is_universal: z.string().optional(),
   is_consumable: z.string().optional(),
   // Technical Specifications
-  keySpecifications: z.string().optional(),
+  key_specifications: z.string().optional(),
   weight: z.coerce
     .number()
     .min(0, "Weight must be a positive number")
@@ -141,6 +142,8 @@ export default function ProductEdit() {
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
   const [product, setProduct] = useState<Product | null>(null);
   const [showDeleteWarning, setShowDeleteWarning] = useState(false);
+  const [yearRangeSelected, setYearRangeSelected] = useState<string[]>([]);
+
   // State for dependent dropdowns
   const [selectedProductTypeId, setSelectedProductTypeId] =
     useState<string>("");
@@ -354,6 +357,7 @@ export default function ProductEdit() {
 
       try {
         const response = await getProductById(id.id);
+        console.log("getProducts API response:", response);
         // response is ProductResponse, which has data: Product[]
         const data = response.data;
         if (Array.isArray(data) && data.length > 0) {
@@ -449,6 +453,7 @@ export default function ProductEdit() {
   // Populate form with fetched product data
   useEffect(() => {
     if (product) {
+      console.log("Populating form with product data:", product);
       // Use setTimeout to ensure dependent dropdowns are loaded first
       const populateForm = () => {
         reset({
@@ -467,16 +472,15 @@ export default function ProductEdit() {
           make: product.make && product.make.length > 0 ? product.make[0] : "",
           make2: product.make && product.make.length > 1 ? product.make[1] : "",
           model: product.model?._id || "",
-          year_range:
-            product.year_range && product.year_range.length > 0
-              ? product.year_range[0]._id
-              : "",
+          year_range: product.year_range?.map((y) => y._id) || [],
+
           variant:
             product.variant && product.variant.length > 0
               ? product.variant[0]._id
               : "",
           fitment_notes: product.fitment_notes || "",
-          keySpecifications: product.key_specifications || "",
+        key_specifications: product.key_specifications || "",
+
           is_universal: product.is_universal ? "yes" : "no",
           is_consumable: product.is_consumable ? "yes" : "no",
           weight: product.weight || 0,
@@ -496,6 +500,9 @@ export default function ProductEdit() {
           search_tags: product.search_tags || [],
           seo_description: product.seo_description || "",
         });
+
+        setYearRangeSelected(product.year_range?.map((y) => y._id) || []);
+
 
         // Set brand ID for model dependency
         if (product.brand?._id) {
@@ -1058,7 +1065,7 @@ const onSubmit = async (data: FormValues) => {
                     <SelectContent>
                       <SelectItem value="OE">OE</SelectItem>
                       <SelectItem value="OEM">OEM</SelectItem>
-                      <SelectItem value="AfterMarket">Aftermarket</SelectItem>
+                      <SelectItem value="AFTERMARKET">Aftermarket</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.product_type && (
@@ -1259,40 +1266,42 @@ const onSubmit = async (data: FormValues) => {
                   )}
                 </div>
                 {/* Year Range */}
-                <div className="space-y-2">
-                  <Label htmlFor="yearRange" className="text-sm font-medium">
-                    Year Range
-                  </Label>
-                  <Select
-                    value={watch("year_range") || ""}
-                    onValueChange={(value) => setValue("year_range", value)}
-                  >
-                    <SelectTrigger
-                      id="year_range"
-                      className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                    >
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {yearRangeOptions.length === 0 ? (
-                        <SelectItem value="loading" disabled>
-                          Loading...
-                        </SelectItem>
-                      ) : (
-                        yearRangeOptions.map((year) => (
-                          <SelectItem key={year._id} value={year._id}>
-                            {year.year_name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {errors.year_range && (
-                    <span className="text-red-500 text-sm">
-                      {errors.year_range.message}
-                    </span>
-                  )}
-                </div>
+           <div className="space-y-2">
+  <Label htmlFor="yearRange" className="text-sm font-medium">
+    Year Range
+  </Label>
+
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded bg-gray-50">
+    {yearRangeOptions.map((year) => (
+      <label
+        key={year._id}
+        className="flex items-center gap-2 bg-white p-2 rounded border cursor-pointer"
+      >
+        <input
+          type="checkbox"
+          checked={yearRangeSelected.includes(year._id)}
+          onChange={() => {
+            let updated;
+            if (yearRangeSelected.includes(year._id)) {
+              updated = yearRangeSelected.filter((id) => id !== year._id);
+            } else {
+              updated = [...yearRangeSelected, year._id];
+            }
+            setYearRangeSelected(updated);
+            setValue("year_range", updated);
+          }}
+        />
+        <span className="text-sm">{year.year_name}</span>
+      </label>
+    ))}
+  </div>
+
+  {errors.year_range && (
+    <span className="text-red-500 text-sm">{errors.year_range.message}</span>
+  )}
+</div>
+
+
 
                 {/* Fitment Notes */}
                 <div className="space-y-2">
@@ -1352,25 +1361,23 @@ const onSubmit = async (data: FormValues) => {
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Key Specifications */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="keySpecifications"
-                    className="text-base font-medium font-sans"
-                  >
-                    Key Specifications
-                  </Label>
-                  <Input
-                    id="keySpecifications"
-                    placeholder="Enter Key Specifications"
-                    className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                    {...register("keySpecifications")}
-                  />
-                  {errors.keySpecifications && (
-                    <span className="text-red-500 text-sm">
-                      {errors.keySpecifications.message}
-                    </span>
-                  )}
-                </div>
+               <div className="space-y-2">
+  <Label htmlFor="key_specifications" className="text-base font-medium font-sans">
+    Key Specifications
+  </Label>
+  <Input
+    id="key_specifications"
+    placeholder="Enter Key Specifications"
+    className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+    {...register("key_specifications")}
+  />
+  {errors.key_specifications && (
+    <span className="text-red-500 text-sm">
+      {errors.key_specifications.message}
+    </span>
+  )}
+</div>
+
                 {/* Weight */}
                 <div className="space-y-2">
                   <Label htmlFor="weight" className="text-sm font-medium">
