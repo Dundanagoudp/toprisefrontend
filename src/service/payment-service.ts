@@ -4,15 +4,39 @@ import apiClient from "@/apiClient";
 
 
 
-export async function getPaymentDetails(page: number, limit: number): Promise<PaymentDetailsResponse> {
-    try {
-      const response = await apiClient.get(`orders/api/payments/all?page=${page}&limit=${limit}`);
-      return response.data;
-    } catch (error) {
-      console.log("error in payment service",error)
-      throw error;
-    }
+export async function getPaymentDetails(
+  page: number, 
+  limit: number,
+  filters: {
+    payment_status?: string;
+    payment_method?: string;
+    startDate?: string | null;
+    endDate?: string | null;
   }
+): Promise<PaymentDetailsResponse> {
+  try {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+      payment_status: filters.payment_status || "all",
+      payment_method: filters.payment_method || "all"
+    });
+
+    // If date range filters exist, add them
+    if (filters.startDate) params.append("startDate", filters.startDate);
+    if (filters.endDate) params.append("endDate", filters.endDate);
+
+    const response = await apiClient.get(
+      `orders/api/payments/all?${params.toString()}`
+    );
+
+    return response.data;
+  } catch (error) {
+    console.log("error in payment service", error);
+    throw error;
+  }
+}
+
 export async function getPaymentDetailsById(id: string): Promise<PaymentDetailByIdResponse> {
     try {
       const response = await apiClient.get(`orders/api/payments/by-id/${id}`);

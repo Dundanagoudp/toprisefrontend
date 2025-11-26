@@ -856,7 +856,7 @@ export async function editBulkProducts(
 ): Promise<ProductResponse> {
   try {
     const response = await apiClient.put(
-      `/category/products/v1/bulk-edit`,
+      `/category/products/v1/bulk-edit-products`,
       formData,
       {
         headers: {
@@ -870,6 +870,27 @@ export async function editBulkProducts(
     throw error;
   }
 }
+
+export async function bulkDealerAssignment(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(
+      `/category/products/v1/bulk/assign-Dealers`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk products:", error);
+    throw error;
+  }
+}
+
 
 export async function uploadLogs(): Promise<ProductResponse> {
   try {
