@@ -69,6 +69,41 @@ export const startInspection = async (
   }
 }
 
+
+//complete inspection
+export const completeInspection = async (
+  returnId: string,
+  data: any,
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(
+      `/orders/api/returns/complete-Inspection/${returnId}`,data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error completing inspection:", error);
+    throw error;
+  }
+};
+
+
+//initiate refund
+export const initiateRefund = async (
+
+  data: any,
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.post(
+      `/orders/api/refunds/createRefund-online`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error initiating refund:", error);
+    throw error;
+  }
+};
+
 export const schedulePickup = async (
   returnId: string,
   payload: {
@@ -153,7 +188,20 @@ export const refundInitiate = async (
   }
 };
 
-
+export const markRefundCompleted = async (
+  returnId: string,
+  data?: any
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(
+      `/orders/api/returns/${returnId}/mark-refund-completed`,
+      data || {}
+    );
+    return response.data;
+  } catch (error: any) {
+    throw error;
+  }
+};
 
 export const createReturnRequest = async (
   data: any,
