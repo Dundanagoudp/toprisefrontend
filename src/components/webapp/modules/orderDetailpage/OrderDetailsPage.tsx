@@ -349,7 +349,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
               variant="outline"
               size="sm"
               onClick={handleReturnProduct}
-              disabled={!isReturnEligible(order) || order.skus?.every((sku: any) => sku.return_info?.return_id)}
+              disabled={isReturnEligible(order) || order.skus?.every((sku: any) => sku.return_info?.return_id)}
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Return Product
