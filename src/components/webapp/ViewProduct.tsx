@@ -497,12 +497,12 @@ export default function ProductPage() {
                   </>
                 )}
               </div>
-              <p className="text-sm text-green-600">Inclusive of all taxes</p>
-              {product.out_of_stock ? (
-                <p className="text-sm text-red-600">Out of Stock</p>
-              ) : (
-                <p className="text-sm text-green-600">In Stock ({product.no_of_stock} available)</p>
-              )}
+              {/* <p className="text-sm text-green-600">Inclusive of all taxes</p> */}
+  {Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && !product.available_dealers[0].inStock ? (
+    <p className="text-sm text-red-600">Out of Stock</p>
+  ) : (
+    <p className="text-sm text-green-600">In Stock</p>
+  )}
             </div>
 
             <div className="space-y-4">
@@ -557,7 +557,7 @@ export default function ProductPage() {
                 className="flex-1 bg-red-600 hover:bg-red-700"
                 size="lg"
                 onClick={handleAddToCart}
-                disabled={product.out_of_stock || addingToCart}
+                disabled={Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && !product.available_dealers[0].inStock|| addingToCart}
               >
                 {addingToCart ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -570,7 +570,7 @@ export default function ProductPage() {
                 variant="secondary" 
                 size="lg" 
                 className="flex-1 text-white" 
-                disabled={product.out_of_stock || buyingNow}
+                disabled={Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && !product.available_dealers[0].inStock || buyingNow}
                 onClick={handleBuyNow}
               >
                 {buyingNow ? (

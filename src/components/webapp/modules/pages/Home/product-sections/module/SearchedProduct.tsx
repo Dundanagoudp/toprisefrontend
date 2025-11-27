@@ -15,8 +15,6 @@ import {
   smartSearchWithCategory,
 } from "@/service/user/smartSearchService";
 import { getVariantsByModel } from "@/service/product-Service";
-import { getProductsByFilterWithIds } from "@/service/product-Service";
-import { getModelsByBrand } from "@/service/product-Service";
 import { Product, Brand } from "@/types/User/Search-Types";
 import { useAppSelector } from "@/store/hooks";
 import { selectVehicleType } from "@/store/slice/vehicle/vehicleSlice";
@@ -40,7 +38,6 @@ interface Model {
 import ModelListing from "@/components/webapp/modules/pages/Home/category/module/ModelListing";
 import VariantListing from "@/components/webapp/modules/pages/Home/category/module/VariantListing";
 import ProductListing from "@/components/webapp/modules/pages/Home/category/module/ProductListing";
-import SearchModal from "./SearchModal";
 
 // Variant interface for API response
 interface Variant {
@@ -68,12 +65,6 @@ const SearchResults = () => {
   const category = searchParams.get("category");
   const categoryName = searchParams.get("categoryName");
   const vehicleTypeId = searchParams.get("vehicleTypeId");
-  const brand = searchParams.get("brand");
-  const model = searchParams.get("model");
-  const variant = searchParams.get("variant");
-  const searchType = searchParams.get("searchType");
-  const searchTypeDetails = searchParams.get("searchTypeDetails");
-  const originalQuery = searchParams.get("originalQuery");
   const vehicleType = useAppSelector(selectVehicleType);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -97,7 +88,6 @@ const SearchResults = () => {
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(100000);
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
 
   const noVehicleResults =
     Boolean(vehicleTypeId) &&
@@ -210,143 +200,27 @@ const SearchResults = () => {
     }
   }, [category, categoryName, vehicleTypeId, query]);
 
-  // Handle product fetching when brand, model, variant, and category are present
-  useEffect(() => {
-    if (brand && model && variant && category) {
-      const fetchFilteredProducts = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          console.log("Fetching products with filters:", { brand, model, variant, category, searchType, originalQuery });
-          
-          // Parse search type details if available
-          let searchTypeDetailsObj = null;
-          if (searchTypeDetails) {
-            try {
-              searchTypeDetailsObj = JSON.parse(searchTypeDetails);
-            } catch (e) {
-              console.error("Failed to parse searchTypeDetails:", e);
-            }
-          }
-          
-          // Determine which search parameter to use based on search type
-          let skuCodeParam = undefined;
-          let productNameParam = undefined;
-          let partNameParam = undefined;
-          
-          if (searchType === 'sku_code' && originalQuery) {
-            skuCodeParam = originalQuery;
-          } else if (searchType === 'product_name' && originalQuery) {
-            productNameParam = originalQuery;
-          } else if (searchType === 'part_name' && originalQuery) {
-            partNameParam = originalQuery;
-          }
-          
-          const response = await getProductsByFilterWithIds(
-            "", // product_type (not used)
-            brand, // brandId
-            model, // modelId
-            variant, // variantId
-            category, // categoryId
-            undefined, // sub_categoryId
-            undefined, // sort_by
-            undefined, // min_price
-            undefined, // max_price
-            skuCodeParam, // sku_code
-            productNameParam, // product_name
-            partNameParam // part_name
-          );
+  // Handle brand click - update search query and trigger new search
+  const handleBrandClick = async (brandName: string) => {
+    let newQuery: string;
 
-          console.log("Products API Response:", response);
-
-          let extractedProducts: any[] = [];
-
-          // Handle different possible response structures
-          if (response && response.data) {
-            if (Array.isArray(response.data)) {
-              extractedProducts = response.data;
-            } else if (response.data.products && Array.isArray(response.data.products)) {
-              extractedProducts = response.data.products;
-            }
-          }
-
-          setProducts(extractedProducts as Product[]);
-          setIsProduct(true);
-          setIsBrand(false);
-          setIsModel(false);
-          setIsVariant(false);
-          setIsCategory(false);
-        } catch (err) {
-          console.error("Error fetching filtered products:", err);
-          setError("Failed to load products");
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchFilteredProducts();
-    }
-  }, [brand, model, variant, category, searchType, originalQuery]);
-
-  // Handle brand click - fetch models for selected brand and show them
-  const handleBrandClick = async (brandName: string, brandId?: string) => {
-    if (!brandId) {
-      console.warn("No brandId found, cannot fetch models");
-      return;
+    if (categoryName) {
+      // If we're in category mode, combine category and brand
+      newQuery = `${categoryName} ${brandName}`.trim();
+    } else {
+      // If we're in regular search mode, combine existing query with brand
+      newQuery = `${query} ${brandName}`.trim();
     }
 
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log("Brand clicked:", brandName, "Brand ID:", brandId);
-      
-      // Fetch models for this brand
-      const modelsRes = await getModelsByBrand(brandId);
-      console.log("Models response:", modelsRes);
-      
-      let fetchedModels: Model[] = [];
-      
-      if (modelsRes?.success && modelsRes?.data) {
-        if (Array.isArray(modelsRes.data)) {
-          fetchedModels = modelsRes.data as unknown as Model[];
-        } else if (Array.isArray(modelsRes.data.products)) {
-          fetchedModels = modelsRes.data.products as unknown as Model[];
-        }
-      }
-      
-      console.log("Fetched models:", fetchedModels.length);
-      
-      if (fetchedModels.length > 0) {
-        // Show models for this brand
-        setIsCategory(false);
-        setIsBrand(false);
-        setIsModel(true);
-        setIsVariant(false);
-        setIsProduct(false);
-        
-        setModelData(fetchedModels);
-        setBrandData([brandData.find(b => b._id === brandId) || { _id: brandId, brand_name: brandName } as Brand]);
-        setVariantData([]);
-        setProducts([]);
-        
-        // Update URL to include brand parameter
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("brand", brandId);
-        router.push(`?${params.toString()}`);
-      } else {
-        // No models found - fall back to search
-        const newQuery = `${query || ""} ${brandName}`.trim();
+    console.log("Brand clicked:", brandName, "New query:", newQuery);
+
+    // Update URL with new query
     const newSearchParams = new URLSearchParams(searchParams.toString());
     newSearchParams.set("query", newQuery);
+    // Remove category parameters since we're now doing a query search
+    newSearchParams.delete("category");
+    newSearchParams.delete("categoryName");
     router.push(`?${newSearchParams.toString()}`);
-      }
-    } catch (err) {
-      console.error("Error fetching models by brand:", err);
-      setError("Failed to load models for this brand");
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Handle model click - fetch variants for selected model and show them
@@ -383,11 +257,6 @@ const SearchResults = () => {
         setVariantData(fetchedVariants);
         setModelData([model]);
         setProducts([]);
-        
-        // Update URL to include model parameter
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("model", model._id);
-        router.push(`?${params.toString()}`);
       } else {
         // No variants - fall back to search
         const newQuery = `${query || ""} ${modelName}`.trim();
@@ -403,34 +272,95 @@ const SearchResults = () => {
     }
   };
 
-  // Handle variant click - fetch products for selected variant
-  const handleVariantClick = async (variantName: string, variantId?: string) => {
-    if (!variantId) {
-      console.warn("No variantId found, falling back to search");
-      const newQuery = `${query} ${variantName}`.trim();
+  // Handle variant click - update search query and trigger new search
+  const handleVariantClick = async (variantName: string) => {
+    const newQuery = `${query} ${variantName}`.trim();
+    console.log("Variant clicked:", variantName, "New query:", newQuery);
+
+    // If we have a category context, use the category-specific API
+    if (category && categoryName) {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Use the new API with category parameter
+        const response = await smartSearchWithCategory(newQuery, categoryName);
+        console.log("Variant search with category response:", response);
+
+        // Validate response structure
+        if (!response || typeof response !== "object") {
+          throw new Error(
+            "Invalid response format from variant search with category"
+          );
+        }
+
+        // Set product flag and extract product data
+        setIsCategory(false);
+        setIsBrand(false);
+        setIsModel(false);
+        setIsVariant(false);
+        setIsProduct(true);
+
+        // Extract products from response
+        let extractedProducts: Product[] = [];
+        const apiResponse = response as any;
+
+        if (
+          apiResponse.results?.products &&
+          Array.isArray(apiResponse.results.products)
+        ) {
+          extractedProducts = apiResponse.results.products;
+          console.log(
+            "Variant products found in response.results.products:",
+            extractedProducts.length,
+            "products"
+          );
+        } else if (
+          apiResponse.products &&
+          Array.isArray(apiResponse.products)
+        ) {
+          extractedProducts = apiResponse.products;
+          console.log(
+            "Variant products found in response.products:",
+            extractedProducts.length,
+            "products"
+          );
+        } else if (
+          apiResponse.data?.products &&
+          Array.isArray(apiResponse.data.products)
+        ) {
+          extractedProducts = apiResponse.data.products;
+          console.log(
+            "Variant products found in response.data.products:",
+            extractedProducts.length,
+            "products"
+          );
+        } else {
+          console.log("No products found for variant with category");
+        }
+
+        setProducts(extractedProducts);
+
+        // Clear other data
+        setBrandData([]);
+        setModelData([]);
+        setVariantData([]);
+
+        // Update URL with new query
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.set("query", newQuery);
+        router.push(`?${newSearchParams.toString()}`);
+      } catch (err) {
+        console.error("Variant search with category error:", err);
+        setError("Failed to load products for this variant");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Regular search flow
       const newSearchParams = new URLSearchParams(searchParams.toString());
       newSearchParams.set("query", newQuery);
       router.push(`?${newSearchParams.toString()}`);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log("Variant clicked:", variantName, "Variant ID:", variantId);
-      
-      // Update URL to include variant parameter
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("variant", variantId);
-      router.push(`?${params.toString()}`);
-      
-      // The useEffect will handle fetching products when brand, model, and variant are all present
-    } catch (err) {
-      console.error("Error handling variant click:", err);
-      setError("Failed to load products for this variant");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -455,179 +385,183 @@ const SearchResults = () => {
 
     setVariantData([]);
     setProducts([]);
-    
-    // Update URL to remove variant parameter
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("variant");
-    router.push(`?${params.toString()}`);
   };
 
-  // Handle back to variants - go back to variant selection
-  const handleBackToVariants = () => {
-    setIsCategory(false);
-    setIsBrand(false);
-    setIsModel(false);
-    setIsVariant(true);
-    setIsProduct(false);
-
-    setProducts([]);
-    
-    // Update URL to remove variant parameter but keep brand and model
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("variant");
-    router.push(`?${params.toString()}`);
-  };
-
-  // Handle brand parameter - fetch models for the brand
   useEffect(() => {
-    if (brand && !model && !variant) {
-      const fetchBrandModels = async () => {
+    if (query) {
+      const fetchSearchResults = async () => {
         setLoading(true);
         setError(null);
         try {
-          console.log("Fetching models for brand:", brand);
-          
-          const modelsRes = await getModelsByBrand(brand);
-          console.log("Models response:", modelsRes);
-          
-          let fetchedModels: Model[] = [];
-          
-          if (modelsRes?.success && modelsRes?.data) {
-            if (Array.isArray(modelsRes.data)) {
-              fetchedModels = modelsRes.data as unknown as Model[];
-            } else if (Array.isArray(modelsRes.data.products)) {
-              fetchedModels = modelsRes.data.products as unknown as Model[];
-            }
+          // Send both query and vehicleTypeId to smartSearch
+          const response = await smartSearch(query, vehicleTypeId || undefined, sortBy, sortBy, minPrice, maxPrice);
+          console.log("smartSearch response:", response);
+
+          // Validate response structure
+          if (!response || typeof response !== "object") {
+            throw new Error("Invalid response format from smartSearch");
           }
-          
-          console.log("Fetched models:", fetchedModels.length);
-          
-          if (fetchedModels.length > 0) {
-            setIsCategory(false);
-            setIsBrand(false);
-            setIsModel(true);
-            setIsVariant(false);
-            setIsProduct(false);
-            
-            setModelData(fetchedModels);
-            setVariantData([]);
-            setProducts([]);
+
+          // Check is_brand, is_model, is_variant, and is_product flags
+ 
+          const brandFlag = response.is_brand || false;
+          const modelFlag = response.is_model || false;
+          const variantFlag = response.is_variant || false;
+          const productFlag = response.is_product || false;
+          setIsBrand(brandFlag);
+          setIsModel(modelFlag);
+          setIsVariant(variantFlag);
+          setIsProduct(productFlag);
+          console.log("is_brand flag:", brandFlag);
+          console.log("is_model flag:", modelFlag);
+          console.log("is_variant flag:", variantFlag);
+          console.log("is_product flag:", productFlag);
+
+          // Extract all brand data if available
+          let brands: Brand[] = [];
+
+          // Check if results object exists and has brand data (using type assertion for API compatibility)
+          const apiResponse = response as any;
+          if (apiResponse.results?.brand) {
+            brands = [apiResponse.results.brand];
+            console.log(
+              "Brand found in response.results.brand:",
+              brands.length,
+              "brand"
+            );
+          } else if (
+            apiResponse.results &&
+            Array.isArray(apiResponse.results) &&
+            apiResponse.results.length > 0
+          ) {
+            // Fallback for array format
+            brands = apiResponse.results;
+            console.log(
+              "Brands found in response.results (array):",
+              brands.length,
+              "brands"
+            );
           } else {
-            setError("No models found for this brand");
-          }
-        } catch (err) {
-          console.error("Error fetching models by brand:", err);
-          setError("Failed to load models for this brand");
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchBrandModels();
-    }
-  }, [brand]);
-
-  // Handle model parameter - fetch variants for the model
-  useEffect(() => {
-    if (brand && model && !variant) {
-      const fetchModelVariants = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          console.log("Fetching variants for model:", model);
-          
-          const variantsRes = await getVariantsByModel(model);
-          console.log("Variants response:", variantsRes);
-          
-          let fetchedVariants: Variant[] = [];
-          
-          if (variantsRes?.success && variantsRes?.data) {
-            if (Array.isArray(variantsRes.data)) {
-              fetchedVariants = variantsRes.data as unknown as Variant[];
-            } else if (Array.isArray(variantsRes.data.products)) {
-              fetchedVariants = variantsRes.data.products as unknown as Variant[];
+            console.log("Brand data not found. Response structure:", response);
+            console.log("Available keys in response:", Object.keys(response));
+            if (apiResponse.results) {
+              console.log(
+                "Available keys in results:",
+                Object.keys(apiResponse.results)
+              );
             }
           }
-          
-          console.log("Fetched variants:", fetchedVariants.length);
-          
-          if (fetchedVariants.length > 0) {
-            setIsCategory(false);
-            setIsBrand(false);
-            setIsModel(false);
-            setIsVariant(true);
-            setIsProduct(false);
-            
-            setVariantData(fetchedVariants);
-            setProducts([]);
+
+          setBrandData(brands);
+
+          // Extract models data if available
+          let models: Model[] = [];
+          if (
+            apiResponse.results?.models &&
+            Array.isArray(apiResponse.results.models) &&
+            apiResponse.results.models.length > 0
+          ) {
+            models = apiResponse.results.models;
+            console.log(
+              "Models found in response.results.models:",
+              models.length,
+              "models"
+            );
           } else {
-            setError("No variants found for this model");
+            console.log("No models found in response");
+            console.log(
+              "Available keys in results:",
+              apiResponse.results
+                ? Object.keys(apiResponse.results)
+                : "No results object"
+            );
           }
-        } catch (err) {
-          console.error("Error fetching variants by model:", err);
-          setError("Failed to load variants for this model");
-        } finally {
-          setLoading(false);
-        }
-      };
 
-      fetchModelVariants();
-    }
-  }, [brand, model]);
+          setModelData(models);
 
-  useEffect(() => {
-    // if brand/model/variant exist → use ID-based filter API
-    if (brand && model && variant) {
-      const fetchFilteredProducts = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          console.log("Detected Banner-based search (ID params):", { brand, model, variant, category });
+          // Extract variants data if available
+          let variants: Variant[] = [];
+          let modelData: any = null;
 
-          const response = await getProductsByFilterWithIds(
-            "", // product_type (optional)
-            brand, // brandId
-            model, // modelId
-            variant, // variantId
-            category || "", // categoryId (optional)
-            undefined, // sub_categoryId
-            undefined, // sort_by
-            undefined, // min_price
-            undefined, // max_price
-            undefined, // sku_code
-            undefined, // product_name
-            undefined  // part_name
-          );
+          if (
+            apiResponse.results?.variants &&
+            Array.isArray(apiResponse.results.variants) &&
+            apiResponse.results.variants.length > 0
+          ) {
+            variants = apiResponse.results.variants;
+            console.log(
+              "Variants found in response.results.variants:",
+              variants.length,
+              "variants"
+            );
 
-          console.log("Products API Response (ID-based):", response);
-
-          let extractedProducts: any[] = [];
-
-          if (response?.data) {
-            if (Array.isArray(response.data)) {
-              extractedProducts = response.data;
-            } else if (Array.isArray(response.data.products)) {
-              extractedProducts = response.data.products;
+            // Extract model data for variants (when is_variant is true, we get single model)
+            if (apiResponse.results.model) {
+              modelData = apiResponse.results.model;
+              console.log(
+                "Model data found for variants:",
+                modelData.model_name
+              );
             }
+          } else {
+            console.log("No variants found in response");
           }
 
-          setProducts(extractedProducts as Product[]);
-          setIsProduct(true);
-          setIsBrand(false);
-          setIsModel(false);
-          setIsVariant(false);
-          setIsCategory(false);
+          setVariantData(variants);
+          // Update model data for variants if available
+          if (modelData) {
+            setModelData([modelData]);
+          }
+
+          // Extract products from response (try multiple locations)
+          let extractedProducts: Product[] = [];
+
+          // Try different possible locations for products
+          if (
+            apiResponse.results?.products &&
+            Array.isArray(apiResponse.results.products)
+          ) {
+            extractedProducts = apiResponse.results.products;
+            console.log(
+              "Products found in response.results.products:",
+              extractedProducts.length,
+              "products"
+            );
+          } else if (
+            apiResponse.products &&
+            Array.isArray(apiResponse.products)
+          ) {
+            extractedProducts = apiResponse.products;
+            console.log(
+              "Products found in response.products:",
+              extractedProducts.length,
+              "products"
+            );
+          } else if (
+            response.data?.products &&
+            Array.isArray(response.data.products)
+          ) {
+            extractedProducts = response.data.products;
+            console.log(
+              "Products found in response.data.products:",
+              extractedProducts.length,
+              "products"
+            );
+          } else {
+            console.log("No products found in expected locations");
+          }
+
+          setProducts(extractedProducts);
         } catch (err) {
-          console.error("Error fetching products by IDs:", err);
-          setError("Failed to load products for selected filters.");
+          setError("Failed to fetch products. Please try again.");
+          console.error("Search error:", err);
         } finally {
           setLoading(false);
         }
       };
-
-      fetchFilteredProducts();
+      fetchSearchResults();
     }
-  }, [brand, model, variant, category]);
+  }, [query, vehicleTypeId]);
 
   // Log rendering decision
   useEffect(() => {
@@ -929,22 +863,27 @@ const SearchResults = () => {
               <main>
                 {/* Page Header */}
                 <div className="mb-6 flex items-center justify-between">
-                  {/* <h1 className="text-2xl font-bold text-foreground mb-4">
+                  <h1 className="text-2xl font-bold text-foreground mb-4">
                     {isCategory && categoryName
                       ? `Brands in "${categoryName}" Category`
                       : `Search Results for "${query}"`}
-                  </h1> */}
+                  </h1>
 
-                  {/* Search Button */}
-                  {vehicleTypeId && (
-                    <button
-                      onClick={() => setIsSearchModalOpen(true)}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2"
-                    >
+                  {/* Search Bar */}
+                  {/* <div className="relative max-w-md ml-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    className="w-full pl-10 pr-4 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
                     <SearchIcon className="w-4 h-4" />
-                      Search Products
-                    </button>
-                  )}
+                  </div>
+                </div>
+              </div> */}
                 </div>
                 {/* Brand Display - grid of all brands */}
                 {(isBrand || isCategory) && brandData.length > 0 && (
@@ -960,7 +899,7 @@ const SearchResults = () => {
                         <div
                           key={brand._id}
                           className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
-                          onClick={() => handleBrandClick(brand.brand_name, brand._id)}
+                          onClick={() => handleBrandClick(brand.brand_name)}
                         >
                           <div className="flex flex-col items-center gap-3">
                             <img
@@ -1096,64 +1035,17 @@ const SearchResults = () => {
                 {/* Product Display - grid of all products */}
                 {isProduct && filteredAndSortedProducts.length > 0 && (
                   <div className="mb-6">
-                    <div className="mb-4 flex items-center justify-between">
+                    <div className="mb-4">
                       <h2 className="text-lg font-semibold text-foreground">
                         {filteredAndSortedProducts.length} Product
                         {filteredAndSortedProducts.length !== 1 ? "s" : ""}{" "}
                         Found
                       </h2>
-                      <button 
-                        onClick={handleBackToVariants} 
-                        className="px-4 py-2 text-sm border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-                      >
-                        ← Back to Variants
-                      </button>
                     </div>
                     <ProductListing
                       products={filteredAndSortedProducts}
                       onProductSelect={handleProductClick}
                     />
-                  </div>
-                )}
-
-                {/* No Products Found */}
-                {isProduct && filteredAndSortedProducts.length === 0 && !loading && (
-                  <div className="text-center py-12">
-                    <div className="text-gray-500 text-lg mb-4">
-                      <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                        No Products Found
-                      </h3>
-                      <p className="text-gray-500 mb-6">
-                        No products match your search criteria. Try adjusting your search terms or filters.
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <button
-                          onClick={handleBackToVariants}
-                          className="px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-                        >
-                          ← Back to Variants
-                        </button>
-                        <button
-                          onClick={() => setIsSearchModalOpen(true)}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2"
-                        >
-                          <SearchIcon className="w-4 h-4" />
-                          Try Different Search
-                        </button>
-                        <button
-                          onClick={() => {
-                            // Reset all filters
-                            const newSearchParams = new URLSearchParams();
-                            if (vehicleTypeId) newSearchParams.set("vehicleTypeId", vehicleTypeId);
-                            router.push(`?${newSearchParams.toString()}`);
-                          }}
-                          className="px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-                        >
-                          Clear Filters
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 )}
 
@@ -1193,29 +1085,10 @@ const SearchResults = () => {
                           <h3 className="text-xl font-semibold text-gray-700 mb-2">
                             No Products Found
                           </h3>
-                          <p className="text-gray-500 mb-6">
-                            No products match your search criteria. Try adjusting your search terms or filters.
+                          <p className="text-gray-500">
+                            No products match your search criteria. Try
+                            adjusting your search terms.
                           </p>
-                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <button
-                              onClick={() => setIsSearchModalOpen(true)}
-                              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2"
-                            >
-                              <SearchIcon className="w-4 h-4" />
-                              Try Different Search
-                            </button>
-                            <button
-                              onClick={() => {
-                                // Reset all filters
-                                const newSearchParams = new URLSearchParams();
-                                if (vehicleTypeId) newSearchParams.set("vehicleTypeId", vehicleTypeId);
-                                router.push(`?${newSearchParams.toString()}`);
-                              }}
-                              className="px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-                            >
-                              Clear Filters
-                            </button>
-                          </div>
                         </div>
                       </div>
                     )}
@@ -1234,56 +1107,11 @@ const SearchResults = () => {
                     )}
                   </>
                 )}
-
-                {/* No Products Found - when no products are loaded at all */}
-                {!isProduct && products.length === 0 && !loading && !isBrand && !isModel && !isVariant && !isCategory && (
-                  <div className="text-center py-12">
-                    <div className="text-gray-500 text-lg mb-4">
-                      <SearchIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                        No Products Found
-                      </h3>
-                      <p className="text-gray-500 mb-6">
-                        No products match your search criteria. Try adjusting your search terms or filters.
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <button
-                          onClick={() => setIsSearchModalOpen(true)}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2"
-                        >
-                          <SearchIcon className="w-4 h-4" />
-                          Try Different Search
-                        </button>
-                        <button
-                          onClick={() => {
-                            // Reset all filters
-                            const newSearchParams = new URLSearchParams();
-                            if (vehicleTypeId) newSearchParams.set("vehicleTypeId", vehicleTypeId);
-                            router.push(`?${newSearchParams.toString()}`);
-                          }}
-                          className="px-4 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-                        >
-                          Clear Filters
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </main>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Search Modal */}
-      {vehicleTypeId && (
-        <SearchModal
-          isOpen={isSearchModalOpen}
-          onClose={() => setIsSearchModalOpen(false)}
-          vehicleTypeId={vehicleTypeId}
-          vehicleType={vehicleType}
-        />
-      )}
     </>
   );
 };
