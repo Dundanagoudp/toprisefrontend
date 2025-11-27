@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/toast';
 import { ShoppingCart, Eye, Loader2 } from 'lucide-react';
 
 interface Product {
+  available_dealers?: AvailableDealer[];
   _id: string;
   sku_code: string;
   product_name: string;
@@ -26,6 +27,11 @@ interface ProductListingProps {
   onProductSelect: (productName: string) => void;
   isLoading?: boolean;
 }
+interface AvailableDealer {
+  inStock?: boolean;
+  quantity_per_dealer?: number;
+}
+
 
 const ProductListing = ({
   products,
@@ -114,7 +120,15 @@ const ProductListing = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {displayedProducts.map((product) => {
-          const isOutOfStock = product.out_of_stock || product.no_of_stock <= 0;
+            const hasDealerStock = Array.isArray(product.available_dealers)
+            ? product.available_dealers.some(
+                (dealer) => dealer?.inStock || (dealer?.quantity_per_dealer ?? 0) > 0
+              )
+            : false;
+
+          const productLevelInStock = !(product.out_of_stock ?? false) && (product.no_of_stock ?? 0) > 0;
+
+          const isOutOfStock = !(hasDealerStock || productLevelInStock);
           
           return (
             <div

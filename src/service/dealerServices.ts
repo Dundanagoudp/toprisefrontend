@@ -420,7 +420,7 @@ export async function getDealerProfileDetails(dealerId?: string): Promise<Dealer
 //set dealer permissions 
 export async function setDealerPermissions(dealerId: string, permissions: any): Promise<ApiResponse<Dealer>> {
   try {
-    const response = await apiClient.patch(`/users/api/users/dealer/setPermiossions/${dealerId}`, {
+    const response = await apiClient.post(`/users/api/users/dealer/setPermiossions/${dealerId}`, {
       permissions
     })
     return response.data
