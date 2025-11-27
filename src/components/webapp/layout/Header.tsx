@@ -33,7 +33,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { selectVehicleType, selectVehicleTypeId, toggleVehicleType } from "@/store/slice/vehicle/vehicleSlice";
 import PurchaseOrderDialog from "../modules/UserSetting/popup/PurchaseOrderBox";
-import SearchModal from "@/components/webapp/modules/pages/Home/product-sections/module/SearchModal";
 
 
 export const Header = () => {
@@ -43,7 +42,6 @@ export const Header = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { showToast } = useToast();
@@ -87,13 +85,16 @@ export const Header = () => {
   const handleSearchSubmit = async () => {
     if (!searchValue.trim()) return;
 
-    // Open the search modal instead of navigating
-    setIsSearchModalOpen(true);
-  };
+    try {
+      const params = new URLSearchParams({
+        query: searchValue.trim(),
+        vehicleTypeId: typeId,
+      });
 
-  const handleSearchClick = () => {
-    // Open the search modal when search bar is clicked
-    setIsSearchModalOpen(true);
+      router.push(`/shop/search-results/?${params.toString()}`);
+    } catch (error) {
+      console.error("Failed to execute search:", error);
+    }
   };
 
   const handleSearchClear = () => {
@@ -106,9 +107,16 @@ export const Header = () => {
     const searchQuery = `${vehicle.brand} ${vehicle.model} ${vehicle.variant || ''}`.trim();
     setSearchValue(searchQuery);
 
-    // Open the search modal instead of navigating
+    // Optionally trigger search immediately
     if (searchQuery) {
-      setIsSearchModalOpen(true);
+      const params = new URLSearchParams({
+        query: searchQuery,
+        vehicleTypeId: typeId,
+        brand: vehicle.brand || '',
+        model: vehicle.model || '',
+        variant: vehicle.variant || '',
+      });
+      router.push(`/shop/search-results/?${params.toString()}`);
     }
   };
 
@@ -166,9 +174,6 @@ export const Header = () => {
                 onChange={handleSearchChange}
                 onClear={handleSearchClear}
                 onSubmit={handleSearchSubmit}
-                onSearchClick={() => {
-                  handleSearchClick();
-                }}
                 onVehicleSelect={handleVehicleSelect}
                 placeholder="Search products..."
               />
@@ -359,9 +364,6 @@ export const Header = () => {
             onChange={handleSearchChange}
             onClear={handleSearchClear}
             onSubmit={handleSearchSubmit}
-            onSearchClick={() => {
-              handleSearchClick();
-            }}
             onVehicleSelect={handleVehicleSelect}
             placeholder="Search products..."
           />
@@ -494,14 +496,6 @@ export const Header = () => {
           // If you want to keep open on failure, return false
           return true;
         }}
-      />
-      
-      {/* Search Modal */}
-      <SearchModal
-        isOpen={isSearchModalOpen}
-        onClose={() => setIsSearchModalOpen(false)}
-        vehicleTypeId={typeId}
-        vehicleType={vehicleType}
       />
       </div>
     </header>
