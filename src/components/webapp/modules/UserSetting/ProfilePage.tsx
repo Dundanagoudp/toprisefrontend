@@ -588,8 +588,10 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         setTicketsLoading(true);
         setTicketsError(null);
         const res = await getTicketByUser(userId || "");
+        // console.log("Tickets response:", res);
         // defensive check for response shape
         const data = res?.data || [];
+        // const data: any[] =  [];
         setTickets(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch tickets:", err);
@@ -1944,10 +1946,10 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
           <TabsContent value="tickets" className="space-y-6 mt-6">
             <ProfileSection
               title="Tickets"
-              description="Support tickets and event tickets"
+              description=" Raise a ticket and we'll get back to you as soon as possible."
             >
               <DynamicButton
-                text="Rise Ticket"
+                text="RAISE A TICKET"
                 className="bg-red-600 hover:bg-red-700 text-white mb-4"
                 onClick={() => setIsOpen(true)}
               />
@@ -1979,14 +1981,14 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
                     </div>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No tickets yet</h3>
-                  <p className="text-sm text-gray-600 max-w-sm mx-auto mb-6">
+                  {/* <p className="text-sm text-gray-600 max-w-sm mx-auto mb-6">
                     When you have support tickets or event tickets, they'll appear here with a clean, organized view.
-                  </p>
+                  </p> */}
                   <Link href="/support">
-                    <Button className="bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md transition-all duration-200">
+                    {/* <Button className="bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md transition-all duration-200">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Contact Support
-                    </Button>
+                    </Button> */}
                   </Link>
                 </div>
               ) : (

@@ -101,12 +101,12 @@ export default function RiseTicket({ open, onClose, orderId, showOrderSelection 
         <Dialog open={open} onOpenChange={onClose}>
   <DialogContent className="sm:max-w-[500px]">
     <DialogHeader>
-      <DialogTitle>Rise Ticket</DialogTitle>
+      <DialogTitle>RAISE A TICKET</DialogTitle>
     </DialogHeader>
     <div className="space-y-4">
 
       <div>
-        <Label htmlFor="description">problem description *</Label>
+        <Label htmlFor="description">Problem Description *</Label>
         <Textarea
           id="description"
           placeholder="Please provide the issue with the product..."
