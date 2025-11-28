@@ -347,6 +347,7 @@ const handlePayment = async () => {
       goToNextStep();
     } else if (currentStep === 1) { // Delivery step
       // Block Standard delivery since it's coming soon
+        await fetchCart(); 
       if (deliveryType === 'Standard') {
         setDeliveryError("Standard delivery coming soon - not available at this time");
         return;
@@ -449,22 +450,44 @@ const handlePayment = async () => {
     }
   };
 
-  const removeItem = async (productId: string) => {
-    try {
-      const data = {
-        userId: userId,
-        productId: productId,
-      }
-      const response = await removeProductFromCart(data);
-      console.log("Item removed from cart", response);
+  // const removeItem = async (productId: string) => {
+  //   try {
+  //     const data = {
+  //       userId: userId,
+  //       productId: productId,
+  //     }
+  //     const response = await removeProductFromCart(data);
+  //     console.log("Item removed from cart", response);
   
-      await fetchCart();
-      showToast("Item removed from cart", "success");
-    } catch(error) {
-      console.error("Failed to remove item:", error);
-      showToast("Failed to remove item from cart", "error");
+  //     await fetchCart();
+  //     showToast("Item removed from cart", "success");
+  //   } catch(error) {
+  //     console.error("Failed to remove item:", error);
+  //     showToast("Failed to remove item from cart", "error");
+  //   }
+  // }
+  const removeItem = async (productId: string) => {
+  try {
+    const data = {
+      userId: userId,
+      productId: productId,
     }
+    const response = await removeProductFromCart(data);
+    console.log("Item removed from cart", response);
+
+    await fetchCart(); // Refresh the cart data
+    showToast("Item removed from cart", "success");
+
+    const updatedCart = await getCart(userId); // Get the very latest cart
+    if (!updatedCart.data.items || updatedCart.data.items.length === 0) {
+      showToast("Your cart is empty. Redirecting you to the shop.", "warning");
+      router.push('/'); 
+    }
+  } catch(error) {
+    console.error("Failed to remove item:", error);
+    showToast("Failed to remove item from cart", "error");
   }
+}
   const updateItemQuantity = async (productId: string, quantity: number) => {
     if (!userId) {
       showToast("Unable to update quantity: user not available", "error");
@@ -496,42 +519,52 @@ const handlePayment = async () => {
     }
   };
 
-  const handleIncreaseQuantity = async (productId: string) => {
-    setUpdatingQuantities(prev => new Set(prev).add(productId));
-    try {
-      await increaseCartQuantity(userId!, productId);
+const handleIncreaseQuantity = async (productId: string) => {
+  setUpdatingQuantities(prev => new Set(prev).add(productId));
+  try {
+    await increaseCartQuantity(userId!, productId);
+    await fetchCart();
+    
+    // Update delivery type after quantity change
+    if (cart?._id) {
+      const apiDeliveryType = deliveryType.startsWith('express') ? 'express' : deliveryType;
+      await updateDeliveryType(cart._id, apiDeliveryType);
       await fetchCart();
-
-    } catch (error) {
-      console.error("Failed to increase quantity:", error);
-
-    } finally {
-      setUpdatingQuantities(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(productId);
-        return newSet;
-      });
     }
-  };
+  } catch (error) {
+    console.error("Failed to increase quantity:", error);
+  } finally {
+    setUpdatingQuantities(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(productId);
+      return newSet;
+    });
+  }
+};
 
-  const handleDecreaseQuantity = async (productId: string, currentQuantity: number) => {
-    if (currentQuantity <= 1) return; // Don't allow quantity to go below 1
-    setUpdatingQuantities(prev => new Set(prev).add(productId));
-    try {
-      await decreaseCartQuantity(userId!, productId);
+const handleDecreaseQuantity = async (productId: string, currentQuantity: number) => {
+  if (currentQuantity <= 1) return;
+  setUpdatingQuantities(prev => new Set(prev).add(productId));
+  try {
+    await decreaseCartQuantity(userId!, productId);
+    await fetchCart();
+    
+    // Update delivery type after quantity change
+    if (cart?._id) {
+      const apiDeliveryType = deliveryType.startsWith('express') ? 'express' : deliveryType;
+      await updateDeliveryType(cart._id, apiDeliveryType);
       await fetchCart();
-   
-    } catch (error) {
-      console.error("Failed to decrease quantity:", error);
-  
-    } finally {
-      setUpdatingQuantities(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(productId);
-        return newSet;
-      });
     }
-  };
+  } catch (error) {
+    console.error("Failed to decrease quantity:", error);
+  } finally {
+    setUpdatingQuantities(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(productId);
+      return newSet;
+    });
+  }
+};
 
   // const handleDirectQuantityChange = async (productId: string, newQuantity: number) => {
   //   if (newQuantity < 1 || newQuantity > 99 || !userId) return;
