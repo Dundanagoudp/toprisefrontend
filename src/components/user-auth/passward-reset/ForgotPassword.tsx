@@ -21,7 +21,7 @@ export default function ForgotPassword({ className, ...props }: React.ComponentP
 
     try{
       const response = await resetPassword(email)
-      console.log(response)
+//      console.log(response)
       showToast("Password reset email sent", "success")
     }
     catch(error: any){

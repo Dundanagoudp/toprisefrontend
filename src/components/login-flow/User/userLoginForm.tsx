@@ -62,9 +62,9 @@ export function UserLoginForm({
     try {
       // First, check if user exists
       console.log("Checking if user exists with phone:", phoneE164);
-      console.log("API endpoint: /users/api/users/check-user");
+      
       const userExists = await checkUserExists(phoneE164);
-      console.log("User exists check result:", userExists);
+
       
       if (!userExists) {
         console.log("User doesn't exist, showing error toast");

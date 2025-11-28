@@ -86,7 +86,7 @@ export function LoginForm({
         } else if (role === "Inventory-Admin") {
           router.replace("/user/dashboard/inventory-admin");
         } else if (role === "User") {
-          router.replace("/shop");
+          router.replace("/");
         } else {
           router.replace("/user/dashboard");
         }
