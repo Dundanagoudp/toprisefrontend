@@ -16,7 +16,7 @@ const schema = z.object({
   enquiry_phone: z
     .string()
     .min(1, "Mobile number is required")
-    .regex(/^\d{10,15}$/, "Invalid phone number (10-15 digits)"),
+    .regex(/^\d{10}$/, "Invalid phone number (10 digits)"),
   enquiry_email: z.string().min(1, "Email is required").email("Invalid email address"),
   enquiry_message: z.string().min(1, "Message is required"),
 })
@@ -85,8 +85,9 @@ export default function ContactPage() {
               <Input
                 id="enquiry_phone"
                 type="tel"
-                placeholder="10–15 digit number"
+                placeholder="10 digit number"
                 {...register("enquiry_phone")}
+                maxLength={10}
                 disabled={isSubmitting}
               />
               {errors.enquiry_phone && (

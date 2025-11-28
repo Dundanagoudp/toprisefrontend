@@ -1,9 +1,12 @@
+"use client";
+
 import Footer from '@/components/landingPage/module/Footer'
 import { Header } from '@/components/webapp/layout/Header'
 import ProfilePage from '@/components/webapp/modules/UserSetting/ProfilePage'
+import withProtectedRoute from '@/components/protectionRoute/withProtectedRoute'
 import React from 'react'
 
-export default function page() {
+function Page() {
   return (
     <div>
       <Header/>
@@ -12,3 +15,5 @@ export default function page() {
     </div>
   )
 }
+
+export default withProtectedRoute(Page, { redirectTo: "/" });

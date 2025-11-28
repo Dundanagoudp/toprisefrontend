@@ -160,7 +160,7 @@ export const Header = () => {
                 alt="Toprise logo"
                 className="h-12 lg:h-16 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
               />
-              <span className="ml-0 text-xl lg:text-3xl font-extrabold text-[#1C1C1C] select-none leading-none tracking-tight bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-gray-700 group-hover:to-gray-900">
+              <span className="ml-0 text-xl  lg:text-3xl font-extrabold text-[#1C1C1C] select-none leading-none tracking-tight bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-gray-700 group-hover:to-gray-900">
                 Toprise
               </span>
             </a>
@@ -175,7 +175,7 @@ export const Header = () => {
                 onClear={handleSearchClear}
                 onSubmit={handleSearchSubmit}
                 onVehicleSelect={handleVehicleSelect}
-                placeholder="Search products..."
+                placeholder="Search Products..."
               />
             </div>
           </div>
@@ -199,7 +199,7 @@ export const Header = () => {
 
             {/* Navigation Menu */}
             <NavigationMenu>
-              <NavigationMenuList className="flex space-x-6">
+              <NavigationMenuList className="flex gap-4">
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium">
                     Services
@@ -297,7 +297,7 @@ export const Header = () => {
                     className="cursor-pointer"
                   >
                     <Settings className="mr-2 h-4 w-4" />
-                    My Profile
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -365,7 +365,7 @@ export const Header = () => {
             onClear={handleSearchClear}
             onSubmit={handleSearchSubmit}
             onVehicleSelect={handleVehicleSelect}
-            placeholder="Search products..."
+            placeholder="Search Products..."
           />
         </div>
 

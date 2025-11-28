@@ -347,7 +347,7 @@ export default function SubcategoryFilter() {
               Home
             </Link>
             <span>/</span>
-            <span className="text-foreground font-medium">Subcategories</span>
+            <span className="text-foreground font-medium">Categories</span>
           </div>
           <div className="flex items-center justify-between">
             <div>

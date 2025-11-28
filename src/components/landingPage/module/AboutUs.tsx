@@ -5,6 +5,14 @@ import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
 import DynamicButton from "@/components/common/button/button";
 import ContactDialog from "./popup/contactus";
+
+// Ensure ContactDialog accepts props: open and onClose
+interface ContactDialogProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const TypedContactDialog = ContactDialog as React.FC<ContactDialogProps>;
 import { easeInOut } from "framer-motion";
 
 interface AboutSectionProps {
@@ -297,7 +305,7 @@ export default function AboutUs() {
           </div>
         </motion.div>
       </div>
-      <ContactDialog
+      <TypedContactDialog
         open={contactUsOpen}
         onClose={() => setContactUsOpen(false)}
       />
