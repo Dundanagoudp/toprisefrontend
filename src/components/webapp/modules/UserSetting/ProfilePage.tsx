@@ -148,6 +148,7 @@ export default function ProfilePage() {
   
     const [selected, setSelected] = useState<any | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [isRiseTicketOpen, setIsRiseTicketOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState<number | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<any>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -1010,21 +1011,21 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
               className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
             >
               <User className="mr-2 h-4 w-4" />
-              My Profile
+              Profile
             </TabsTrigger>
             <TabsTrigger
               value="orders"
               className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
             >
               <ShoppingBag className="mr-2 h-4 w-4" />
-              My Orders
+              Orders
             </TabsTrigger>
             <TabsTrigger
               value="wishlists"
               className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
             >
               <Heart className="mr-2 h-4 w-4" />
-              My Wishlists
+              Favourites
             </TabsTrigger>
             <TabsTrigger
               value="addresses"
@@ -1949,7 +1950,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
               <DynamicButton
                 text="Rise Ticket"
                 className="bg-red-600 hover:bg-red-700 text-white mb-4"
-                onClick={() => setIsOpen(true)}
+                onClick={() => setIsRiseTicketOpen(true)}
               />
                <ScrollArea className="h-[600px] pr-4">
               {ticketsLoading ? (
@@ -2288,8 +2289,8 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         editingVehicle={editingVehicle}
       />
       <RiseTicket
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
+        open={isRiseTicketOpen}
+        onClose={() => setIsRiseTicketOpen(false)}
       />
     </div>
   );

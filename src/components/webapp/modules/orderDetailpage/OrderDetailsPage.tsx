@@ -453,10 +453,10 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                     <p className="text-sm text-gray-600 mb-1">Phone</p>
                     <p className="font-medium">{order.customerDetails?.phone || '-'}</p>
                   </div>
-                  <div>
+                  {/* <div>
                     <p className="text-sm text-gray-600 mb-1">User ID</p>
                     <p className="font-medium text-sm">{order.customerDetails?.userId || '-'}</p>
-                  </div>
+                  </div> */}
                 </div>
                 
                 <Separator />

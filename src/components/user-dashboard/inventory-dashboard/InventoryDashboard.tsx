@@ -470,7 +470,7 @@ export default function InventoryDashboard() {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="product-search"
-                  placeholder="Search products..."
+                  placeholder="Search Products..."
                   value={productSearchTerm}
                   onChange={(e) => setProductSearchTerm(e.target.value)}
                   className="pl-10"

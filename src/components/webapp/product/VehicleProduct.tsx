@@ -431,10 +431,11 @@ React.useEffect(() => {
                         <img
                           src={buildImageUrl(product.images?.[0])}
                           alt={product.product_name}
+                            onClick={() => handleViewProduct(product._id)}
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
-                      <div className="flex flex-1 flex-col">
+                      <div className="flex flex-1 flex-col"   onClick={() => handleViewProduct(product._id)}>
                         <h3 className="line-clamp-2 text-base font-semibold text-foreground">
                           {product.product_name}
                         </h3>
@@ -445,17 +446,17 @@ React.useEffect(() => {
                           <span className="text-lg font-semibold text-primary">
                             Rs {product.selling_price?.toLocaleString() || "0"}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          {/* <span className="text-xs text-muted-foreground">
                             {product.sku_code}
-                          </span>
+                          </span> */}
                         </div>
                         <div className="mt-6 flex gap-2">
-                          <button
+                          {/* <button
                             onClick={() => handleViewProduct(product._id)}
                             className="flex-1 rounded-md border border-primary px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
                           >
                             View Details
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     </div>

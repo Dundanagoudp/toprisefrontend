@@ -15,6 +15,7 @@ export default function Footer() {
   };
 
   const footerLinks = [
+    { label: "About Us", href: "/Aboutus" },
     { label: "Contact us", href: "/contactus" },
   
     { label: "Terms & Conditions", href: "/TermsAndConditions" },
@@ -29,7 +30,7 @@ export default function Footer() {
         {/* Left Section - Company Info */}
         <div>
           <Image
-            src="/assets/LogoNoname.png"
+          src="/assets/LogoFooter.png"
             alt="Toprise Ventures logo"
             width={80}
             height={40}
