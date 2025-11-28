@@ -7,6 +7,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FileText, ArrowLeft } from "lucide-react"
 import apiClient from "@/apiClient"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function PurchaseRequestDetailsPage() {
   const params = useParams()
@@ -16,6 +22,7 @@ export default function PurchaseRequestDetailsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [request, setRequest] = useState<any | null>(null)
+  const [previewFile, setPreviewFile] = useState<any | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -23,7 +30,7 @@ export default function PurchaseRequestDetailsPage() {
       try {
         setLoading(true)
         setError(null)
-        const res = await apiClient.get(`/orders/api/documents/admin/${id}`)
+        const res = await apiClient.get(`/orders/api/documents/${id}`)
         const data = res?.data?.data
         setRequest(data || null)
       } catch (e: any) {
@@ -57,6 +64,63 @@ export default function PurchaseRequestDetailsPage() {
     )
   }
 
+  const getStatusBadge = (status: string) => {
+    const statusLower = status?.toLowerCase?.() || ""
+
+    if (statusLower.includes("pending")) {
+      return <Badge className="bg-yellow-100 text-yellow-800 border-transparent">{status}</Badge>
+    }
+
+    switch (statusLower) {
+      case "order-created":
+      case "approved":
+        return <Badge className="bg-red-100 text-red-800 border-transparent">{status}</Badge>
+      case "rejected":
+      case "cancelled":
+        return <Badge className="bg-red-100 text-red-800 border-transparent">{status}</Badge>
+      case "completed":
+      case "processed":
+        return <Badge className="bg-blue-100 text-blue-800 border-transparent">{status}</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
+  }
+
+  const getPriorityBadge = (priority: string) => {
+    switch ((priority || "").toLowerCase()) {
+      case "high":
+        return <Badge className="bg-red-100 text-red-800 border-transparent">High</Badge>
+      case "medium":
+        return <Badge className="bg-yellow-100 text-yellow-800 border-transparent">Medium</Badge>
+      case "low":
+        return <Badge className="bg-green-100 text-green-800 border-transparent">Low</Badge>
+      default:
+        return <Badge variant="outline">{priority || "N/A"}</Badge>
+    }
+  }
+
+  const isImageFile = (file: any) => {
+    const mime = file?.file_type?.toLowerCase?.() || ""
+    const name = file?.file_name?.toLowerCase?.() || ""
+    const url = file?.url?.toLowerCase?.() || ""
+    const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+
+    if (mime.startsWith("image")) return true
+    return imageExtensions.some((ext) => name.endsWith(ext) || url.endsWith(ext))
+  }
+
+  const handleFileClick = (file: any) => {
+    if (isImageFile(file)) {
+      setPreviewFile(file)
+      return
+    }
+    if (file?.url) {
+      window.open(file.url, "_blank", "noopener,noreferrer")
+    }
+  }
+
+  const documentFiles = request?.document_files || []
+
   if (!request) return null
 
   return (
@@ -69,8 +133,8 @@ export default function PurchaseRequestDetailsPage() {
           <h1 className="text-2xl font-bold">Purchase Request #{request.document_number}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Badge>{request.status}</Badge>
-          <Badge variant="secondary">{request.priority}</Badge>
+          {getStatusBadge(request.status)}
+          {getPriorityBadge(request.priority)}
         </div>
       </div>
 
@@ -114,16 +178,57 @@ export default function PurchaseRequestDetailsPage() {
 
           <div>
             <div className="text-sm text-gray-500 mb-2">Files</div>
-            <div className="flex flex-wrap gap-2">
-              {(request.document_files || []).map((f: any) => (
-                <a key={f._id} href={f.url} target="_blank" rel="noreferrer" className="px-3 py-1 border rounded text-sm hover:bg-gray-50">
-                  {f.file_name || f.file_type}
-                </a>
-              ))}
-            </div>
+            {documentFiles.length === 0 ? (
+              <div className="text-sm text-gray-500">No files uploaded</div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {documentFiles.map((f: any) => (
+                  <button
+                    key={f._id}
+                    type="button"
+                    onClick={() => handleFileClick(f)}
+                    className="px-3 py-1 border rounded text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    {f.file_name || f.file_type || "View file"}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{previewFile?.file_name || "File preview"}</DialogTitle>
+          </DialogHeader>
+          {previewFile && isImageFile(previewFile) ? (
+            <div className="w-full">
+              {/* Simple img tag keeps remote previews lightweight */}
+              <img
+                src={previewFile.url}
+                alt={previewFile.file_name || "Preview"}
+                className="rounded-md max-h-[70vh] w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600">
+              Preview not available.{" "}
+              {previewFile?.url && (
+                <a
+                  href={previewFile.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#C72920] underline"
+                >
+                  Open in new tab
+                </a>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

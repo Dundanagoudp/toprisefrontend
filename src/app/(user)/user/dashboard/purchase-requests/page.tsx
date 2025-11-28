@@ -326,6 +326,42 @@ export default function PurchaseRequestsPage() {
         </CardHeader>
 
         <CardContent className="p-6 min-w-0">
+          {/* Summary Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-sm text-gray-600">Total Requests</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {pagination?.totalItems || purchaseRequests.length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-sm text-gray-600">Pending Review</div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {purchaseRequests.filter(r => r.status.toLowerCase().includes("pending")).length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-sm text-gray-600">High Priority</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {purchaseRequests.filter(r => r.priority.toLowerCase() === "high").length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-sm text-gray-600">Total Est. Value</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  ₹{purchaseRequests.reduce((sum, r) => sum + (r.estimated_order_value || 0), 0).toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Filters and Search */}
           <div className="flex flex-col gap-4 mb-6">
             {/* Search Bar */}
@@ -588,41 +624,6 @@ export default function PurchaseRequestsPage() {
             </div>
           )}
 
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600">Total Requests</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {pagination?.totalItems || purchaseRequests.length}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600">Pending Review</div>
-                <div className="text-2xl font-bold text-yellow-600">
-                  {purchaseRequests.filter(r => r.status.toLowerCase().includes("pending")).length}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600">High Priority</div>
-                <div className="text-2xl font-bold text-red-600">
-                  {purchaseRequests.filter(r => r.priority.toLowerCase() === "high").length}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600">Total Est. Value</div>
-                <div className="text-2xl font-bold text-blue-600">
-                  ₹{purchaseRequests.reduce((sum, r) => sum + (r.estimated_order_value || 0), 0).toLocaleString()}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </CardContent>
       </Card>
     </div>

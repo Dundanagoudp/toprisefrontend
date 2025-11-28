@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, rejectBulkProducts, getCategories, getSubCategories, getBrand, getModelsByBrand, getVariantsByModel } from "@/service/product-Service";
+import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, rejectBulkProducts, getCategories, getSubCategories, getBrand, getModelsByBrand, getVariantsByModel, approveBulkProducts } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
@@ -64,6 +64,7 @@ const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false);
   const [addProductLoading, setAddProductLoading] = useState(false);
   const [editBulkLoading, setEditBulkLoading] = useState(false);
+  const [bulkApproveLoading, setBulkApproveLoading] = useState(false);
   const [uploadDealerBulkLoading, setUploadDealerBulkLoading] = useState(false);
   const route = useRouter();
   const dispatch = useAppDispatch();
@@ -301,6 +302,21 @@ const getStatusColor = (status: string) => {
     setBulkMode("uploadDealer");
     setIsModalOpen(true);
     setUploadDealerBulkLoading(true);
+  };
+  const handleBulkApprove = async () => {
+    if (!selectedProductIds.length || bulkApproveLoading) return;
+    try {
+      setBulkApproveLoading(true);
+      await approveBulkProducts({ productIds: selectedProductIds });
+      showToast("Products approved successfully", "success");
+      clearSelection();
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      console.error("Failed to approve products:", error);
+      showToast("Failed to approve products", "error");
+    } finally {
+      setBulkApproveLoading(false);
+    }
   };
 
 
@@ -704,13 +720,25 @@ const getStatusColor = (status: string) => {
                     text="Assign Dealer"
                   />
                   {selectedProductIds.length > 0 && (
-                    <DynamicButton
-                      variant="default"
-                      customClassName="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-3 py-2 min-w-[120px] sm:min-w-[140px] justify-center font-[Poppins] font-regular flex-shrink-0"
-                      onClick={() => setIsRejectDialogOpen(true)}
-                      icon={<AlertTriangle className="w-4 h-4" />}
-                      text={`Reject (${selectedProductIds.length})`}
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      <DynamicButton
+                        variant="default"
+                        customClassName="flex items-center gap-3 bg-[#1F9254]/10 border border-[#1F9254] text-[#1F9254] hover:bg-[#1F9254]/20 rounded-[8px] px-3 py-2 min-w-[120px] sm:min-w-[140px] justify-center font-[Poppins] font-regular flex-shrink-0"
+                        onClick={handleBulkApprove}
+                        disabled={bulkApproveLoading}
+                        loading={bulkApproveLoading}
+                        loadingText="Approving..."
+                        icon={<CheckCircle className="w-4 h-4" />}
+                        text={`Approve (${selectedProductIds.length})`}
+                      />
+                      <DynamicButton
+                        variant="default"
+                        customClassName="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-3 py-2 min-w-[120px] sm:min-w-[140px] justify-center font-[Poppins] font-regular flex-shrink-0"
+                        onClick={() => setIsRejectDialogOpen(true)}
+                        icon={<AlertTriangle className="w-4 h-4" />}
+                        text={`Reject (${selectedProductIds.length})`}
+                      />
+                    </div>
                   )}
                 </>
               )}

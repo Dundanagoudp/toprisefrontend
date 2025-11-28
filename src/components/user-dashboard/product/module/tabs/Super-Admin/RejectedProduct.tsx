@@ -47,6 +47,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Emptydata from "../../Emptydata";
 import { DynamicPagination } from "@/components/common/pagination";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useProductSelection } from "@/contexts/ProductSelectionContext";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -94,6 +96,11 @@ export default function RejectedProduct({
   const route = useRouter();
   const { showToast } = useGlobalToast();
   const itemsPerPage = 10;
+  const {
+    selectedProductIds: selectedItems,
+    setSelectedProductIds,
+    toggleProductSelection,
+  } = useProductSelection();
 
   // Fetch products when component mounts or when pagination changes
   useEffect(() => {
@@ -166,6 +173,14 @@ export default function RejectedProduct({
     if (!paginatedProducts || !Array.isArray(paginatedProducts)) return [];
     return [...paginatedProducts];
   }, [paginatedProducts]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProductIds(filteredProducts.map((product) => product._id));
+    } else {
+      setSelectedProductIds([]);
+    }
+  };
 
 
   const handleEditProduct = (id: string) => {
@@ -240,6 +255,16 @@ export default function RejectedProduct({
       <Table>
         <TableHeader>
           <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
+            <TableHead className="px-6 py-4">
+              <Checkbox
+                checked={
+                  filteredProducts.length > 0 &&
+                  selectedItems.length === filteredProducts.length
+                }
+                onCheckedChange={handleSelectAll}
+                className="rounded border-gray-300"
+              />
+            </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
               Image
             </TableHead>
@@ -336,6 +361,13 @@ export default function RejectedProduct({
                     index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                   }`}
                 >
+                  <TableCell className="px-6 py-4">
+                    <Checkbox
+                      checked={selectedItems.includes(product._id)}
+                      onCheckedChange={() => toggleProductSelection(product._id)}
+                      className="rounded border-gray-300"
+                    />
+                  </TableCell>
                   <TableCell className="px-6 py-4 font-[Poppins]">
                     <div className="w-12 h-10 sm:w-16 sm:h-12 lg:w-20 lg:h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                       <Image

@@ -493,6 +493,23 @@ export async function rejectBulkProducts(
   }
 }
 
+
+// bulk approve products
+export async function ApproveBulkProducts(
+  data: string | any
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.patch(
+      `/category/products/v1/bulk/approve`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to reject product:", error);
+    throw error;
+  }
+}
+
 // New endpoints for product approval requests
 export async function getPendingProducts(
   page?: number,
