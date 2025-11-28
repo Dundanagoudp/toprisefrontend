@@ -362,3 +362,154 @@ export async function generateSinglePickupPDF(pickup: PickupRequest): Promise<vo
     throw new Error('Failed to generate single pickup PDF');
   }
 }
+
+/**
+ * Generate Order Management PDF report
+ */
+export async function generateOrdersReportPDF(
+  orders: Array<{
+    orderId: string;
+    date: string;
+    customer: string;
+    amount: string;
+    dealers: number;
+    status: string;
+  }>,
+  options: {
+    title?: string;
+    filters?: Record<string, any>;
+  } = {}
+): Promise<void> {
+  try {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - margin * 2;
+
+    let yPosition = margin;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(options.title || 'Order Management Report', margin, yPosition);
+    yPosition += 12;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, yPosition);
+    yPosition += 8;
+    doc.text(`Total Orders: ${orders.length}`, margin, yPosition);
+    yPosition += 10;
+
+    // Status summary
+    const statusCounts = orders.reduce((acc, order) => {
+      const key = order.status || 'Unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Status Summary', margin, yPosition);
+    yPosition += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    Object.entries(statusCounts).forEach(([status, count]) => {
+      doc.text(`${status}: ${count}`, margin + 4, yPosition);
+      yPosition += 5;
+    });
+    yPosition += 6;
+
+    if (options.filters) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Applied Filters', margin, yPosition);
+      yPosition += 8;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      Object.entries(options.filters).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '' || value === 'all') {
+          return;
+        }
+
+        if (typeof value === 'object') {
+          const display = JSON.stringify(value);
+          doc.text(`${key}: ${display}`, margin + 4, yPosition);
+          yPosition += 5;
+          return;
+        }
+
+        doc.text(`${key}: ${value}`, margin + 4, yPosition);
+        yPosition += 5;
+      });
+
+      yPosition += 6;
+    }
+
+    // Table header
+    const headers = ['Order ID', 'Date', 'Customer', 'Amount', 'Dealers', 'Status'];
+    const colWidths = [35, 25, 45, 25, 20, 30];
+    const startX = margin;
+
+    const drawHeader = () => {
+      doc.setFillColor(240, 240, 240);
+      doc.rect(startX, yPosition - 5, contentWidth, 8, 'F');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      let xPos = startX;
+      headers.forEach((header, index) => {
+        doc.text(header, xPos + 2, yPosition);
+        xPos += colWidths[index];
+      });
+      yPosition += 8;
+    };
+
+    drawHeader();
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+
+    orders.forEach((order) => {
+      if (yPosition > pageHeight - 25) {
+        doc.addPage();
+        yPosition = margin + 5;
+        drawHeader();
+      }
+
+      const row = [
+        order.orderId || '-',
+        order.date || '-',
+        order.customer || '-',
+        order.amount || '-',
+        order.dealers?.toString() || '0',
+        order.status || '-',
+      ];
+
+      let xPos = startX;
+      row.forEach((cell, idx) => {
+        const maxLen = Math.floor(colWidths[idx] / 2);
+        const display = cell.length > maxLen ? `${cell.slice(0, maxLen - 3)}...` : cell;
+        doc.text(display, xPos + 2, yPosition);
+        xPos += colWidths[idx];
+      });
+
+      yPosition += 6;
+    });
+
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 30, pageHeight - 10);
+    }
+
+    const fileName = `orders-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+  } catch (error) {
+    console.error('Error generating orders PDF:', error);
+    throw new Error('Failed to generate orders PDF');
+  }
+}

@@ -40,7 +40,37 @@ export default function AdminOrdersTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
+  const [exporting, setExporting] = useState(false);
   const itemsPerPage = 10;
+
+  const mapApiOrders = (apiData: any): AdminOrder[] => {
+    const rawOrders: any[] = Array.isArray(apiData)
+      ? apiData
+      : Array.isArray(apiData?.orders)
+        ? apiData.orders
+        : [];
+
+    return rawOrders.map((o: any) => ({
+      id: o._id,
+      orderId: o.orderId,
+      customer: o.customerDetails?.name || "N/A",
+      amount: `₹${o.order_Amount}`,
+      status: o.status,
+      date: o.orderDate ? new Date(o.orderDate).toLocaleDateString() : "",
+      dealers: o.dealerMapping?.length || 0,
+    }));
+  };
+
+  const applyFilters = (ordersToFilter: AdminOrder[]) => {
+    return ordersToFilter.filter((o: AdminOrder) => {
+      const matchSearch =
+        !filters.search ||
+        o.orderId.toLowerCase().includes(filters.search.toLowerCase()) ||
+        o.customer.toLowerCase().includes(filters.search.toLowerCase());
+      const matchStatus = filters.status === "all" || o.status.toLowerCase() === filters.status.toLowerCase();
+      return matchSearch && matchStatus;
+    });
+  };
 
   // Data Fetching
 useEffect(() => {
@@ -53,23 +83,8 @@ useEffect(() => {
           fetchEnhancedOrderStats({})
         ]);
 
-        // Normalize Data - Fix: Access orders from orderRes.data.orders
-        // Support both response shapes: { orders: Order[], pagination: {...} } or Order[] directly
         const apiData: any = orderRes.data;
-        const rawOrders: any[] = Array.isArray(apiData)
-          ? apiData
-          : Array.isArray(apiData.orders)
-            ? apiData.orders
-            : [];
-        const mapped = rawOrders.map((o: any) => ({
-            id: o._id,
-            orderId: o.orderId,
-            customer: o.customerDetails?.name || "N/A",
-            amount: `₹${o.order_Amount}`,
-            status: o.status,
-            date: new Date(o.orderDate).toLocaleDateString(),
-            dealers: o.dealerMapping?.length || 0,
-        }));
+        const mapped = mapApiOrders(apiData);
         console.log("Mapped Orders:", mapped);
         setOrders(mapped);
         dispatch(fetchOrdersSuccess(mapped));
@@ -89,14 +104,67 @@ useEffect(() => {
 
   // Client-side Filtering (Replace with Server-side in future)
   const filteredData = useMemo(() => {
-    return Orders.filter((o: any) => {
-        const matchSearch = !filters.search || 
-            o.orderId.toLowerCase().includes(filters.search.toLowerCase()) || 
-            o.customer.toLowerCase().includes(filters.search.toLowerCase());
-        const matchStatus = filters.status === "all" || o.status.toLowerCase() === filters.status.toLowerCase();
-        return matchSearch && matchStatus;
-    });
+    return applyFilters(Orders as AdminOrder[]);
   }, [Orders, filters]);
+
+  const toCSVValue = (value: string | number | undefined | null) => {
+    const stringValue = value ?? "";
+    const needsEscaping = /[",\n]/.test(String(stringValue));
+    const sanitized = String(stringValue).replace(/"/g, '""');
+    return needsEscaping ? `"${sanitized}"` : sanitized;
+  };
+
+  const normalizeAmount = (amount: string) => {
+    if (!amount) return "";
+    return amount.replace(/[^\d.-]/g, "");
+  };
+
+  const handleExportOrders = async () => {
+    try {
+      setExporting(true);
+
+      const pageNumbers = totalPages > 1 ? Array.from({ length: totalPages }, (_, idx) => idx + 1) : [currentPage];
+      const responses = await Promise.all(
+        pageNumbers.map(async (page) => {
+          const res = await getOrders(page, itemsPerPage);
+          return mapApiOrders(res.data);
+        })
+      );
+      const everyOrder = responses.flat();
+      const exportData = applyFilters(everyOrder);
+
+      if (!exportData.length) {
+        setExporting(false);
+        return;
+      }
+
+      const headers = ["Order ID", "Date", "Customer", "Amount", "Dealers", "Status"];
+      const dataRows = exportData.map((order: AdminOrder) => [
+        order.orderId,
+        order.date,
+        order.customer,
+        normalizeAmount(order.amount),
+        order.dealers,
+        order.status,
+      ]);
+      const csvContent = [headers, ...dataRows]
+        .map((row) => row.map((cell) => toCSVValue(cell as string | number)).join(","))
+        .join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `orders-${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to export orders CSV:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -111,8 +179,8 @@ useEffect(() => {
 
       <EnhancedOrderFilters 
         onFiltersChange={setFilters} 
-        loading={loading} 
-        onExport={() => alert("Exporting...")}
+        loading={loading || exporting} 
+        onExport={handleExportOrders}
         onRefresh={() => dispatch(fetchOrdersRequest())}
       />
 
