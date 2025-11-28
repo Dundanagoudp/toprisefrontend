@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, Save, X, Eye, Edit, FileUp } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getAllDealers, setDealerPermissions } from "@/service/dealerServices"
+import { getAllDealers, getDealerById, getDealerPermissions, setDealerPermissions } from "@/service/dealerServices"
+
 import { 
   addDealerPermissions, 
   updateDealerPermissions, 
@@ -33,6 +34,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
   const [selectedModule, setSelectedModule] = useState("")
   const [selectedRole, setSelectedRole] = useState("admin")
   const [selectedDealers, setSelectedDealers] = useState<string[]>([])
+
   
   // New nested permission structure
   const [readFields, setReadFields] = useState<string[]>([])
@@ -53,7 +55,21 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
   useEffect(() => {
     fetchDealers()
     fetchModules()
+    
   }, [])
+
+  //get dealer permissions
+  const fetchDealerPermissions = async (dealerId: string) => {
+  try{
+    const response = await getDealerPermissions(dealerId)
+    console.log("Dealer permissions response:", response)
+  }
+  catch(error) {
+    console.error("Error fetching dealer permissions:", error)
+    showToast("Failed to fetch dealer permissions", "error")
+  }
+  
+  }
 
   const fetchDealers = async () => {
     try {
@@ -61,6 +77,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
       const response = await getAllDealers()
       if (response.success) {
         setDealers(response.data || [])
+        
       }
     } catch (error) {
       console.error("Error fetching dealers:", error)
@@ -304,7 +321,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
       </div>
 
       {/* Module Selection */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Select Module</CardTitle>
         </CardHeader>
@@ -322,7 +339,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
             </SelectContent>
           </Select>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Role Selection */}
       {/* <Card>
@@ -356,15 +373,15 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
               <div
                 key={dealer._id}
                 className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedDealers.includes(dealer.user_id._id)
+                  selectedDealers.includes(dealer._id)
                     ? "border-red-500 bg-red-50"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
-                onClick={() => toggleDealerSelection(dealer.user_id._id)}
+                onClick={() => toggleDealerSelection(dealer._id)}
               >
                 <Checkbox
-                  checked={selectedDealers.includes(dealer.user_id._id)}
-                  onCheckedChange={() => toggleDealerSelection(dealer.user_id._id)}
+                  checked={selectedDealers.includes(dealer._id)}
+                  onCheckedChange={() => toggleDealerSelection(dealer._id)}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{dealer.trade_name || dealer.legal_name}</p>
@@ -538,7 +555,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
           Set Dealer Permissions
         </Button>
         
-        <Button
+        {/* <Button
           onClick={handleAddPermissions}
           disabled={loading || !selectedModule || selectedDealers.length === 0}
           className="bg-green-600 hover:bg-green-700"
@@ -563,7 +580,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
         >
           <Trash2 className="w-4 h-4 mr-2" />
           Remove Module Permissions
-        </Button>
+        </Button> */}
       </div>
 
       {/* Loading State */}

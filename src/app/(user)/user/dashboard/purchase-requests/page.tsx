@@ -368,7 +368,7 @@ export default function PurchaseRequestsPage() {
               </div>
 
               {/* Priority Filter */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Priority</label>
                 <select
                   value={priorityFilter}
@@ -380,7 +380,7 @@ export default function PurchaseRequestsPage() {
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
                 </select>
-              </div>
+              </div> */}
             </div>
 
             {/* Action Buttons */}

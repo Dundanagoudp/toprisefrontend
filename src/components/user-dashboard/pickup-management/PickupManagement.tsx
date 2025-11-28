@@ -376,14 +376,14 @@ export default function PickupManagement() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
+          {/* <CardTitle className="flex items-center">
             <Filter className="h-5 w-5 mr-2" />
             Filters
-          </CardTitle>
+          </CardTitle> */}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
+            <div className="flex row-auto gap-2.5">
               <Label htmlFor="search">Search</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -396,7 +396,7 @@ export default function PickupManagement() {
                 />
               </div>
             </div>
-            <div>
+            {/* <div>
               <Label htmlFor="status">Status</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -411,8 +411,8 @@ export default function PickupManagement() {
                   <SelectItem value="Completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div>
+            </div> */}
+            {/* <div>
               <Label htmlFor="priority">Priority</Label>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                 <SelectTrigger>
@@ -426,8 +426,8 @@ export default function PickupManagement() {
                   <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex items-end">
+            </div> */}
+            {/* <div className="flex items-end">
               <Button 
                 variant="outline" 
                 onClick={() => {
@@ -439,7 +439,7 @@ export default function PickupManagement() {
               >
                 Clear Filters
               </Button>
-            </div>
+            </div> */}
           </div>
         </CardContent>
       </Card>
