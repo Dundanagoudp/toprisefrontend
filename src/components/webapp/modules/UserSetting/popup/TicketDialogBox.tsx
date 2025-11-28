@@ -158,9 +158,9 @@ export default function TicketDetailsDialog({
 
         <DialogFooter>
           <div className="flex items-center justify-end gap-2 w-full">
-            <Button variant="ghost" onClick={onClose}>
+            {/* <Button variant="ghost" onClick={onClose}>
               Close
-            </Button>
+            </Button> */}
           </div>
         </DialogFooter>
       </DialogContent>
