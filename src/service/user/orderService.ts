@@ -251,4 +251,21 @@ export async function createOrderOnline(data: any): Promise<ApiResponse<any>> {
   }
 }
 
+export async function addOrderRating(data: {
+  orderId: string;
+  ratting: number;
+  review: string;
+}): Promise<ApiResponse<any>> {
+  try {
+    const res = await apiClient.put(
+      `/orders/api/orders/add/order-rating/by-userId`,
+      data
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Failed to add order rating:", err);
+    throw err;
+  }
+}
+
 

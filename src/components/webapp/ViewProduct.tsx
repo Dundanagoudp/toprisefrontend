@@ -445,12 +445,7 @@ export default function ProductPage() {
               
               {/* Part Number and Vehicle Details */}
               <div className="mb-4 space-y-2">
-                {product.manufacturer_part_name && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">Part Number:</span>
-                    <span className="text-sm font-semibold text-foreground">{product.manufacturer_part_name}</span>
-                  </div>
-                )}
+        
                 
                 {/* Vehicle Details */}
                 <div className="flex flex-wrap gap-4 text-sm">
@@ -498,7 +493,7 @@ export default function ProductPage() {
                 )}
               </div>
               {/* <p className="text-sm text-green-600">Inclusive of all taxes</p> */}
-  {Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && !product.available_dealers[0].inStock ? (
+  {product.out_of_stock ? (
     <p className="text-sm text-red-600">Out of Stock</p>
   ) : (
     <p className="text-sm text-green-600">In Stock</p>
@@ -511,6 +506,15 @@ export default function ProductPage() {
                   <p className="font-semibold mb-2">Category</p>
                   <span className="inline-block px-3 py-1 bg-gray-100 rounded-full text-sm">
                     {product.category.category_name}
+                  </span>
+                </div>
+              )}
+
+              {product.sub_category && (
+                <div>
+                  <p className="font-semibold mb-2">Subcategory</p>
+                  <span className="inline-block px-3 py-1 bg-gray-100 rounded-full text-sm">
+                    {product.sub_category.subcategory_name}
                   </span>
                 </div>
               )}
@@ -543,7 +547,7 @@ export default function ProductPage() {
                     <button
                       className="p-2 hover:bg-muted transition-colors disabled:opacity-50"
                       onClick={() => setQuantity(quantity + 1)}
-                      disabled={product.out_of_stock || quantity >= product.no_of_stock}
+                      disabled={product.out_of_stock }
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -629,6 +633,14 @@ export default function ProductPage() {
                     <span className="font-medium">HSN Code:</span>
                     <span className="ml-2 text-muted-foreground">{product.hsn_code}</span>
                   </div>
+                )}
+                        {product.manufacturer_part_name && (
+                          <>
+                  <div>
+                    <span className="font-medium">Part Number:</span>
+                    <span className="ml-2 text-muted-foreground">{product.manufacturer_part_name}</span>
+                  </div>
+                  </>
                 )}
               </div>
 

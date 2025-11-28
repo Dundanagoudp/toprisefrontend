@@ -10,6 +10,7 @@ interface BrandSelectionProps {
   vehicleTypeId: string;
 }
 
+
 const BrandSelection: React.FC<BrandSelectionProps> = ({ vehicleTypeId }) => {
   const router = useRouter();
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -24,7 +25,7 @@ const BrandSelection: React.FC<BrandSelectionProps> = ({ vehicleTypeId }) => {
         const response = await getBrandsByType(vehicleTypeId);
         
         if (response && response.data && Array.isArray(response.data)) {
-          setBrands(response.data);
+          setBrands(response.data as unknown as Brand[]);
         } else {
           setError("No brands found for this vehicle type");
         }
@@ -42,7 +43,9 @@ const BrandSelection: React.FC<BrandSelectionProps> = ({ vehicleTypeId }) => {
   }, [vehicleTypeId]);
 
   const handleBrandClick = (brandId: string, brandName: string) => {
-    router.push(`/shop/models/${brandId}?vehicleTypeId=${vehicleTypeId}&brandName=${encodeURIComponent(brandName)}`);
+    router.push(`/shop/vehicle-products?vehicleTypeId=${vehicleTypeId}&brand=${brandId}`);
+    console.log(brandId, brandName);
+
   };
 
   const filteredBrands = brands.filter(brand =>

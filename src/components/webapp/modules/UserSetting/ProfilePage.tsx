@@ -34,6 +34,9 @@ import {
   editUserAddress,
   EditAddressRequest,
   getUserById,
+  getBankDetails,
+  createBankDetails,
+  updateBankDetails,
 } from "@/service/user/userService";
 import {
   getUserOrders,
@@ -41,6 +44,7 @@ import {
   getWishlistByUser,
   moveToCart,
   removeWishlistByUser,
+  addOrderRating,
 } from "@/service/user/orderService";
 import {
   getVehicleDetails,
@@ -86,6 +90,7 @@ import ReturnRequestList from "./porfilepage/ReturnRequest";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DynamicButton } from "@/components/common/button";
 import RiseTicket from "../orderDetailpage/popups/RiseTicket";
+import OrderReviewModal from "./popup/OrderReviewModal";
 interface Address {
   id: string;
   type: "home" | "work" | "other";
@@ -160,6 +165,9 @@ export default function ProfilePage() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
 const [purchaseOrdersLoading, setPurchaseOrdersLoading] = useState(false);
 const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedOrderForReview, setSelectedOrderForReview] = useState<string | null>(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const [newAddress, setNewAddress] = useState<UserAddress>({
     nick_name: "",
@@ -460,6 +468,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
     try {
       setUpdatingProfile(true);
 
+      // Prepare update data for non-bank-details fields
       const updateData: UpdateProfileRequest = {};
 
       if (profileData.email && profileData.email !== userProfile?.email) {
@@ -473,12 +482,8 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         updateData.username = profileData.username;
       }
 
-      if (
-        profileData.bank_details &&
-        Object.values(profileData.bank_details).some((value) => value)
-      ) {
-        updateData.bank_details = profileData.bank_details;
-      }
+      // Bank details will be handled separately
+      // Removed bank_details from updateData
 
       if (profileData.address && profileData.address.length > 0) {
         updateData.address = profileData.address;
@@ -491,40 +496,95 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         updateData.vehicle_details = profileData.vehicle_details;
       }
 
-      if (Object.keys(updateData).length === 0) {
+      // Check if bank details need to be saved
+      const hasBankDetailsChanges =
+        profileData.bank_details &&
+        Object.values(profileData.bank_details).some((value) => value);
+
+      // Check if bank details already exist
+      const bankDetailsExist =
+        userProfile?.bank_details?.account_number ||
+        userProfile?.bank_details?.ifsc_code ||
+        userProfile?.bank_details?.bank_name;
+
+      // Save bank details separately if there are changes
+      if (hasBankDetailsChanges) {
+        try {
+          if (bankDetailsExist) {
+            // Update existing bank details
+            const bankResponse = await updateBankDetails(
+              userId,
+              profileData.bank_details
+            );
+            if (!bankResponse.success) {
+              showToast(
+                bankResponse.message || "Failed to update bank details",
+                "error"
+              );
+              return;
+            }
+          } else {
+            // Create new bank details
+            const bankResponse = await createBankDetails(
+              userId,
+              profileData.bank_details
+            );
+            if (!bankResponse.success) {
+              showToast(
+                bankResponse.message || "Failed to save bank details",
+                "error"
+              );
+              return;
+            }
+          }
+        } catch (bankError: any) {
+          console.error("Failed to save bank details:", bankError);
+          showToast(
+            bankError.message || "Failed to save bank details",
+            "error"
+          );
+          return;
+        }
+      }
+
+      // Save other profile fields if there are changes
+      if (Object.keys(updateData).length > 0) {
+        const response = await updateUserProfile(userId, updateData);
+
+        if (!response.success) {
+          showToast(response.message || "Failed to update profile", "error");
+          return;
+        }
+      } else if (!hasBankDetailsChanges) {
+        // No changes at all
         showToast("No changes to save", "warning");
         setIsEditing(false);
         return;
       }
 
-      const response = await updateUserProfile(userId, updateData);
+      // Refresh profile data after successful save
+      showToast("Profile updated successfully", "success");
+      setIsEditing(false);
 
-      if (response.success) {
-        showToast("Profile updated successfully", "success");
-        setIsEditing(false);
-
-        const updatedProfile = await getUserProfile(userId);
-        if (updatedProfile.success && updatedProfile.data) {
-          setUserProfile(updatedProfile.data);
-          setProfileData({
-            email: updatedProfile.data.email || "",
-            username: updatedProfile.data.username || "",
-            phone_Number: updatedProfile.data.phone_Number || "",
-            bank_details:
-              updatedProfile.data.bank_details ||
-              ({
-                account_number: "",
-                ifsc_code: "",
-                account_type: "",
-                bank_account_holder_name: "",
-                bank_name: "",
-              } as UserBankDetails),
-            address: updatedProfile.data.address || [],
-            vehicle_details: updatedProfile.data.vehicle_details || [],
-          });
-        }
-      } else {
-        showToast(response.message || "Failed to update profile", "error");
+      const updatedProfile = await getUserProfile(userId);
+      if (updatedProfile.success && updatedProfile.data) {
+        setUserProfile(updatedProfile.data);
+        setProfileData({
+          email: updatedProfile.data.email || "",
+          username: updatedProfile.data.username || "",
+          phone_Number: updatedProfile.data.phone_Number || "",
+          bank_details:
+            updatedProfile.data.bank_details ||
+            ({
+              account_number: "",
+              ifsc_code: "",
+              account_type: "",
+              bank_account_holder_name: "",
+              bank_name: "",
+            } as UserBankDetails),
+          address: updatedProfile.data.address || [],
+          vehicle_details: updatedProfile.data.vehicle_details || [],
+        });
       }
     } catch (error: any) {
       console.error("Failed to update profile:", error);
@@ -829,6 +889,50 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
 
   const handleViewOrderDetails = (orderId: string) => {
     router.push(`/shop/order/${orderId}`);
+  };
+
+  const handleOpenReviewModal = (orderId: string) => {
+    setSelectedOrderForReview(orderId);
+    setReviewModalOpen(true);
+  };
+
+  const handleCloseReviewModal = () => {
+    setReviewModalOpen(false);
+    setSelectedOrderForReview(null);
+  };
+
+  const handleSubmitReview = async (rating: number, review: string) => {
+    if (!selectedOrderForReview || !userId) {
+      showToast("Unable to submit review", "error");
+      return;
+    }
+
+    try {
+      setSubmittingReview(true);
+      const response = await addOrderRating({
+        orderId: selectedOrderForReview,
+        ratting: rating,
+        review: review,
+      });
+
+      if (response.success) {
+        showToast("Review submitted successfully", "success");
+        handleCloseReviewModal();
+        
+        // Refresh orders list
+        const ordersResponse = await getUserOrders(userId);
+        if (ordersResponse.success && ordersResponse.data) {
+          setUserOrders(ordersResponse.data);
+        }
+      } else {
+        showToast(response.message || "Failed to submit review", "error");
+      }
+    } catch (error: any) {
+      console.error("Failed to submit review:", error);
+      showToast(error.message || "Failed to submit review", "error");
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -1234,7 +1338,7 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
                               }
                               onValueChange={(value) => {
                                 if (
-                                  ["savings", "current", "salary"].includes(
+                                  ["Savings", "Current", "Fixed Deposit", "Recurring Deposit"].includes(
                                     value
                                   )
                                 ) {
@@ -1252,9 +1356,10 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
                                 <SelectValue placeholder="Select account type" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="savings">Savings</SelectItem>
-                                <SelectItem value="current">Current</SelectItem>
-                                <SelectItem value="salary">Salary</SelectItem>
+                                <SelectItem value="Savings">Savings</SelectItem>
+                                <SelectItem value="Current">Current</SelectItem>
+                                <SelectItem value="Fixed Deposit">Fixed Deposit</SelectItem>
+                                <SelectItem value="Recurring Deposit">Recurring Deposit</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -1399,6 +1504,17 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
                                   <ExternalLink className="h-4 w-4 mr-1" />
                                   Track Order
                                 </a>
+                              </Button>
+                            )}
+                            {order.status.toLowerCase() === "delivered" && !order.review && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenReviewModal(order._id)}
+                                className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                              >
+                                <Star className="h-4 w-4 mr-1" />
+                                Add Review
                               </Button>
                             )}
                           </div>
@@ -2294,6 +2410,14 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         open={isRiseTicketOpen}
         onClose={() => setIsRiseTicketOpen(false)}
       />
+      {selectedOrderForReview && (
+        <OrderReviewModal
+          isOpen={reviewModalOpen}
+          onClose={handleCloseReviewModal}
+          orderId={selectedOrderForReview}
+          onSubmit={handleSubmitReview}
+        />
+      )}
     </div>
   );
 }
