@@ -125,9 +125,28 @@ const getStatusColor = (status: string) => {
           getSubCategories(), // subcategories array
           getBrand(), // brands likely under data.products
         ]);
-        setCategories(Array.isArray(catRes?.data) ? catRes.data : []);
-        setSubCategories(Array.isArray(subRes?.data) ? subRes.data : []);
-        setBrands(Array.isArray(brandRes?.data?.products) ? brandRes.data.products : []);
+        
+        console.log("🔍 Initial filter data:", { catRes, subRes, brandRes });
+        
+        // Handle categories
+        const categoriesData = Array.isArray(catRes?.data) ? catRes.data : 
+                              Array.isArray((catRes?.data as any)?.categories) ? (catRes.data as any).categories : [];
+        console.log("✅ Loaded categories:", categoriesData.length, categoriesData);
+        setCategories(categoriesData);
+        
+        // Handle subcategories
+        const subCategoriesData = Array.isArray(subRes?.data) ? subRes.data :
+                                 Array.isArray((subRes?.data as any)?.subcategories) ? (subRes.data as any).subcategories : [];
+        console.log("✅ Loaded subcategories:", subCategoriesData.length, subCategoriesData);
+        setSubCategories(subCategoriesData);
+        
+        // Handle brands - check multiple possible structures
+        const brandsData = Array.isArray(brandRes?.data?.products) ? brandRes.data.products :
+                          Array.isArray((brandRes?.data as any)?.brands) ? (brandRes.data as any).brands :
+                          Array.isArray(brandRes?.data) ? brandRes.data : [];
+        
+        console.log("✅ Loaded brands:", brandsData.length, brandsData);
+        setBrands(brandsData);
       } catch (e) {
         console.error("Failed initial filter fetch", e);
       }
@@ -145,8 +164,15 @@ const getStatusColor = (status: string) => {
     (async () => {
       try {
         const res = await getModelsByBrand(selectedBrandId);
-        const data = Array.isArray(res?.data?.products) ? res.data.products : [];
-        setModels(data);
+        console.log("📦 Models response for brand", selectedBrandId, ":", res);
+        
+        // Handle multiple possible response structures
+        const modelsData = Array.isArray(res?.data?.products) ? res.data.products :
+                          Array.isArray((res?.data as any)?.models) ? (res.data as any).models :
+                          Array.isArray(res?.data) ? res.data : [];
+        
+        console.log("✅ Loaded models:", modelsData.length, modelsData);
+        setModels(modelsData);
       } catch (e) {
         console.error("Failed to fetch models", e);
         setModels([]);
@@ -164,8 +190,15 @@ const getStatusColor = (status: string) => {
     (async () => {
       try {
         const res = await getVariantsByModel(selectedModelId);
-        const data = Array.isArray(res?.data?.products) ? res.data.products : [];
-        setVariants(data);
+        console.log("📦 Variants response for model", selectedModelId, ":", res);
+        
+        // Handle multiple possible response structures
+        const variantsData = Array.isArray(res?.data?.products) ? res.data.products :
+                            Array.isArray((res?.data as any)?.variants) ? (res.data as any).variants :
+                            Array.isArray(res?.data) ? res.data : [];
+        
+        console.log("✅ Loaded variants:", variantsData.length, variantsData);
+        setVariants(variantsData);
       } catch (e) {
         console.error("Failed to fetch variants", e);
         setVariants([]);

@@ -246,7 +246,8 @@ export default function Dealertable({
                   Status
                 </div>
               </th>
-              <th
+              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"> Actions</th>
+              {/* <th
                 className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
                 onClick={() => handleSort("category")}
               >
@@ -254,8 +255,8 @@ export default function Dealertable({
                   Brands
                 </div>
                
-              </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"> Actions</th>
+              </th> */}
+              
             </tr>
           </thead>
           <tbody>
@@ -377,7 +378,7 @@ export default function Dealertable({
                 Category
               </div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12"></th>
+            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">Actions</th>
           </tr>
         </thead>
         <tbody>

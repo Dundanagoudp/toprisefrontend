@@ -420,12 +420,27 @@ export async function getDealerProfileDetails(dealerId?: string): Promise<Dealer
 //set dealer permissions 
 export async function setDealerPermissions(dealerId: string, permissions: any): Promise<ApiResponse<Dealer>> {
   try {
-    const response = await apiClient.post(`/users/api/users/dealer/setPermiossions/${dealerId}`, {
+    const response = await apiClient.put(`/users/api/users/dealer/resetPermiossions/${dealerId}`, {
       permissions
     })
     return response.data
   } catch (error) {
     console.error(`Failed to set permissions for dealer with id ${dealerId}:`, error)
+    throw error
+  }
+}
+
+
+
+
+// get dealer permissions
+export async function getDealerPermissions(dealerId: string): Promise<ApiResponse<Dealer>> {
+  try { 
+    const response = await apiClient.get(`/users/api/users/dealer/getPermiossions/${dealerId}`)
+    return response.data
+  }
+  catch (error) {
+    console.error(`Failed to get permissions for dealer with id ${dealerId}:`, error)
     throw error
   }
 }
