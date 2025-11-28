@@ -214,3 +214,17 @@ export const createReturnRequest = async (
   }
 };
 
+export const processManualRefund = async (
+  data: any,
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.post(
+      `/orders/api/refunds/processRefund/manual`,
+      data
+    );
+    return response.data;
+  } catch (error: any) {
+    throw error;
+  }
+};
+

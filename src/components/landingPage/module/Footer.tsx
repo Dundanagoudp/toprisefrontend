@@ -55,7 +55,7 @@ export default function Footer() {
               <FaInstagram />
             </a>
             <a
-              href="https://play.google.com"
+              href="https://play.google.com/store/apps/details?id=com.dig9.toprise1"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-white text-xl transition-colors"
@@ -81,7 +81,7 @@ export default function Footer() {
                 ) : (
                   <button
                     type="button"
-                    onClick={link.onClick}
+                    // onClick={link.onClick}
                     className="text-gray-400 hover:text-white transition-colors duration-200 block bg-transparent border-none p-0 m-0 cursor-pointer text-sm"
                   >
                     {link.label}

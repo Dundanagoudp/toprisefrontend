@@ -188,3 +188,79 @@ export async function editUserAddress(userId: string, addressData: EditAddressRe
     throw error;
   }
 }
+
+export interface BankDetailsResponse {
+  success: boolean;
+  message: string;
+  data?: UserBankDetails;
+}
+
+export async function getBankDetails(userId: string): Promise<BankDetailsResponse> {
+  try {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await apiClient.get(`/users/api/users/${userId}/bank-details`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch bank details:", error);
+    throw error;
+  }
+}
+
+export async function createBankDetails(userId: string, bankDetails: UserBankDetails): Promise<BankDetailsResponse> {
+  try {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    console.log("Creating bank details with token:", token ? "Token found" : "No token");
+    console.log("Bank details data:", bankDetails);
+
+    const response = await apiClient.post(`/users/api/users/${userId}/bank-details`, bankDetails, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log("Bank details create response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create bank details:", error);
+    throw error;
+  }
+}
+
+export async function updateBankDetails(userId: string, bankDetails: UserBankDetails): Promise<BankDetailsResponse> {
+  try {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    console.log("Updating bank details with token:", token ? "Token found" : "No token");
+    console.log("Bank details data:", bankDetails);
+
+    const response = await apiClient.put(`/users/api/users/${userId}/bank-details`, bankDetails, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log("Bank details update response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update bank details:", error);
+    throw error;
+  }
+}

@@ -19,7 +19,9 @@ import {
   Printer,
   RotateCcw,
   Upload,
-  Ticket
+  Ticket,
+  Star,
+  Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,6 +39,11 @@ import { createReturnRequest } from '@/service/return-service'
 import { useToast } from '../../../ui/toast'
 import { DynamicButton } from '../../../common/button'
 import RiseTicket from './popups/RiseTicket'
+import OrderReviewModal from '../UserSetting/popup/OrderReviewModal'
+import { addOrderRating } from '@/service/user/orderService'
+import BankDetailsPromptModal from './popups/BankDetailsPromptModal'
+import { getBankDetails } from '@/service/user/userService'
+import { getUserIdFromToken } from '@/utils/auth'
 
 
 interface OrderDetailsPageProps {
@@ -70,6 +77,11 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
   const [returnLoading, setReturnLoading] = useState(false)
   const [riseTicketModalOpen, setRiseTicketModalOpen] = useState(false)
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [localOrder, setLocalOrder] = useState<any>(order)
+  const [bankDetailsPromptOpen, setBankDetailsPromptOpen] = useState(false)
+  const [checkingBankDetails, setCheckingBankDetails] = useState(false)
   
   useEffect(() => {
     const fetchProducts = async () => {
@@ -199,7 +211,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     return false
   }
 
-  const handleReturnProduct = () => {
+  const openReturnModal = () => {
     // Initialize quantities for all SKUs (excluding those with existing returns)
     const initialQuantities: {[key: string]: number} = {}
     order.skus.forEach((sku: any) => {
@@ -208,6 +220,59 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     })
     setSkuReturnQuantities(initialQuantities)
     setReturnModalOpen(true)
+  }
+
+  const handleReturnProduct = async () => {
+    // Check if payment method is COD
+    if (order.paymentType === 'COD') {
+      // Check for bank details before allowing return
+      const userId = getUserIdFromToken() || order.customerDetails?.userId
+      
+      if (!userId) {
+        showToast('User ID not found. Please login again.', 'error')
+        return
+      }
+
+      try {
+        setCheckingBankDetails(true)
+        const bankResponse = await getBankDetails(userId)
+        
+        // Check if bank details exist (at least one field should be populated)
+        const bankDetailsExist =
+          bankResponse.success &&
+          bankResponse.data &&
+          (bankResponse.data.account_number ||
+            bankResponse.data.ifsc_code ||
+            bankResponse.data.bank_name)
+
+        if (!bankDetailsExist) {
+          // Show bank details prompt modal
+          setBankDetailsPromptOpen(true)
+          setCheckingBankDetails(false)
+          return
+        }
+      } catch (error) {
+        console.error('Failed to check bank details:', error)
+        // If error fetching, assume bank details don't exist and show prompt
+        setBankDetailsPromptOpen(true)
+        setCheckingBankDetails(false)
+        return
+      } finally {
+        setCheckingBankDetails(false)
+      }
+    }
+
+    // If not COD or bank details exist, proceed with normal return flow
+    openReturnModal()
+  }
+
+  const handleBankDetailsAdded = () => {
+    // After bank details are added, proceed with return
+    setBankDetailsPromptOpen(false)
+    // Small delay to ensure state is updated
+    setTimeout(() => {
+      openReturnModal()
+    }, 100)
   }
 
   const handleSubmitReturn = async () => {
@@ -290,6 +355,55 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     setRiseTicketModalOpen(true)
   }
 
+  useEffect(() => {
+    setLocalOrder(order)
+  }, [order])
+
+  const handleOpenReviewModal = () => {
+    setReviewModalOpen(true)
+  }
+
+  const handleCloseReviewModal = () => {
+    setReviewModalOpen(false)
+  }
+
+  const handleSubmitReview = async (rating: number, review: string) => {
+    if (!localOrder?._id) {
+      showToast('Unable to submit review', 'error')
+      return
+    }
+
+    try {
+      setSubmittingReview(true)
+      const response = await addOrderRating({
+        orderId: localOrder._id,
+        ratting: rating,
+        review: review,
+      })
+
+      if (response.success) {
+        showToast('Review submitted successfully', 'success')
+        setLocalOrder((prev: any) => ({
+          ...prev,
+          ratting: rating,
+          review: review,
+          review_Date: new Date().toISOString(),
+        }))
+        handleCloseReviewModal()
+      } else {
+        showToast(response.message || 'Failed to submit review', 'error')
+      }
+    } catch (error: any) {
+      console.error('Failed to submit review:', error)
+      showToast(error.message || 'Failed to submit review', 'error')
+    } finally {
+      setSubmittingReview(false)
+    }
+  }
+
+  const isDelivered = localOrder?.status?.toLowerCase() === 'delivered'
+  const hasReview = localOrder?.review && localOrder?.ratting
+
   return (
     <div> 
       <Header/>
@@ -349,10 +463,23 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
               variant="outline"
               size="sm"
               onClick={handleReturnProduct}
-              disabled={isReturnEligible(order) || order.skus?.every((sku: any) => sku.return_info?.return_id)}
+              disabled={
+                isReturnEligible(order) ||
+                order.skus?.every((sku: any) => sku.return_info?.return_id) ||
+                checkingBankDetails
+              }
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Return Product
+              {checkingBankDetails ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Checking...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Return Product
+                </>
+              )}
             </Button>
             {/* <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="w-4 h-4 mr-2" />
@@ -695,6 +822,64 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Order Review Section */}
+            {isDelivered && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5" />
+                    Order Review
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {hasReview ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-5 w-5 ${
+                              star <= (localOrder.ratting || 0)
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'fill-gray-200 text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-2 text-sm text-gray-600">
+                          {localOrder.ratting} {localOrder.ratting === 1 ? 'star' : 'stars'}
+                        </span>
+                      </div>
+                      {localOrder.review && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                            {localOrder.review}
+                          </p>
+                        </div>
+                      )}
+                      {localOrder.review_Date && (
+                        <p className="text-xs text-gray-500">
+                          Reviewed on {formatDate(localOrder.review_Date, { includeTime: true })}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-600 mb-4">
+                        Share your experience with this order
+                      </p>
+                      <Button
+                        onClick={handleOpenReviewModal}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        <Star className="h-4 w-4 mr-2" />
+                        Rate Order
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
@@ -929,6 +1114,19 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
       </DialogContent>
     </Dialog>
     <RiseTicket open={riseTicketModalOpen} onClose={() => setRiseTicketModalOpen(false)} orderId={order._id} showOrderSelection={false} />
+    <BankDetailsPromptModal
+      isOpen={bankDetailsPromptOpen}
+      onClose={() => setBankDetailsPromptOpen(false)}
+      onBankDetailsAdded={handleBankDetailsAdded}
+    />
+    {localOrder?._id && (
+      <OrderReviewModal
+        isOpen={reviewModalOpen}
+        onClose={handleCloseReviewModal}
+        orderId={localOrder._id}
+        onSubmit={handleSubmitReview}
+      />
+    )}
     </div>
   )
 }

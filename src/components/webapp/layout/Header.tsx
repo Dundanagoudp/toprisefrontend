@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Cookies from "js-cookie";
 import {
   NavigationMenu,
@@ -44,6 +44,8 @@ export const Header = () => {
   const [searchValue, setSearchValue] = useState("");
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const pathname = usePathname();
+  const isHomePage = pathname === '/';
   const { showToast } = useToast();
     const [poOpen, setPoOpen] = useState(false);
   const {
@@ -183,19 +185,21 @@ export const Header = () => {
           {/* Desktop Right Side */}
           <div className="hidden lg:flex items-center space-x-4">
             {/* Vehicle Type Toggle */}
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="mode-toggle" className="text-sm text-gray-700">
-                Car
-              </Label>
-              <Switch
-                id="mode-toggle"
-                checked={vehicleType === "bike"}
-                onCheckedChange={handleToggle}
-              />
-              <Label htmlFor="mode-toggle" className="text-sm text-gray-700">
-                Bike/Scooter
-              </Label>
-            </div>
+            {isHomePage && (
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="mode-toggle" className="text-sm text-gray-700">
+                  Car
+                </Label>
+                <Switch
+                  id="mode-toggle"
+                  checked={vehicleType === "bike"}
+                  onCheckedChange={handleToggle}
+                />
+                <Label htmlFor="mode-toggle" className="text-sm text-gray-700">
+                  Bike/Scooter
+                </Label>
+              </div>
+            )}
 
             {/* Navigation Menu */}
             <NavigationMenu>
@@ -324,20 +328,22 @@ export const Header = () => {
           {/* Mobile Right Side */}
           <div className="flex lg:hidden items-center space-x-2">
             {/* Vehicle Type Toggle */}
-            <div className="flex items-center space-x-1">
-              <Label htmlFor="mobile-header-mode-toggle" className="text-xs text-gray-700">
-                Car
-              </Label>
-              <Switch
-                id="mobile-header-mode-toggle"
-                checked={vehicleType === "bike"}
-                onCheckedChange={handleToggle}
-                className="scale-75"
-              />
-              <Label htmlFor="mobile-header-mode-toggle" className="text-xs text-gray-700">
-                Bike
-              </Label>
-            </div>
+            {isHomePage && (
+              <div className="flex items-center space-x-1">
+                <Label htmlFor="mobile-header-mode-toggle" className="text-xs text-gray-700">
+                  Car
+                </Label>
+                <Switch
+                  id="mobile-header-mode-toggle"
+                  checked={vehicleType === "bike"}
+                  onCheckedChange={handleToggle}
+                  className="scale-75"
+                />
+                <Label htmlFor="mobile-header-mode-toggle" className="text-xs text-gray-700">
+                  Bike
+                </Label>
+              </div>
+            )}
             <CartSidebar
               cart={cart}
               cartOpen={cartOpen}

@@ -357,7 +357,7 @@ export default function BannerSection() {
               <div className="pt-4 border-t border-white/20">
                 <div className="flex justify-center lg:justify-end">
                   <a
-                    href="https://play.google.com/store/apps/details?id=com.toprise"
+                    href="https://play.google.com/store/apps/details?id=com.dig9.toprise1&hl=en_IN"
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Download the TopRise app from Google Play"

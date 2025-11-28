@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fetchEmployeeByUserId } from "@/service/order-service";
+  import { fetchEmployeeByUserId, getOrderById } from "@/service/order-service";
 import { getUserIdFromToken } from "@/utils/auth";
 import { 
   ArrowLeft, 
@@ -51,8 +51,9 @@ import InspectDialog from "./modules/modalpopus/inspectDialog";
 import InitiateRefundForm from "./modules/modalpopus/InitiateReturn";
 import CompleteInspectionDialog from "./modules/modalpopus/CompleteInspectionDialog";
 import OnlineRefundDialog from "./modules/modalpopus/OnlineRefundDialog";
-import ManualRefundDialog from "./modules/modalpopus/ManualRefundDialog";
+import CODRefundDialog from "./modules/modalpopus/CODRefundDialog";
 import { useAppSelector } from "@/store/hooks";
+import { useToast as useGlobalToast } from "@/components/ui/toast";
 
 interface ReturnDetailsProps {
   returnId: string;
@@ -79,6 +80,8 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const [completeInspectionDialog, setCompleteInspectionDialog] = useState(false);
   const [onlineRefundDialog, setOnlineRefundDialog] = useState(false);
   const [manualRefundDialog, setManualRefundDialog] = useState(false);
+  const [codRefundDialog, setCodRefundDialog] = useState(false);
+  const { showToast } = useGlobalToast();
 
   useEffect(() => {
     fetchReturnDetails();
@@ -200,20 +203,40 @@ const handleCompleteInspection = () => {
     setCompleteInspectionDialog(true);
 }
 
-const handleRefund = () => {
+const handleRefund = async () => {
   if (!returnRequest) return;
-  
-  // Check refund method
-  const refundMethod = returnRequest.refund?.refundMethod;
-  
-  if (refundMethod === "Original_Payment_Method") {
-    // Open online refund dialog
-    setOnlineRefundDialog(true);
-  } else {
-    // Open manual refund dialog for other methods
-    setManualRefundDialog(true);
+
+  let paymentType = "";
+
+  // Try to use paymentType already present on the order object
+  if (
+    returnRequest.orderId &&
+    typeof returnRequest.orderId === "object" &&
+    returnRequest.orderId !== null
+  ) {
+    paymentType = (returnRequest.orderId as any).paymentType || "";
   }
-}
+
+  // Fallback: fetch order to get paymentType
+  if (!paymentType) {
+    try {
+      const orderId = (returnRequest.orderId as any)?._id || "";
+      if (orderId) {
+        const order = await getOrderById(orderId);
+        paymentType = order.data?.paymentType || "";
+      }
+    } catch (error) {
+      console.error("Failed to resolve payment type for refund:", error);
+    }
+  }
+
+  if (paymentType === "Prepaid") {
+    setOnlineRefundDialog(true);
+    return;
+  }
+
+  setCodRefundDialog(true);
+};
 
 
 
@@ -1070,6 +1093,19 @@ const handleRefund = () => {
           setOnlineRefundDialog(false);
         }}
         returnId={returnId}
+      />
+      
+      <CODRefundDialog
+        open={codRefundDialog}
+        onClose={() => setCodRefundDialog(false)}
+        onComplete={(success) => {
+          if (success) {
+            fetchReturnDetails();
+          }
+          setCodRefundDialog(false);
+        }}
+        returnId={returnId ?? undefined}
+        returnRequest={returnRequest}
       />
       
       {/* <ManualRefundDialog
