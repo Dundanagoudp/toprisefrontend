@@ -18,7 +18,8 @@ import {
 import { auth } from "@/lib/firebase";
 import { registerUser, registerUserWithPhone } from "@/service/auth-service";
 import { ArrowLeft } from "lucide-react";
-
+import Image from "next/image";
+import LogoNoname from "../../../public/assets/logo.png";
 export function PhoneSignUpForm({
   className,
   ...props
@@ -527,12 +528,32 @@ export function PhoneSignUpForm({
           </form>
 
           <div className="bg-muted relative hidden md:block">
-            <img
-              src="/login/login.png"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
+                     <img
+                       src="/login/login.png"
+                       alt="Image"
+                       className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                     />
+         
+                     {/* Centered logo */}
+                     {/* <div className="absolute inset-0 flex items-center justify-center">
+                       <Image
+                         src={LogoNoname}
+                         alt="Toprise logo"
+                         className="h-12 lg:h-16 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
+                       />
+                     </div> */}
+                     
+                     <div className="absolute inset-0 flex items-center justify-center">
+           <div className="bg-white p-4 rounded-lg shadow-md">
+             <Image
+               src={LogoNoname}
+               alt="Toprise logo"
+               className="h-12 lg:h-16 w-auto"
+             />
+           </div>
+         </div>
+         
+                   </div>
         </CardContent>
       </Card>
 

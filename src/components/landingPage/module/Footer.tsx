@@ -47,7 +47,7 @@ export default function Footer() {
           {/* Social Icons */}
           <div className="flex space-x-4">
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/topriseventures?utm_source=qr&igsh=MTgxbjB2Z2MzdmxzcQ=="
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-white text-xl transition-colors"
