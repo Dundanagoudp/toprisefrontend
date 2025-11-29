@@ -115,6 +115,7 @@ export default function Dashboard() {
           getOrderStats(),
           getAllOrders(),
         ]);
+        // console.log("Fetched dashboard data",summaryRe);
         if (isMounted) {
           console.log("Dashboard Data Loaded:", {
             orderRes: orderRes,
