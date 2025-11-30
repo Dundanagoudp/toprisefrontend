@@ -63,10 +63,7 @@ import {
   type PickupItem,
   type PicklistData,
 } from "@/service/pickup-service";
-import { generatePicklistPDF, generateSinglePicklistPDF } from "@/service/pdfService";
-import { getDealerById } from "@/service/dealerServices";
-import { getEmployeeById } from "@/service/employeeServices";
-import DynamicPagination from "@/components/common/pagination/DynamicPagination";
+import { generatePickupListPDF, generateSinglePickupPDF } from "@/service/pdfService";
 
 export default function PickupManagement() {
   const router = useRouter();
@@ -83,57 +80,6 @@ export default function PickupManagement() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingSinglePDF, setIsGeneratingSinglePDF] = useState(false);
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
-  const itemsPerPage = 10;
-
-  // Helper function to enrich pickup data with dealer and staff info
-  const enrichPickupData = async (pickupList: PicklistData[]) => {
-    const enrichedPickups = await Promise.all(
-      pickupList.map(async (pickup) => {
-        const enrichedPickup = { ...pickup };
-        
-        // Fetch dealer info if not already present
-        if (!pickup.dealerInfo && pickup.dealerId) {
-          try {
-            const dealerResponse = await getDealerById(pickup.dealerId);
-            if (dealerResponse.success && dealerResponse.data) {
-              enrichedPickup.dealerInfo = {
-                name: dealerResponse.data.trade_name || dealerResponse.data.legal_name || 'Unknown Dealer',
-                email: dealerResponse.data.contact_person?.email || '',
-              };
-              console.log(`Dealer fetched: ${pickup.dealerId}`, enrichedPickup.dealerInfo);
-            }
-          } catch (error) {
-            console.error(`Error fetching dealer ${pickup.dealerId}:`, error);
-          }
-        }
-        
-        // Fetch staff info if not already present
-        if (!pickup.staffInfo && pickup.fulfilmentStaff) {
-          try {
-            const staffResponse = await getEmployeeById(pickup.fulfilmentStaff);
-            if (staffResponse.success && staffResponse.data) {
-              enrichedPickup.staffInfo = {
-                name: staffResponse.data.First_name || 'Unknown Staff',
-                email: staffResponse.data.email || '',
-              };
-              console.log(`Staff fetched: ${pickup.fulfilmentStaff}`, enrichedPickup.staffInfo);
-            }
-          } catch (error) {
-            console.error(`Error fetching staff ${pickup.fulfilmentStaff}:`, error);
-          }
-        }
-        
-        return enrichedPickup;
-      })
-    );
-    
-    return enrichedPickups;
-  };
 
   // Fetch pickup data
   const fetchPickupData = useCallback(async () => {
@@ -191,6 +137,12 @@ export default function PickupManagement() {
     return matchesSearch;
   });
 
+  // Debug logging
+  console.log('Pickups state:', pickups);
+  console.log('Filtered pickups:', filteredPickups);
+  console.log('Search term:', searchTerm);
+  console.log('Status filter:', statusFilter);
+
 
   // Handle PDF generation
   const handleGeneratePDF = async () => {
@@ -204,7 +156,7 @@ export default function PickupManagement() {
         searchTerm: searchTerm || undefined,
       };
       
-      await generatePicklistPDF(filteredPickups, {
+      await generatePickupListPDF(filteredPickups as any, {
         title,
         includeFilters: statusFilter !== 'all' || priorityFilter !== 'all' || searchTerm !== '',
         filters
@@ -224,14 +176,14 @@ export default function PickupManagement() {
     try {
       setIsGeneratingSinglePDF(true);
       
-      await generateSinglePicklistPDF(pickup);
+      await generateSinglePickupPDF(pickup as any);
       
       showToast("Picklist details PDF generated successfully", "success");
     } catch (error) {
-      console.error("Error generating single pickup PDF:", error);
-      showToast("Failed to generate picklist details PDF", "error");
+      console.error("Error exporting CSV:", error);
+      showToast("Failed to export CSV", "error");
     } finally {
-      setIsGeneratingSinglePDF(false);
+      setIsExporting(false);
     }
   };
 
@@ -313,13 +265,13 @@ export default function PickupManagement() {
         </div>
         <div className="flex items-center space-x-3">
           <Button 
-            onClick={handleGeneratePDF} 
+            onClick={handleExportCSV} 
             variant="outline"
-            disabled={isGeneratingPDF || filteredPickups.length === 0}
+            disabled={isExporting || filteredPickups.length === 0}
             className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
           >
             <Download className="h-4 w-4 mr-2" />
-            {isGeneratingPDF ? "Generating..." : "Download PDF"}
+            {isExporting ? "Exporting..." : "Export CSV"}
           </Button>
           <Button onClick={fetchPickupData} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -393,27 +345,40 @@ export default function PickupManagement() {
             View and manage picklist requests
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 min-w-0 overflow-x-auto">
+          <div className="px-4">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Picklist ID</TableHead>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Dealer</TableHead>
-                <TableHead>Staff</TableHead>
-                <TableHead>Created Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Items</TableHead>
-                {/* <TableHead>Overdue</TableHead> */}
-                <TableHead>Actions</TableHead>
+              <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Picklist ID</TableHead>
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Order ID</TableHead>
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Customer</TableHead>
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Dealer</TableHead>
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Staff</TableHead>
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Created Date</TableHead>
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Status</TableHead>
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Items</TableHead>
+                {/* <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Overdue</TableHead> */}
+                <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-sans">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPickups.map((pickup) => (
-                <TableRow key={pickup._id}>
-                  <TableCell className="font-medium">{pickup._id}</TableCell>
-                  <TableCell>
+              {paginatedPickups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                    No picklists found matching your filters
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedPickups.map((pickup, index) => (
+                <TableRow 
+                  key={pickup._id}
+                  className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                    index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                  }`}
+                >
+                  <TableCell className="px-6 py-4 font-[Poppins]">{pickup._id}</TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="font-medium">
                       {pickup.orderInfo?.orderId || pickup.linkedOrderId || 'N/A'}
                     </div>
@@ -423,7 +388,7 @@ export default function PickupManagement() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="font-medium">
                       {pickup.orderInfo?.customerDetails?.name || 'N/A'}
                     </div>
@@ -433,7 +398,7 @@ export default function PickupManagement() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="font-medium">
                       {pickup.dealerInfo?.name || pickup.dealerId || 'N/A'}
                     </div>
@@ -443,7 +408,7 @@ export default function PickupManagement() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="font-medium">
                       {pickup.staffInfo?.name || pickup.fulfilmentStaff || 'N/A'}
                     </div>
@@ -453,9 +418,9 @@ export default function PickupManagement() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>{pickup.createdAt ? formatDate(pickup.createdAt) : 'N/A'}</TableCell>
-                  <TableCell>{getStatusBadge(pickup.scanStatus )}</TableCell>
-                  <TableCell>
+                  <TableCell className="px-6 py-4">{pickup.createdAt ? formatDate(pickup.createdAt) : 'N/A'}</TableCell>
+                  <TableCell className="px-6 py-4">{getStatusBadge(pickup.scanStatus )}</TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="text-sm">
                       {pickup.totalItems || pickup.skuList?.length || 0} item{(pickup.totalItems || pickup.skuList?.length || 0) !== 1 ? 's' : ''}
                     </div>
@@ -465,7 +430,7 @@ export default function PickupManagement() {
                       </div>
                     )}
                   </TableCell>
-                  {/* <TableCell>
+                  {/* <TableCell className="px-6 py-4">
                     {pickup.isOverdue ? (
                       <Badge variant="destructive" className="bg-red-100 text-red-800">
                         <AlertTriangle className="w-3 h-3 mr-1" />
@@ -478,7 +443,7 @@ export default function PickupManagement() {
                       </Badge>
                     )}
                   </TableCell> */}
-                  <TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="flex items-center space-x-2">
                       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
                         <DialogTrigger asChild>
@@ -617,16 +582,7 @@ export default function PickupManagement() {
                               </div>
                             </div>
                           )}
-                          <DialogFooter className="flex justify-between">
-                            <Button 
-                              variant="outline"
-                              onClick={() => selectedPickup && handleGenerateSinglePickupPDF(selectedPickup)}
-                              disabled={isGeneratingSinglePDF}
-                              className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              {isGeneratingSinglePDF ? "Generating..." : "Download PDF"}
-                            </Button>
+                          <DialogFooter>
                             <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
                               Close
                             </Button>
@@ -637,9 +593,35 @@ export default function PickupManagement() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
+              )}
             </TableBody>
           </Table>
+
+          {/* Pagination - moved outside of table */}
+          {filteredPickups.length > 0 && totalPages > 1 && (
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
+              {/* Left: Showing X-Y of Z picklists */}
+              <div className="text-sm text-gray-600 text-center sm:text-left">
+                {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
+                  currentPage * itemsPerPage,
+                  filteredPickups.length
+                )} of ${filteredPickups.length} picklists`}
+              </div>
+              {/* Pagination Controls */}
+              <div className="flex justify-center sm:justify-end">
+                <DynamicPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  totalItems={filteredPickups.length}
+                  itemsPerPage={itemsPerPage}
+                  showItemsInfo={false}
+                />
+              </div>
+            </div>
+          )}
+          </div>
         </CardContent>
       </Card>
 

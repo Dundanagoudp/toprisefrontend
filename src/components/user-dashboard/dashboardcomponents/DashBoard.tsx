@@ -110,6 +110,7 @@ export default function Dashboard() {
           fetchOrderSummaryRevenue(summaryPeriod),
           fetchUserCounts(),
         ]);
+        // console.log("Fetched dashboard data",summaryRe);
         if (isMounted) {
           setStats(orderRes.data);
           setProductStats(productRes.data);
