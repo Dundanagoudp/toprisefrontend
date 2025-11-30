@@ -161,17 +161,7 @@ export default function ValidateReturnRequest({
             >
               Close
             </Button>
-            {onNextStep && (
-              <Button
-                onClick={() => {
-                  onNextStep()
-                  handleClose()
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-              >
-                Next Step
-              </Button>
-            )}
+   
           </DialogFooter>
         )}
       </DialogContent>

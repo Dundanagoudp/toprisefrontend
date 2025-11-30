@@ -6,7 +6,8 @@ import { Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Area, AreaChart
 interface LineChartDatum {
   name: string
   value1: number
-  value2: number
+  orders?: number
+  value2?: number
   value3?: number
   amount1?: number
   amount2?: number
@@ -26,34 +27,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#3B82F6" }} />
-            <span>Current Orders: {point.value1}</span>
+            <span>Revenue: ₹{point.value1.toLocaleString()}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#EF4444" }} />
-            <span>Previous Orders: {point.value2}</span>
-          </div>
-          {typeof point.amount1 === "number" && (
+          {typeof point.orders === "number" && (
             <div className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#3B82F6" }} />
-              <span>Current Amount: {point.amount1}</span>
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#10B981" }} />
+              <span>Orders: {point.orders}</span>
             </div>
           )}
-          {typeof point.amount2 === "number" && (
+          {typeof point.value2 === "number" && (
             <div className="flex items-center gap-2">
               <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#EF4444" }} />
-              <span>Previous Amount: {point.amount2}</span>
-            </div>
-          )}
-          {typeof point.value3 === "number" && (
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#10B981" }} />
-              <span>All Orders: {point.value3}</span>
-            </div>
-          )}
-          {typeof point.amount3 === "number" && (
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#10B981" }} />
-              <span>All Orders Amount: {point.amount3}</span>
+              <span>Previous Orders: {point.value2}</span>
             </div>
           )}
         </div>
@@ -83,8 +68,6 @@ const CustomLineChart: React.FC<LineChartProps> = ({ data }) => {
         />
         <Tooltip content={<CustomTooltip />} />
         <Area type="monotone" dataKey="value1" stroke="#3B82F6" strokeWidth={2} fill="url(#colorBlue)" />
-        <Line type="monotone" dataKey="value2" stroke="#EF4444" strokeWidth={2} dot={false} />
-        <Line type="monotone" dataKey="value3" stroke="#10B981" strokeWidth={2} dot={false} />
       </AreaChart>
     </ResponsiveContainer>
   )

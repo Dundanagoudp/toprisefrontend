@@ -14,6 +14,7 @@ export interface PaymentDetail {
   razorpay_order_id: string;
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
+  razorpay_payment_method: PaymentMethod;
   amount: number;
   created_at: string;
   is_refund: boolean;

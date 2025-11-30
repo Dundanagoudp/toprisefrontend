@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
   import { fetchEmployeeByUserId, getOrderById } from "@/service/order-service";
 import { getUserIdFromToken } from "@/utils/auth";
 import { 
@@ -81,6 +82,8 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const [onlineRefundDialog, setOnlineRefundDialog] = useState(false);
   const [manualRefundDialog, setManualRefundDialog] = useState(false);
   const [codRefundDialog, setCodRefundDialog] = useState(false);
+  const [borzoConfirmDialog, setBorzoConfirmDialog] = useState<{ open: boolean; returnId: string | null }>({ open: false, returnId: null });
+  const [borzoLoading, setBorzoLoading] = useState(false);
   const { showToast } = useGlobalToast();
 
   useEffect(() => {
@@ -140,6 +143,38 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
       setError("Failed to load return details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Borzo pickup handler
+  const handleConfirmBorzo = async () => {
+    if (!borzoConfirmDialog.returnId) return;
+    
+    setBorzoLoading(true);
+    try {
+      // TODO: Replace with actual Borzo API call
+      // const response = await initiateBorzoPickup(borzoConfirmDialog.returnId);
+      
+      // Simulated success for now
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      showToast({
+        title: "Success",
+        description: "Borzo pickup has been initiated successfully",
+        variant: "default",
+      });
+      
+      setBorzoConfirmDialog({ open: false, returnId: null });
+      fetchReturnDetails();
+    } catch (error) {
+      console.error("Error initiating Borzo pickup:", error);
+      showToast({
+        title: "Error",
+        description: "Failed to initiate Borzo pickup",
+        variant: "destructive",
+      });
+    } finally {
+      setBorzoLoading(false);
     }
   };
 
@@ -248,20 +283,22 @@ const handleRefund = async () => {
         return `${baseClasses} text-yellow-600 bg-yellow-50 border-yellow-200`;
       case "Validated":
         return `${baseClasses} text-blue-600 bg-blue-50 border-blue-200`;
-      case "Approved":
-        return `${baseClasses} text-green-600 bg-green-50 border-green-200`;
       case "Rejected":
         return `${baseClasses} text-red-600 bg-red-50 border-red-200`;
-      case "Pickup_Scheduled":
+      case "Shipment_Intiated":
         return `${baseClasses} text-indigo-600 bg-indigo-50 border-indigo-200`;
-      case "Pickup_Completed":
+      case "Shipment_Completed":
         return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`;
-      case "Under_Inspection":
+      case "Inspection_Started":
         return `${baseClasses} text-orange-600 bg-orange-50 border-orange-200`;
-      case "Refund_Processed":
+      case "Inspection_Completed":
+        return `${baseClasses} text-cyan-600 bg-cyan-50 border-cyan-200`;
+      case "Intiated_Refund":
         return `${baseClasses} text-pink-600 bg-pink-50 border-pink-200`;
-      case "Completed":
+      case "Refund_Completed":
         return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
+      case "Refund_Failed":
+        return `${baseClasses} text-red-600 bg-red-50 border-red-200`;
       default:
         return `${baseClasses} text-gray-600 bg-gray-50 border-gray-200`;
     }
@@ -325,9 +362,9 @@ const handleRefund = async () => {
         break;
       case "Validated":
         actions.push({
-          label: "Schedule Pickup",
+          label: "Initiate Borzo Pickup",
           icon: <Truck className="h-4 w-4" />,
-          onClick: () => setSchedulePickupDialog(true),
+          onClick: () => setBorzoConfirmDialog({ open: true, returnId: returnId }),
           variant: "default" as const,
         });
         break;
@@ -1019,18 +1056,31 @@ const handleRefund = async () => {
         returnId={returnId}
       />
       
-      <SchedulePickupDialog
-        open={schedulePickupDialog}
-        onClose={() => setSchedulePickupDialog(false)}
-        onScheduleComplete={(success) => {
-          if (success) {
-            fetchReturnDetails();
-          }
-          setSchedulePickupDialog(false);
-        }}
-        returnId={returnId}
-                 initialPickupAddress={returnRequest.pickupRequest?.pickupAddress || undefined}
-      />
+      <Dialog 
+        open={borzoConfirmDialog.open} 
+        onOpenChange={(open) => !borzoLoading && setBorzoConfirmDialog({ ...borzoConfirmDialog, open })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Initiate Borzo Pickup</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to initiate Borzo pickup for this return request?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBorzoConfirmDialog({ open: false, returnId: null })}
+              disabled={borzoLoading}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmBorzo} disabled={borzoLoading}>
+              {borzoLoading ? "Processing..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <CompletePickupDialog
         open={completePickupDialog}

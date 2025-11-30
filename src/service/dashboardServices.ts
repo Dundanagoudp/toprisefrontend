@@ -1,5 +1,5 @@
 import apiClient from "@/apiClient";
-import { OrderStatsQuery, OrderStatsResponse, ProductStatsResponse, EmployeeStatsResponse, DealerStatsResponse, OrderSummaryPeriod, OrderSummaryResponse, UserCountsResponse, EnhancedOrderStatsQuery, EnhancedOrderStatsResponse } from "@/types/dashboard-Types";
+import { OrderStatsQuery, OrderStatsResponse, ProductStatsResponse, EmployeeStatsResponse, DealerStatsResponse, OrderSummaryPeriod, OrderSummaryResponse, UserCountsResponse, EnhancedOrderStatsQuery, EnhancedOrderStatsResponse, OrderSummaryRevenueResponse } from "@/types/dashboard-Types";
 
 export async function fetchOrderStats(params: OrderStatsQuery): Promise<OrderStatsResponse> {
   const { startDate, endDate } = params;
@@ -51,6 +51,7 @@ export async function fetchDealerStats(): Promise<DealerStatsResponse> {
           period: {
             startDate: new Date().toISOString(),
             endDate: new Date().toISOString(),
+            isAllTime: true,
           },
           summary: {
             totalDealers: 0,
@@ -74,6 +75,14 @@ export async function fetchOrderSummary(period: OrderSummaryPeriod): Promise<Ord
     { params: { period } }
   );
   return response.data as OrderSummaryResponse;
+}
+
+export async function fetchOrderSummaryRevenue(filter: "week" | "month"): Promise<OrderSummaryRevenueResponse> {
+  const response = await apiClient.get(
+    `/orders/api/orders/order-summury/monthy/weekly`,
+    { params: { filter } }
+  );
+  return response.data as OrderSummaryRevenueResponse;
 }
 
 export async function fetchUserCounts(): Promise<UserCountsResponse> {

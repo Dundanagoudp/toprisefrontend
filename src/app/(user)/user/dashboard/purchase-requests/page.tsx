@@ -467,7 +467,7 @@ export default function PurchaseRequestsPage() {
                   <TableHead className="font-semibold">Description</TableHead>
                   <TableHead className="font-semibold">Est. Value</TableHead>
                   <TableHead className="font-semibold">Files</TableHead>
-                  <TableHead className="font-semibold">Priority</TableHead>
+                  {/* <TableHead className="font-semibold">Priority</TableHead> */}
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
@@ -529,7 +529,7 @@ export default function PurchaseRequestsPage() {
                           <span className="text-sm">{request.document_files.length}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{getPriorityBadge(request.priority)}</TableCell>
+                      {/* <TableCell>{getPriorityBadge(request.priority)}</TableCell> */}
                       <TableCell>{getStatusBadge(request.status)}</TableCell>
                       <TableCell className="text-right">
                         {request.status.toLowerCase() === "order-created" ? (

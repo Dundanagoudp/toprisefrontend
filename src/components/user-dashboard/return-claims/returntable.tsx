@@ -56,6 +56,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getReturnRequests, initiateBorzoPickup } from "@/service/return-service";
 import { ReturnRequest, ReturnRequestsResponse } from "@/types/return-Types";
 import ValidateReturnRequest from "./modules/modalpopus/Validate";
+import { getAllDealers } from "@/service/dealerServices";
 
 import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog";
 import CompletePickupDialog from "./modules/modalpopus/CompletePickupDialog";
@@ -78,6 +79,11 @@ export default function ReturnClaims() {
   // Advanced filter states from modal
   const [advancedFilterStatus, setAdvancedFilterStatus] = useState<string | null>(null);
   const [advancedFilterClaimType, setAdvancedFilterClaimType] = useState<string | null>(null);
+
+  // Dealer filter states
+  const [selectedDealerId, setSelectedDealerId] = useState<string>("all");
+  const [dealers, setDealers] = useState<Array<{ _id: string; legal_name: string }>>([]);
+  const [loadingDealers, setLoadingDealers] = useState(false);
 
   // Validation dialog state
   const [validationDialog, setValidationDialog] = useState<{
@@ -143,8 +149,23 @@ export default function ReturnClaims() {
   const fetchReturnRequests = async () => {
     try {
       setLoading(true);
-      const response: ReturnRequestsResponse = await getReturnRequests();
+      const params: { refundMethod?: string; status?: string; dealerId?: string } = {};
+      
+      if (advancedFilterClaimType) {
+        params.refundMethod = advancedFilterClaimType;
+      }
+      
+      if (advancedFilterStatus) {
+        params.status = advancedFilterStatus;
+      }
+
+      if (selectedDealerId && selectedDealerId !== "all") {
+        params.dealerId = selectedDealerId;
+      }
+      
+      const response: ReturnRequestsResponse = await getReturnRequests(params);
       if (response.success && response.data) {
+        console.log("Return requests:", response.data);
         setReturnRequests(response.data.returnRequests);
         setTotalPages(response.data.pagination.pages);
         setTotalItems(response.data.pagination.total);
@@ -159,6 +180,24 @@ export default function ReturnClaims() {
 
   useEffect(() => {
     fetchReturnRequests();
+  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId]);
+
+  // Fetch dealers on mount
+  useEffect(() => {
+    const fetchDealers = async () => {
+      try {
+        setLoadingDealers(true);
+        const response = await getAllDealers();
+        if (response.success && response.data) {
+          setDealers(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dealers:", error);
+      } finally {
+        setLoadingDealers(false);
+      }
+    };
+    fetchDealers();
   }, []);
 
   // Handle validation dialog open
@@ -353,16 +392,8 @@ export default function ReturnClaims() {
       .filter(
         (request) =>
           filterStatus === "All" || request.returnStatus === filterStatus
-      )
-      .filter(
-        (request) =>
-          !advancedFilterStatus || request.returnStatus === advancedFilterStatus
-      )
-      .filter(
-        (request) =>
-          !advancedFilterClaimType || request.returnReason === advancedFilterClaimType
       );
-  }, [returnRequests, searchTerm, filterStatus, advancedFilterStatus, advancedFilterClaimType]);
+  }, [returnRequests, searchTerm, filterStatus]);
 
   const paginatedReturnRequests = filteredReturnRequests.slice(
     (currentPage - 1) * itemsPerPage,
@@ -386,40 +417,32 @@ export default function ReturnClaims() {
   // Reset selection when page or filters change
   useEffect(() => {
     setSelectedClaims([]);
-  }, [currentPage, searchTerm, filterStatus, advancedFilterStatus, advancedFilterClaimType]);
+  }, [currentPage, searchTerm, filterStatus]);
 
- const getStatusBadge = (status: string) => {
-  const baseClasses =
-    "px-3 py-1 rounded-full text-xs font-medium border font-[Poppins]";
+const getStatusBadge = (status: string) => {
+  const baseClasses = "px-3 py-1 rounded-full text-xs font-medium border font-[Poppins]";
 
   switch (status) {
     case "Requested":
       return `${baseClasses} text-yellow-600 bg-yellow-50 border-yellow-200`;
-
     case "Validated":
       return `${baseClasses} text-blue-600 bg-blue-50 border-blue-200`;
-
-    case "Approved":
-      return `${baseClasses} text-green-600 bg-green-50 border-green-200`;
-
     case "Rejected":
       return `${baseClasses} text-red-600 bg-red-50 border-red-200`;
-
-    case "Pickup_Scheduled":
+    case "Shipment_Intiated":
       return `${baseClasses} text-indigo-600 bg-indigo-50 border-indigo-200`;
-
-    case "Pickup_Completed":
+    case "Shipment_Completed":
       return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`;
-
-    case "Under_Inspection":
+    case "Inspection_Started":
       return `${baseClasses} text-orange-600 bg-orange-50 border-orange-200`;
-
-    case "Refund_Processed":
-      return `${baseClasses} text-pink-600 bg-pink-50 border-pink-200`;
-
-    case "Completed":
-      return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
-
+    case "Inspection_Completed":
+      return `${baseClasses} text-teal-600 bg-teal-50 border-teal-200`;
+    case "Intiated_Refund":
+      return `${baseClasses} text-cyan-600 bg-cyan-50 border-cyan-200`;
+    case "Refund_Completed":
+      return `${baseClasses} text-green-600 bg-green-50 border-green-200`;
+    case "Refund_Failed":
+      return `${baseClasses} text-red-700 bg-red-100 border-red-300`;
     default:
       return `${baseClasses} text-gray-600 bg-gray-50 border-gray-200`;
   }
@@ -476,6 +499,23 @@ export default function ReturnClaims() {
                   placeholder="Search returns..."
                 />
               </div>
+              <Select value={selectedDealerId} onValueChange={setSelectedDealerId}>
+                <SelectTrigger className="w-full sm:w-48 h-10 bg-white border-gray-200">
+                  <SelectValue placeholder="All Dealers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dealers</SelectItem>
+                  {loadingDealers ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : (
+                    dealers.map((dealer) => (
+                      <SelectItem key={dealer._id} value={dealer._id}>
+                        {dealer.legal_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
               <SearchFiltersModal
                 trigger={
                   <Button
@@ -496,7 +536,7 @@ export default function ReturnClaims() {
                 onApplyFilters={handleApplyAdvancedFilters}
                 onResetFilters={handleResetAdvancedFilters}
               />
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
+              {/* <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-full sm:w-40 h-10 bg-white border-gray-200">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -521,7 +561,7 @@ export default function ReturnClaims() {
                     Refund_Processed
                   </SelectItem>
                 </SelectContent>
-              </Select>
+              </Select> */}
             </div>
             <div className="flex w-full sm:w-auto justify-end gap-3">
               {selectedClaims.length > 0 &&

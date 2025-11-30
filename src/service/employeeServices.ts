@@ -285,3 +285,15 @@ export async function getAllFulfillmentStaff(
     throw error;
   }
 }
+
+
+//get all fulfillment staff  wihtout pagination
+export async function getAllFulfillmentStaffWithoutPagination(): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.get("/users/api/users/fulfillment/get/allEmployees");
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch fulfillment staff without pagination:", error);
+    throw error;
+  }
+}

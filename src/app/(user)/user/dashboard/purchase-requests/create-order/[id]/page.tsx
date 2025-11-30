@@ -559,20 +559,6 @@ export default function CreateOrderPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="payment-type">Payment Type *</Label>
-                <Select value={paymentType} onValueChange={setPaymentType}>
-                  <SelectTrigger id="payment-type">
-                    <SelectValue placeholder="Select payment type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="COD">Cash on Delivery</SelectItem>
-                    <SelectItem value="Prepaid">Prepaid</SelectItem>
-       
-                  </SelectContent>
-                </Select>
-              </div>
-
            <div className="space-y-2">
   <Label htmlFor="delivery-type">Delivery Type *</Label>
   <Select

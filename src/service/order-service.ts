@@ -3,9 +3,13 @@ import apiClient from "@/apiClient";
 
 import axios from "axios";
 
-export async function getOrders(page:number,limit:number): Promise<orderResponse> {
+export async function getOrders(page:number,limit:number, paymentType?:string): Promise<orderResponse> {
   try {
-    const response = await apiClient.get(`/orders/api/orders/all?page=${page}&limit=${limit}`);
+    let url = `/orders/api/orders/all?page=${page}&limit=${limit}`;
+    if (paymentType && paymentType !== 'all') {
+      url += `&paymentType=${paymentType}`;
+    }
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch orders:", error);

@@ -147,10 +147,20 @@ export const getPickupRequests = async (): Promise<PickupRequestsResponse> => {
 };
 
 // New function to get all picklists using the new endpoint
-export const getAllPicklists = async (): Promise<PicklistResponse> => {
+export const getAllPicklists = async (
+  page: number = 1,
+  limit: number = 10,
+  status?: string
+): Promise<PicklistResponse> => {
   try {
     console.log("Fetching picklists from API...");
-    const response = await apiClient.get("/orders/api/orders/picklists");
+    
+    let url = `/orders/api/orders/picklists?page=${page}&limit=${limit}`;
+    if (status && status !== "all") {
+      url += `&status=${status}`;
+    }
+    
+    const response = await apiClient.get(url);
     console.log("API Response:", response);
     console.log("Response Data:", response.data);
     return response.data;

@@ -11,13 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
-import { getDealerById, updateDealerById, getAllUsers, getAllCategories, getAllCSlaTypes } from "@/service/dealerServices"
+import { getDealerById, updateDealerById, getAllCategories, getAllCSlaTypes } from "@/service/dealerServices"
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import type { User, Category } from "@/types/dealer-types"
 import {  SlaType } from "@/types/sla-types"
-import { getAllEmployees } from "@/service/employeeServices"
-import { Employee } from "@/types/employee-types"
-import { set } from "zod"
+import { getAllFulfillmentStaffWithoutPagination } from "@/service/employeeServices"
 import { useAppSelector } from "@/store/hooks"
 import { useBreadcrumb } from "@/contexts/BreadcrumbContext"
 
@@ -27,7 +25,6 @@ export default function EditDealer() {
   const params = useParams()
   const dealerId = params?.id as string
   const [users, setUsers] = useState<User[]>([])
-  const [employees, setEmployees] = useState<Employee[]>([])
   const [allCategories, setAllCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
@@ -75,7 +72,6 @@ export default function EditDealer() {
     fetchCategories()
     fetchDealer()
     fetchSlaTypes()
-    fetchEmployees()
     // eslint-disable-next-line
   }, [dealerId])
 
@@ -91,21 +87,25 @@ export default function EditDealer() {
   }
   const fetchUsers = async () => {
     try {
-      const usersResponse = await getAllUsers()
-      if (usersResponse.success) {
-        setUsers(usersResponse.data)
+      const response = await getAllFulfillmentStaffWithoutPagination()
+      
+      if (response.success && response.data?.data) {
+        const staff = response.data.data
+          .filter((s: any) => s.role === "Fulfillment-Staff")
+          .map((s: any) => ({
+            _id: s._id,
+            email: s.email,
+            username: s.First_name,
+            employee_id: s.employee_id,
+          }))
+        
+        setUsers(staff)
+        if (staff.length === 0) {
+          showToast("No Fulfillment Staff found.", "warning");
+        }
       }
     } catch (error) {
-      showToast("Failed to load users. Please refresh the page.", "error");
-    }
-  }
-    const fetchEmployees = async () => {
-    try {
-      const usersResponse = await getAllEmployees()
-      const items = usersResponse.data
-      setEmployees(items ?? [])
-    } catch (error) {
-      showToast("Failed to load users. Please refresh the page.", "error");
+      showToast("Failed to load fulfillment staff.", "error");
     }
   }
 
@@ -469,12 +469,12 @@ export default function EditDealer() {
           {/* Categories & Access */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Brands & Access</CardTitle>
+              <CardTitle className="text-red-600 font-semibold text-lg">Categories & Access</CardTitle>
               <p className="text-sm text-gray-500">Product categories and access permissions.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Brands Allowed *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Categories Allowed *</label>
                 {/* Multi-select Dropdown */}
                 <MultiSelectDropdown
                   options={allCategories}
@@ -602,13 +602,17 @@ export default function EditDealer() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {employees
-                          .filter((user) => user.role === "Fulfillment-Staff")
-                          .map((user) => (
+                        {users.length === 0 ? (
+                          <SelectItem value="no-users" disabled>
+                            No fulfillment staff found
+                          </SelectItem>
+                        ) : (
+                          users.map((user) => (
                             <SelectItem key={user._id} value={user._id}>
-                              {user.email} ({user.role})
+                              {user.username || user.email} ({user.employee_id}) - {user.email}
                             </SelectItem>
-                          ))}
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, rejectBulkProducts, getCategories, getSubCategories, getBrand, getModelsByBrand, getVariantsByModel, approveBulkProducts } from "@/service/product-Service";
+import { aproveProduct, deactivateProduct, exportCSV, rejectProduct, rejectBulkProducts, getCategories, getSubCategories, getBrand, getModelsByBrand, getVariantsByModel, approveBulkProducts, getSubcategoriesByCategoryId } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useAppDispatch } from "@/store/hooks";
@@ -121,13 +121,12 @@ const getStatusColor = (status: string) => {
   useEffect(() => {
     (async () => {
       try {
-        const [catRes, subRes, brandRes] = await Promise.all([
+        const [catRes,brandRes] = await Promise.all([
           getCategories(), // categories array
-          getSubCategories(), // subcategories array
-          getBrand(), // brands likely under data.products
+          getBrand(), 
         ]);
         
-        console.log("🔍 Initial filter data:", { catRes, subRes, brandRes });
+      
         
         // Handle categories
         const categoriesData = Array.isArray(catRes?.data) ? catRes.data : 
@@ -135,12 +134,7 @@ const getStatusColor = (status: string) => {
         console.log("✅ Loaded categories:", categoriesData.length, categoriesData);
         setCategories(categoriesData);
         
-        // Handle subcategories
-        const subCategoriesData = Array.isArray(subRes?.data) ? subRes.data :
-                                 Array.isArray((subRes?.data as any)?.subcategories) ? (subRes.data as any).subcategories : [];
-        console.log("✅ Loaded subcategories:", subCategoriesData.length, subCategoriesData);
-        setSubCategories(subCategoriesData);
-        
+       
         // Handle brands - check multiple possible structures
         const brandsData = Array.isArray(brandRes?.data?.products) ? brandRes.data.products :
                           Array.isArray((brandRes?.data as any)?.brands) ? (brandRes.data as any).brands :
@@ -181,6 +175,26 @@ const getStatusColor = (status: string) => {
     })();
   }, [selectedBrandId]);
 
+// get subcategories by category id
+useEffect(() => {
+  if (!selectedCategoryId) {
+    setSubCategories([]);
+    return;
+  }
+  (async () => {
+    try {
+      const res = await getSubcategoriesByCategoryId(selectedCategoryId);
+      const subCategoriesData = Array.isArray(res?.data) ? res.data :
+                                 Array.isArray((res?.data as any)?.subcategories) ? (res.data as any).subcategories : [];
+      console.log("✅ Loaded subcategories:", subCategoriesData.length, subCategoriesData);
+      setSubCategories(subCategoriesData);
+    } catch (e) {
+      console.error("Failed to fetch subcategories by category id", e);
+      setSubCategories([]);
+    }
+  })();
+}, [selectedCategoryId]);
+
   // Load variants when model changes
   useEffect(() => {
     if (!selectedModelId) {
@@ -216,7 +230,7 @@ const getStatusColor = (status: string) => {
     // Filter subcategories that belong to the selected category
     return subCategories.filter((sub: any) => {
       // Check if subcategory has a category reference that matches selected category
-      const subCategoryId = sub?.category_id || sub?.category?._id || sub?.category?.id;
+      const subCategoryId = sub?.category_ref?._id || sub?.category_id || sub?.category?._id;
       return subCategoryId === selectedCategoryId;
     });
   }, [subCategories, selectedCategoryId]);
@@ -488,6 +502,66 @@ const getStatusColor = (status: string) => {
                           </ul>
                         </AccordionContent>
                       </AccordionItem>
+                      <AccordionItem value="subcategory">
+                        <AccordionTrigger className="text-sm font-medium">Subcategory</AccordionTrigger>
+                        <AccordionContent>
+                          {selectedSubCategoryName && (
+                            <div className="flex justify-end mb-2">
+                              <button
+                                className="text-xs text-[#C72920] underline"
+                                onClick={() => {
+                                  setSelectedSubCategoryId(null);
+                                  setSelectedSubCategoryName(null);
+                                }}
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                          <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
+                            {filteredSubCategories && filteredSubCategories.length > 0 ? (
+                              filteredSubCategories.map((sub: any) => (
+                                <li key={sub?._id || sub?.id}>
+                                  <button
+                                    className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedSubCategoryName === (sub?.subcategory_name || sub?.name) ? "bg-gray-100" : ""}`}
+                                    onClick={() => { 
+                                      const rawSubcategoryId = sub?._id ?? sub?.id ?? sub?.subcategory_id;
+                                      const normalizedSubcategoryId = typeof rawSubcategoryId === "string"
+                                        ? rawSubcategoryId.trim()
+                                        : rawSubcategoryId !== undefined && rawSubcategoryId !== null
+                                          ? String(rawSubcategoryId)
+                                          : "";
+                                      const subcategoryId = normalizedSubcategoryId;
+
+                                      const subcategoryName = sub?.subcategory_name || sub?.name;
+                           
+                                      
+                                      // Validate that we have a valid ID
+                                      if (!subcategoryId || !/^[0-9a-fA-F]{24}$/.test(subcategoryId)) {
+                                     
+                                        return;
+                                      }
+                                      
+                                      setSelectedSubCategoryId(subcategoryId);
+                                    
+                                      setSelectedSubCategoryName(subcategoryName || null);
+                                    }}
+                                  >
+                                    {sub?.subcategory_name || sub?.name}
+                                  </button>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-xs text-gray-500 px-2">
+                                {selectedCategoryId 
+                                  ? "No subcategories found for selected category" 
+                                  : "No subcategories found"
+                                }
+                              </li>
+                            )}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
                       <AccordionItem value="brand">
                         <AccordionTrigger className="text-sm font-medium">Brand</AccordionTrigger>
                         <AccordionContent>
@@ -594,66 +668,7 @@ const getStatusColor = (status: string) => {
                           </ul>
                         </AccordionContent>
                       </AccordionItem>
-                      <AccordionItem value="subcategory">
-                        <AccordionTrigger className="text-sm font-medium">Subcategory</AccordionTrigger>
-                        <AccordionContent>
-                          {selectedSubCategoryName && (
-                            <div className="flex justify-end mb-2">
-                              <button
-                                className="text-xs text-[#C72920] underline"
-                                onClick={() => {
-                                  setSelectedSubCategoryId(null);
-                                  setSelectedSubCategoryName(null);
-                                }}
-                              >
-                                Clear
-                              </button>
-                            </div>
-                          )}
-                          <ul className="space-y-1 text-sm text-gray-700 max-h-64 overflow-y-auto">
-                            {filteredSubCategories && filteredSubCategories.length > 0 ? (
-                              filteredSubCategories.map((sub: any) => (
-                                <li key={sub?._id || sub?.id}>
-                                  <button
-                                    className={`w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${selectedSubCategoryName === (sub?.subcategory_name || sub?.name) ? "bg-gray-100" : ""}`}
-                                    onClick={() => { 
-                                      const rawSubcategoryId = sub?._id ?? sub?.id ?? sub?.subcategory_id;
-                                      const normalizedSubcategoryId = typeof rawSubcategoryId === "string"
-                                        ? rawSubcategoryId.trim()
-                                        : rawSubcategoryId !== undefined && rawSubcategoryId !== null
-                                          ? String(rawSubcategoryId)
-                                          : "";
-                                      const subcategoryId = normalizedSubcategoryId;
-
-                                      const subcategoryName = sub?.subcategory_name || sub?.name;
-                           
-                                      
-                                      // Validate that we have a valid ID
-                                      if (!subcategoryId || !/^[0-9a-fA-F]{24}$/.test(subcategoryId)) {
-                                     
-                                        return;
-                                      }
-                                      
-                                      setSelectedSubCategoryId(subcategoryId);
-                                    
-                                      setSelectedSubCategoryName(subcategoryName || null);
-                                    }}
-                                  >
-                                    {sub?.subcategory_name || sub?.name}
-                                  </button>
-                                </li>
-                              ))
-                            ) : (
-                              <li className="text-xs text-gray-500 px-2">
-                                {selectedCategoryId 
-                                  ? "No subcategories found for selected category" 
-                                  : "No subcategories found"
-                                }
-                              </li>
-                            )}
-                          </ul>
-                        </AccordionContent>
-                      </AccordionItem>
+                 
                     </Accordion>
                 </PopoverContent>
               </Popover>

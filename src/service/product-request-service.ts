@@ -29,8 +29,6 @@ export async function getProductRequests(
       });
     }
 
-    console.log('Fetching product requests with params:', params.toString());
-    console.log('Filters passed:', filters);
     
     const response = await apiClient.get(`/category/products/v1/pending?${params.toString()}`);
     

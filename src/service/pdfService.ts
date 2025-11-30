@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { PickupRequest } from './pickup-service';
+import { PickupRequest, PicklistData } from './pickup-service';
 
 /**
  * PDF Generation Service for Pickup Lists
@@ -335,8 +335,6 @@ export async function generateSinglePickupPDF(pickup: PickupRequest): Promise<vo
     yPosition += 6;
     doc.text(`Phone: ${pickup.customerPhone}`, margin, yPosition);
     yPosition += 6;
-    doc.text(`Email: ${pickup.customerEmail}`, margin, yPosition);
-    yPosition += 6;
     doc.text(`Address: ${formatAddress(pickup.pickupAddress)}`, margin, yPosition);
     yPosition += 10;
     
@@ -349,7 +347,7 @@ export async function generateSinglePickupPDF(pickup: PickupRequest): Promise<vo
     pickup.items.forEach((item, index) => {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`${index + 1}. ${item.name} (Qty: ${item.quantity})`, margin, yPosition);
+      doc.text(`${index + 1}. ${item.productName} (Qty: ${item.quantity})`, margin, yPosition);
       yPosition += 6;
     });
     
@@ -362,6 +360,323 @@ export async function generateSinglePickupPDF(pickup: PickupRequest): Promise<vo
     throw new Error('Failed to generate single pickup PDF');
   }
 }
+
+/**
+ * Generate PDF for picklist data (new structure)
+ */
+export async function generatePicklistPDF(
+  picklists: PicklistData[],
+  options: {
+    title?: string;
+    includeFilters?: boolean;
+    filters?: {
+      status?: string;
+      priority?: string;
+      searchTerm?: string;
+    };
+  } = {}
+): Promise<void> {
+  try {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+    
+    let yPosition = margin;
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(options.title || 'Picklist Management Report', margin, yPosition);
+    yPosition += 15;
+    
+    // Generation date
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, yPosition);
+    yPosition += 10;
+    
+    // Summary
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Summary', margin, yPosition);
+    yPosition += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Picklists: ${picklists.length}`, margin, yPosition);
+    yPosition += 6;
+    
+    // Count by status
+    const statusCounts = picklists.reduce((acc, picklist) => {
+      acc[picklist.scanStatus] = (acc[picklist.scanStatus] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    Object.entries(statusCounts).forEach(([status, count]) => {
+      doc.text(`${status}: ${count}`, margin + 20, yPosition);
+      yPosition += 5;
+    });
+    
+    yPosition += 10;
+    
+    // Add filters if provided
+    if (options.includeFilters && options.filters) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Applied Filters', margin, yPosition);
+      yPosition += 8;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      
+      if (options.filters.status) {
+        doc.text(`Status: ${options.filters.status}`, margin, yPosition);
+        yPosition += 6;
+      }
+      if (options.filters.searchTerm) {
+        doc.text(`Search: ${options.filters.searchTerm}`, margin, yPosition);
+        yPosition += 6;
+      }
+      
+      yPosition += 5;
+    }
+    
+    // Table headers
+    const headers = ['ID', 'Order ID', 'Customer', 'Dealer', 'Staff', 'Status', 'Items'];
+    const colWidths = [25, 25, 30, 30, 30, 25, 15];
+    
+    // Draw table header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, yPosition - 5, contentWidth, 8, 'F');
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    let xPos = margin;
+    headers.forEach((header, index) => {
+      doc.text(header, xPos + 2, yPosition);
+      xPos += colWidths[index];
+    });
+    yPosition += 8;
+    
+    // Table rows
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    
+    picklists.forEach((picklist) => {
+      // Check if we need a new page
+      if (yPosition > pageHeight - 30) {
+        doc.addPage();
+        yPosition = margin;
+        
+        // Redraw header
+        doc.setFillColor(240, 240, 240);
+        doc.rect(margin, yPosition - 5, contentWidth, 8, 'F');
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        xPos = margin;
+        headers.forEach((header, index) => {
+          doc.text(header, xPos + 2, yPosition);
+          xPos += colWidths[index];
+        });
+        yPosition += 8;
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+      }
+      
+      // Row data
+      const rowData = [
+        (picklist._id || '').substring(0, 8),
+        picklist.orderInfo?.orderId || picklist.linkedOrderId || 'N/A',
+        picklist.orderInfo?.customerDetails?.name || 'N/A',
+        picklist.dealerInfo?.name || 'N/A',
+        picklist.staffInfo?.name || 'N/A',
+        picklist.scanStatus || 'N/A',
+        (picklist.totalItems || picklist.skuList?.length || 0).toString()
+      ];
+      
+      xPos = margin;
+      rowData.forEach((data, colIndex) => {
+        const maxLength = Math.floor(colWidths[colIndex] / 1.5);
+        const displayText = data.length > maxLength ? data.substring(0, maxLength) + '...' : data;
+        doc.text(displayText, xPos + 2, yPosition);
+        xPos += colWidths[colIndex];
+      });
+      
+      yPosition += 6;
+    });
+    
+    // Footer
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 30, pageHeight - 10);
+    }
+    
+    // Save
+    const fileName = `picklist-report-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    
+  } catch (error) {
+    console.error('Error generating picklist PDF:', error);
+    throw new Error('Failed to generate picklist PDF');
+  }
+}
+
+/**
+ * Generate detailed PDF for single picklist
+ */
+export async function generateSinglePicklistPDF(picklist: PicklistData): Promise<void> {
+  try {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    
+    let yPosition = margin;
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Picklist Details', margin, yPosition);
+    yPosition += 15;
+    
+    // Picklist ID
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Picklist ID: ${picklist._id}`, margin, yPosition);
+    yPosition += 10;
+    
+    // Basic Information
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Basic Information', margin, yPosition);
+    yPosition += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Order ID: ${picklist.orderInfo?.orderId || picklist.linkedOrderId || 'N/A'}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Dealer: ${picklist.dealerInfo?.name || 'N/A'}`, margin, yPosition);
+    yPosition += 6;
+    if (picklist.dealerInfo?.email) {
+      doc.text(`Dealer Email: ${picklist.dealerInfo.email}`, margin, yPosition);
+      yPosition += 6;
+    }
+    doc.text(`Staff: ${picklist.staffInfo?.name || 'N/A'}`, margin, yPosition);
+    yPosition += 6;
+    if (picklist.staffInfo?.email) {
+      doc.text(`Staff Email: ${picklist.staffInfo.email}`, margin, yPosition);
+      yPosition += 6;
+    }
+    doc.text(`Status: ${picklist.scanStatus}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Invoice Generated: ${picklist.invoiceGenerated ? 'Yes' : 'No'}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Created: ${formatDate(picklist.createdAt)}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Updated: ${formatDate(picklist.updatedAt)}`, margin, yPosition);
+    yPosition += 10;
+    
+    // Customer Details (if available)
+    if (picklist.orderInfo?.customerDetails) {
+      // Check if we need a new page
+      if (yPosition > pageHeight - 60) {
+        doc.addPage();
+        yPosition = margin;
+      }
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Customer Details', margin, yPosition);
+      yPosition += 8;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Name: ${picklist.orderInfo.customerDetails.name || 'N/A'}`, margin, yPosition);
+      yPosition += 6;
+      doc.text(`Phone: ${picklist.orderInfo.customerDetails.phone || 'N/A'}`, margin, yPosition);
+      yPosition += 6;
+      doc.text(`Email: ${picklist.orderInfo.customerDetails.email || 'N/A'}`, margin, yPosition);
+      yPosition += 6;
+      doc.text(`Address: ${picklist.orderInfo.customerDetails.address || 'N/A'}`, margin, yPosition);
+      yPosition += 6;
+      doc.text(`Pincode: ${picklist.orderInfo.customerDetails.pincode || 'N/A'}`, margin, yPosition);
+      yPosition += 10;
+    }
+    
+    // Order Details (if available)
+    if (picklist.orderInfo) {
+      // Check if we need a new page
+      if (yPosition > pageHeight - 40) {
+        doc.addPage();
+        yPosition = margin;
+      }
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Order Details', margin, yPosition);
+      yPosition += 8;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Order Amount: ₹${picklist.orderInfo.order_Amount?.toLocaleString() || 0}`, margin, yPosition);
+      yPosition += 6;
+      doc.text(`Payment Type: ${picklist.orderInfo.paymentType || 'N/A'}`, margin, yPosition);
+      yPosition += 6;
+      doc.text(`Delivery Charges: ₹${picklist.orderInfo.deliveryCharges || 0}`, margin, yPosition);
+      yPosition += 10;
+    }
+    
+    // SKU List
+    // Check if we need a new page
+    if (yPosition > pageHeight - 40) {
+      doc.addPage();
+      yPosition = margin;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`SKU List (${picklist.totalItems || picklist.skuList?.length || 0} items)`, margin, yPosition);
+    yPosition += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    (picklist.skuList || []).forEach((item, index) => {
+      // Check if we need a new page
+      if (yPosition > pageHeight - 30) {
+        doc.addPage();
+        yPosition = margin;
+      }
+      
+      doc.text(`${index + 1}. SKU: ${item.sku} | Qty: ${item.quantity} | Barcode: ${item.barcode || 'N/A'}`, margin, yPosition);
+      yPosition += 6;
+    });
+    
+    // Footer
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 30, pageHeight - 10);
+    }
+    
+    // Save
+    const fileName = `picklist-${picklist._id.substring(0, 8)}-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    
+  } catch (error) {
+    console.error('Error generating single picklist PDF:', error);
+    throw new Error('Failed to generate single picklist PDF');
+  }
+}
+
 
 /**
  * Generate Order Management PDF report

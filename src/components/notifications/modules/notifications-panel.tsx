@@ -218,27 +218,20 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
 
 
   const markAllAsRead = async () => {
+    const userId = getUserIdFromToken()
+    if (!userId) return
+
     try {
-      const userId = getUserIdFromToken()
-      if (!userId) {
-        setError("Authentication required")
-        return
-      }
+      const unreadIds = notificationList
+        .filter(n => !n.markAsRead)
+        .map(n => n._id)
       
-      console.log("Marking all as read for userId:", userId)
-      const response = await markAllAsReadAPI(userId)
-      console.log("Mark all as read response:", response)
+      if (unreadIds.length === 0) return
       
-      if (response.success) {
-        // Refetch notifications from backend to ensure data is synced
-        await fetchNotifications()
-      } else {
-        setError(response.message || "Failed to mark all as read")
-        console.error("Mark all as read failed:", response)
-      }
+      await Promise.all(unreadIds.map(id => markAsReadAPI(id)))
+      await fetchNotifications()
     } catch (err) {
-      console.error("Error marking all as read:", err)
-      setError("Failed to mark all as read. Please try again.")
+      console.error(err)
     }
   }
 
@@ -315,7 +308,7 @@ export function NotificationsPanel({ open, onOpenChange, onCountUpdate }: Notifi
   const unreadCount = notificationList.filter((n) => !n.markAsRead).length
   const totalCount = notificationList.length
   const readCount = totalCount - unreadCount
-  const headerBadgeCount = unreadCount > 0 ? unreadCount : allTotalCount
+  const headerBadgeCount = unreadCount > 0 && unreadCount < allTotalCount ? unreadCount : 0
 
   return (
     <div>

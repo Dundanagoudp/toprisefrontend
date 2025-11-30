@@ -98,6 +98,7 @@ const [tempDate, setTempDate] = useState("all");
       });
 
       setPayments(response.data.data);
+      console.log("🔍 Payment details:", response.data.data);
       setTotalPages(response.data.pagination.totalPages);
       setTotalItems(response.data.pagination.totalItems);
 
@@ -609,7 +610,9 @@ const [tempDate, setTempDate] = useState("all");
                           ₹{payment.amount.toLocaleString()}
                         </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
-                          {payment.payment_method}
+                          {payment.payment_method === "Razorpay" 
+                            ? payment.razorpay_payment_method 
+                            : payment.payment_method}
                         </TableCell>
                         <TableCell className="px-6 py-4">
                           <span className={getStatusBadge(payment.payment_status)}>
