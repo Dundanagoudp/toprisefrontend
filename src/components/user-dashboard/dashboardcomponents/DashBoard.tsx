@@ -14,7 +14,7 @@ import {
   fetchProductStats,
   fetchEmployeeStats,
   fetchDealerStats,
-  fetchOrderSummary,
+  fetchOrderSummaryRevenue,
   fetchUserCounts,
 } from "@/service/dashboardServices";
 import { getOrderStats, getAllOrders } from "@/service/order-service";
@@ -23,6 +23,7 @@ import {
   EmployeeStatsResponse,
   DealerStatsResponse,
   UserCountsResponse,
+  OrderSummaryRevenueResponse,
 } from "@/types/dashboard-Types";
 import {
   OrderStatsResponse,
@@ -80,16 +81,14 @@ export default function Dashboard() {
   const [dealerSummary, setDealerSummary] = useState<
     DealerStatsResponse["data"]["summary"] | null
   >(null);
-  const [orderSummary, setOrderSummary] = useState<
-    OrderSummaryResponse["data"] | null
+  const [revenueData, setRevenueData] = useState<
+    OrderSummaryRevenueResponse | null
   >(null);
   const [summaryPeriod, setSummaryPeriod] =
     useState<OrderSummaryPeriod>("week");
   const [userCounts, setUserCounts] = useState<
     UserCountsResponse["data"] | null
   >(null);
-  const [orderApiStats, setOrderApiStats] = useState<any>(null);
-  const [allOrders, setAllOrders] = useState<any>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -101,40 +100,26 @@ export default function Dashboard() {
           productRes,
           employeeRes,
           dealerRes,
-          summaryRes,
+          revenueRes,
           userCountsRes,
-          orderApiRes,
-          allOrdersRes,
         ] = await Promise.all([
           fetchOrderStats({ startDate, endDate }),
           fetchProductStats(),
           fetchEmployeeStats(),
           fetchDealerStats(),
-          fetchOrderSummary(summaryPeriod),
+          fetchOrderSummaryRevenue(summaryPeriod),
           fetchUserCounts(),
-          getOrderStats(),
-          getAllOrders(),
         ]);
         if (isMounted) {
-          console.log("Dashboard Data Loaded:", {
-            orderRes: orderRes,
-            summaryRes: summaryRes,
-            orderApiRes: orderApiRes,
-            allOrdersRes: allOrdersRes,
-          });
-
           setStats(orderRes.data);
           setProductStats(productRes.data);
           setEmployeeSummary(employeeRes.data.summary);
           setDealerSummary(dealerRes.data.summary);
-          setOrderSummary(summaryRes.data);
+          setRevenueData(revenueRes);
           setUserCounts(userCountsRes.data);
-          setOrderApiStats(orderApiRes.data);
-          setAllOrders(allOrdersRes.data);
         }
       } catch (e) {
         console.error("Dashboard data loading error:", e);
-        // fail silently for now; could add toast
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -274,171 +259,28 @@ export default function Dashboard() {
     ];
   }, [productStats]);
 
-  // Process all orders data to create time series data
-  const processAllOrdersData = useMemo(() => {
-    if (!allOrders || !Array.isArray(allOrders)) {
-      return null;
-    }
-
-    // Group orders by date
-    const ordersByDate: {
-      [key: string]: { count: number; totalAmount: number };
-    } = {};
-
-    allOrders.forEach((order: any) => {
-      const orderDate = new Date(order.orderDate).toISOString().split("T")[0]; // Get YYYY-MM-DD format
-
-      if (!ordersByDate[orderDate]) {
-        ordersByDate[orderDate] = { count: 0, totalAmount: 0 };
-      }
-
-      ordersByDate[orderDate].count += 1;
-      ordersByDate[orderDate].totalAmount += order.order_Amount || 0;
-    });
-
-    // Convert to array and sort by date
-    const sortedDates = Object.keys(ordersByDate).sort();
-
-    // Get the last 7 days or available data
-    const recentDates = sortedDates.slice(-7);
-
-    return recentDates.map((date) => ({
-      date,
-      count: ordersByDate[date].count,
-      totalAmount: ordersByDate[date].totalAmount,
-    }));
-  }, [allOrders]);
-
-  // Map API timeSeriesData to chart lines: value1 = currentOrders, value2 = previousOrders, value3 = allOrdersData
+  // Transform revenue data for chart
   const chartData = useMemo(() => {
-    console.log("Chart Data Debug:", {
-      orderSummary: orderSummary,
-      processAllOrdersData: processAllOrdersData,
-      orderApiStats: orderApiStats,
-    });
-
-    // If we have all orders data, create chart data from it
-    if (processAllOrdersData && processAllOrdersData.length > 0) {
-      const allOrdersChartData = processAllOrdersData.map((item, index) => ({
-        name: `Day ${index + 1}`,
-        value1: item.count,
-        value2: 0, // No previous data for all orders
-        value3: item.count,
-        amount1: item.totalAmount,
-        amount2: 0,
-        amount3: item.totalAmount,
-      }));
-      console.log("Using all orders data:", allOrdersChartData);
-      return allOrdersChartData;
+    if (!revenueData || !revenueData.data || revenueData.data.length === 0) {
+      return [];
     }
-
-    // If we have order summary data, use it
-    if (
-      orderSummary &&
-      orderSummary.timeSeriesData &&
-      orderSummary.timeSeriesData.length > 0
-    ) {
-      const baseData = orderSummary.timeSeriesData.map((p) => ({
-        name: p.label,
-        value1: p.currentOrders,
-        value2: p.previousOrders,
-        amount1: p.currentAmount,
-        amount2: p.previousAmount,
-      }));
-
-      // Add order API stats as third line if available
-      if (orderApiStats) {
-        const totalApiOrders = orderApiStats.totalOrders || 0;
-        const avgApiOrders = totalApiOrders / baseData.length;
-
-        return baseData.map((item, index) => ({
-          ...item,
-          value3: Math.round(
-            avgApiOrders +
-              (index % 2 === 0 ? avgApiOrders * 0.1 : -avgApiOrders * 0.1)
-          ),
-          amount3: orderApiStats.statusCounts
-            ? Object.values(orderApiStats.statusCounts).reduce(
-                (sum: number, count: any) => sum + (count || 0),
-                0
-              ) * 100
-            : 0,
-        }));
+    
+    return revenueData.data.map((item) => {
+      // For weekly view, use dayName. For monthly view, format the date
+      let displayName = item.dayName;
+      if (!displayName && item.date) {
+        const date = new Date(item.date);
+        // Format as "Nov 1", "Nov 2", etc.
+        displayName = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
-
-      console.log("Using order summary data:", baseData);
-      return baseData;
-    }
-
-    // Fallback: Create sample data if no data is available
-    const fallbackData = [
-      {
-        name: "Mon",
-        value1: 0,
-        value2: 0,
-        value3: 0,
-        amount1: 0,
-        amount2: 0,
-        amount3: 0,
-      },
-      {
-        name: "Tue",
-        value1: 0,
-        value2: 0,
-        value3: 0,
-        amount1: 0,
-        amount2: 0,
-        amount3: 0,
-      },
-      {
-        name: "Wed",
-        value1: 0,
-        value2: 0,
-        value3: 0,
-        amount1: 0,
-        amount2: 0,
-        amount3: 0,
-      },
-      {
-        name: "Thu",
-        value1: 0,
-        value2: 0,
-        value3: 0,
-        amount1: 0,
-        amount2: 0,
-        amount3: 0,
-      },
-      {
-        name: "Fri",
-        value1: 0,
-        value2: 0,
-        value3: 0,
-        amount1: 0,
-        amount2: 0,
-        amount3: 0,
-      },
-      {
-        name: "Sat",
-        value1: 0,
-        value2: 0,
-        value3: 0,
-        amount1: 0,
-        amount2: 0,
-        amount3: 0,
-      },
-      {
-        name: "Sun",
-        value1: 0,
-        value2: 0,
-        value3: 0,
-        amount1: 0,
-        amount2: 0,
-        amount3: 0,
-      },
-    ];
-    console.log("Using fallback data:", fallbackData);
-    return fallbackData;
-  }, [orderSummary, processAllOrdersData, orderApiStats]);
+      
+      return {
+        name: displayName || item.date,
+        value1: item.revenue,
+        orders: item.totalOrders,
+      };
+    });
+  }, [revenueData]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -563,20 +405,12 @@ export default function Dashboard() {
 
             {/* Bottom Row - Order Summary Widget with Order Statistics */}
             <div className="grid grid-cols-1 lg:grid-cols-[72%_28%] gap-4">
-              {orderSummary &&
-              Array.isArray(orderSummary.timeSeriesData) &&
-              orderSummary.timeSeriesData.some(
-                (d: any) => d.currentAmount > 0 || d.currentOrders > 0
-              ) ? (
+              {revenueData && revenueData.data.length > 0 ? (
                 <ChartCard
                   title="Order Summary"
-                  value={orderSummary.summary.currentTotalAmount.toLocaleString()}
-                  change={orderSummary.summary.comparisonText}
-                  changeType={
-                    orderSummary.summary.amountPercentageChange < 0
-                      ? "negative"
-                      : "positive"
-                  }
+                  value={`₹${revenueData.totalRevenue.toLocaleString()}`}
+                  change={`${revenueData.totalOrders} orders`}
+                  changeType="positive"
                   className="w-full rounded-[15px] p-2"
                   contentClassName="h-56"
                   compactHeader
@@ -585,7 +419,7 @@ export default function Dashboard() {
                       <div className="hidden sm:flex items-center text-xs text-neutral-600 mr-2">
                         <span className="font-medium mr-1">Orders:</span>
                         <span className="font-semibold text-neutral-900">
-                          {orderSummary.summary.currentTotalOrders}
+                          {revenueData.totalOrders}
                         </span>
                       </div>
                       <Button
@@ -611,56 +445,24 @@ export default function Dashboard() {
                     </div>
                   }
                 >
-                  {/* <div className="space-y-4"> */}
-                    <CustomLineChart data={chartData} />
-                    {/* Chart Legend */}
-                    {/* <div className="flex flex-wrap gap-4 justify-center text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span className="text-gray-600">Current Period</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span className="text-gray-600">Previous Period</span>
-                  </div>
-                  {(processAllOrdersData || orderApiStats) && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <span className="text-gray-600">{processAllOrdersData ? "All Orders Data" : "Order API Data"}</span>
-                    </div>
-                  )}
-                </div> */}
-                  {/* </div> */}
+                  <CustomLineChart data={chartData} />
                 </ChartCard>
               ) : (
                 <ChartCard
                   title="Order Summary"
-                  value={
-                    orderSummary
-                      ? orderSummary.summary.currentTotalAmount.toLocaleString()
-                      : undefined
-                  }
-                  change={
-                    orderSummary
-                      ? orderSummary.summary.comparisonText
-                      : undefined
-                  }
-                  changeType={
-                    orderSummary &&
-                    orderSummary.summary.amountPercentageChange < 0
-                      ? "negative"
-                      : "positive"
-                  }
+                  value={revenueData ? `₹${revenueData.totalRevenue.toLocaleString()}` : undefined}
+                  change={revenueData ? `${revenueData.totalOrders} orders` : undefined}
+                  changeType="positive"
                   className="w-full rounded-[15px] p-2"
                   contentClassName="h-32 flex items-center justify-center"
                   compactHeader
                   rightNode={
                     <div className="flex flex-wrap gap-1">
-                      {orderSummary && (
+                      {revenueData && (
                         <div className="hidden sm:flex items-center text-xs text-neutral-600 mr-2">
                           <span className="font-medium mr-1">Orders:</span>
                           <span className="font-semibold text-neutral-900">
-                            {orderSummary.summary.currentTotalOrders}
+                            {revenueData.totalOrders}
                           </span>
                         </div>
                       )}

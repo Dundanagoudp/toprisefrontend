@@ -37,6 +37,7 @@ export default function ViewDealer() {
       ])
       if (dealerRes.success && catRes.success && userRes.success) {
         setDealer(dealerRes.data)
+        console.log("🔍 Dealer data:", dealerRes.data)
         setCategories(catRes.data)
         setUsers(userRes.data)
         // Handle SLA types response

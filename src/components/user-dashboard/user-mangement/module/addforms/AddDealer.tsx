@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Badge } from "@/components/ui/badge"
 import { Plus, X } from "lucide-react"
 import { createDealer, getAllCategories } from "@/service/dealerServices"
-import { getAllFulfillmentStaff } from "@/service/employeeServices"
+import { getAllFulfillmentStaff, getAllFulfillmentStaffWithoutPagination } from "@/service/employeeServices"
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useState, useEffect, Fragment, useRef } from "react"
 import type { User, Category } from "@/types/dealer-types"
@@ -105,35 +105,25 @@ export default function AddDealer() {
   const fetchUsers = async () => {
     setIsLoadingData(true)
     try {
-      const fulfillmentStaffResponse = await getAllFulfillmentStaff()
-      console.log("Fulfillment staff API response:", fulfillmentStaffResponse)
+      const response = await getAllFulfillmentStaffWithoutPagination()
       
-      if (fulfillmentStaffResponse.success && fulfillmentStaffResponse.data?.data) {
-        const fulfillmentStaffData = fulfillmentStaffResponse.data.data || []
-        console.log("Fulfillment staff data:", fulfillmentStaffData)
+      if (response.success && response.data?.data) {
+        const staff = response.data.data
+          .filter((s: any) => s.role === "Fulfillment-Staff")
+          .map((s: any) => ({
+            _id: s._id,
+            email: s.email,
+            username: s.First_name,
+            employee_id: s.employee_id,
+          }))
         
-        // Transform the data to match the expected User type
-        const transformedStaff = fulfillmentStaffData.map((staff: any) => ({
-          _id: staff._id,
-          email: staff.email,
-          username: staff.First_name,
-          phone_Number: staff.mobile_number,
-          role: staff.role,
-          employee_id: staff.employee_id,
-          assigned_dealers: staff.assigned_dealers || [],
-          assigned_regions: staff.assigned_regions || [],
-        }))
-        
-        console.log("Transformed fulfillment staff:", transformedStaff)
-        setUsers(transformedStaff)
-        
-        if (transformedStaff.length === 0) {
-          showToast("No Fulfillment Staff found. Please add fulfillment staff first.", "warning");
+        setUsers(staff)
+        if (staff.length === 0) {
+          showToast("No Fulfillment Staff found.", "warning");
         }
       }
     } catch (error) {
-      console.error("Error fetching fulfillment staff:", error)
-      showToast("Failed to load fulfillment staff. Please refresh the page.", "error");
+      showToast("Failed to load fulfillment staff.", "error");
     } finally {
       setIsLoadingData(false)
     }
@@ -513,12 +503,12 @@ export default function AddDealer() {
           {/* Brands & Access */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Brands & Access</CardTitle>
-              <p className="text-sm text-gray-500">Product brands and access permissions.</p>
+              <CardTitle className="text-red-600 font-semibold text-lg">Categories & Access</CardTitle>
+              <p className="text-sm text-gray-500">Product Categories and access permissions.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Brands Allowed *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Categories Allowed *</label>
                 {/* Multi-select Dropdown */}
                 <MultiSelectDropdown
                   options={allCategories}

@@ -237,10 +237,8 @@ export default function EnhancedOrderFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Payment Methods</SelectItem>
-               
-                <SelectItem value="prepaid">Prepaid</SelectItem>
+                <SelectItem value="Prepaid">Prepaid</SelectItem>
                 <SelectItem value="COD">COD</SelectItem>
-
               </SelectContent>
             </Select>
           </div>

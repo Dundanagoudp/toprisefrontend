@@ -49,7 +49,7 @@ useEffect(() => {
       try {
         setLoading(true);
         const [orderRes, statsRes] = await Promise.all([
-          getOrders(currentPage, itemsPerPage),
+          getOrders(currentPage, itemsPerPage, filters.paymentMethod),
           fetchEnhancedOrderStats({})
         ]);
 
@@ -85,7 +85,7 @@ useEffect(() => {
       }
     };
     init();
-  }, [dispatch, currentPage]);
+  }, [dispatch, currentPage, filters.paymentMethod]);
 
   // Client-side Filtering (Replace with Server-side in future)
   const filteredData = useMemo(() => {

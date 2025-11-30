@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -63,7 +63,10 @@ import {
   type PickupItem,
   type PicklistData,
 } from "@/service/pickup-service";
-import { generatePickupListPDF, generateSinglePickupPDF } from "@/service/pdfService";
+import { generatePicklistPDF, generateSinglePicklistPDF } from "@/service/pdfService";
+import { getDealerById } from "@/service/dealerServices";
+import { getEmployeeById } from "@/service/employeeServices";
+import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 
 export default function PickupManagement() {
   const router = useRouter();
@@ -80,143 +83,104 @@ export default function PickupManagement() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingSinglePDF, setIsGeneratingSinglePDF] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
+
+  // Helper function to enrich pickup data with dealer and staff info
+  const enrichPickupData = async (pickupList: PicklistData[]) => {
+    const enrichedPickups = await Promise.all(
+      pickupList.map(async (pickup) => {
+        const enrichedPickup = { ...pickup };
+        
+        // Fetch dealer info if not already present
+        if (!pickup.dealerInfo && pickup.dealerId) {
+          try {
+            const dealerResponse = await getDealerById(pickup.dealerId);
+            if (dealerResponse.success && dealerResponse.data) {
+              enrichedPickup.dealerInfo = {
+                name: dealerResponse.data.trade_name || dealerResponse.data.legal_name || 'Unknown Dealer',
+                email: dealerResponse.data.contact_person?.email || '',
+              };
+              console.log(`Dealer fetched: ${pickup.dealerId}`, enrichedPickup.dealerInfo);
+            }
+          } catch (error) {
+            console.error(`Error fetching dealer ${pickup.dealerId}:`, error);
+          }
+        }
+        
+        // Fetch staff info if not already present
+        if (!pickup.staffInfo && pickup.fulfilmentStaff) {
+          try {
+            const staffResponse = await getEmployeeById(pickup.fulfilmentStaff);
+            if (staffResponse.success && staffResponse.data) {
+              enrichedPickup.staffInfo = {
+                name: staffResponse.data.First_name || 'Unknown Staff',
+                email: staffResponse.data.email || '',
+              };
+              console.log(`Staff fetched: ${pickup.fulfilmentStaff}`, enrichedPickup.staffInfo);
+            }
+          } catch (error) {
+            console.error(`Error fetching staff ${pickup.fulfilmentStaff}:`, error);
+          }
+        }
+        
+        return enrichedPickup;
+      })
+    );
+    
+    return enrichedPickups;
+  };
 
   // Fetch pickup data
-  const fetchPickupData = async () => {
+  const fetchPickupData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Starting to fetch pickup data...');
 
-      // Use real API calls with fallback to mock data
-      try {
-        console.log('Calling getAllPicklists API...');
-        const response = await getAllPicklists();
-        console.log('API Response received:', response);
-        console.log('Response data:', response.data);
-        console.log('Is response.data an array?', Array.isArray(response.data));
+      const response = await getAllPicklists(
+        currentPage,
+        itemsPerPage,
+        statusFilter !== "all" ? statusFilter : undefined
+      );
+      
+      let pickupData: PicklistData[] = [];
+      
+      // Handle different response structures
+      if (response?.data) {
+        pickupData = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
         
-        // Handle different response structures
-        if (response && response.data && Array.isArray(response.data)) {
-          console.log('Using response.data directly (array):', response.data);
-          setPickups(response.data);
-        } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
-          console.log('Using response.data.data (nested):', response.data.data);
-          setPickups(response.data.data);
-        } else {
-          console.log('No valid data found, setting empty array');
-          console.log('Response structure:', response);
-          setPickups([]);
+        // Extract pagination data
+        if (response.data.pagination) {
+          setTotalPages(response.data.pagination.totalPages || 1);
+          setTotalItems(response.data.pagination.totalItems || 0);
         }
-      } catch (apiError) {
-        console.warn("API calls failed, using mock data:", apiError);
-        // Fallback to mock data if API calls fail
-        const mockPickups: PicklistData[] = [
-          {
-            _id: "1",
-            linkedOrderId: "ORD-001",
-            dealerId: "dealer-001",
-            fulfilmentStaff: "staff-001",
-            skuList: [
-              {
-                sku: "BP-001",
-                quantity: 2,
-                barcode: "BRK001",
-                _id: "sku-1"
-              }
-            ],
-            scanStatus: "Not Started",
-            invoiceGenerated: false,
-            updatedAt: "2025-01-19T10:00:00Z",
-            createdAt: "2025-01-19T10:00:00Z",
-            __v: 0,
-            dealerInfo: null,
-            staffInfo: null,
-            orderInfo: null,
-            skuDetails: [],
-            totalItems: 1,
-            uniqueSKUs: 1,
-            isOverdue: false,
-            estimatedCompletionTime: 30
-          },
-          {
-            _id: "2",
-            linkedOrderId: "ORD-002",
-            dealerId: "dealer-002",
-            fulfilmentStaff: "staff-002",
-            skuList: [
-              {
-                sku: "AF-001",
-                quantity: 1,
-                barcode: "BRK002",
-                _id: "sku-2"
-              }
-            ],
-            scanStatus: "Packed",
-            invoiceGenerated: false,
-            updatedAt: "2025-01-19T15:30:00Z",
-            createdAt: "2025-01-19T09:00:00Z",
-            __v: 0,
-            dealerInfo: null,
-            staffInfo: null,
-            orderInfo: null,
-            skuDetails: [],
-            totalItems: 1,
-            uniqueSKUs: 1,
-            isOverdue: false,
-            estimatedCompletionTime: 30
-          }
-        ];
-
-        setPickups(mockPickups);
       }
+      
+      // Enrich the pickup data with dealer and staff info
+      const enrichedData = await enrichPickupData(pickupData);
+      setPickups(enrichedData);
     } catch (error) {
       console.error("Error fetching pickup data:", error);
       setError("Failed to load picklist data");
       showToast("Failed to load picklist data", "error");
-      
-      // Set mock data as fallback even on error
-      const mockPickups: PicklistData[] = [
-        {
-          _id: "1",
-          linkedOrderId: "ORD-001",
-          dealerId: "dealer-001",
-          fulfilmentStaff: "staff-001",
-          skuList: [
-            {
-              sku: "BP-001",
-              quantity: 2,
-              barcode: "BRK001",
-              _id: "sku-1"
-            }
-          ],
-          scanStatus: "Not Started",
-          invoiceGenerated: false,
-          updatedAt: "2025-01-19T10:00:00Z",
-          createdAt: "2025-01-19T10:00:00Z",
-          __v: 0,
-          dealerInfo: null,
-          staffInfo: null,
-          orderInfo: null,
-          skuDetails: [],
-          totalItems: 1,
-          uniqueSKUs: 1,
-          isOverdue: false,
-          estimatedCompletionTime: 30
-        }
-      ];
-      setPickups(mockPickups);
+      setPickups([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, statusFilter, itemsPerPage, showToast]);
 
-  // Load data on component mount
+  // Load data on component mount and when filters change
   useEffect(() => {
     fetchPickupData();
-  }, []);
+  }, [fetchPickupData]);
 
-  // Filter pickups based on search and filters
+  // Filter pickups based on search (API handles status filter)
   const filteredPickups = (Array.isArray(pickups) ? pickups : []).filter(pickup => {
     const matchesSearch = 
       (pickup._id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -224,17 +188,8 @@ export default function PickupManagement() {
       (pickup.dealerId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (pickup.fulfilmentStaff?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "all" || pickup.scanStatus === statusFilter;
-    const matchesPriority = priorityFilter === "all"; // Priority not available in new structure
-    
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch;
   });
-
-  // Debug logging
-  console.log('Pickups state:', pickups);
-  console.log('Filtered pickups:', filteredPickups);
-  console.log('Search term:', searchTerm);
-  console.log('Status filter:', statusFilter);
 
 
   // Handle PDF generation
@@ -249,7 +204,7 @@ export default function PickupManagement() {
         searchTerm: searchTerm || undefined,
       };
       
-      await generatePickupListPDF(filteredPickups as any, {
+      await generatePicklistPDF(filteredPickups, {
         title,
         includeFilters: statusFilter !== 'all' || priorityFilter !== 'all' || searchTerm !== '',
         filters
@@ -269,7 +224,7 @@ export default function PickupManagement() {
     try {
       setIsGeneratingSinglePDF(true);
       
-      await generateSinglePickupPDF(pickup as any);
+      await generateSinglePicklistPDF(pickup);
       
       showToast("Picklist details PDF generated successfully", "success");
     } catch (error) {
@@ -396,7 +351,7 @@ export default function PickupManagement() {
                 />
               </div>
             </div>
-            {/* <div>
+            <div>
               <Label htmlFor="status">Status</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -406,40 +361,23 @@ export default function PickupManagement() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="Not Started">Not Started</SelectItem>
                   <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Scanned">Scanned</SelectItem>
-                  <SelectItem value="Packed">Packed</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
-            </div> */}
-            {/* <div>
-              <Label htmlFor="priority">Priority</Label>
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
-            {/* <div className="flex items-end">
+            </div>
+            <div className="flex items-end">
               <Button 
                 variant="outline" 
                 onClick={() => {
                   setSearchTerm("");
                   setStatusFilter("all");
-                  setPriorityFilter("all");
+                  setCurrentPage(1);
                 }}
                 className="w-full"
               >
                 Clear Filters
               </Button>
-            </div> */}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -704,6 +642,28 @@ export default function PickupManagement() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalItems > 0 && totalPages > 1 && (
+        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+          <div className="text-sm text-gray-600 text-center sm:text-left">
+            {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
+              currentPage * itemsPerPage,
+              totalItems
+            )} of ${totalItems} picklists`}
+          </div>
+          <div className="flex justify-center sm:justify-end">
+            <DynamicPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              showItemsInfo={false}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

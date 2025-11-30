@@ -211,7 +211,7 @@ export default function OrderDetailsView() {
     try {
       const response = await getOrderById(orderId);
       const item = response.data;
-
+      console.log("🔍 Order data:", item);
       dispatch(fetchOrderByIdSuccess(item));
       setLoading(false);
     } catch (error: any) {

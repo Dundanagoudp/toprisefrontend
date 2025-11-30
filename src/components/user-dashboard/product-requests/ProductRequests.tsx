@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -10,18 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -29,89 +17,51 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 import {
   AlertTriangle,
   Clock,
   CheckCircle,
   XCircle,
-  Eye,
-  Edit,
-  Trash2,
-  Filter,
   Download,
-  Plus,
   RefreshCw,
-  Search,
-  Calendar,
-  User,
-  Package,
-  TrendingUp,
-  AlertCircle,
-  FileText,
-  MoreHorizontal,
-  ArrowUpDown,
-  CalendarDays,
-  Tag,
-  Users,
-  BarChart3,
-  Activity,
-  Target,
-  Zap,
-  Clock3,
   CheckSquare,
   XSquare,
-  Pause,
-  Play,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import DynamicButton from "@/components/common/button/button";
-import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import {
-  getProductRequests,
   getProductRequestStats,
-  approveProductRequest,
-  rejectProductRequest,
   putRequestInReview,
-  bulkApproveProductRequests,
-  bulkRejectProductRequests,
   exportProductRequests,
 } from "@/service/product-request-service";
-import { approveSingleProduct, aproveDealerProduct, aproveProduct, rejectSingleProduct } from "@/service/product-Service";
+import { aproveDealerProduct, rejectSingleProduct } from "@/service/product-Service";
 import {
-  ProductRequest,
-  ProductRequestStats,
   ProductRequestFilters,
   ApprovalStatsResponse,
 } from "@/types/product-request-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
+import PendingProducts from "./tabs/PendingProducts";
+import ApprovedProducts from "./tabs/ApprovedProducts";
+import RejectedProducts from "./tabs/RejectedProducts";
+
+type TabType = "Pending" | "Approved" | "Rejected";
 
 export default function ProductRequests() {
   const router = useRouter();
   const { showToast } = useGlobalToast();
   
-  // State management
-  const [allRequests, setAllRequests] = useState<ProductRequest[]>([]); // Store all fetched data
-  const [requests, setRequests] = useState<ProductRequest[]>([]); // Filtered data to display
-  const [stats, setStats] = useState<ApprovalStatsResponse['data'] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>("Pending");
   
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
-  const itemsPerPage = 10;
+  // State management
+  const [stats, setStats] = useState<ApprovalStatsResponse['data'] | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Date range filter state
   const [dateRange, setDateRange] = useState<{
@@ -133,41 +83,6 @@ export default function ProductRequests() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [reviewNotes, setReviewNotes] = useState("");
   
-
-  // Fetch requests - fetch all data without filters
-  const fetchRequests = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('Fetching all product requests...');
-
-      const response = await getProductRequests(currentPage, itemsPerPage);
-      
-      if (response.success) {
-        // Handle the API response structure from /category/products/v1/pending
-        const products = response.data?.products || [];
-        const pagination = response.data?.pagination || {};
-        
-        console.log('Products fetched:', products.length);
-        console.log('Pagination:', pagination);
-        
-        // Store all fetched data
-        setAllRequests(products);
-        setTotalPages(pagination.totalPages || 1);
-        setTotalItems(pagination.totalItems || 0);
-      } else {
-        setAllRequests([]);
-        setTotalPages(1);
-        setTotalItems(0);
-      }
-    } catch (error) {
-      console.error("Error fetching requests:", error);
-      setError("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -211,65 +126,29 @@ export default function ProductRequests() {
     }
   }, [showToast]);
 
-  // Load data on mount
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
-
+  // Load stats on mount
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
-
-  // Apply date range filter on client side
-  useEffect(() => {
-    if (dateRange.from || dateRange.to) {
-      const filtered = allRequests.filter((request: any) => {
-        const requestDate = new Date(request.created_at || request.createdAt);
-        const fromDate = dateRange.from ? new Date(dateRange.from) : null;
-        const toDate = dateRange.to ? new Date(dateRange.to) : null;
-        
-        // Set time to start of day for fromDate and end of day for toDate
-        if (fromDate) {
-          fromDate.setHours(0, 0, 0, 0);
-        }
-        if (toDate) {
-          toDate.setHours(23, 59, 59, 999);
-        }
-        
-        requestDate.setHours(0, 0, 0, 0);
-        
-        // Check if request date is within range
-        if (fromDate && toDate) {
-          return requestDate >= fromDate && requestDate <= toDate;
-        } else if (fromDate) {
-          return requestDate >= fromDate;
-        } else if (toDate) {
-          return requestDate <= toDate;
-        }
-        return true;
-      });
-      
-      console.log('Filtered products:', filtered.length);
-      setRequests(filtered);
-    } else {
-      // No filter applied, show all data
-      console.log('No date filter, showing all products');
-      setRequests(allRequests);
-    }
-  }, [allRequests, dateRange]);
 
   // Handle date range change
   const handleDateRangeChange = (range: { from: Date | undefined; to: Date | undefined }) => {
     console.log('Date range changed:', range);
     setDateRange(range);
-    // No need to reset page or fetch data - filtering is done on client side
+  };
+
+  // Trigger refresh for child components
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+    fetchStats();
   };
 
   // Handle selection
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     if (checked) {
-      setSelectedRequests(requests?.map(req => req._id) || []);
+      // Clear selections when checking all - let child component manage its own selections
+      setSelectedRequests([]);
     } else {
       setSelectedRequests([]);
     }
@@ -280,6 +159,7 @@ export default function ProductRequests() {
       setSelectedRequests(prev => [...prev, requestId]);
     } else {
       setSelectedRequests(prev => prev.filter(id => id !== requestId));
+      setSelectAll(false);
     }
   };
 
@@ -288,8 +168,7 @@ export default function ProductRequests() {
     try {
       await aproveDealerProduct(requestId);
       showToast("Product approved successfully", "success");
-      fetchRequests();
-      fetchStats();
+      handleRefresh();
     } catch (error) {
       showToast("Failed to approve product", "error");
     }
@@ -307,11 +186,15 @@ export default function ProductRequests() {
       setIsRejectDialogOpen(false);
       setRejectNotes("");
       setSelectedRequestId("");
-      fetchRequests();
-      fetchStats();
+      handleRefresh();
     } catch (error) {
       showToast("Failed to reject product", "error");
     }
+  };
+
+  const handleRejectRequest = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setIsRejectDialogOpen(true);
   };
 
   const handleReview = async () => {
@@ -321,11 +204,15 @@ export default function ProductRequests() {
       setIsReviewDialogOpen(false);
       setReviewNotes("");
       setSelectedRequestId("");
-      fetchRequests();
-      fetchStats();
+      handleRefresh();
     } catch (error) {
       showToast("Failed to put request in review", "error");
     }
+  };
+
+  const handleReviewRequest = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setIsReviewDialogOpen(true);
   };
 
   const handleBulkApprove = async () => {
@@ -337,13 +224,11 @@ export default function ProductRequests() {
     try {
       console.log("Bulk approving products:", selectedRequests);
       const promises = selectedRequests.map(productId => aproveDealerProduct(productId));
-      console.log("Bulk approving products:", selectedRequests);
       await Promise.all(promises);
       showToast("Products approved successfully", "success");
       setSelectedRequests([]);
       setSelectAll(false);
-      fetchRequests();
-      fetchStats();
+      handleRefresh();
     } catch (error) {
       showToast("Failed to approve products", "error");
     }
@@ -367,8 +252,8 @@ export default function ProductRequests() {
       setSelectedRequests([]);
       setSelectAll(false);
       setRejectNotes("");
-      fetchRequests();
-      fetchStats();
+      setIsRejectDialogOpen(false);
+      handleRefresh();
     } catch (error) {
       showToast("Failed to reject products", "error");
     }
@@ -379,13 +264,14 @@ export default function ProductRequests() {
       const filters: ProductRequestFilters = {
         startDate: dateRange.from?.toISOString(),
         endDate: dateRange.to?.toISOString(),
+        status: activeTab.toLowerCase() as 'pending' | 'approved' | 'rejected',
       };
 
       const blob = await exportProductRequests(filters);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `product_requests_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.download = `product_requests_${activeTab.toLowerCase()}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -396,85 +282,10 @@ export default function ProductRequests() {
     }
   };
 
-  // Utility functions
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
-      case "approved":
-        return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
-      case "rejected":
-        return <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
-      case "in_review":
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><Eye className="w-3 h-3 mr-1" />In Review</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case "urgent":
-        return <Badge variant="destructive"><Zap className="w-3 h-3 mr-1" />Urgent</Badge>;
-      case "high":
-        return <Badge variant="secondary" className="bg-red-100 text-red-800"><AlertTriangle className="w-3 h-3 mr-1" />High</Badge>;
-      case "medium":
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock3 className="w-3 h-3 mr-1" />Medium</Badge>;
-      case "low":
-        return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckSquare className="w-3 h-3 mr-1" />Low</Badge>;
-      default:
-        return <Badge variant="outline">{priority}</Badge>;
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "new_product":
-        return <Plus className="w-4 h-4" />;
-      case "update_product":
-        return <Edit className="w-4 h-4" />;
-      case "price_change":
-        return <TrendingUp className="w-4 h-4" />;
-      case "stock_update":
-        return <Package className="w-4 h-4" />;
-      case "category_change":
-        return <Tag className="w-4 h-4" />;
-      default:
-        return <FileText className="w-4 h-4" />;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "MMM dd, yyyy HH:mm");
-  };
-
   const formatNumber = (num: number | undefined) => {
     if (num === undefined || num === null) return '0';
     return new Intl.NumberFormat().format(num);
   };
-
-  if (loading && requests.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="flex items-center space-x-2">
-          <RefreshCw className="h-6 w-6 animate-spin" />
-                     <span>Loading products...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={fetchRequests}>Retry</Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 p-6">
@@ -487,7 +298,7 @@ export default function ProductRequests() {
           </p>
         </div>
         <div className="flex items-center space-x-3">
-          <Button onClick={fetchRequests} variant="outline">
+          <Button onClick={handleRefresh} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -656,173 +467,93 @@ export default function ProductRequests() {
 
       {/* Requests Table */}
       <Card>
-                 <CardHeader>
-           <CardTitle>Products</CardTitle>
-           <CardDescription>
-             {formatNumber(totalItems)} total products
-           </CardDescription>
-         </CardHeader>
+        <CardHeader>
+          <div className="flex items-center justify-between border-b border-gray-200">
+            <nav className="flex space-x-8" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab("Pending")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "Pending"
+                    ? "text-[#C72920] border-[#C72920]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <Clock className="w-4 h-4 inline mr-2" />
+                Pending
+              </button>
+              <button
+                onClick={() => setActiveTab("Approved")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "Approved"
+                    ? "text-[#C72920] border-[#C72920]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <CheckCircle className="w-4 h-4 inline mr-2" />
+                Approved
+              </button>
+              <button
+                onClick={() => setActiveTab("Rejected")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "Rejected"
+                    ? "text-[#C72920] border-[#C72920]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <XCircle className="w-4 h-4 inline mr-2" />
+                Rejected
+              </button>
+            </nav>
+          </div>
+        </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[600px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={selectAll}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created By</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="w-12">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                                                 <span className="ml-2">Loading products...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : requests?.length === 0 ? (
-                  <TableRow>
-                                         <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                       No products found
-                     </TableCell>
-                  </TableRow>
-                ) : (
-                  requests?.map((request: any) => (
-                  <TableRow key={request._id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedRequests.includes(request._id)}
-                        onCheckedChange={(checked) =>
-                          handleSelectRequest(request._id, checked as boolean)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{request.product_name || 'N/A'}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {request.sku_code || 'N/A'}
-                        </div>
-                        <div className="text-sm text-muted-foreground line-clamp-2">
-                          {request.admin_notes || 'No description available'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Package className="w-4 h-4" />
-                        <span className="capitalize">Product</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getPriorityBadge(request.priority || 'medium')}
-                    </TableCell>
-                    <TableCell>{getStatusBadge((request as any).Qc_status || (request as any).live_status || 'Pending')}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">System</div>
-                        <div className="text-sm text-muted-foreground">
-                          Dealer
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {formatDate(request.created_at || request.createdAt || new Date().toISOString())}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => router.push(`/user/dashboard/requests/${request._id}`)}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                                                     {((request as any).Qc_status === "Pending") && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => (handleApprove(request._id),console.log("Approved request with ID:", request._id))}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Approve
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedRequestId(request._id);
-                                  setIsRejectDialogOpen(true);
-                                }}
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Reject
-                              </DropdownMenuItem>
-                              {/* <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedRequestId(request._id);
-                                  setIsReviewDialogOpen(true);
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-2" />
-                                Put in Review
-                              </DropdownMenuItem> */}
-                            </>
-                          )}
-                          <DropdownMenuItem
-                            onClick={() => router.push(`/user/dashboard/product/productedit/${request._id}`)}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
+          {activeTab === "Pending" && (
+            <PendingProducts
+              dateRange={dateRange}
+              selectedRequests={selectedRequests}
+              onSelectRequest={handleSelectRequest}
+              onSelectAll={handleSelectAll}
+              selectAll={selectAll}
+              onApprove={handleApprove}
+              onReject={handleRejectRequest}
+              onReview={handleReviewRequest}
+              onRefresh={handleRefresh}
+            />
+          )}
+          {activeTab === "Approved" && (
+            <ApprovedProducts
+              dateRange={dateRange}
+              selectedRequests={selectedRequests}
+              onSelectRequest={handleSelectRequest}
+              onSelectAll={handleSelectAll}
+              selectAll={selectAll}
+              onRefresh={handleRefresh}
+            />
+          )}
+          {activeTab === "Rejected" && (
+            <RejectedProducts
+              dateRange={dateRange}
+              selectedRequests={selectedRequests}
+              onSelectRequest={handleSelectRequest}
+              onSelectAll={handleSelectAll}
+              selectAll={selectAll}
+              onRefresh={handleRefresh}
+            />
+          )}
         </CardContent>
       </Card>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center">
-          <DynamicPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            showItemsInfo={true}
-          />
-        </div>
-      )}
 
       {/* Reject Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject Product</DialogTitle>
+            <DialogTitle>
+              {selectedRequests.length > 0 
+                ? `Reject ${selectedRequests.length} Product(s)` 
+                : "Reject Product"}
+            </DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting this product.
+              Please provide a reason for rejecting {selectedRequests.length > 0 ? "these products" : "this product"}.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -832,11 +563,17 @@ export default function ProductRequests() {
             rows={4}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsRejectDialogOpen(false);
+              setRejectNotes("");
+            }}>
               Cancel
             </Button>
-            <Button onClick={handleReject} variant="destructive">
-              Reject Product
+            <Button 
+              onClick={selectedRequests.length > 0 ? handleBulkReject : handleReject} 
+              variant="destructive"
+            >
+              Reject {selectedRequests.length > 0 ? `(${selectedRequests.length})` : "Product"}
             </Button>
           </DialogFooter>
         </DialogContent>

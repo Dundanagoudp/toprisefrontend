@@ -219,3 +219,20 @@ export interface EnhancedOrderStatsQuery {
   endDate?: string;
   includeSkuLevelTracking?: boolean;
 }
+
+// Order Summary Revenue (new simplified API)
+export interface OrderSummaryRevenueDataPoint {
+  date: string;
+  totalOrders: number;
+  revenue: number;
+  dayName?: string; // Only present in weekly view
+}
+
+export interface OrderSummaryRevenueResponse {
+  filter: "week" | "month";
+  startDate: string;
+  endDate: string;
+  data: OrderSummaryRevenueDataPoint[];
+  totalOrders: number;
+  totalRevenue: number;
+}

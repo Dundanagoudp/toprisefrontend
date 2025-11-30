@@ -1,9 +1,27 @@
 import apiClient from "@/apiClient";
 import { ReturnRequestsResponse, SingleReturnResponse } from "@/types/return-Types";
 
-export const getReturnRequests = async (): Promise<ReturnRequestsResponse> => {
+export const getReturnRequests = async (params?: {
+  refundMethod?: string;
+  status?: string;
+  dealerId?: string;
+}): Promise<ReturnRequestsResponse> => {
   try {
-    const response = await apiClient.get("/orders/api/returns");
+    const queryParams = new URLSearchParams();
+    if (params?.refundMethod) {
+      queryParams.append("refundMethod", params.refundMethod);
+    }
+    if (params?.status) {
+      queryParams.append("status", params.status);
+    }
+    if (params?.dealerId) {
+      queryParams.append("dealerId", params.dealerId);
+    }
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? `/orders/api/returns?${queryString}` : "/orders/api/returns";
+    
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     console.error("Error fetching return requests:", error);

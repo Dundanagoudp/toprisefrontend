@@ -26,17 +26,20 @@ export default function SearchFiltersModal({
 
   const returnStatusOptions = [
     "Requested",
-    "Pending", 
-    "Approved", 
-    "Rejected", 
-    "In_Progress", 
-    "Pickup_Scheduled", 
-    "Pickup_Completed", 
-    "Under_Inspection",
-    "Completed",
-    "Refund_Processed"
+    "Validated",
+    "Rejected",
+    "Shipment_Intiated",
+    "Shipment_Completed",
+    "Inspection_Started",
+    "Inspection_Completed",
+    "Intiated_Refund",
+    "Refund_Completed",
+    "Refund_Failed"
   ]
-  const claimTypeOptions = ["Defective", "Wrong Item", "Not Compatible", "Others"]
+  const claimTypeOptions = [
+    { label: "COD", value: "Manual_Refund" },
+    { label: "Razorpay", value: "Original_Payment_Method" }
+  ]
 
   // Helper function to format status display name
   const formatStatusName = (status: string) => {
@@ -114,16 +117,16 @@ export default function SearchFiltersModal({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {claimTypeOptions.map((type) => (
                   <button
-                    key={type}
-                    onClick={() => setClaimType(type)}
+                    key={type.value}
+                    onClick={() => setClaimType(type.value)}
                     className={`py-3 px-4 text-sm font-medium transition-all duration-200 focus:outline-none rounded-lg text-center
-                      ${claimType === type 
+                      ${claimType === type.value 
                         ? "bg-red-600 text-white shadow-md" 
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }
                     `}
                   >
-                    {type}
+                    {type.label}
                   </button>
                 ))}
               </div>
