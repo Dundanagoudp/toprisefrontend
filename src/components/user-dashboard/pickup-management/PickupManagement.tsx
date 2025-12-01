@@ -535,7 +535,7 @@ export default function PickupManagement() {
                     )}
                   </TableCell> */}
                   <TableCell>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 ">
                       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
                         <DialogTrigger asChild>
                           <Button
@@ -546,7 +546,7 @@ export default function PickupManagement() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto ">
                           <DialogHeader>
                             <DialogTitle>Picklist Details - {pickup._id}</DialogTitle>
                             <DialogDescription>
@@ -569,8 +569,20 @@ export default function PickupManagement() {
                                 <div>
                                   <h3 className="font-semibold mb-2">Assignment Information</h3>
                                   <div className="space-y-1 text-sm">
-                                    <div><User className="inline h-4 w-4 mr-1" />Dealer: {selectedPickup.dealerInfo?.name || selectedPickup.dealerId || 'N/A'}</div>
-                                    <div><Phone className="inline h-4 w-4 mr-1" />Staff: {selectedPickup.staffInfo?.name || selectedPickup.fulfilmentStaff || 'N/A'}</div>
+                                    <div><User className="inline h-4 w-4 mr-1 " />Dealer: {selectedPickup.dealerInfo?.name || selectedPickup.dealerId || 'N/A'}
+                                    {selectedPickup.dealerInfo?.email && (
+                                      <div className="text-sm text-gray-500 ml-6">Email:
+                                        {selectedPickup.dealerInfo.email}
+                                      </div>
+                                    )}
+                                    </div>
+                                    <div><User className="inline h-4 w-4 mr-1" />Staff: {selectedPickup.staffInfo?.name || selectedPickup.fulfilmentStaff || 'N/A'}
+                                    {selectedPickup.staffInfo?.email && (
+                                      <div className="text-sm text-gray-500 ml-6">Email:
+                                        {selectedPickup.staffInfo.email}
+                                      </div>
+                                    )}
+                                    </div>
                                     {selectedPickup.estimatedCompletionTime && (
                                       <div><Clock className="inline h-4 w-4 mr-1" />Est. Time: {selectedPickup.estimatedCompletionTime} min</div>
                                     )}

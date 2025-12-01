@@ -89,6 +89,16 @@ export default function InspectDialog({ open, onClose, returnId, returnStatus, o
 
   const isUnderInspection = returnStatus === "Under_Inspection"
 
+  // Helper function to format status display name
+  const formatStatusName = (status: string) => {
+    let formatted = status.replace(/_/g, " ");
+    // Fix typo: "Intiated Refund" -> "Initiated Refund"
+    if (formatted === "Intiated Refund") {
+      formatted = "Initiated Refund";
+    }
+    return formatted;
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
@@ -108,7 +118,7 @@ export default function InspectDialog({ open, onClose, returnId, returnStatus, o
               </span>
               {returnStatus && (
                 <span className="text-sm text-gray-500 mt-1 block">
-                  Current Status: {returnStatus.replace('_', ' ')}
+                  Current Status: {formatStatusName(returnStatus)}
                 </span>
               )}
             </DialogDescription>
