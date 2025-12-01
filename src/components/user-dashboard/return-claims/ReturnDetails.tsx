@@ -304,6 +304,16 @@ const handleRefund = async () => {
     }
   };
 
+  // Helper function to format status display name
+  const formatStatusName = (status: string) => {
+    let formatted = status.replace(/_/g, " ");
+    // Fix typo: "Intiated Refund" -> "Initiated Refund"
+    if (formatted === "Intiated Refund") {
+      formatted = "Initiated Refund";
+    }
+    return formatted;
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "Requested":
@@ -531,7 +541,7 @@ const handleRefund = async () => {
               <div>
                 <h3 className="font-semibold text-gray-900">Current Status</h3>
                 <Badge className={getStatusBadge(returnRequest.returnStatus)}>
-                  {returnRequest.returnStatus}
+                  {formatStatusName(returnRequest.returnStatus)}
                 </Badge>
               </div>
             </div>

@@ -448,6 +448,16 @@ const getStatusBadge = (status: string) => {
   }
 };
 
+// Helper function to format status display name
+const formatStatusName = (status: string) => {
+  let formatted = status.replace(/_/g, " ");
+  // Fix typo: "Intiated Refund" -> "Initiated Refund"
+  if (formatted === "Intiated Refund") {
+    formatted = "Initiated Refund";
+  }
+  return formatted;
+};
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -751,7 +761,7 @@ const getStatusBadge = (status: string) => {
                             <span
                               className={getStatusBadge(request.returnStatus)}
                             >
-                              {request.returnStatus}
+                              {formatStatusName(request.returnStatus)}
                             </span>
                           </TableCell>
                           <TableCell className="px-6 py-4 font-[Poppins] whitespace-nowrap text-right">

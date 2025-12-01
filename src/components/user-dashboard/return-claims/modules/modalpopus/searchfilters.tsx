@@ -43,7 +43,12 @@ export default function SearchFiltersModal({
 
   // Helper function to format status display name
   const formatStatusName = (status: string) => {
-    return status.replace(/_/g, " ")
+    let formatted = status.replace(/_/g, " ")
+    // Fix typo: "Intiated Refund" -> "Initiated Refund"
+    if (formatted === "Intiated Refund") {
+      formatted = "Initiated Refund"
+    }
+    return formatted
   }
 
   // Sync local state when props change (when modal opens)
