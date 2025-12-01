@@ -26,15 +26,8 @@ import SearchInput from "@/components/common/search/SearchInput"
 import { useAppSelector } from "@/store/hooks"
 import apiClient from "@/apiClient"
 import { useToast } from "@/components/ui/toast"
-import { useRouter } from "next/navigation"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-} from "@/components/ui/pagination"
+import { useRouter, useSearchParams } from "next/navigation"
+import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import { SimpleDatePicker } from "@/components/ui/simple-date-picker"
 import {
   DropdownMenu,
@@ -84,21 +77,52 @@ interface PaginationData {
 
 export default function PurchaseRequestsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  const pageParam = searchParams.get("page")
+  const limitParam = searchParams.get("limit")
+  const statusParam = searchParams.get("status")
+  
+  const currentPage = pageParam ? parseInt(pageParam, 10) : 1
+  const limit = limitParam ? parseInt(limitParam, 10) : 10
+  const statusFilter = statusParam || ""
+  
   const [searchQuery, setSearchQuery] = useState("")
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseDocument[]>([])
   const [pagination, setPagination] = useState<PaginationData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined
   })
-  const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [isOrderCreated , setIsOrderCreated] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const auth = useAppSelector((state) => state.auth.user)
   const { showToast } = useToast()
+  
+  const updateURL = (updates: { page?: number; status?: string }) => {
+    const params = new URLSearchParams(searchParams.toString())
+    
+    if (updates.page !== undefined) {
+      if (updates.page === 1) {
+        params.delete("page")
+      } else {
+        params.set("page", updates.page.toString())
+      }
+    }
+    
+    if (updates.status !== undefined) {
+      if (updates.status === "") {
+        params.delete("status")
+      } else {
+        params.set("status", updates.status)
+      }
+    }
+    
+    const queryString = params.toString()
+    router.push(`/user/dashboard/purchase-requests${queryString ? `?${queryString}` : ""}`, { scroll: false })
+  }
 
   // Export functionality
   const exportToCSV = async () => {
@@ -191,15 +215,18 @@ export default function PurchaseRequestsPage() {
   }
 
   // Fetch purchase requests from API
-  const fetchPurchaseRequests = async (page: number = 1) => {
+  const fetchPurchaseRequests = async (page: number, limit: number, status: string) => {
     setLoading(true)
     try {
-      const response = await apiClient.get(`https://api.toprise.in/api/orders/api/documents/admin/all?page=${page}`)
+      let url = `https://api.toprise.in/api/orders/api/documents/admin/all?page=${page}&limit=${limit}`
       
-      console.log("Purchase Requests API Response:", response.data)
+      if (status && status.trim() !== "") {
+        url += `&status=${encodeURIComponent(status)}`
+      }
+      
+      const response = await apiClient.get(url)
       
       if (response.data.success && response.data.data) {
-        // Sort by newest first (createdAt descending)
         const sortedData = response.data.data.data.sort((a: PurchaseDocument, b: PurchaseDocument) => {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         })
@@ -222,8 +249,8 @@ export default function PurchaseRequestsPage() {
   }
 
   useEffect(() => {
-    fetchPurchaseRequests(currentPage)
-  }, [currentPage])
+    fetchPurchaseRequests(currentPage, limit, statusFilter)
+  }, [currentPage, limit, statusFilter])
 
   const getStatusBadge = (status: string) => {
     console.log("Getting status badge for:", status)
@@ -295,11 +322,6 @@ export default function PurchaseRequestsPage() {
       }
     }
 
-    // Status filter
-    if (statusFilter !== "all") {
-      if (request.status.toLowerCase() !== statusFilter.toLowerCase()) return false
-    }
-
     // Priority filter
     if (priorityFilter !== "all") {
       if (request.priority.toLowerCase() !== priorityFilter.toLowerCase()) return false
@@ -344,14 +366,14 @@ export default function PurchaseRequestsPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            {/* <Card>
               <CardContent className="p-4">
                 <div className="text-sm text-gray-600">High Priority</div>
                 <div className="text-2xl font-bold text-red-600">
                   {purchaseRequests.filter(r => r.priority.toLowerCase() === "high").length}
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
             <Card>
               <CardContent className="p-4">
                 <div className="text-sm text-gray-600">Total Est. Value</div>
@@ -392,14 +414,18 @@ export default function PurchaseRequestsPage() {
                 <label className="text-sm font-medium text-gray-700">Status</label>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={(e) => {
+                    updateURL({ page: 1, status: e.target.value })
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#C72920] focus:border-transparent"
                 >
-                  <option value="all">All Status</option>
-                  <option value="pending-review">Pending Review</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="completed">Completed</option>
+                  <option value="">All Status</option>
+                  <option value="Pending-Review">Pending-Review</option>
+                  <option value="Under-Review">Under-Review</option>
+                  <option value="Contacted">Contacted</option>
+                  <option value="Order-Created">Order-Created</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
 
@@ -427,7 +453,7 @@ export default function PurchaseRequestsPage() {
                   className="gap-2 flex-shrink-0"
                   onClick={() => {
                     setDateRange({ from: undefined, to: undefined })
-                    setStatusFilter("all")
+                    updateURL({ page: 1, status: "" })
                     setPriorityFilter("all")
                     setSearchQuery("")
                   }}
@@ -585,42 +611,19 @@ export default function PurchaseRequestsPage() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-600">
+            <div className="mt-4">
+              <div className="text-sm text-gray-600 mb-4">
                 Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to{" "}
                 {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of{" "}
                 {pagination.totalItems} requests
               </div>
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      className={!pagination.hasPreviousPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: Math.min(pagination.totalPages, 5) }).map((_, idx) => {
-                    const pageNum = idx + 1
-                    return (
-                      <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          isActive={currentPage === pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="cursor-pointer"
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    )
-                  })}
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
-                      className={!pagination.hasNextPage ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+              <DynamicPagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={(page) => updateURL({ page })}
+                totalItems={pagination.totalItems}
+                itemsPerPage={pagination.itemsPerPage}
+              />
             </div>
           )}
 

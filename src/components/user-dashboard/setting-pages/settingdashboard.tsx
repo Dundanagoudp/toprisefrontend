@@ -7,10 +7,10 @@ import DealerPermissions from "./modules/dealer-permissions"
 import { PincodeManagement } from "./modules/pincode-management"
 
 export default function SettingPage() {
-  const [activeSetting, setActiveSetting] = useState("Permission Access")
+  const [activeSetting, setActiveSetting] = useState("Dealer Permissions")
 
   const settingsNav = [
-    { name: "Permission Access", id: "Permission Access" },
+    // { name: "Permission Access", id: "Permission Access" },
     { name: "Dealer Permissions", id: "Dealer Permissions" },
     { name: "Other Settings", id: "Other Settings" },
     { name: "Pincodes", id: "Pincodes" },
@@ -40,7 +40,7 @@ export default function SettingPage() {
 
         {/* <CHANGE> Better spacing and padding for main content area */}
         <div className="flex-1 p-4 lg:p-6">
-          {activeSetting === "Permission Access" && <PermissionAccess />}
+          {/* {activeSetting === "Permission Access" && <PermissionAccess />} */}
           {activeSetting === "Dealer Permissions" && <DealerPermissions />}
           {activeSetting === "Other Settings" && <DeliveryChargeSettings />}
           {activeSetting === "Pincodes" && <PincodeManagement />}

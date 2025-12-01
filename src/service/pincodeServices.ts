@@ -76,16 +76,8 @@ export async function getPincodes(
   search?: string
 ): Promise<PincodeListResponse> {
   try {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
 
-    if (search) {
-      params.append("search", search);
-    }
-
-    const response = await apiClient.get(`/category/api/pincodes/`);
+    const response = await apiClient.get(`/category/api/pincodes/?page=${page}&limit=${limit}&search=${search}`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch pincodes:", error);

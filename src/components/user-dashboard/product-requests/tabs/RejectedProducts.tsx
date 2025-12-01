@@ -33,6 +33,12 @@ import { format } from "date-fns";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import { getProductRequests } from "@/service/product-request-service";
 import { ProductRequest } from "@/types/product-request-Types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface RejectedProductsProps {
   dateRange: {
@@ -60,6 +66,7 @@ export default function RejectedProducts({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
+  const [selectedRejection, setSelectedRejection] = useState<any>(null);
   const itemsPerPage = 10;
 
   const fetchRequests = useCallback(async () => {
@@ -80,7 +87,7 @@ export default function RejectedProducts({
       if (response.success) {
         const products = response.data?.products || [];
         const pagination = response.data?.pagination || {};
-        
+        console.log("products", products);
         setRequests(products);
         setTotalPages(pagination.totalPages || 1);
         setTotalItems(pagination.totalItems || 0);
@@ -134,6 +141,16 @@ export default function RejectedProducts({
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "MMM dd, yyyy HH:mm");
+  };
+
+  const getLastRejection = (rejectionState: any[]) => {
+    if (!rejectionState || rejectionState.length === 0) return null;
+    return rejectionState[rejectionState.length - 1];
+  };
+
+  const handleRejectReasonClick = (request: any) => {
+    const lastRejection = getLastRejection(request.rejection_state);
+    setSelectedRejection(lastRejection);
   };
 
   return (
@@ -237,6 +254,12 @@ export default function RejectedProducts({
                           <Edit className="w-4 h-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleRejectReasonClick(request)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Reject Reason
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -259,6 +282,42 @@ export default function RejectedProducts({
           />
         </div>
       )}
+
+      <Dialog open={!!selectedRejection} onOpenChange={() => setSelectedRejection(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rejection Reason</DialogTitle>
+          </DialogHeader>
+          {selectedRejection && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Reason
+                </label>
+                <p className="mt-1 text-sm">{selectedRejection.reason || "N/A"}</p>
+              </div>
+              {/* <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Rejected By
+                </label>
+                <p className="mt-1 text-sm capitalize">
+                  {selectedRejection.rejected_by || "N/A"}
+                </p>
+              </div> */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Rejected At
+                </label>
+                <p className="mt-1 text-sm">
+                  {selectedRejection.rejected_at
+                    ? formatDate(selectedRejection.rejected_at)
+                    : "N/A"}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
