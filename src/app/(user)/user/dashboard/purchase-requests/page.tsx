@@ -20,7 +20,8 @@ import {
   Download,
   FileText,
   ExternalLink,
-  MoreHorizontal
+  MoreHorizontal,
+  XCircle
 } from "lucide-react"
 import SearchInput from "@/components/common/search/SearchInput"
 import { useAppSelector } from "@/store/hooks"
@@ -35,6 +36,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 
 interface PurchaseDocument {
   _id: string
@@ -98,6 +109,10 @@ export default function PurchaseRequestsPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [isOrderCreated , setIsOrderCreated] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [isRejecting, setIsRejecting] = useState(false)
   const auth = useAppSelector((state) => state.auth.user)
   const { showToast } = useToast()
   
@@ -251,6 +266,57 @@ export default function PurchaseRequestsPage() {
   useEffect(() => {
     fetchPurchaseRequests(currentPage, limit, statusFilter)
   }, [currentPage, limit, statusFilter])
+
+  const handleRejectOrder = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    setRejectionReason("")
+    setIsRejectDialogOpen(true)
+  }
+
+  const handleCloseRejectDialog = () => {
+    setIsRejectDialogOpen(false)
+    setSelectedOrderId(null)
+    setRejectionReason("")
+  }
+
+  const handleConfirmReject = async () => {
+    if (!rejectionReason.trim()) {
+      showToast("Please provide a rejection reason", "warning")
+      return
+    }
+
+    if (!selectedOrderId || !auth._id) {
+      showToast("Missing required information", "error")
+      return
+    }
+
+    setIsRejecting(true)
+    try {
+      const response = await apiClient.patch(
+        `https://api.toprise.in/api/orders/api/documents/admin/${selectedOrderId}/reject`,
+        {
+          rejected_by: auth._id,
+          rejection_reason: rejectionReason.trim(),
+        }
+      )
+
+      if (response.data.success) {
+        showToast("Order rejected successfully", "success")
+        handleCloseRejectDialog()
+        fetchPurchaseRequests(currentPage, limit, statusFilter)
+      } else {
+        showToast(response.data.message || "Failed to reject order", "error")
+      }
+    } catch (error: any) {
+      console.error("Error rejecting order:", error)
+      const errorMessage = error?.response?.data?.message || 
+                          error?.message || 
+                          "Failed to reject order"
+      showToast(errorMessage, "error")
+    } finally {
+      setIsRejecting(false)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     console.log("Getting status badge for:", status)
@@ -558,7 +624,7 @@ export default function PurchaseRequestsPage() {
                       {/* <TableCell>{getPriorityBadge(request.priority)}</TableCell> */}
                       <TableCell>{getStatusBadge(request.status)}</TableCell>
                       <TableCell className="text-right">
-                        {request.status.toLowerCase() === "order-created" ? (
+                        {request.status.toLowerCase() === "order-created" || request.status.toLowerCase() === "rejected" ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
@@ -583,12 +649,25 @@ export default function PurchaseRequestsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {request.status.toLowerCase() !== "rejected" && 
+                               request.status.toLowerCase() !== "order-created" && (
                               <DropdownMenuItem
                                 onClick={() => router.push(`/user/dashboard/purchase-requests/create-order/${request._id}`)}
                               >
                                 <ShoppingCart className="h-4 w-4 mr-2" />
                                 Create Order
                               </DropdownMenuItem>
+                              )}
+                              {/* reject order - only show if status is not Rejected or Order-Created */}
+                              {request.status.toLowerCase() !== "rejected" && 
+                               request.status.toLowerCase() !== "order-created" && (
+                                <DropdownMenuItem
+                                  onClick={() => handleRejectOrder(request._id)}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Reject Order
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                           // <Button 
@@ -629,6 +708,47 @@ export default function PurchaseRequestsPage() {
 
         </CardContent>
       </Card>
+
+      {/* Reject Order Dialog */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={handleCloseRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Order</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this order.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Rejection Reason</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Enter rejection reason..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={4}
+                disabled={isRejecting}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCloseRejectDialog}
+              disabled={isRejecting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmReject}
+              disabled={!rejectionReason.trim() || isRejecting}
+            >
+              {isRejecting ? "Rejecting..." : "Reject Order"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
