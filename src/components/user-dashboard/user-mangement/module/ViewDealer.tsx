@@ -10,6 +10,15 @@ import { User, Mail, Phone, Calendar, MapPin, Building, Clock, Clock3 } from "lu
 import type { Dealer, Category, User as UserType } from "@/types/dealer-types"
 import type { SlaType } from "@/types/sla-types"
 
+// Utility function to format role for display
+// Maps "Fulfillment-Admin" -> "Fullfillment-Admin" and "Fulfillment-Staff" -> "Fullfillment-Staff"
+const formatRoleForDisplay = (role: string | undefined | null): string => {
+  if (!role) return role || "";
+  if (role === "Fulfillment-Admin") return "Fullfillment-Admin";
+  if (role === "Fulfillment-Staff") return "Fullfillment-Staff";
+  return role;
+};
+
 export default function ViewDealer() {
   const params = useParams()
   const dealerId = params?.id as string
@@ -380,7 +389,7 @@ export default function ViewDealer() {
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Building className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700">{employee.role}</span>
+                          <span className="text-gray-700">{formatRoleForDisplay(employee.role)}</span>
                         </div>
                       </div>
 
