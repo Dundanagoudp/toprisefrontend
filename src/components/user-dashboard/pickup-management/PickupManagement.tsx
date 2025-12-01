@@ -66,6 +66,7 @@ import {
 import { generatePicklistPDF, generateSinglePicklistPDF } from "@/service/pdfService";
 import { getDealerById } from "@/service/dealerServices";
 import { getEmployeeById } from "@/service/employeeServices";
+import { getSKUDetails } from "@/service/product-Service";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 
 export default function PickupManagement() {
@@ -83,6 +84,8 @@ export default function PickupManagement() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingSinglePDF, setIsGeneratingSinglePDF] = useState(false);
+  const [skuDetailsMap, setSkuDetailsMap] = useState<Record<string, any>>({});
+  const [loadingSKUs, setLoadingSKUs] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -179,6 +182,59 @@ export default function PickupManagement() {
   useEffect(() => {
     fetchPickupData();
   }, [fetchPickupData]);
+
+  // Fetch SKU details when pickup is selected
+  const fetchSKUDetails = useCallback(async (skuList: any[]) => {
+    if (!skuList || skuList.length === 0) {
+      return;
+    }
+
+    try {
+      setLoadingSKUs(true);
+      
+      // Get unique SKUs
+      const uniqueSKUs = Array.from(new Set(skuList.map(item => item.sku).filter(Boolean)));
+      
+      // Fetch details for each unique SKU
+      const skuDetailsPromises = uniqueSKUs.map(async (sku) => {
+        try {
+          const response = await getSKUDetails(sku);
+          if (response.success && response.data) {
+            return { sku, data: response.data };
+          }
+          return { sku, data: null };
+        } catch (error) {
+          console.error(`Error fetching SKU details for ${sku}:`, error);
+          return { sku, data: null };
+        }
+      });
+
+      const results = await Promise.all(skuDetailsPromises);
+      
+      // Update the SKU details map using functional update to avoid dependency issues
+      setSkuDetailsMap((prevMap) => {
+        const newSkuDetailsMap: Record<string, any> = { ...prevMap };
+        results.forEach(({ sku, data }) => {
+          if (data) {
+            newSkuDetailsMap[sku] = data;
+          }
+        });
+        return newSkuDetailsMap;
+      });
+    } catch (error) {
+      console.error("Error fetching SKU details:", error);
+    } finally {
+      setLoadingSKUs(false);
+    }
+  }, []);
+
+  // Fetch SKU details when selectedPickup changes and dialog is open
+  useEffect(() => {
+    if (selectedPickup && isDetailDialogOpen) {
+      const skuList = selectedPickup.skuDetails || selectedPickup.skuList || [];
+      fetchSKUDetails(skuList);
+    }
+  }, [selectedPickup, isDetailDialogOpen, fetchSKUDetails]);
 
   // Filter pickups based on search (API handles status filter)
   const filteredPickups = (Array.isArray(pickups) ? pickups : []).filter(pickup => {
@@ -566,31 +622,51 @@ export default function PickupManagement() {
                               {/* Items */}
                               <div>
                                 <h3 className="font-semibold mb-2">SKU List ({selectedPickup.totalItems || selectedPickup.skuList?.length || 0} items, {selectedPickup.uniqueSKUs || 0} unique SKUs)</h3>
+                                {loadingSKUs && (
+                                  <div className="flex items-center justify-center py-4">
+                                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                    <span className="text-sm text-gray-500">Loading SKU details...</span>
+                                  </div>
+                                )}
                                 <div className="space-y-2">
-                                  {(selectedPickup.skuDetails || selectedPickup.skuList || []).map((item, index) => (
-                                    <div key={item._id || index} className="border rounded-lg p-3">
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                          <div className="font-medium">SKU: {item.sku || 'N/A'}</div>
-                                          <div className="text-sm text-gray-500">Quantity: {item.quantity || 0}</div>
-                                          <div className="text-sm text-gray-500">Barcode: {item.barcode || 'N/A'}</div>
-                                          {item.productDetails && (
-                                            <div className="mt-2 text-sm">
-                                              <div><strong>Product:</strong> {item.productDetails.name || 'N/A'}</div>
-                                              <div><strong>Price:</strong> ₹{item.productDetails.selling_price || 0}</div>
-                                              <div><strong>MRP:</strong> ₹{item.productDetails.mrp || 0}</div>
-                                            </div>
-                                          )}
-                                          {item.error && (
-                                            <div className="mt-2 text-sm text-red-500">
-                                              <strong>Error:</strong> {item.error}
-                                            </div>
-                                          )}
+                                  {(selectedPickup.skuDetails || selectedPickup.skuList || []).map((item, index) => {
+                                    const skuDetail = skuDetailsMap[item.sku];
+                                    return (
+                                      <div key={item._id || index} className="border rounded-lg p-3">
+                                        <div className="flex justify-between items-start">
+                                          <div className="flex-1">
+                                            <div className="font-medium">SKU: {item.sku || 'N/A'}</div>
+                                            <div className="text-sm text-gray-500">Quantity: {item.quantity || 0}</div>
+                                            {/* <div className="text-sm text-gray-500">Barcode: {item.barcode || 'N/A'}</div> */}
+                                            {skuDetail ? (
+                                              <div className="mt-2 text-sm">
+                                                <div><strong>Product:</strong> {skuDetail.product_name || 'N/A'}</div>
+                                                <div><strong>Price:</strong> ₹{skuDetail.selling_price?.toLocaleString() || 0}</div>
+                                                <div><strong>MRP:</strong> ₹{skuDetail.mrp_with_gst?.toLocaleString() || 0}</div>
+                                                {skuDetail.manufacturer_part_name && (
+                                                  <div><strong>Manufacturer Part:</strong> {skuDetail.manufacturer_part_name}</div>
+                                                )}
+                                              </div>
+                                            ) : item.productDetails ? (
+                                              <div className="mt-2 text-sm">
+                                                <div><strong>Product:</strong> {item.productDetails.name || 'N/A'}</div>
+                                                <div><strong>Price:</strong> ₹{item.productDetails.selling_price || 0}</div>
+                                                <div><strong>MRP:</strong> ₹{item.productDetails.mrp || 0}</div>
+                                              </div>
+                                            ) : !loadingSKUs ? (
+                                              <div className="mt-2 text-sm text-gray-400 italic">Product details not available</div>
+                                            ) : null}
+                                            {/* {item.error && (
+                                              <div className="mt-2 text-sm text-red-500">
+                                                <strong>Error:</strong> {item.error}
+                                              </div>
+                                            )} */}
+                                          </div>
+                                          <Badge variant="outline">SKU</Badge>
                                         </div>
-                                        <Badge variant="outline">SKU</Badge>
                                       </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                   {(!selectedPickup.skuList || selectedPickup.skuList.length === 0) && (
                                     <div className="text-sm text-gray-500 italic">No SKUs found</div>
                                   )}
