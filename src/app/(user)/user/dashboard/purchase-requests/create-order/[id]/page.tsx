@@ -79,14 +79,12 @@ export default function CreateOrderPage() {
   const [products, setProducts] = useState<any[]>([])
   const [searchingProducts, setSearchingProducts] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([])
-  const [isStandard , setIsStandard] = useState(false)
-  const [isExpress , setIsExpress] = useState(false)
   
   // Order details
   const [deliveryCharges, setDeliveryCharges] = useState<number>(0)
   const [paymentType, setPaymentType] = useState<string>("COD")
-  const [deliveryType, setDeliveryType] = useState<string>("Standard")
-  const [typeOfDelivery , setTypeOfDelivery] = useState("standard")
+  const [deliveryType, setDeliveryType] = useState<string>("Express")
+  const [expressDeliveryOption, setExpressDeliveryOption] = useState<string>("standard") // "standard" = 3 days, "endofday" = same day
   const [submitting, setSubmitting] = useState(false)
 
   // Fetch document details
@@ -259,20 +257,41 @@ export default function CreateOrderPage() {
     setSubmitting(true)
     try {
       const payload = {
+        document_upload_id: documentId,
+        orderType: "Online",
+        orderSource: "Web",
         created_by: auth._id,
-        customerDetails: customerDetails,
-        skus: selectedProducts,
-        order_Amount: grandTotal,
-        deliveryCharges: deliveryCharges,
-        paymentType: paymentType,
-        type_of_delivery: deliveryType,
-        delivery_type: typeOfDelivery || "standard"
+        type_of_delivery: "Express",
+        delivery_type: expressDeliveryOption,
+        order_Amount: grandTotal.toString(),
+        skus: selectedProducts.map(product => ({
+          sku: product.sku,
+          quantity: product.quantity,
+          productId: product.productId,
+          productName: product.productName,
+          mrp: product.mrp,
+          mrp_gst_amount: parseFloat(((product.mrp * product.quantity * product.gst_percentage) / 100).toFixed(2)),
+          gst_percentage: product.gst_percentage.toString(),
+          gst_amount: product.gst_amount,
+          product_total: product.totalPrice,
+          totalPrice: product.totalPrice
+        })),
+        customerDetails: {
+          userId: customerDetails.userId,
+          name: customerDetails.name,
+          phone: customerDetails.phone,
+          address: customerDetails.address,
+          pincode: customerDetails.pincode,
+          email: customerDetails.email
+        },
+        paymentType: "COD",
+        deliveryCharges: deliveryCharges
       }
 
       console.log("Creating order with payload:", payload)
 
       const response = await apiClient.post(
-        `https://api.toprise.in/api/orders/api/documents/admin/${documentId}/create-order`,
+        `https://api.toprise.in/api/orders/api/documents/create/orderby/admin`,
         payload
       )
 
@@ -559,42 +578,39 @@ export default function CreateOrderPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-           <div className="space-y-2">
-  <Label htmlFor="delivery-type">Delivery Type *</Label>
-  <Select
-    value={deliveryType}
-    onValueChange={(value) => {
-      setDeliveryType(value);
-      setIsExpress(value === "Express");
-      setIsStandard(value === "Standard");
-    }}
-  >
-    <SelectTrigger id="delivery-type">
-      <SelectValue placeholder="Select delivery type" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="Standard" >Standard</SelectItem>
-      <SelectItem value="Express">Express</SelectItem>
-    </SelectContent>
-  </Select>
-  {isExpress && (
-    <>
-      <Label htmlFor="express-delivery-date">Express Delivery Date *</Label>
-      <Select
-      value={typeOfDelivery}
-      onValueChange={setTypeOfDelivery}
-      >
-        <SelectTrigger id="express-delivery-date">
-          <SelectValue placeholder="Select express delivery option" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="standard">Same Day Delivery</SelectItem>
-          <SelectItem value="regular">Delivery in 3 Days</SelectItem>
-        </SelectContent>
-      </Select>
-    </>
-  )}
-</div>
+              <div className="space-y-2">
+                <Label htmlFor="delivery-type">Delivery Type *</Label>
+                <Select
+                  value={deliveryType}
+                  onValueChange={(value) => {
+                    setDeliveryType(value);
+                  }}
+                  disabled
+                >
+                  <SelectTrigger id="delivery-type">
+                    <SelectValue placeholder="Select delivery type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Express">Express</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="express-delivery-option">Express Delivery Option *</Label>
+                <Select
+                  value={expressDeliveryOption}
+                  onValueChange={setExpressDeliveryOption}
+                >
+                  <SelectTrigger id="express-delivery-option">
+                    <SelectValue placeholder="Select express delivery option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">3 Days</SelectItem>
+                    <SelectItem value="endofday">2-3 Hours</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="delivery-charges">Delivery Charges (₹)</Label>
@@ -603,7 +619,7 @@ export default function CreateOrderPage() {
                   type="number"
                   min="0"
                   value={deliveryCharges}
-                  onChange={(e) => setDeliveryCharges(parseFloat(e.target.value) )}
+                  onChange={(e) => setDeliveryCharges(parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
               </div>
@@ -634,17 +650,10 @@ export default function CreateOrderPage() {
               </div>
 
               <div className="pt-4 space-y-2">
-                {isStandard && (
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800 font-medium">
-                      Standard delivery come soon
-                    </p>
-                  </div>
-                )}
                 <Button
                   className="w-full bg-[#C72920] hover:bg-[#A01E1A] text-white"
                   onClick={handleCreateOrder}
-                  disabled={submitting || selectedProducts.length === 0 || isStandard}
+                  disabled={submitting || selectedProducts.length === 0}
                 >
                   {submitting ? (
                     <>
