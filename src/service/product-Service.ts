@@ -768,6 +768,20 @@ export async function getProductById(
   }
 }
 
+export async function getSKUDetails(
+  sku: string
+): Promise<{ success: boolean; message: string; data: any }> {
+  try {
+    const response = await apiClient.get(
+      `/category/products/v1/sku/${sku}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to fetch SKU details for ${sku}:`, error);
+    throw error;
+  }
+}
+
 export async function getBrandByType(id: string): Promise<ProductResponse> {
   try {
     const url = `/category/api/brands/brandByType/${id}`;

@@ -654,7 +654,7 @@ export async function generateSinglePicklistPDF(picklist: PicklistData): Promise
         yPosition = margin;
       }
       
-      doc.text(`${index + 1}. SKU: ${item.sku} | Qty: ${item.quantity} | Barcode: ${item.barcode || 'N/A'}`, margin, yPosition);
+      doc.text(`${index + 1}. SKU: ${item.sku} | Qty: ${item.quantity} `, margin, yPosition);
       yPosition += 6;
     });
     
