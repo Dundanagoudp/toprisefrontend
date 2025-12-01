@@ -5,6 +5,8 @@ export const getReturnRequests = async (params?: {
   refundMethod?: string;
   status?: string;
   dealerId?: string;
+  page?: number;
+  limit?: number;
 }): Promise<ReturnRequestsResponse> => {
   try {
     const queryParams = new URLSearchParams();
@@ -16,6 +18,12 @@ export const getReturnRequests = async (params?: {
     }
     if (params?.dealerId) {
       queryParams.append("dealerId", params.dealerId);
+    }
+    if (params?.page) {
+      queryParams.append("page", params.page.toString());
+    }
+    if (params?.limit) {
+      queryParams.append("limit", params.limit.toString());
     }
     
     const queryString = queryParams.toString();

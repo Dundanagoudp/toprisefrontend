@@ -34,14 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-} from "@/components/ui/pagination";
+import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import {
   Table,
   TableBody,
@@ -69,7 +62,6 @@ export default function ReturnClaims() {
   const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -149,7 +141,7 @@ export default function ReturnClaims() {
   const fetchReturnRequests = async () => {
     try {
       setLoading(true);
-      const params: { refundMethod?: string; status?: string; dealerId?: string } = {};
+      const params: { refundMethod?: string; status?: string; dealerId?: string; page?: number; limit?: number } = {};
       
       if (advancedFilterClaimType) {
         params.refundMethod = advancedFilterClaimType;
@@ -162,10 +154,12 @@ export default function ReturnClaims() {
       if (selectedDealerId && selectedDealerId !== "all") {
         params.dealerId = selectedDealerId;
       }
+
+      params.page = currentPage;
+      params.limit = itemsPerPage;
       
       const response: ReturnRequestsResponse = await getReturnRequests(params);
       if (response.success && response.data) {
-        console.log("Return requests:", response.data);
         setReturnRequests(response.data.returnRequests);
         setTotalPages(response.data.pagination.pages);
         setTotalItems(response.data.pagination.total);
@@ -180,7 +174,7 @@ export default function ReturnClaims() {
 
   useEffect(() => {
     fetchReturnRequests();
-  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId]);
+  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId, currentPage]);
 
   // Fetch dealers on mount
   useEffect(() => {
@@ -374,37 +368,27 @@ export default function ReturnClaims() {
   };
 
   const filteredReturnRequests = useMemo(() => {
-    return returnRequests
-      .filter((request) => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          request._id.toLowerCase().includes(searchLower) ||
-          request.sku.toLowerCase().includes(searchLower) ||
-          (request.orderId?.orderId || "")
-            .toLowerCase()
-            .includes(searchLower) ||
-          (request.orderId?.customerDetails?.name || "")
-            .toLowerCase()
-            .includes(searchLower) ||
-          request.returnReason.toLowerCase().includes(searchLower)
-        );
-      })
-      .filter(
-        (request) =>
-          filterStatus === "All" || request.returnStatus === filterStatus
+    return returnRequests.filter((request) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        request._id.toLowerCase().includes(searchLower) ||
+        request.sku.toLowerCase().includes(searchLower) ||
+        (request.orderId?.orderId || "")
+          .toLowerCase()
+          .includes(searchLower) ||
+        (request.orderId?.customerDetails?.name || "")
+          .toLowerCase()
+          .includes(searchLower) ||
+        request.returnReason.toLowerCase().includes(searchLower)
       );
-  }, [returnRequests, searchTerm, filterStatus]);
-
-  const paginatedReturnRequests = filteredReturnRequests.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    });
+  }, [returnRequests, searchTerm]);
 
   // Handle advanced filter apply
   const handleApplyAdvancedFilters = (status: string, claimType: string) => {
     setAdvancedFilterStatus(status);
     setAdvancedFilterClaimType(claimType);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   // Handle advanced filter reset
@@ -414,10 +398,15 @@ export default function ReturnClaims() {
     setCurrentPage(1);
   };
 
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   // Reset selection when page or filters change
   useEffect(() => {
     setSelectedClaims([]);
-  }, [currentPage, searchTerm, filterStatus]);
+  }, [currentPage, searchTerm]);
 
 const getStatusBadge = (status: string) => {
   const baseClasses = "px-3 py-1 rounded-full text-xs font-medium border font-[Poppins]";
@@ -470,8 +459,8 @@ const formatStatusName = (status: string) => {
     `${request._id}-${index}`;
 
   const allSelected =
-    paginatedReturnRequests.length > 0 &&
-    paginatedReturnRequests.every((r, idx) =>
+    filteredReturnRequests.length > 0 &&
+    filteredReturnRequests.every((r, idx) =>
       selectedClaims.includes(getRowId(r, idx))
     );
 
@@ -479,7 +468,7 @@ const formatStatusName = (status: string) => {
     if (allSelected) {
       setSelectedClaims([]);
     } else {
-      const ids = paginatedReturnRequests.map((r, idx) => getRowId(r, idx));
+      const ids = filteredReturnRequests.map((r, idx) => getRowId(r, idx));
       setSelectedClaims(ids);
     }
   };
@@ -682,7 +671,7 @@ const formatStatusName = (status: string) => {
                         </TableCell>
                       </TableRow>
                     ))
-                  : paginatedReturnRequests.map((request, index) => {
+                  : filteredReturnRequests.map((request, index) => {
                       const rowId = getRowId(request, index);
                       const zebra =
                         index % 2 === 0 ? "bg-white" : "bg-gray-50/30";
@@ -876,91 +865,17 @@ const formatStatusName = (status: string) => {
           </div>
         </CardContent>
 
-        {/* Pagination - consistent with CreatedProduct */}
-        {filteredReturnRequests.length > 0 &&
-          Math.ceil(filteredReturnRequests.length / itemsPerPage) > 1 && (
-            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
-              <div className="text-sm text-gray-600 text-center sm:text-left">
-                {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
-                  currentPage * itemsPerPage,
-                  filteredReturnRequests.length
-                )} of ${filteredReturnRequests.length} returns`}
-              </div>
-              <div className="flex justify-center sm:justify-end">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() =>
-                          setCurrentPage((p) => Math.max(1, p - 1))
-                        }
-                        className={
-                          currentPage === 1
-                            ? "pointer-events-none opacity-50"
-                            : "cursor-pointer"
-                        }
-                      />
-                    </PaginationItem>
-                    {(() => {
-                      const calculatedTotalPages = Math.ceil(
-                        filteredReturnRequests.length / itemsPerPage
-                      );
-                      let pages: number[] = [];
-                      if (calculatedTotalPages <= 3) {
-                        pages = Array.from(
-                          { length: calculatedTotalPages },
-                          (_, i) => i + 1
-                        );
-                      } else if (currentPage <= 2) {
-                        pages = [1, 2, 3];
-                      } else if (currentPage >= calculatedTotalPages - 1) {
-                        pages = [
-                          calculatedTotalPages - 2,
-                          calculatedTotalPages - 1,
-                          calculatedTotalPages,
-                        ];
-                      } else {
-                        pages = [currentPage - 1, currentPage, currentPage + 1];
-                      }
-                      return pages.map((pageNum) => (
-                        <PaginationItem key={pageNum}>
-                          <PaginationLink
-                            isActive={currentPage === pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className="cursor-pointer"
-                          >
-                            {pageNum}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ));
-                    })()}
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() =>
-                          setCurrentPage((p) =>
-                            Math.min(
-                              Math.ceil(
-                                filteredReturnRequests.length / itemsPerPage
-                              ),
-                              p + 1
-                            )
-                          )
-                        }
-                        className={
-                          currentPage ===
-                          Math.ceil(
-                            filteredReturnRequests.length / itemsPerPage
-                          )
-                            ? "pointer-events-none opacity-50"
-                            : "cursor-pointer"
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </div>
-          )}
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <DynamicPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            showItemsInfo={true}
+          />
+        )}
 
         {/* Empty State */}
         {filteredReturnRequests.length === 0 && !loading && (
