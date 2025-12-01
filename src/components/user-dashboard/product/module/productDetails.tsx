@@ -14,10 +14,18 @@ import { Productcard } from "./productCard";
 import { getProductById, getProducts } from "@/service/product-Service";
 import { useParams, useRouter } from "next/navigation";
 import { Product } from "@/types/product-Types";
-import { aproveProduct, deactivateProduct, rejectSingleProduct } from "@/service/product-Service";
+import {
+  aproveProduct,
+  deactivateProduct,
+  rejectSingleProduct,
+} from "@/service/product-Service";
 import DynamicButton from "../../../common/button/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchProductByIdSuccess, fetchProductByIdRequest, fetchProductByIdFailure } from "@/store/slice/product/productByIdSlice";
+import {
+  fetchProductByIdSuccess,
+  fetchProductByIdRequest,
+  fetchProductByIdFailure,
+} from "@/store/slice/product/productByIdSlice";
 import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
 import { useToast as GlobalToast } from "@/components/ui/toast";
 import SuperAdminDealersModal from "./SuperAdminDealersModal";
@@ -60,23 +68,22 @@ export default function ViewProductDetails() {
     }
   };
   // Function to handle product approval
-const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string) => {
     setStatus(newStatus);
-    
+
     if (newStatus === "Approved") {
       await aproveProduct(id.id);
-      await fetchProductData(); 
+      await fetchProductData();
     } else if (newStatus === "Pending") {
       await deactivateProduct(id.id);
-      await fetchProductData(); 
+      await fetchProductData();
     } else if (newStatus === "Rejected") {
       setIsRejectDialogOpen(true);
     }
   };
-  
 
   // Function to refresh product data
-const fetchProductData = async () => {
+  const fetchProductData = async () => {
     dispatch(fetchProductByIdRequest());
     try {
       const response = await getProductById(id.id);
@@ -85,11 +92,13 @@ const fetchProductData = async () => {
       console.log("Product data:", data);
 
       // Cleaned up the array check
-      const prod: Product | null = Array.isArray(data) ? data[0] : (data as Product);
+      const prod: Product | null = Array.isArray(data)
+        ? data[0]
+        : (data as Product);
 
       setProduct(prod);
       dispatch(fetchProductByIdSuccess(prod));
-      
+
       if (prod?.live_status) {
         setStatus(prod.live_status);
       }
@@ -101,14 +110,14 @@ const fetchProductData = async () => {
   React.useEffect(() => {
     fetchProductData();
   }, [id.id]);
-// open light box for images 
+  // open light box for images
 
   // Function to handle product rejection
   const handleRejectProduct = async (data: { reason: string }) => {
     try {
       console.log("Rejecting product with reason:", data.reason);
       console.log("User ID for rejection:", auth?._id);
-      
+
       // Pass user ID to ensure audit logging works
       const userId = auth?._id || authState?.user?._id;
       if (!userId) {
@@ -116,10 +125,10 @@ const fetchProductData = async () => {
       }
       await rejectSingleProduct(id.id, data.reason, userId);
       setIsRejectDialogOpen(false);
-      
+
       // Show success message
       showToast("Product rejected successfully", "success");
-      
+
       // Refresh product data after rejection
       await fetchProductData();
     } catch (error: any) {
@@ -132,9 +141,7 @@ const fetchProductData = async () => {
     setIsEditLoading(true);
     router.push(`/user/dashboard/product/productedit/${idObj.id}`);
   };
-  React.useEffect(() => {
-
-  }, []);
+  React.useEffect(() => {}, []);
 
   // Update status if product changes
   React.useEffect(() => {
@@ -157,7 +164,11 @@ const fetchProductData = async () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Select onValueChange={handleStatusChange} value={status} disabled={!allowedRoles.includes(auth.role)}>
+            <Select
+              onValueChange={handleStatusChange}
+              value={status}
+              disabled={!allowedRoles.includes(auth.role)}
+            >
               <SelectTrigger
                 className={`min-w-[120px] ${getStatusColor(status)}`}
                 disabled={!allowedRoles.includes(auth.role)}
@@ -291,7 +302,7 @@ const fetchProductData = async () => {
                     {
                       label: "Is Consumable",
                       value: product.is_consumable ? "Yes" : "No",
-                    }
+                    },
                   ]
                 : []
             }
@@ -305,52 +316,26 @@ const fetchProductData = async () => {
             description="product images, videos, and brochures to enhance visual representation and credibility."
             data={[]}
           >
-            <div className="col-span-2 space-y-4">
-              <div className="grid grid-cols-2 gap-3 ">
-                {product && Array.isArray(product.images) && product.images.length > 0 ? (
-                  <>
-                    {/* Show the first image as main */}
-                    <img
-                      src={product.images[0]}
-                      alt="Main"
-                      className="aspect-video bg-gray-200 rounded-md object-cover"
-                    />
-                    {/* Show remaining images, if any */}
-                    <div className={`grid grid-cols-2 gap-2`}>
-                      {product.images
-                        .slice(1)
-                        .map((img: string, idx: number) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`img-${idx + 1}`}
-                            className="aspect-square bg-gray-200 rounded-md object-cover"
-                          />
-                        ))}
+            <div className="space-y-4">
+              {product &&
+              Array.isArray(product.images) &&
+              product.images.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {product.images.map((img: string, idx: number) => (
+                    <div key={idx} className={idx === 0 ? "col-span-2" : ""}>
+                      <img
+                        src={img}
+                        alt={`img-${idx}`}
+                        className={`w-full bg-gray-200 rounded-md object-cover ${
+                          idx === 0 ? "aspect-video" : "aspect-square"
+                        }`}
+                      />
                     </div>
-                  </>
-                ) : (
-                  // No images at all
-                  <div className="col-span-2 aspect-video bg-gray-200 rounded-md" />
-                )}
-              </div>
-              <div className="mt-4 space-y-2">
-                {/* <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 ">Video URL</span>
-               
-                  <span className="text-sm text-gray-400">N/A</span>
-                </div> */}
-                {/* <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Brochure Available
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {product && typeof product.brochure_available === "boolean"
-                      ? product.brochure_available ? "True" : "False"
-                      : "False"}
-                  </span>
-                </div> */}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="aspect-video bg-gray-200 rounded-md" />
+              )}
             </div>
           </Productcard>
 
@@ -401,18 +386,23 @@ const fetchProductData = async () => {
             description="the core identifiers that define the product's identity, brand, and origin."
             data={[]}
           >
-               {product && product.available_dealers && Array.isArray(product.available_dealers) && product.available_dealers.length > 0 && (
-              <div className="mt-1">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Available Dealers</h4>
-                <DynamicButton
-                  variant="outline"
-                  customClassName="text-red-600 border-red-200 hover:bg-red-50 text-sm px-2 py-1"
-                  onClick={() => setShowDealersModal(true)}
-                  icon={<Eye className="w-4 h-4" />}
-                  text={`${product.available_dealers.length} Dealers Available`}
-                />
-              </div>
-            )}
+            {product &&
+              product.available_dealers &&
+              Array.isArray(product.available_dealers) &&
+              product.available_dealers.length > 0 && (
+                <div className="mt-1">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Available Dealers
+                  </h4>
+                  <DynamicButton
+                    variant="outline"
+                    customClassName="text-red-600 border-red-200 hover:bg-red-50 text-sm px-2 py-1"
+                    onClick={() => setShowDealersModal(true)}
+                    icon={<Eye className="w-4 h-4" />}
+                    text={`${product.available_dealers.length} Dealers Available`}
+                  />
+                </div>
+              )}
           </Productcard>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -446,10 +436,15 @@ const fetchProductData = async () => {
               data={
                 product
                   ? [
-                      { label: "Product Version", value: product.product_Version || "-" },
+                      {
+                        label: "Product Version",
+                        value: product.product_Version || "-",
+                      },
                       {
                         label: "Iteration Number",
-                        value: product.iteration_number ? String(product.iteration_number) : "-",
+                        value: product.iteration_number
+                          ? String(product.iteration_number)
+                          : "-",
                       },
                       {
                         label: "Live Status",
@@ -461,178 +456,217 @@ const fetchProductData = async () => {
                       },
                       {
                         label: "Created At",
-                        value: product.created_at ? new Date(product.created_at).toLocaleDateString() : "-",
+                        value: product.created_at
+                          ? new Date(product.created_at).toLocaleDateString()
+                          : "-",
                       },
                       {
                         label: "Last Updated",
-                        value: product.updated_at ? new Date(product.updated_at).toLocaleDateString() : "-",
+                        value: product.updated_at
+                          ? new Date(product.updated_at).toLocaleDateString()
+                          : "-",
                       },
                     ]
                   : []
               }
-                         >
-               {product && product.change_logs && Array.isArray(product.change_logs) && product.change_logs.length > 0 && (
-                 <div className="mt-4">
-                   <div className="flex items-center justify-between mb-3">
-                     <h4 className="text-sm font-medium text-gray-700">Change History</h4>
-                     {product.change_logs.length > 3 && (
-                       <DynamicButton
-                         variant="outline"
-                         customClassName="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs px-2 py-1"
-                         onClick={() => setShowHistoryDrawer(true)}
-                         icon={<ChevronRight className="w-3 h-3" />}
-                         text="View More"
-                       />
-                     )}
-                   </div>
-                   <div className="space-y-3">
-                     {product.change_logs.slice(0, 3).map((log: any, index: number) => (
-                       <div key={log._id || index} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                         <div className="flex items-center justify-between mb-2">
-                           <span className="text-xs font-medium text-gray-600">
-                             Iteration {log.iteration_number}
-                           </span>
-                           <span className="text-xs text-gray-500">
-                             {new Date(log.modified_At).toLocaleDateString()}
-                           </span>
-                         </div>
-                         <div className="text-xs text-gray-700 mb-1">
-                           <span className="font-medium">Modified by:</span> {log.modified_by}
-                         </div>
-                         <div className="text-xs text-gray-700 mb-1">
-                           <span className="font-medium">Changes:</span> {log.changes}
-                         </div>
-                         <div className="text-xs text-gray-600">
-                           <details className="cursor-pointer">
-                             <summary className="font-medium text-gray-700">View Details</summary>
-                             <div className="mt-2 space-y-1">
-                               <div>
-                                 <span className="font-medium">Old Value:</span>
-                                 <pre className="text-xs bg-gray-100 p-1 rounded mt-1 overflow-x-auto">
-                                   {log.old_value}
-                                 </pre>
-                               </div>
-                               <div>
-                                 <span className="font-medium">New Value:</span>
-                                 <pre className="text-xs bg-gray-100 p-1 rounded mt-1 overflow-x-auto">
-                                   {log.new_value}
-                                 </pre>
-                               </div>
-                             </div>
-                           </details>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-               )}
+            >
+              {product &&
+                product.change_logs &&
+                Array.isArray(product.change_logs) &&
+                product.change_logs.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Change History
+                      </h4>
+                      {product.change_logs.length > 3 && (
+                        <DynamicButton
+                          variant="outline"
+                          customClassName="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs px-2 py-1"
+                          onClick={() => setShowHistoryDrawer(true)}
+                          icon={<ChevronRight className="w-3 h-3" />}
+                          text="View More"
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      {product.change_logs
+                        .slice(0, 3)
+                        .map((log: any, index: number) => (
+                          <div
+                            key={log._id || index}
+                            className="bg-gray-50 rounded-lg p-3 border border-gray-200"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-medium text-gray-600">
+                                Iteration {log.iteration_number}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(log.modified_At).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-700 mb-1">
+                              <span className="font-medium">Modified by:</span>{" "}
+                              {log.modified_by}
+                            </div>
+                            <div className="text-xs text-gray-700 mb-1">
+                              <span className="font-medium">Changes:</span>{" "}
+                              {log.changes}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              <details className="cursor-pointer">
+                                <summary className="font-medium text-gray-700">
+                                  View Details
+                                </summary>
+                                <div className="mt-2 space-y-1">
+                                  <div>
+                                    <span className="font-medium">
+                                      Old Value:
+                                    </span>
+                                    <pre className="text-xs bg-gray-100 p-1 rounded mt-1 overflow-x-auto">
+                                      {log.old_value}
+                                    </pre>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">
+                                      New Value:
+                                    </span>
+                                    <pre className="text-xs bg-gray-100 p-1 rounded mt-1 overflow-x-auto">
+                                      {log.new_value}
+                                    </pre>
+                                  </div>
+                                </div>
+                              </details>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
             </Productcard>
           </div>
         </div>
       </div>
-           <RejectReason
-                    isOpen={isRejectDialogOpen}
-                    onClose={() => setIsRejectDialogOpen(false)}
-                    onSubmit={handleRejectProduct}
-                  />
-      
-             {/* Super Admin Dealers Modal */}
-       <SuperAdminDealersModal
-         open={showDealersModal}
-         onClose={() => setShowDealersModal(false)}
-         product={product}
-       />
+      <RejectReason
+        isOpen={isRejectDialogOpen}
+        onClose={() => setIsRejectDialogOpen(false)}
+        onSubmit={handleRejectProduct}
+      />
 
-       {/* Product History Timeline Drawer */}
-       <Sheet open={showHistoryDrawer} onOpenChange={setShowHistoryDrawer}>
-         <SheetContent className="w-[600px] sm:w-[600px] overflow-y-auto bg-gray-50">
-           <SheetHeader className="bg-white p-6 border-b border-gray-200 -mx-6 -mt-6 mb-6">
-             <SheetTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
-               <div className="p-2 bg-blue-100 rounded-lg">
-                 <Clock className="h-6 w-6 text-blue-600" />
-               </div>
-               <div>
-                 <div>Product Change History</div>
-                 <div className="text-sm font-normal text-gray-500 mt-1">
-                   Complete timeline of all product modifications
-                 </div>
-               </div>
-             </SheetTitle>
-           </SheetHeader>
-           
-           {product && product.change_logs && Array.isArray(product.change_logs) && (
-             <ScrollArea className="h-full px-2">
-               <div className="space-y-6">
-                 {product.change_logs.map((log: any, index: number) => (
-                   <div key={log._id || index} className="relative">
-                     {/* Timeline connector */}
-                     {index < product.change_logs.length - 1 && (
-                       <div className="absolute left-6 top-12 w-0.5 h-16 bg-gray-200"></div>
-                     )}
-                     
-                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                       <div className="flex items-start gap-4">
-                         {/* Timeline dot */}
-                         <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                           <span className="text-sm font-semibold text-blue-600">
-                             {log.iteration_number}
-                           </span>
-                         </div>
-                         
-                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center justify-between mb-3">
-                             <h3 className="text-lg font-semibold text-gray-900">
-                               Iteration {log.iteration_number}
-                             </h3>
-                             <span className="text-sm text-gray-500">
-                               {new Date(log.modified_At).toLocaleDateString()} at {new Date(log.modified_At).toLocaleTimeString()}
-                             </span>
-                           </div>
-                           
-                           <div className="space-y-3">
-                             <div className="flex items-center gap-2">
-                               <span className="text-sm font-medium text-gray-700">Modified by:</span>
-                               <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                                 {log.modified_by}
-                               </span>
-                             </div>
-                             
-                             <div>
-                               <span className="text-sm font-medium text-gray-700">Changes:</span>
-                               <div className="mt-1 flex flex-wrap gap-1">
-                                 {log.changes.split(', ').map((change: string, idx: number) => (
-                                   <span key={idx} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                     {change.trim()}
-                                   </span>
-                                 ))}
-                               </div>
-                             </div>
-                             
-                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                               <div>
-                                 <span className="text-sm font-medium text-gray-700">Previous Values:</span>
-                                 <pre className="text-xs bg-gray-50 p-3 rounded-lg border border-gray-200 mt-1 overflow-x-auto text-gray-700">
-                                   {log.old_value}
-                                 </pre>
-                               </div>
-                               <div>
-                                 <span className="text-sm font-medium text-gray-700">New Values:</span>
-                                 <pre className="text-xs bg-green-50 p-3 rounded-lg border border-green-200 mt-1 overflow-x-auto text-green-700">
-                                   {log.new_value}
-                                 </pre>
-                               </div>
-                             </div>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-                   </div>
-                 ))}
-               </div>
-             </ScrollArea>
-           )}
-         </SheetContent>
-       </Sheet>
-     </div>
-   );
- }
+      {/* Super Admin Dealers Modal */}
+      <SuperAdminDealersModal
+        open={showDealersModal}
+        onClose={() => setShowDealersModal(false)}
+        product={product}
+      />
+
+      {/* Product History Timeline Drawer */}
+      <Sheet open={showHistoryDrawer} onOpenChange={setShowHistoryDrawer}>
+        <SheetContent className="w-[600px] sm:w-[600px] overflow-y-auto bg-gray-50">
+          <SheetHeader className="bg-white p-6 border-b border-gray-200 -mx-6 -mt-6 mb-6">
+            <SheetTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <div>Product Change History</div>
+                <div className="text-sm font-normal text-gray-500 mt-1">
+                  Complete timeline of all product modifications
+                </div>
+              </div>
+            </SheetTitle>
+          </SheetHeader>
+
+          {product &&
+            product.change_logs &&
+            Array.isArray(product.change_logs) && (
+              <ScrollArea className="h-full px-2">
+                <div className="space-y-6">
+                  {product.change_logs.map((log: any, index: number) => (
+                    <div key={log._id || index} className="relative">
+                      {/* Timeline connector */}
+                      {index < product.change_logs.length - 1 && (
+                        <div className="absolute left-6 top-12 w-0.5 h-16 bg-gray-200"></div>
+                      )}
+
+                      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                        <div className="flex items-start gap-4">
+                          {/* Timeline dot */}
+                          <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-semibold text-blue-600">
+                              {log.iteration_number}
+                            </span>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                Iteration {log.iteration_number}
+                              </h3>
+                              <span className="text-sm text-gray-500">
+                                {new Date(log.modified_At).toLocaleDateString()}{" "}
+                                at{" "}
+                                {new Date(log.modified_At).toLocaleTimeString()}
+                              </span>
+                            </div>
+
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-700">
+                                  Modified by:
+                                </span>
+                                <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                  {log.modified_by}
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-sm font-medium text-gray-700">
+                                  Changes:
+                                </span>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {log.changes
+                                    .split(", ")
+                                    .map((change: string, idx: number) => (
+                                      <span
+                                        key={idx}
+                                        className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                                      >
+                                        {change.trim()}
+                                      </span>
+                                    ))}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                  <span className="text-sm font-medium text-gray-700">
+                                    Previous Values:
+                                  </span>
+                                  <pre className="text-xs bg-gray-50 p-3 rounded-lg border border-gray-200 mt-1 overflow-x-auto text-gray-700">
+                                    {log.old_value}
+                                  </pre>
+                                </div>
+                                <div>
+                                  <span className="text-sm font-medium text-gray-700">
+                                    New Values:
+                                  </span>
+                                  <pre className="text-xs bg-green-50 p-3 rounded-lg border border-green-200 mt-1 overflow-x-auto text-green-700">
+                                    {log.new_value}
+                                  </pre>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}

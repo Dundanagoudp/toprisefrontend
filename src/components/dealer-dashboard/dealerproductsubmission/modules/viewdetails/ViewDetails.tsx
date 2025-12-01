@@ -266,12 +266,12 @@ export default function DealerProdutView() {
                   <div className="col-span-2 aspect-video bg-gray-200 rounded-md" />
                 )}
               </div>
-              <div className="mt-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 ">Video URL</span>
+                {/* <div className="mt-4 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 ">Video URL</span> */}
                   {/* No videoUrl in Product, so show N/A */}
-                  <span className="text-sm text-gray-400">N/A</span>
-                </div>
+                  {/* <span className="text-sm text-gray-400">N/A</span> */}
+                {/* </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">
                     Brochure Available
@@ -282,7 +282,7 @@ export default function DealerProdutView() {
                       : "False"}
                   </span>
                 </div>
-              </div>
+              </div> */}
             </div>
           </Productcard>
 

@@ -29,6 +29,15 @@ import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import AssignRegionDealerModal from "./assignpop/AssignRegionDealerModal"
 import ExportButton from "./ExportButton"
 
+// Utility function to format role for display
+// Maps "Fulfillment-Admin" -> "Fullfillment-Admin" and "Fulfillment-Staff" -> "Fullfillment-Staff"
+const formatRoleForDisplay = (role: string | undefined | null): string => {
+  if (!role) return "User";
+  if (role === "Fullfillment-Admin") return "Fullfillment-Admin";
+  if (role === "Fullfillment-Staff") return "Fullfillment-Staff";
+  return role;
+};
+
 interface EmployeeTableProps {
   search?: string;
   role?: string;
@@ -173,6 +182,7 @@ export default function EmployeeTable({
       
       // Filter out users and dealers - only show actual employees
       const filteredEmployees = employeeData.filter((employee: Employee) => {
+      
         // Exclude users and dealers from the employee table
         return employee.role !== "User" && employee.role !== "Dealer";
       });
@@ -288,8 +298,25 @@ export default function EmployeeTable({
   // Update available roles when employee data changes
   useEffect(() => {
     if (onRolesUpdate && employees.length > 0) {
-      const roles = [...new Set(employees.map(emp => emp.role).filter(Boolean))];
-      onRolesUpdate(roles);
+      const normalizeRole = (role: string | undefined | null) =>
+        role?.toLowerCase().trim().replace(/\s+/g, " ") || "";
+
+      const roleMap = new Map<string, string>();
+
+      employees.forEach((emp) => {
+        const rawRole = emp.role;
+        const normalizedKey = normalizeRole(rawRole);
+        if (!normalizedKey) return;
+
+        if (!roleMap.has(normalizedKey)) {
+          // Preserve the first nicely trimmed label for display with formatting.
+          const displayRole = formatRoleForDisplay(rawRole?.trim() || normalizedKey);
+          roleMap.set(normalizedKey, displayRole);
+          console.log("Role Map:", roleMap);
+        }
+      });
+
+      onRolesUpdate(Array.from(roleMap.values()));
     }
   }, [employees, onRolesUpdate]);
   
@@ -347,7 +374,7 @@ export default function EmployeeTable({
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <div className="text-sm text-gray-600">
             <strong>Active Filters:</strong>
-            {role && <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Role: {role}</span>}
+            {role && <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Role: {formatRoleForDisplay(role)}</span>}
             {status && <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Status: {status}</span>}
             {region && <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">Region: {region}</span>}
             <span className="ml-2 text-gray-500">({filteredEmployees.length} of {employees.length} employees)</span>
@@ -456,7 +483,7 @@ export default function EmployeeTable({
                 {/* Removed Department cell to match updated columns */}
                 <td className="p-3 md:p-4 text-gray-600 text-sm">
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {employee.role || "User"}
+                    {formatRoleForDisplay(employee.role)}
                   </span>
                 </td>
                  <td className="p-3 md:p-4 text-gray-600 text-sm">

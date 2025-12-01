@@ -33,6 +33,15 @@ const DEALER_STATUSES = ["active", "inactive"] as const;
 // For app users, roles are dynamic (usually just "User"); status filter available
 const USER_STATUSES = ["Active", "Inactive (Deleted)"] as const
 
+// Utility function to format role for display
+// Maps "Fulfillment-Admin" -> "Fullfillment-Admin" and "Fulfillment-Staff" -> "Fullfillment-Staff"
+const formatRoleForDisplay = (role: string | undefined | null): string => {
+  if (!role) return role || "";
+  if (role === "Fulfillment-Admin") return "Fullfillment-Admin";
+  if (role === "Fulfillment-Staff") return "Fullfillment-Staff";
+  return role;
+};
+
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -139,7 +148,7 @@ export default function GlobalFilters({
     return () => document.removeEventListener("mousedown", onClick);
   }, [open, isDesktop]);
 
-  const getRoleDisplayName = (role: string) => role
+  const getRoleDisplayName = (role: string) => formatRoleForDisplay(role)
 
   const getStatusDisplayName = (status: string) =>
     status.charAt(0).toUpperCase() + status.slice(1);
@@ -397,7 +406,7 @@ function PanelContent(props: {
                     checked={draftRole === r}
                     onChange={() => setDraftRole(r)}
                   />
-                  <span className="text-sm">{r}</span>
+                  <span className="text-sm">{formatRoleForDisplay(r)}</span>
                 </label>
               </li>
             ))}

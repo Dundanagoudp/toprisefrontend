@@ -113,7 +113,7 @@ export default function SearchFiltersModal({
 
             {/* Claim Type */}
             <div>
-              <h3 className="text-base text-gray-900 font-bold mb-4">Claim Type</h3>
+              <h3 className="text-base text-gray-900 font-bold mb-4">Return Type</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {claimTypeOptions.map((type) => (
                   <button

@@ -11,6 +11,15 @@ import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBreadcrumb } from "@/contexts/BreadcrumbContext"
 
+// Utility function to format role for display
+// Maps "Fulfillment-Admin" -> "Fullfillment-Admin" and "Fulfillment-Staff" -> "Fullfillment-Staff"
+const formatRoleForDisplay = (role: string | undefined | null): string => {
+  if (!role) return "User";
+  if (role === "Fulfillment-Admin") return "Fullfillment-Admin";
+  if (role === "Fulfillment-Staff") return "Fullfillment-Staff";
+  return role;
+};
+
 export default function ViewEmployee() {
   const router = useRouter()
   const params = useParams()
@@ -201,7 +210,7 @@ export default function ViewEmployee() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-700">Role</span>
-                  <span className="text-gray-900">{employee.role}</span>
+                  <span className="text-gray-900">{formatRoleForDisplay(employee.role)}</span>
                 </div>
               </div>
             </CardContent>
