@@ -15,7 +15,7 @@ export default function TermsAndConditions() {
           priority
         />
         <div className="relative container mx-auto px-4">
-          <h1 className="text-5xl md:text-6xl font-bold">Terms and Conditions</h1>
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold">Terms and Conditions</h1>
         </div>
       </div>
 
@@ -24,10 +24,10 @@ export default function TermsAndConditions() {
         <div className="space-y-9">
           {/* First Section */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
               1. Definitions
             </h2>
-            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
               <li>
                 <strong>User/You/Customer:</strong> Any person who accesses,
                 registers, browses, or transacts on the Toprise Platform.
@@ -53,11 +53,11 @@ export default function TermsAndConditions() {
 
           {/* Second Section */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
               2.Eligibility to Use
             </h2>
            
-              <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+              <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
                 <li>
                   You must be at least 18
                   years old or the age of majority in your jurisdiction to
@@ -86,11 +86,11 @@ export default function TermsAndConditions() {
                 </li>
               </ul>
            
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
              3. User Account & Verification 
             </h2>
         
-              <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+              <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
             
                 <li>
                   {" "}
@@ -113,10 +113,10 @@ export default function TermsAndConditions() {
 
           {/* Second Section */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
               4. Product Listings and Descriptions 
             </h2>
-             <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+             <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
             
                 <li>
                   {" "}
@@ -134,14 +134,14 @@ export default function TermsAndConditions() {
               </ul>
           </section>
      <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     5. Order Acceptance & Processing
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
     <p className="text-[#61656A] text-xl font-sans leading-relaxed">
       Placing an order does not guarantee acceptance. An order is confirmed only after:
     </p>
-    <ul className="list-disc pl-6 my-2">
+    <ul className="list-disc pl-6 my-2 text-justify ">
       <li>Payment is successfully received (for prepaid orders), or</li>
       <li>Cash on Delivery (COD) is validated (if offered).</li>
     </ul>
@@ -160,10 +160,10 @@ export default function TermsAndConditions() {
   </div>
 </section>
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     6. Pricing, Taxes & Invoicing
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
     <ul className="list-disc pl-6 my-2">
       <li>
         All prices are listed in INR (Indian Rupees) and include GST and other applicable taxes unless stated otherwise.
@@ -182,10 +182,10 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     7. Shipping, Delivery & Logistics
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
     <ul className="list-disc pl-6 my-2">
       <li>We partner with third-party logistics providers (3PLs) for product delivery.</li>
       <li>Estimated delivery timelines are shown on the product page but may vary based on availability, location, and logistics.</li>
@@ -197,19 +197,19 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     8. Cancellations, Returns, and Refunds
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
     <h3 className="text-2xl md:text-3xl font-semibold text-[#131920] mt-2 mb-1">8.1 Cancellation Policy:</h3>
-    <ul className="list-disc pl-6 my-2">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>You may cancel an order until it is dispatched. Post-dispatch, cancellation is not guaranteed.</li>
       <li>Certain products (e.g., made-to-order or electrical parts) may not be cancellable. This will be mentioned in the product detail page or quotation.</li>
     </ul>
     <h3 className="text-2xl md:text-3xl font-semibold text-[#131920] mt-2 mb-1">8.2 Return Policy:</h3>
-    <ul className="list-disc pl-6 my-2">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Eligible products can be returned within 7 days of delivery if:</li>
-      <ul className="list-disc pl-8 my-2">
+      <ul className="list-disc pl-8 my-2 text-justify">
         <li>Wrong item received</li>
         <li>Item is damaged, defective, or not functioning</li>
         <li>Item differs significantly from the listing</li>
@@ -218,7 +218,7 @@ export default function TermsAndConditions() {
       <li>Returned items must be in unused condition with original packaging, labels, and invoices.</li>
     </ul>
     <h3 className="text-2xl md:text-3xl font-semibold text-[#131920] mt-2 mb-1">8.3 Refund Policy:</h3>
-    <ul className="list-disc pl-6 my-2">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Upon return approval and item inspection, refunds will be issued to the original payment method within 7–10 business days.</li>
       <li>For COD orders, bank details will be collected for NEFT refund.</li>
     </ul>
@@ -226,15 +226,15 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     9. Product Warranties & Claims
   </h2>
-  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1">
-    <ul className="list-disc pl-6 my-2">
+  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1 text-justify ">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Warranty details (if any) will be clearly listed in the product description or invoice.</li>
       <li>Toprise does not assume responsibility for manufacturer warranty obligations unless stated.</li>
       <li>For claim processing:</li>
-      <ul className="list-disc pl-8 my-2">
+      <ul className="list-disc pl-8 my-2 text-justify">
         <li>Original invoice and packaging must be retained.</li>
         <li>Claims are subject to inspection and verification by manufacturer or dealer.</li>
       </ul>
@@ -243,11 +243,11 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     10. Intellectual Property Rights
   </h2>
-  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1">
-    <ul className="list-disc pl-6 my-2">
+  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1 text-justify">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>All content on the platform including text, logos, images, design, software, and trademarks is the intellectual property of Toprise Ventures or its licensors.</li>
       <li>No user may copy, reproduce, republish, transmit, or exploit any part of the platform without prior written permission.</li>
     </ul>
@@ -255,12 +255,12 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     11. User Obligations & Acceptable Use
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
     <p className="text-[#61656A] text-xl font-sans leading-relaxed">By using the Platform, you agree that you will NOT:</p>
-    <ul className="list-disc pl-6 my-2">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Post or share any false, misleading, defamatory, or abusive content.</li>
       <li>Use the platform for fraudulent activities, including fake orders or payment reversal abuse.</li>
       <li>Interfere with the platform’s technical operations, security, or software.</li>
@@ -271,14 +271,14 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     12. Third-Party Vendors & Dealer Listings
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
-    <ul className="list-disc pl-6 my-2">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Products may be listed directly by dealers. In such cases, Toprise acts only as an aggregator or facilitator.</li>
       <li>Toprise is not liable for disputes arising from:</li>
-      <ul className="list-disc pl-8 my-2">
+      <ul className="list-disc pl-8 my-2 text-justify ">
         <li>Incorrect dealer claims</li>
         <li>Warranty refusals by external parties</li>
         <li>Delivery issues handled directly by the dealer</li>
@@ -288,13 +288,13 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     13. Limitation of Liability
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
-    <ul className="list-disc pl-6 my-2">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Toprise shall not be liable for any indirect, incidental, punitive, or consequential damages resulting from:</li>
-      <ul className="list-disc pl-8 my-2">
+      <ul className="list-disc pl-8 my-2 text-justify">
         <li>Use or inability to use the platform</li>
         <li>Delay in delivery</li>
         <li>Product issues not arising from our negligence</li>
@@ -305,14 +305,14 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     14. Indemnification
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
     <p className="text-[#61656A] text-xl font-sans leading-relaxed">
       You agree to indemnify and hold harmless Toprise Ventures, its affiliates, directors, employees, and partners from any losses, liabilities, claims, damages, or expenses arising out of:
     </p>
-    <ul className="list-disc pl-6 my-2">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Your breach of these Terms</li>
       <li>Violation of laws or third-party rights</li>
       <li>Misuse of the platform or fraudulent behaviour</li>
@@ -321,10 +321,10 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     15. Platform Availability & Modifications
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
     <ul className="list-disc pl-6 my-2">
       <li>We strive to keep the platform operational 24x7 but cannot guarantee uninterrupted or error-free access.</li>
       <li>We reserve the right to modify, suspend, or terminate any part of the service (temporarily or permanently) without prior notice.</li>
@@ -337,7 +337,7 @@ export default function TermsAndConditions() {
     16. Governing Law & Jurisdiction
   </h2>
   <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
-    <ul className="list-disc pl-6 my-2">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>These Terms shall be governed by and interpreted in accordance with the laws of India.</li>
       <li>Any disputes shall be subject to the exclusive jurisdiction of the courts of New Delhi, India.</li>
     </ul>
@@ -345,13 +345,13 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     17. Termination & Account Suspension
   </h2>
-  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
-    <ul className="list-disc pl-6 my-2">
+  <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>We reserve the right to suspend or permanently block any user account without notice if:</li>
-      <ul className="list-disc pl-8 my-2">
+      <ul className="list-disc pl-8 my-2 text-justify ">
         <li>Fraud or abuse is detected</li>
         <li>Multiple order violations occur</li>
         <li>Terms & Conditions are breached</li>
@@ -361,14 +361,14 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     18. Force Majeure
   </h2>
-  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1 text-justify">
     <p className="text-[#61656A] text-lg font-sans leading-relaxed">
       Toprise is not liable for any failure to perform due to unforeseen circumstances such as:
     </p>
-    <ul className="list-disc pl-6 my-2">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Acts of God</li>
       <li>Government restrictions</li>
       <li>Cyberattacks</li>
@@ -378,10 +378,10 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     19. Feedback & Complaints
   </h2>
-  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1">
+  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1 text-justify">
     <p className="text-[#61656A] text-lg font-sans leading-relaxed">
       You may submit feedback or complaints to:<br />
       Email: info@Toprise.in<br />
@@ -395,11 +395,11 @@ export default function TermsAndConditions() {
 </section>
 
 <section>
-  <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">
+  <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
     20. Changes to Terms
   </h2>
-  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1">
-    <ul className="list-disc pl-6 my-2">
+  <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1 text-justify">
+    <ul className="list-disc pl-6 my-2 text-justify">
       <li>Toprise reserves the right to revise these Terms at any time. Updates will be posted on the website/app.</li>
       <li>Continued use of the platform after such updates constitutes acceptance of the revised Terms.</li>
     </ul>

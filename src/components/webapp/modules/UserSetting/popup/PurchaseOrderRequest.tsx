@@ -29,6 +29,7 @@ export default function PurchaseOrderDialog({
 
   useEffect(() => {
     if (isOpen) setData(purchaseOrder ?? null);
+    console.log("purchaseOrder", purchaseOrder);
   }, [isOpen, purchaseOrder]);
 
   return (
@@ -62,10 +63,12 @@ export default function PurchaseOrderDialog({
                 <h4 className="text-sm font-medium text-foreground">Status</h4>
                 <div className="mt-1">
                   <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                    (data.status || "").toString().toLowerCase() === "pending"
+                    (data.status || "").toString().toLowerCase() === "pending-review"
                       ? "bg-yellow-100 text-yellow-800"
                       : (data.status || "").toString().toLowerCase() === "approved"
                       ? "bg-green-100 text-green-800"
+                      : (data.status || "").toString().toLowerCase() === "rejected"
+                      ? "bg-red-100 text-red-800"
                       : "bg-gray-100 text-gray-800"
                   }`}>
                     {(data.status || "unknown").toString()}
@@ -78,6 +81,15 @@ export default function PurchaseOrderDialog({
                   <h4 className="text-sm font-medium text-foreground">Description</h4>
                   <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
                     {data.description}
+                  </p>
+                </div>
+              )}
+
+              {(data.status || "").toString().toLowerCase() === "rejected" && data.rejection_reason && (
+                <div>
+                  <h4 className="text-sm font-medium text-foreground">Rejection Reason</h4>
+                  <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {data.rejection_reason}
                   </p>
                 </div>
               )}

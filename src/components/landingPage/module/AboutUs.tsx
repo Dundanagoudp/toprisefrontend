@@ -123,7 +123,7 @@ function AboutSection({
           variants={textVariants}
         >
           {content.split("\n\n").map((paragraph, index) => (
-            <p key={index} className="mb-4 last:mb-0">
+            <p key={index} className="mb-4 last:mb-0 text-justify">
               {paragraph}
             </p>
           ))}
@@ -251,7 +251,7 @@ export default function AboutUs() {
             About Us
           </motion.h2>
           <motion.h1
-            className="text-3xl md:text-4xl lg:text-5xl  text-gray-900 leading-tight mb-6 w-full"
+            className="text-xl md:text-2xl lg:text-3xl text-justify  text-gray-900 leading-tight mb-6 w-full"
             variants={headerItemVariants}
           >
             <strong>Toprise Ventures</strong> is a next-generation e-commerce
@@ -259,7 +259,7 @@ export default function AboutUs() {
             parts are discovered, ordered, and fulfilled across India.
           </motion.h1>
           <motion.p
-            className="text-gray-600 leading-relaxed text-lg md:text-xl w-full"
+            className="text-gray-600 leading-relaxed text-lg text-justify md:text-xl w-full"
             variants={headerItemVariants}
           >
             Founded with a vision to simplify and digitize the spare parts
@@ -287,7 +287,7 @@ export default function AboutUs() {
         </div>
         <motion.div className="text-center">
           <motion.p
-            className="text-gray-600 leading-relaxed text-lg md:text-xl w-full"
+            className="text-gray-600 leading-relaxed text-lg text-justify md:text-xl w-full"
             variants={headerItemVariants}
           >
             <strong>Join the Toprise Network</strong>
@@ -296,12 +296,7 @@ export default function AboutUs() {
             scale together.
           </motion.p>
           <div className="mt-6 flex justify-center">
-            <DynamicButton
-              variant="default"
-              className="bg-[#C72920] text-white px-6 py-3 text-base font-semibold"
-              text="Contact us"
-              onClick={() => setContactUsOpen(true)}
-            />
+     
           </div>
         </motion.div>
       </div>

@@ -61,15 +61,24 @@ export interface PurchaseOrder {
   description: string;
   status: PurchaseOrderStatus;
   user_id: string;
+  rejection_reason?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
 }
 
-export type PurchaseOrderStatus = "Pending" | "Approved";
+export type PurchaseOrderStatus = "Pending" | "Approved" | "Rejected";
 
 export interface PurchaseOrdersResponse {
   success: boolean;
   message: string;
-  data: PurchaseOrder[];
+  data: {
+    data: PurchaseOrder[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+    };
+  };
 }

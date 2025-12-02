@@ -450,7 +450,7 @@ export default function DealerProductsTable() {
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
                 <Input
-                  placeholder="Search Products..."
+                  placeholder="Search Products"
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10"
