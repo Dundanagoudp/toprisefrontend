@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/store/provider";
 import { ToastProvider } from "@/components/ui/toast";
+import UserRouteProtection from "@/components/protectionRoute/UserRouteProtection";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -31,7 +32,9 @@ export default function RootLayout({
         className={`${plusJakartaSans.variable} ${poppins.variable} antialiased`}
       >
         <ToastProvider>
-          <Providers>{children}</Providers>
+          <Providers>
+            <UserRouteProtection>{children}</UserRouteProtection>
+          </Providers>
         </ToastProvider>
       </body>
     </html>

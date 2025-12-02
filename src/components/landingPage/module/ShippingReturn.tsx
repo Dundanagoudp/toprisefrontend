@@ -15,7 +15,7 @@ export default function ShippingReturn() {
           priority
         />
         <div className="relative container mx-auto px-4">
-          <h1 className="text-5xl md:text-6xl font-bold">Shipping and Returns</h1>
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold">Shipping and Returns</h1>
         </div>
       </div>
 
@@ -24,11 +24,11 @@ export default function ShippingReturn() {
           <div className="space-y-9">
           {/* First Section */}
      <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">1. Shipping Policy</h2>
-            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">1. Shipping Policy</h2>
+            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
               <li><strong>Delivery Coverage:</strong> We currently deliver across all major pin codes in India. Certain remote or restricted areas may be excluded and you will be notified at checkout.</li>
               <li><strong>Shipping Timelines:</strong> Standard delivery times vary by location and product type:
-                <ul className="list-disc pl-8 my-2">
+                <ul className="list-disc pl-8 my-2 text-justify">
                   <li>Metro cities: 2–5 business days</li>
                   <li>Tier 2/3 cities & rural: 5–9 business days</li>
                   <li>Estimated dates shown at checkout are indicative, not guaranteed.</li>
@@ -43,8 +43,8 @@ export default function ShippingReturn() {
 
           {/* 2. Order Cancellation Policy */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">2. Order Cancellation Policy</h2>
-            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">2. Order Cancellation Policy</h2>
+            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
               <li><strong>Before Dispatch:</strong> Orders can be cancelled before dispatch by visiting the “My Orders” section or contacting customer support. A full refund will be initiated to your original payment method.</li>
               <li><strong>After Dispatch:</strong> Orders cannot be cancelled once dispatched. You may refuse delivery, but cancellation after dispatch may attract reverse logistics charges (₹80–₹300, depending on location and item type).</li>
               <li><strong>Non-Cancellable Products:</strong> Some products are marked as non-cancellable or non-returnable, such as electrical/electronic components, engine parts, made-to-order items. This will be clearly stated on the product page and invoice.</li>
@@ -53,8 +53,8 @@ export default function ShippingReturn() {
 
           {/* 3. Return & Replacement Policy */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">3. Return & Replacement Policy</h2>
-            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">3. Return & Replacement Policy</h2>
+            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
               <li><strong>Return Window:</strong> Eligible items can be returned or exchanged within 7 days of delivery. Return requests must be initiated through the Toprise app/website, WhatsApp, or customer support.</li>
               <li><strong>Return Eligibility:</strong> Returns are accepted if:
                 <ul className="list-disc pl-8 my-2">
@@ -71,8 +71,8 @@ export default function ShippingReturn() {
 
           {/* 4. Refund & Replacement Policy */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">4. Refund & Replacement Policy</h2>
-            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">4. Refund & Replacement Policy</h2>
+            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
               <li><strong>Refund Timeline:</strong> Refund is processed after the product is received and quality-checked at our warehouse or dealer location.
                 <ul className="list-disc pl-8 my-2">
                   <li>Prepaid orders: 5–7 working days</li>
@@ -86,24 +86,24 @@ export default function ShippingReturn() {
 
           {/* 5. Damaged or Missing Items */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">5. Damaged or Missing Items</h2>
-            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">5. Damaged or Missing Items</h2>
+            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
               <li>If your order is damaged on arrival or has missing components/parts, please notify us within 48 hours of delivery by submitting clear photos of the item and packaging, and sharing unboxing video (if available). We will verify and process resolution on priority.</li>
             </ul>
           </section>
 
           {/* 6. Return Abuse & Fraud Prevention */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">6. Return Abuse & Fraud Prevention</h2>
-            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">6. Return Abuse & Fraud Prevention</h2>
+            <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
               <li>To protect our dealer network and ensure fair usage, excessive return frequency, fake/damaged item returns, or deliberate damage may lead to account suspension, refund rejections, or legal action if fraud is detected.</li>
             </ul>
           </section>
 
           {/* 7. Contact & Support */}
           <section>
-            <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">7. Contact & Support</h2>
-            <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1">
+            <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">7. Contact & Support</h2>
+            <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
               <p className="text-[#61656A] text-xl font-sans leading-relaxed">
                 For shipping, delivery, return or refund queries:<br />
                 Email: info@Toprise.in<br />

@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
         {/* Background image for header */}
         <Image src="/assets/HeroBg.jpg" alt="Background" fill className="object-cover" priority />
         <div className="relative container mx-auto px-4">
-          <h1 className="text-5xl md:text-6xl font-bold">Privacy and Policy</h1>
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold">Privacy and Policy</h1>
         </div>
       </div>
 
@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
   <div className="space-y-9">
     {/* Information We Collect */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">1. Information We Collect</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">1. Information We Collect</h2>
       <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
         <li>We collect the following types of information when you register, browse, or place an order:</li>
         <li>
@@ -69,7 +69,7 @@ export default function PrivacyPolicy() {
 
     {/* How We Use Your Information */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">2. How We Use Your Information</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">2. How We Use Your Information</h2>
       <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
         <li>Order fulfilment: Processing and shipping your orders, providing order updates and invoices</li>
         <li>Customer support: Resolving complaints, queries, or service requests</li>
@@ -82,7 +82,7 @@ export default function PrivacyPolicy() {
 
     {/* Data Sharing and Disclosure */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">3. Data Sharing and Disclosure</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">3. Data Sharing and Disclosure</h2>
       <p className="mb-2 text-[#61656A] text-xl font-sans leading-relaxed">We do not sell your personal data. However, we may share data under the following conditions:</p>
       <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
         <li>
@@ -113,7 +113,7 @@ export default function PrivacyPolicy() {
 
     {/* Cookies and Tracking Technologies */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">4. Cookies and Tracking Technologies</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">4. Cookies and Tracking Technologies</h2>
       <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
         <li>Keep you logged in</li>
         <li>Remember your cart and preferences</li>
@@ -124,7 +124,7 @@ export default function PrivacyPolicy() {
 
     {/* Data Security */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">5. Data Security</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">5. Data Security</h2>
       <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
         <li>Encrypted data transmission using HTTPS</li>
         <li>OTP verification for critical actions</li>
@@ -136,7 +136,7 @@ export default function PrivacyPolicy() {
 
     {/* Data Retention */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">6. Data Retention</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">6. Data Retention</h2>
       <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
         <li>We retain your personal data as long as your account is active or as needed to provide services.</li>
         <li>Data related to orders and taxes may be retained for up to 8 years as per Indian laws.</li>
@@ -146,7 +146,7 @@ export default function PrivacyPolicy() {
 
     {/* User Rights */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">7. User Rights</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">7. User Rights</h2>
       <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6">
         <li>Access: View what data we hold about you</li>
         <li>Correction: Update or correct inaccuracies in your profile</li>
@@ -159,7 +159,7 @@ export default function PrivacyPolicy() {
 
     {/* Children’s Privacy */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">8. Children’s Privacy</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">8. Children’s Privacy</h2>
       <p className="text-[#61656A] text-xl font-sans leading-relaxed">
         Our Platform is not intended for users under 18 years of age. We do not knowingly collect personal data from minors. If we find that we have done so inadvertently, we will delete such information promptly.
       </p>
@@ -167,7 +167,7 @@ export default function PrivacyPolicy() {
 
     {/* Third-Party Links */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">9. Third-Party Links</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">9. Third-Party Links</h2>
       <p className="text-[#61656A] text-xl font-sans leading-relaxed">
         Our Platform may contain links to external websites or payment gateways. We are not responsible for the privacy practices or content of these third-party platforms.
       </p>
@@ -175,7 +175,7 @@ export default function PrivacyPolicy() {
 
     {/* Updates to this Policy */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">10. Updates to this Policy</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">10. Updates to this Policy</h2>
       <p className="text-[#61656A] text-xl font-sans leading-relaxed">
         We may update this Privacy Policy from time to time. The “Effective Date” at the top indicates when it was last revised. Continued use of the Platform implies consent to the updated terms.
       </p>
@@ -183,7 +183,7 @@ export default function PrivacyPolicy() {
 
     {/* Grievance Officer & Contact */}
     <section>
-      <h2 className="text-4xl font-semibold font-sans text-[#131920] mb-4">11. Grievance Officer & Contact</h2>
+      <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">11. Grievance Officer & Contact</h2>
       <p className="text-[#61656A] text-xl font-sans leading-relaxed">
         For any complaints, disputes, or data-related requests, please contact:
       </p>

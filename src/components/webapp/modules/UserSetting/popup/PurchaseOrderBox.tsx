@@ -10,11 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { X, UploadCloud } from "lucide-react";
 import { uploadPurchaseOrder } from "@/service/product-Service";
+import { useAppSelector } from "@/store/hooks";
+import { getUserProfile } from "@/service/user/userService";
+import { UserAddress, UserProfile } from "@/service/user/userService";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  userId?: string;
   /**
    * Optional handler called with form data when user submits.
    * Return false to keep dialog open, true/undefined to close.
@@ -22,22 +26,38 @@ type Props = {
   onSubmit?: (payload: { files: File[]; description: string }) => Promise<boolean | void> | boolean | void;
 };
 
-export default function PurchaseOrderDialog({ isOpen, onClose, userId, onSubmit }: Props) {
+export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props) {
+  const { showToast } = useToast();
+  const userId = useAppSelector((state) => state.auth.user?._id);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [description, setDescription] = useState("");
+  const [address, setAddress] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([]);
+  const [userInfo, setUserInfo] = useState<UserProfile | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    // cleanup previews on close
+    if (isOpen && userId) {
+      getUserProfile(userId).then((res) => {
+        if (res.success && res.data) {
+          setUserInfo(res.data);
+          setSavedAddresses(res.data.address || []);
+        }
+      }).catch(console.error);
+    }
     if (!isOpen) {
       setFiles([]);
       setDescription("");
+      setAddress("");
+      setPincode("");
       setPreviews([]);
       setSubmitting(false);
+      setUserInfo(null);
     }
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   useEffect(() => {
     // create previews
@@ -48,16 +68,52 @@ export default function PurchaseOrderDialog({ isOpen, onClose, userId, onSubmit 
 
   const handleFiles = (fList: FileList | null) => {
     if (!fList) return;
-    const arr = Array.from(fList).slice(0, 6); // limit to 6 images
-    setFiles(arr);
+    const maxSize = 1024 * 1024; // 1MB in bytes
+    const arr = Array.from(fList);
+    const validFiles: File[] = [];
+    const oversizedFiles: string[] = [];
+
+    arr.forEach((file) => {
+      if (file.size > maxSize) {
+        oversizedFiles.push(file.name);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (oversizedFiles.length > 0) {
+      showToast(`File(s) exceed 1MB limit: ${oversizedFiles.join(", ")}`, "error");
+    }
+
+    // Append new files to existing ones, but limit total to 6
+    setFiles((prevFiles) => {
+      const combined = [...prevFiles, ...validFiles];
+      const uniqueFiles = combined.filter((file, index, self) => 
+        index === self.findIndex((f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)
+      );
+      return uniqueFiles.slice(0, 6);
+    });
   };
 
   const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFiles(e.target.files);
+    // Reset input value so the same files can be selected again if needed
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
   const removeFile = (idx: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAddressSelect = (idx: string) => {
+    const addr = savedAddresses[parseInt(idx)];
+    if (addr) {
+      const addrStr = `${addr.street || ""}${addr.city ? ", " + addr.city : ""}${addr.state ? ", " + addr.state : ""}`.trim();
+      setAddress(addrStr);
+      setPincode(addr.pincode || "");
+    }
   };
 
   const handleSubmit = async () => {
@@ -65,33 +121,30 @@ export default function PurchaseOrderDialog({ isOpen, onClose, userId, onSubmit 
       alert("Please upload at least one image.");
       return;
     }
-
-    if (!userId) {
+    if (!userId || !userInfo) {
       alert("User not authenticated. Please log in again.");
       return;
     }
-
+    if (!address || !pincode) {
+      alert("Please enter address and pincode.");
+      return;
+    }
+    const email = userInfo.email || "";
+    const phone = userInfo.phone_Number || "";
+    const name = userInfo.username || "";
     setSubmitting(true);
     try {
-      // Call the API directly
-      await uploadPurchaseOrder(files, description, userId);
-
-      // Call the optional onSubmit handler for backward compatibility
-      const result = onSubmit
-        ? await onSubmit({ files, description })
-        : undefined;
-
-      // If handler returned false explicitly, keep dialog open
+      await uploadPurchaseOrder(files, description, userId, name, email, phone, address, pincode);
+      showToast("Purchase order uploaded successfully", "success");
+      const result = onSubmit ? await onSubmit({ files, description }) : undefined;
       if (result === false) {
         setSubmitting(false);
         return;
       }
-
       onClose();
     } catch (err) {
       console.error("Submit failed:", err);
-      alert("Failed to upload purchase order. Please try again.");
-      // keep dialog open for now
+      showToast("Failed to upload purchase order. Please try again.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -123,7 +176,7 @@ export default function PurchaseOrderDialog({ isOpen, onClose, userId, onSubmit 
               onChange={onFileInput}
             />
             <UploadCloud className="h-8 w-8 text-muted-foreground mb-3" />
-            <div className="text-sm text-muted-foreground">Click to upload (max 6 images)</div>
+            <div className="text-sm text-muted-foreground">Click to upload (max 1MB per file)</div>
             {files.length > 0 && <div className="text-xs text-muted-foreground mt-1">{files.length} file(s) selected</div>}
           </div>
 
@@ -145,6 +198,49 @@ export default function PurchaseOrderDialog({ isOpen, onClose, userId, onSubmit 
               ))}
             </div>
           )}
+
+          {/* Address Selection */}
+          {savedAddresses.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Select Saved Address</label>
+              <Select onValueChange={handleAddressSelect}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose an address" />
+                </SelectTrigger>
+                <SelectContent>
+                  {savedAddresses.map((addr, idx) => (
+                    <SelectItem key={idx} value={idx.toString()}>
+                      {addr.nick_name || `${addr.street || ""}, ${addr.city || ""}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Address</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="w-full rounded-lg border border-input p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Enter address"
+            />
+          </div>
+
+          {/* Pincode */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Pincode</label>
+            <input
+              type="text"
+              value={pincode}
+              onChange={(e) => setPincode(e.target.value)}
+              className="w-full rounded-lg border border-input p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Enter pincode"
+            />
+          </div>
 
           {/* Description */}
           <div>

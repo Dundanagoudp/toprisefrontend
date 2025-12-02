@@ -175,6 +175,53 @@ export async function getProductsByPage(
 }
 
 
+export async function getSimilarProducts(
+  productId: string,
+  params: {
+    count?: number;
+    brand?: string;
+    model?: string;
+    variant?: string | string[];
+  } = {}
+): Promise<ProductResponse> {
+  if (!productId) {
+    throw new Error("Product ID is required");
+  }
+
+  const searchParams = new URLSearchParams();
+  const count = Math.max(1, params.count ?? 5);
+  searchParams.set("count", String(count));
+
+  if (params.brand) {
+    searchParams.set("brand", params.brand);
+  }
+
+  if (params.model) {
+    searchParams.set("model", params.model);
+  }
+
+  const variantIds = Array.isArray(params.variant)
+    ? params.variant
+    : params.variant
+    ? [params.variant]
+    : [];
+
+  variantIds.forEach((id) => {
+    if (id) {
+      searchParams.append("variant", id);
+    }
+  });
+
+  const queryString = searchParams.toString();
+  const url = `/category/products/v1/get/similarProducts/${productId}${
+    queryString ? `?${queryString}` : ""
+  }`;
+
+  const response = await apiClient.get(url);
+  return response.data;
+}
+
+
 
 
 
@@ -1512,25 +1559,37 @@ export async function getPurchaseOrders(): Promise<PurchaseOrdersResponse> {
   }
 }
 
-export  async function uploadPurchaseOrder(files: File[], description: string, userId: string):Promise<PurchaseOrdersResponse>{
-  try{
+export async function uploadPurchaseOrder(
+  files: File[],
+  description: string,
+  userId: string,
+  name: string,
+  email: string,
+  phone: string,
+  address: string,
+  pincode: string
+): Promise<PurchaseOrdersResponse> {
+  try {
     const formData = new FormData();
     formData.append('description', description);
     formData.append('user_id', userId);
+    formData.append('name', name);
+    formData.append('email', email);
+    formData.append('phone', phone);
+    formData.append('address', address);
+    formData.append('pincode', pincode);
 
-    // Append each file with the same field name 'files'
     files.forEach((file) => {
       formData.append('files', file);
     });
 
-    const res = await apiClient.post("/category/api/purchaseOrder", formData, {
+    const res = await apiClient.post("/orders/api/documents/upload", formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     return res.data;
-  }
-  catch(error){
+  } catch (error) {
     console.error("Failed to upload purchase order:", error);
     throw error;
   }
@@ -1548,9 +1607,9 @@ export async function getReturnRequests(userId: string): Promise<ReturnRequestsR
 }
 
 
-export async function getPurchaseOrderById(userId: string): Promise<PurchaseOrdersResponse> {
+export async function getPurchaseOrderById(userId: string, page: number = 1, limit: number = 10): Promise<PurchaseOrdersResponse> {
   try{
-    const res = await apiClient.get(`/category/api/purchaseOrder/get/by-userId/${userId}`)
+    const res = await apiClient.get(`/orders/api/documents/user/${userId}?page=${page}&limit=${limit}`)
     return res.data
   }
   catch(error: any){

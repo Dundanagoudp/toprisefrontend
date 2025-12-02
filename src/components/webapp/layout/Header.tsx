@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { User, Settings, LogOut as LogOutIcon, Menu, X } from "lucide-react";
+import { User, Settings, LogOut as LogOutIcon, Menu, X, Car, Bike } from "lucide-react";
 import { CartSidebar } from "./CartSideBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useCart } from "@/hooks/use-cart";
@@ -30,7 +30,6 @@ import { LogOut } from "@/store/slice/auth/authSlice";
 import SearchInputWithVehicles from "@/components/common/search/SearchInputWithVehicles";
 import { UserVehicleDetails } from "@/service/user/userService";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { selectVehicleType, selectVehicleTypeId, toggleVehicleType } from "@/store/slice/vehicle/vehicleSlice";
 import PurchaseOrderDialog from "../modules/UserSetting/popup/PurchaseOrderBox";
 
@@ -177,7 +176,7 @@ export const Header = () => {
                 onClear={handleSearchClear}
                 onSubmit={handleSearchSubmit}
                 onVehicleSelect={handleVehicleSelect}
-                placeholder="Search Products..."
+                placeholder="Search Products"
               />
             </div>
           </div>
@@ -187,17 +186,17 @@ export const Header = () => {
             {/* Vehicle Type Toggle */}
             {isHomePage && (
               <div className="flex items-center space-x-2">
-                <Label htmlFor="mode-toggle" className="text-sm text-gray-700">
-                  Car
-                </Label>
+                <Car 
+                  className={`h-5 w-5 ${vehicleType === "car" ? "text-[#C72920]" : "text-gray-400"}`}
+                />
                 <Switch
                   id="mode-toggle"
                   checked={vehicleType === "bike"}
                   onCheckedChange={handleToggle}
                 />
-                <Label htmlFor="mode-toggle" className="text-sm text-gray-700">
-                  Bike/Scooter
-                </Label>
+                <Bike 
+                  className={`h-5 w-5 ${vehicleType === "bike" ? "text-[#C72920]" : "text-gray-400"}`}
+                />
               </div>
             )}
 
@@ -330,18 +329,18 @@ export const Header = () => {
             {/* Vehicle Type Toggle */}
             {isHomePage && (
               <div className="flex items-center space-x-1">
-                <Label htmlFor="mobile-header-mode-toggle" className="text-xs text-gray-700">
-                  Car
-                </Label>
+                <Car 
+                  className={`h-4 w-4 ${vehicleType === "car" ? "text-[#C72920]" : "text-gray-400"}`}
+                />
                 <Switch
                   id="mobile-header-mode-toggle"
                   checked={vehicleType === "bike"}
                   onCheckedChange={handleToggle}
                   className="scale-75"
                 />
-                <Label htmlFor="mobile-header-mode-toggle" className="text-xs text-gray-700">
-                  Bike
-                </Label>
+                <Bike 
+                  className={`h-4 w-4 ${vehicleType === "bike" ? "text-[#C72920]" : "text-gray-400"}`}
+                />
               </div>
             )}
             <CartSidebar
@@ -371,7 +370,7 @@ export const Header = () => {
             onClear={handleSearchClear}
             onSubmit={handleSearchSubmit}
             onVehicleSelect={handleVehicleSelect}
-            placeholder="Search Products..."
+            placeholder="Search Products"
           />
         </div>
 
@@ -495,13 +494,6 @@ export const Header = () => {
         <PurchaseOrderDialog
         isOpen={poOpen}
         onClose={() => setPoOpen(false)}
-        userId={user?._id}
-        onSubmit={async ({ files, description }) => {
-          // Minimal placeholder: log and close dialog
-          console.log("PurchaseRequest payload:", { files, description });
-          // If you want to keep open on failure, return false
-          return true;
-        }}
       />
       </div>
     </header>

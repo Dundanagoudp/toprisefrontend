@@ -85,6 +85,8 @@ import { getTicketByUser, getTickets } from "@/service/Ticket-service";
 import TicketDetailsDialog from "./popup/TicketDialogBox";
 import { PurchaseOrder, TicketResponse, Ticket } from "@/types/Ticket-types";
 import PurchaseOrderDialog from "./popup/PurchaseOrderRequest";
+import PurchaseOrderUploadDialog from "./popup/PurchaseOrderBox";
+import DynamicPagination from "@/components/common/pagination/DynamicPagination";
 import { RefreshCw } from "lucide-react";
 import ReturnRequestList from "./porfilepage/ReturnRequest";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -157,14 +159,21 @@ export default function ProfilePage() {
   const [isMenuOpen, setIsMenuOpen] = useState<number | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<any>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [showDeleteVehicleConfirmation, setShowDeleteVehicleConfirmation] =
     useState(false);
   const [pendingDeleteVehicle, setPendingDeleteVehicle] = useState<
     string | null
   >(null);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-const [purchaseOrdersLoading, setPurchaseOrdersLoading] = useState(false);
-const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(null);
+  const [purchaseOrdersLoading, setPurchaseOrdersLoading] = useState(false);
+  const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(null);
+  const [purchaseOrderPage, setPurchaseOrderPage] = useState(1);
+  const [purchaseOrderLimit] = useState(10);
+  const [purchaseOrderPagination, setPurchaseOrderPagination] = useState({
+    totalPages: 1,
+    totalItems: 0,
+  });
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedOrderForReview, setSelectedOrderForReview] = useState<string | null>(null);
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -182,24 +191,25 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
 
 
 
-  // Fetch purchase orders on component mount
- useEffect(() => {
+  // Fetch purchase orders with pagination
+  useEffect(() => {
     let mounted = true;
     const fetch = async () => {
+      if (!userId) return;
       setPurchaseOrdersLoading(true);
       setPurchaseOrdersError(null);
       try {
-        console.log("Fetching purchase orders for userId:", userId);
-        const res = await getPurchaseOrderById(userId);
-        // Handle the response structure properly
-        console.log("Purchase orders response:", res);
-        const items = res?.data || [];
-        console.log("Purchase orders items:", items);
+        const res = await getPurchaseOrderById(userId, purchaseOrderPage, purchaseOrderLimit);
         if (!mounted) return;
+        const items = res?.data?.data || [];
         setPurchaseOrders(Array.isArray(items) ? items : []);
-        console.log("Set purchase orders state:", Array.isArray(items) ? items : []);
+        if (res?.data?.pagination) {
+          setPurchaseOrderPagination({
+            totalPages: res.data.pagination.totalPages || 1,
+            totalItems: res.data.pagination.totalItems || 0,
+          });
+        }
       } catch (err: any) {
-        console.error("Failed fetching purchase orders", err);
         if (!mounted) return;
         setPurchaseOrdersError(err?.message || "Failed to load purchase orders");
       } finally {
@@ -207,12 +217,9 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         setPurchaseOrdersLoading(false);
       }
     };
-
-    if (userId) {
-      fetch();
-    }
+    fetch();
     return () => { mounted = false; };
-  }, [userId]);
+  }, [userId, purchaseOrderPage, purchaseOrderLimit]);
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!userId) return;
@@ -2222,12 +2229,21 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
             </ProfileSection>
           </TabsContent>
 
-          
 <TabsContent value="purchase order requests" className="space-y-6 mt-6">
   <ProfileSection
     title="Purchase Order Requests"
     description="Your submitted purchase order requests"
-  > <ScrollArea className="h-[600px] pr-4">
+  >
+    <div className="flex justify-end mb-4">
+      <Button
+        className="bg-red-600 hover:bg-red-700 text-white"
+        onClick={() => setUploadDialogOpen(true)}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Upload Purchase Order Request
+      </Button>
+    </div>
+
     {purchaseOrdersLoading ? (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -2242,81 +2258,94 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         <TicketIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h2 className="text-lg font-semibold text-foreground">No Purchase Order Requests</h2>
         <p className="text-sm text-muted-foreground mt-2">
-          You haven’t created any purchase order requests yet. They’ll show up here once available.
+          You haven't created any purchase order requests yet. They'll show up here once available.
         </p>
       </div>
     ) : (
-      <div className="space-y-4">
-        {purchaseOrders.map((po) => (
-          <div
-            key={po._id }
-            className="p-4 border rounded-lg bg-card shadow-sm hover:shadow-md transition"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-             
-                <p className="text-xs text-muted-foreground">
-                  ID:{ po._id}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => { setSelected(po); setDialogOpen(true); }}>
+      <>
+        <div className="space-y-4">
+          {purchaseOrders.map((po) => (
+            <div
+              key={po._id}
+              className="p-4 border rounded-lg bg-card shadow-sm hover:shadow-md transition"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    ID: {po._id}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setSelected(po); setDialogOpen(true); }}>
                     View
                   </Button>
-              </div>
-            </div>
-
-            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-              {po.description || "No description provided."}
-            </p>
-
-            {/* Display attached images */}
-            {Array.isArray(po.req_files) && po.req_files.length > 0 && (
-              <div className="mt-3">
-                <div className="flex gap-2 overflow-x-auto">
-                  {po.req_files.map((url: string, idx: number) => (
-                    <a
-                      key={idx}
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-shrink-0"
-                    >
-                      <img
-                        src={url}
-                        alt={`Attachment ${idx + 1}`}
-                        className="w-16 h-16 object-cover rounded-md border border-border hover:border-primary transition-colors"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    </a>
-                  ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {po.req_files.length} attachment{po.req_files.length !== 1 ? 's' : ''}
-                </p>
               </div>
-            )}
 
-            <div className="mt-3 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">
-                Created: {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : "—"}
-              </span>
-              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
-                (po.status || "").toLowerCase() === "approved"
-                  ? "bg-green-100 text-green-800"
-                  : (po.status || "").toLowerCase() === "pending"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}>
-                {po.status || "pending"}
-              </span>
+              <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                {po.description || "No description provided."}
+              </p>
+
+              {Array.isArray(po.req_files) && po.req_files.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex gap-2 overflow-x-auto">
+                    {po.req_files.map((url: string, idx: number) => (
+                      <a
+                        key={idx}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-shrink-0"
+                      >
+                        <img
+                          src={url}
+                          alt={`Attachment ${idx + 1}`}
+                          className="w-16 h-16 object-cover rounded-md border border-border hover:border-primary transition-colors"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/placeholder.svg";
+                          }}
+                        />
+                      </a>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {po.req_files.length} attachment{po.req_files.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  Created: {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : "—"}
+                </span>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                  (po.status || "").toLowerCase() === "approved"
+                    ? "bg-green-100 text-green-800"
+                    : (po.status || "").toLowerCase() === "pending"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}>
+                  {po.status || "pending"}
+                </span>
+              </div>
             </div>
+          ))}
+        </div>
+
+        {purchaseOrderPagination.totalPages > 1 && (
+          <div className="mt-6">
+            <DynamicPagination
+              currentPage={purchaseOrderPage}
+              totalPages={purchaseOrderPagination.totalPages}
+              onPageChange={setPurchaseOrderPage}
+              totalItems={purchaseOrderPagination.totalItems}
+              itemsPerPage={purchaseOrderLimit}
+              showItemsInfo={true}
+            />
           </div>
-        ))}
-      </div>
-    )} </ScrollArea>
+        )}
+      </>
+    )}
   </ProfileSection>
 </TabsContent>
 
@@ -2392,10 +2421,26 @@ const [purchaseOrdersError, setPurchaseOrdersError] = useState<string | null>(nu
         }}
         ticket={selectedTicket}
       />
-       <PurchaseOrderDialog
+      <PurchaseOrderDialog
         isOpen={dialogOpen}
         onClose={() => { setDialogOpen(false); setSelected(null); }}
         purchaseOrder={selected}
+      />
+      <PurchaseOrderUploadDialog
+        isOpen={uploadDialogOpen}
+        onClose={() => setUploadDialogOpen(false)}
+        onSubmit={async () => {
+          setPurchaseOrderPage(1);
+          const res = await getPurchaseOrderById(userId, 1, purchaseOrderLimit);
+          const items = res?.data?.data || [];
+          setPurchaseOrders(Array.isArray(items) ? items : []);
+          if (res?.data?.pagination) {
+            setPurchaseOrderPagination({
+              totalPages: res.data.pagination.totalPages || 1,
+              totalItems: res.data.pagination.totalItems || 0,
+            });
+          }
+        }}
       />
       <AddVehicleDialog
         isOpen={isOpen}
