@@ -54,11 +54,11 @@ export const CartSidebar = ({
   };
 
   return (
-    <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+    <Sheet open={cartOpen} onOpenChange={setCartOpen} >
       <SheetTrigger asChild>
         <DynamicButton
           variant="ghost"
-          className="text-gray-600 hover:text-red-600 relative"
+          className="text-gray-600 hover:text-red-600 relative mr-[10px]"
         >
           <ShoppingCart className="h-5 w-5" />
           <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">

@@ -203,7 +203,7 @@ export const Header = () => {
           <div className="hidden lg:flex items-center space-x-4">
   {/* Vehicle Type Toggle */}
   {isHomePage && (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-4">
       <Car
         className={`h-5 w-5 ${
           vehicleType === "car" ? "text-[#C72920]" : "text-gray-400"
@@ -224,7 +224,7 @@ export const Header = () => {
 
   {/* Navigation Menu */}
   <NavigationMenu>
-    <NavigationMenuList className="flex gap-2">
+    <NavigationMenuList className="flex  gap-0 ">
       <NavigationMenuItem>
         <NavigationMenuTrigger className="text-gray-700 hover:text-gray-900 px-2 py-2 text-sm font-medium">
           Services
