@@ -20,6 +20,8 @@ interface Product {
   live_status: string;
   created_at: string;
   updated_at: string;
+  out_of_stock?: boolean;
+  no_of_stock?: number;
 }
 
 interface ProductListingProps {
@@ -120,15 +122,7 @@ const ProductListing = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {displayedProducts.map((product) => {
-            const hasDealerStock = Array.isArray(product.available_dealers)
-            ? product.available_dealers.some(
-                (dealer) => dealer?.inStock || (dealer?.quantity_per_dealer ?? 0) > 0
-              )
-            : false;
-
-          const productLevelInStock = !(product.out_of_stock ?? false) && (product.no_of_stock ?? 0) > 0;
-
-          const isOutOfStock = !(hasDealerStock || productLevelInStock);
+          const isOutOfStock = product.out_of_stock ?? false;
           
           return (
             <div
