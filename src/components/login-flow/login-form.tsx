@@ -110,11 +110,7 @@ export function LoginForm({
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
                 <div className="flex items-center justify-center mb-2">
-                  <img
-                    src={LogoNoname.src}
-                    alt="Logo"
-                    className="h-16 w-16 "
-                  />
+                  <img src={LogoNoname.src} alt="Logo" className="h-16 w-16 " />
                   <h1 className="text-2xl font-bold">
                     Welcome <span className="text-primary-red">back</span>
                   </h1>
@@ -229,17 +225,15 @@ export function LoginForm({
               />
             </div> */}
             <div className="absolute inset-0 flex items-center justify-center">
-  <div className="bg-white p-4 rounded-lg shadow-md">
-    <Image
-      src={LogoNoname}
-      alt="Toprise logo"
-      className="h-12 lg:h-16 w-auto"
-    />
-  </div>
-</div>
-
+              <div className="bg-white p-4 rounded-lg shadow-md">
+                <Image
+                  src={LogoNoname}
+                  alt="Toprise logo"
+                  className="h-12 lg:h-16 w-auto"
+                />
+              </div>
+            </div>
           </div>
-
         </CardContent>
       </Card>
     </div>

@@ -1309,10 +1309,10 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                                 {item.product_name}
                               </h4>
                               <div className="text-xs text-gray-600">
-                                {item.mrp && item.mrp > item.selling_price ? (
+                                {item.mrp && item.mrp > item.selling_price ?  (
                                   <div className="flex items-center gap-1">
-                                    <span className="text-gray-500 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</span>
-                                    <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                                    <span className="text-gray-500 line-through">₹{(item.mrp / item.quantity).toFixed(2)}</span>
+                                    <span className="font-medium text-gray-900">₹{(item.selling_price / item.quantity).toFixed(2)}</span>
                                   </div>
                                 ) : (
                                   <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>

@@ -37,7 +37,7 @@ function BreadcrumbWithContext() {
     "sla-violations": "SLA Violations", // Correct route display
     order: "Order Management", // Fix order breadcrumb
     orderdetails: "Order Details", // Fix order details breadcrumb
-    returnclaims: "Return Claims", // Fix return claims breadcrumb
+    returnclaims: "Order Returns", // Fix return claims breadcrumb
     pickup: "Picklist Management", // Fix pickup breadcrumb
     contentManagement: "Content Management", // Fix content management breadcrumb
     tickets: "Support Tickets", // Fix support tickets breadcrumb

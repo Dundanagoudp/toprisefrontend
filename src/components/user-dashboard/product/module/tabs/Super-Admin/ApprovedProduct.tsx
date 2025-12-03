@@ -112,6 +112,7 @@ export default function ApprovedProduct({
   const [viewProductLoading, setViewProductLoading] = useState(false);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortPriceDirection, setSortPriceDirection] = useState<"L-H" | "H-L">("L-H");
   const { showToast } = useGlobalToast();
   const [totalPages, setTotalPages] = useState(0);
   const itemsPerPage = 10;
@@ -143,8 +144,8 @@ export default function ApprovedProduct({
       let sortByValue: string | undefined;
       if (sortField === "manufacturer_part_name") {
         sortByValue = sortDirection === "asc" ? "A-Z" : "Z-A";
-      } else if (sortField === "mrp_with_gst") {
-        sortByValue = sortDirection === "asc" ? "L-H" : "H-L";
+      } else if (sortField === "selling_price") {
+        sortByValue = sortPriceDirection === "L-H" ? "L-H" : "H-L";
       }
       let res;
       if (brandFilter || modelFilter || variantFilter) {
@@ -216,6 +217,7 @@ export default function ApprovedProduct({
     variantFilter,
     sortField,
     sortDirection,
+    sortPriceDirection,
   ]);
 
   // Fetch products on component mount
@@ -259,7 +261,7 @@ export default function ApprovedProduct({
   };
 
   // Dealer assignment handlers
-  const handleAssignDealers = async (productId: string) => {
+  const handleAssignDealers = async (productId: string, product: any) => {
     setSelectedProductId(productId);
     setIsDealerModalOpen(true);
     setLoadingDealers(true);
@@ -268,6 +270,20 @@ export default function ApprovedProduct({
       const response = await getAllDealers();
       if (response.success && response.data) {
         setDealers(response.data);
+      }
+
+      // Pre-populate dealer assignments if product has available_dealers
+      if (product?.available_dealers && Array.isArray(product.available_dealers)) {
+        const existingAssignments = product.available_dealers
+          .filter((dealer: any) => dealer.dealers_Ref)
+          .map((dealer: any) => ({
+            dealers_Ref: dealer.dealers_Ref,
+            quantity_per_dealer: dealer.quantity_per_dealer || 10,
+            dealer_margin: dealer.dealer_margin || 20,
+            dealer_priority_override: dealer.dealer_priority_override || 10,
+          }));
+        
+        setDealerAssignments(existingAssignments);
       }
     } catch (error) {
       console.error("Failed to fetch dealers:", error);
@@ -427,14 +443,14 @@ export default function ApprovedProduct({
   };
 
   // 1. Update the sort handler to support price
-  const handleSortByPrice = () => {
-    if (sortField === "mrp_with_gst") {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField("mrp_with_gst");
-      setSortDirection("asc");
-    }
-  };
+    const handleSortByPrice = () => {
+      if (sortField === "selling_price") {
+        setSortPriceDirection(sortPriceDirection === "L-H" ? "H-L" : "L-H");
+      } else {
+        setSortField("selling_price");
+        setSortPriceDirection("L-H");
+      }
+    };
 
 const handleSelectAll = (checked: boolean) => {
   if (checked) {
@@ -499,9 +515,9 @@ const handleSelectAll = (checked: boolean) => {
               onClick={handleSortByPrice}
             >
               Price
-              {sortField === "mrp_with_gst" && (
+              {sortField === "selling_price" && (
                 <span className="ml-1">
-                  {sortDirection === "asc" ? (
+                  {sortPriceDirection === "L-H" ? (
                     <ChevronUp className="w-4 h-4 text-[#C72920]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#C72920]" />
@@ -643,7 +659,7 @@ const handleSelectAll = (checked: boolean) => {
                     {/* //price */}
                     <TableCell className="px-6 py-4 font-[Red Hat Display]">
                       <span className="text-gray-700 b2 font-[Red Hat Display]">
-                        {product.mrp_with_gst || "N/A"}
+                        {product.selling_price || "N/A"}
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-sans">
@@ -738,7 +754,7 @@ const handleSelectAll = (checked: boolean) => {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="cursor-pointer"
-                            onClick={() => handleAssignDealers(product._id)}
+                            onClick={() => handleAssignDealers(product._id, product)}
                           >
                             Assign Dealers
                           </DropdownMenuItem>

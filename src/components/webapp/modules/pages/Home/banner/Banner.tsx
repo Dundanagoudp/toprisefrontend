@@ -195,23 +195,33 @@ export default function BannerSection() {
       // Call vehicle info API
       const vehicleInfo = await getVehicleInfo(numberPlate.trim());
 
-      if (vehicleInfo.success && vehicleInfo.data) {
+      if (vehicleInfo.data) {
+        console.log(vehicleInfo.data);
         const { apiData, dbMatches } = vehicleInfo.data;
 
-        // Build search query using vehicle details
+        // Check if model exists in database
+        if (!apiData.model) {
+          showToast(
+            "This model doesn't have any products at the moment",
+            "error"
+          );
+          return;
+        }
+
+        // Build search query using vehicle details from API data
         const searchQuery =
-          `${dbMatches.brand.brand_name} ${dbMatches.model.model_name} ${dbMatches.variant.variant_name}`.trim();
+          `${apiData.make} ${apiData.model} ${apiData.variant || ""}`.trim();
 
         const searchParams = new URLSearchParams({
           query: searchQuery,
-          vehicleTypeId: typeId,
+          vehicleTypeId: typeId ?? "",
         });
 
         // Show success message with vehicle details
         showToast(`Found: ${apiData.description}`, "success");
 
         // Navigate to search results
-        router.push(`/shop/search/?${searchParams.toString()}`);
+        router.push(`/shop/search-results?${searchParams.toString()}`);
       } else {
         showToast(
           "Vehicle not found. Please check the registration number.",

@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label'
 import React, { useState } from 'react'
 import { resetPassword } from "@/service/auth-service";
 import { useToast } from "@/components/ui/toast";
+import Image from "next/image";
+import LogoNoname from "../../../../public/assets/logo.png";
 
 
 export default function ForgotPassword({ className, ...props }: React.ComponentProps<"div">) {
@@ -130,7 +132,26 @@ export default function ForgotPassword({ className, ...props }: React.ComponentP
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
+
+   
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-white p-4 rounded-lg shadow-md">
+                <Image
+                  src={LogoNoname}
+                  alt="Toprise logo"
+                  className="h-12 lg:h-16 w-auto"
+                />
+              </div>
+            </div>
           </div>
+
+          {/* <div className="bg-muted relative hidden md:block">
+            <img
+              src="/login/login.png"
+              alt="Image"
+              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            />
+          </div> */}
         </CardContent>
       </Card>
     </div>
