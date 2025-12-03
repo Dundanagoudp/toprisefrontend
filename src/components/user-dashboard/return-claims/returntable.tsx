@@ -866,15 +866,25 @@ const formatStatusName = (status: string) => {
         </CardContent>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <DynamicPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            showItemsInfo={true}
-          />
+        {totalItems > 0 && totalPages > 1 && (
+          <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 mt-8">
+            <div className="text-sm text-gray-600 text-center sm:text-left">
+              {`Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(
+                currentPage * itemsPerPage,
+                totalItems
+              )} of ${totalItems} return requests`}
+            </div>
+            <div className="flex justify-center sm:justify-end">
+              <DynamicPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                showItemsInfo={false}
+              />
+            </div>
+          </div>
         )}
 
         {/* Empty State */}

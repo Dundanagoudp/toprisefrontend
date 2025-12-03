@@ -65,6 +65,7 @@ export default function PaymentDetails() {
   // Sorting state
   const [sortField, setSortField] = useState("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [orderAmountSort, setOrderAmountSort] = useState<"asc" | "desc" | null>(null);
   
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -94,7 +95,8 @@ const [tempDate, setTempDate] = useState("all");
         payment_status: filterStatus,
         payment_method: filterPaymentMethod,
         startDate: start,
-        endDate: end
+        endDate: end,
+        sort: orderAmountSort || undefined
       });
 
       setPayments(response.data.data);
@@ -111,7 +113,7 @@ const [tempDate, setTempDate] = useState("all");
   };
 
   fetchPaymentDetails();
-}, [currentPage, filterStatus, filterPaymentMethod, filterDateRange]);
+}, [currentPage, filterStatus, filterPaymentMethod, filterDateRange, orderAmountSort]);
 // }, [currentPage]);
 
 
@@ -295,6 +297,22 @@ const [tempDate, setTempDate] = useState("all");
     }
   };
 
+  // Handle order amount sorting
+  const handleOrderAmountSort = () => {
+    if (orderAmountSort === null) {
+      setOrderAmountSort("desc");
+    } else if (orderAmountSort === "desc") {
+      setOrderAmountSort("asc");
+    } else {
+      setOrderAmountSort("desc");
+    }
+  };
+
+  // Reset sort
+  const handleResetSort = () => {
+    setOrderAmountSort(null);
+  };
+
   const getSortIcon = (field: string) => {
     if (sortField !== field) {
       return <ChevronUp className="w-4 h-4 text-gray-400" />;
@@ -446,6 +464,16 @@ const [tempDate, setTempDate] = useState("all");
                   icon={<Filter className="h-4 w-4 mr-2" />}
                   onClick={() => setShowFilters(true)}
                 />
+                {orderAmountSort && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleResetSort}
+                    className="flex items-center gap-2"
+                  >
+                    Reset Sort
+                  </Button>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -544,8 +572,20 @@ const [tempDate, setTempDate] = useState("all");
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
                     Order ID
                   </TableHead>
-                  <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
-                    Order Amount
+                  <TableHead 
+                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
+                    onClick={handleOrderAmountSort}
+                  >
+                    <div className="flex items-center gap-1">
+                      Order Amount
+                      {orderAmountSort === null ? (
+                        <ChevronUp className="w-4 h-4 text-gray-400" />
+                      ) : orderAmountSort === "asc" ? (
+                        <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                      )}
+                    </div>
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
                     Actions

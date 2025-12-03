@@ -12,6 +12,7 @@ export async function getPaymentDetails(
     payment_method?: string;
     startDate?: string | null;
     endDate?: string | null;
+    sort?: string;
   }
 ): Promise<PaymentDetailsResponse> {
   try {
@@ -25,6 +26,7 @@ export async function getPaymentDetails(
     // If date range filters exist, add them
     if (filters.startDate) params.append("startDate", filters.startDate);
     if (filters.endDate) params.append("endDate", filters.endDate);
+    if (filters.sort) params.append("sort", filters.sort);
 
     const response = await apiClient.get(
       `orders/api/payments/all?${params.toString()}`

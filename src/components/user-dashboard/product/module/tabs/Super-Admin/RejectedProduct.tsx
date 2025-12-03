@@ -40,7 +40,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, ChevronDown } from "lucide-react";
+import { MoreHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,6 +93,7 @@ export default function RejectedProduct({
   const [totalPages, setTotalPages] = useState(0);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortPriceDirection, setSortPriceDirection] = useState<"L-H" | "H-L">("L-H");
   const route = useRouter();
   const { showToast } = useGlobalToast();
   const itemsPerPage = 10;
@@ -111,8 +112,8 @@ export default function RejectedProduct({
         let sortByValue: string | undefined;
         if (sortField === "manufacturer_part_name") {
           sortByValue = sortDirection === "asc" ? "A-Z" : "Z-A";
-        } else if (sortField === "mrp_with_gst") {
-          sortByValue = sortDirection === "asc" ? "L-H" : "H-L";
+        } else if (sortField === "selling_price") {
+          sortByValue = sortPriceDirection === "L-H" ? "L-H" : "H-L";
         }
         let response;
         if (brandFilter || modelFilter || variantFilter) {
@@ -161,12 +162,12 @@ export default function RejectedProduct({
     };
 
     fetchProducts();
-  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter, brandFilter, modelFilter, variantFilter, sortField, sortDirection, refreshKey]);
+  }, [currentPage, itemsPerPage, searchQuery, categoryFilter, subCategoryFilter, brandFilter, sortPriceDirection, modelFilter, variantFilter, sortField, sortDirection, refreshKey]);
 
   // Reset to first page when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, categoryFilter, subCategoryFilter, brandFilter, modelFilter, variantFilter]);
+  }, [searchQuery, categoryFilter, subCategoryFilter, brandFilter, sortPriceDirection, modelFilter, variantFilter]);
 
   // Server handles search/sort; return products as-is
   const filteredProducts = React.useMemo(() => {
@@ -235,15 +236,14 @@ export default function RejectedProduct({
       setSortDirection("asc");
     }
   };
-  // 1. Update the sort handler to support price
-  const handleSortByPrice = () => {
-    if (sortField === "mrp_with_gst") {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField("mrp_with_gst");
-      setSortDirection("asc");
-    }
-  };
+    const handleSortByPrice = () => {
+      if (sortField === "selling_price") {
+        setSortPriceDirection(sortPriceDirection === "L-H" ? "H-L" : "L-H");
+      } else {
+        setSortField("selling_price");
+        setSortPriceDirection("L-H");
+      }
+    };
 
   // Empty state
   if (!loadingProducts && (filteredProducts.length === 0)) {
@@ -275,7 +275,11 @@ export default function RejectedProduct({
               Name
               {sortField === "manufacturer_part_name" && (
                 <span className="ml-1">
-                  {sortDirection === "asc" ? "▲" : "▼"}
+                  {sortDirection === "asc" ? (
+                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                  )}
                 </span>
               )}
             </TableHead>
@@ -296,9 +300,13 @@ export default function RejectedProduct({
               onClick={handleSortByPrice}
             >
               Price
-              {sortField === "mrp_with_gst" && (
-                <span className="ml-1">
-                  {sortDirection === "asc" ? "▲" : "▼"}
+              {sortField === "selling_price" && (
+                <span className="ml-1"> 
+                  {sortPriceDirection === "L-H" ? (
+                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                  )}
                 </span>
               )}
             </TableHead>
@@ -423,7 +431,7 @@ export default function RejectedProduct({
                   {/* //price */}
                   <TableCell className="px-6 py-4 font-[Red Hat Display]">
                     <span className="text-gray-700 b2 font-[Red Hat Display]">
-                      {product.mrp_with_gst || "N/A"}
+                        {product.selling_price || "N/A"}
                     </span>
                   </TableCell>
                   <TableCell className="px-6 py-4 font-[Red Hat Display]">

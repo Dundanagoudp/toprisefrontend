@@ -1,4 +1,5 @@
 import apiClient from "@/apiClient";
+import axios from "axios";
 
 // Vehicle Info API Response Types
 export interface VehicleApiData {
@@ -82,7 +83,16 @@ export async function getVehicleInfo(registrationNumber: string): Promise<Vehicl
     // Convert registration number to uppercase
     const upperCaseRegNumber = registrationNumber.toUpperCase();
     
-    const response = await apiClient.get(`/products/api/vehicleInfo/getInfo/${upperCaseRegNumber}`);
+    const response = await axios.get(`https://api.toprise.in/products/api/vehicleInfo/getInfo/${upperCaseRegNumber}`,{
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+      timeout: 30000,
+      validateStatus: (status) => {
+        return status >= 200 && status < 300;
+      },
+    });
     
     // Validate response data
     if (!response || !response.data) {

@@ -90,11 +90,11 @@ export default function DynamicPagination({
   return (
     <div className={`flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 px-6 py-4 ${className}`}>
       {/* Items info - Left side */}
-      {showItemsInfo ? (  
+      {/* {showItemsInfo ? (  
         <div className="text-sm text-gray-600 text-center sm:text-left">
           {`Showing ${startItem}-${endItem} of ${totalItems} returns`}
         </div>
-      ) : null}
+      ) : null} */}
 
       {/* Pagination Controls - Right side */}
       <div className={`flex ${showItemsInfo ? 'justify-center sm:justify-end' : 'justify-center'}`}>
