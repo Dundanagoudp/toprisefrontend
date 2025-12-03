@@ -1,11 +1,13 @@
 "use client";
 
-import { ComponentType } from "react";
+import { ComponentType, ReactNode } from "react";
 import WithProtectionRoute from "./withProtectionRoute";
 
 interface ProtectionRouteOptions {
   redirectTo?: string;
   showLoader?: boolean;
+  allowedRoles?: string[];
+  unauthorizedFallback?: ReactNode;
 }
 
 /**
@@ -23,6 +25,8 @@ function withProtectedRoute<T extends object>(
       <WithProtectionRoute
         redirectTo={options.redirectTo}
         showLoader={options.showLoader}
+        allowedRoles={options.allowedRoles}
+        unauthorizedFallback={options.unauthorizedFallback}
       >
         <WrappedComponent {...props} />
       </WithProtectionRoute>

@@ -39,19 +39,26 @@ import {
   getPriorityText,
   canEditField,
   canManage,
+  canViewField,
   type DealerProduct
 } from "@/service/dealer-products-service";
 import { useToast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
+import type { DealerPermissions } from "@/types/dealer-types";
 
 interface ProductViewProps {
   product: DealerProduct;
+  allowedFields?: string[] | null;
+  readPermissionsEnabled?: boolean;
+  canEditProductDetails?: boolean;
+  showPermissionsCard?: boolean;
+  dealerPermissions?: DealerPermissions | null;
 }
 
-export default function DealerProductView({ product }: ProductViewProps) {
+export default function DealerProductView({ product, allowedFields, readPermissionsEnabled = true, canEditProductDetails = false, showPermissionsCard = false, dealerPermissions = null }: ProductViewProps) {
   const { showToast } = useToast();
   const router = useRouter();
-  // console.log("Rendering DealerProductView with product:", product);
+  
   const handleEdit = () => {
     router.push(`/dealer/dashboard/product/productedit/${product._id}`);
   };
@@ -60,15 +67,48 @@ export default function DealerProductView({ product }: ProductViewProps) {
     router.push("/dealer/dashboard/product");
   };
 
-  const canEdit = canEditField(product.permission_matrix, 'product_name');
-  const canManageStock = canManage(product.permission_matrix, 'stock');
-  const canManagePricing = canManage(product.permission_matrix, 'pricing');
+
 
   // Permission-based field visibility with null checks
-  const canViewPricing = product.permission_matrix?.canView?.all_fields || canManagePricing;
-  const canViewStock = product.permission_matrix?.canView?.all_fields || canManageStock;
+
   const canViewImages = product.permission_matrix?.canView?.all_fields || canEditField(product.permission_matrix, 'images');
   const canViewVehicleInfo = product.permission_matrix?.canView?.all_fields || false;
+
+  // Field-level read permission checks
+  const canViewSkuCode = canViewField(allowedFields, 'sku_code', readPermissionsEnabled);
+  const canViewProductName = canViewField(allowedFields, 'product_name', readPermissionsEnabled);
+  const canViewBrand = canViewField(allowedFields, 'brand', readPermissionsEnabled);
+  const canViewCategory = canViewField(allowedFields, 'category', readPermissionsEnabled);
+  const canViewSubCategory = canViewField(allowedFields, 'sub_category', readPermissionsEnabled);
+  const canViewProductType = canViewField(allowedFields, 'product_type', readPermissionsEnabled);
+  const canViewModel = canViewField(allowedFields, 'model', readPermissionsEnabled);
+  const canViewVariant = canViewField(allowedFields, 'variant', readPermissionsEnabled);
+  const canViewMake = canViewField(allowedFields, 'make', readPermissionsEnabled);
+  const canViewYearRange = canViewField(allowedFields, 'year_range', readPermissionsEnabled);
+  const canViewIsUniversal = canViewField(allowedFields, 'is_universal', readPermissionsEnabled);
+  const canViewImagesField = canViewField(allowedFields, 'images', readPermissionsEnabled) && canViewImages;
+  const canViewVideoUrl = canViewField(allowedFields, 'video_url', readPermissionsEnabled);
+  const canViewDimensions = canViewField(allowedFields, 'dimensions', readPermissionsEnabled);
+  const canViewWeight = canViewField(allowedFields, 'weight', readPermissionsEnabled);
+  const canViewManufacturerPartName = canViewField(allowedFields, 'manufacturer_part_name', readPermissionsEnabled);
+  
+  // Pricing and stock visibility checks
+  const canViewPricing = canViewField(allowedFields, 'pricing', readPermissionsEnabled) || 
+                         canViewField(allowedFields, 'mrp_with_gst', readPermissionsEnabled) ||
+                         canViewField(allowedFields, 'base_selling_price', readPermissionsEnabled) ||
+                         canViewField(allowedFields, 'dealer_selling_price', readPermissionsEnabled) ||
+                         product.permission_matrix?.canView?.all_fields ||
+                         canManage(product.permission_matrix, 'pricing');
+  const canViewStock = canViewField(allowedFields, 'stock', readPermissionsEnabled) ||
+                       canViewField(allowedFields, 'quantity_available', readPermissionsEnabled) ||
+                       canViewField(allowedFields, 'in_stock', readPermissionsEnabled) ||
+                       product.permission_matrix?.canView?.all_fields ||
+                       canManage(product.permission_matrix, 'stock');
+
+  // Check if any fields in a section are visible
+  const hasProductDetails = canViewBrand || canViewCategory || canViewSubCategory || canViewProductType;
+  const hasVehicleInfo = canViewModel || canViewVariant || canViewMake || canViewYearRange || canViewIsUniversal;
+  const hasTechnicalSpecs = canViewDimensions || canViewWeight;
 
   return (
     <div className="space-y-6">
@@ -80,12 +120,16 @@ export default function DealerProductView({ product }: ProductViewProps) {
             Back to Products
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{product.product_name}</h1>
-            <p className="text-gray-600">SKU: {product.sku_code}</p>
+            {canViewProductName && (
+              <h1 className="text-2xl font-bold text-gray-900">{product.product_name}</h1>
+            )}
+            {canViewSkuCode && (
+              <p className="text-gray-600">SKU: {product.sku_code}</p>
+            )}
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          {canEdit && (
+          {canEditProductDetails && (
             <Button onClick={handleEdit} size="sm">
               <Edit className="h-4 w-4 mr-2" />
               Edit Product
@@ -102,7 +146,7 @@ export default function DealerProductView({ product }: ProductViewProps) {
         {/* Main Product Information */}
         <div className="lg:col-span-2 space-y-6">
           {/* Product Images */}
-          {canViewImages && (
+          {canViewImagesField && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -140,53 +184,164 @@ export default function DealerProductView({ product }: ProductViewProps) {
           )}
 
           {/* Product Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Settings className="h-5 w-5 mr-2" />
-                Product Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Brand</label>
-                    <p className="text-lg font-semibold text-gray-900">{product.brand.brand_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Category</label>
-                    <p className="text-lg font-semibold text-gray-900">{product.category.category_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Sub Category</label>
-                    <p className="text-lg font-semibold text-gray-900">{product.sub_category.subcategory_name}</p>
-                  </div>
-                </div>
-                {canViewVehicleInfo && (
+          {hasProductDetails && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="h-5 w-5 mr-2" />
+                  Product Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Model</label>
-                      <p className="text-lg font-semibold text-gray-900">{product.model.model_name}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Variants</label>
-                      <div className="flex flex-wrap gap-2">
-                        {product.variant.map((variant, index) => (
-                          <Badge key={index} variant="outline">
-                            {variant.variant_name}
-                          </Badge>
-                        ))}
+                    {canViewBrand && product.brand && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Brand</label>
+                        <p className="text-lg font-semibold text-gray-900">{product.brand.brand_name || 'N/A'}</p>
                       </div>
-                    </div>
+                    )}
+                    {canViewCategory && product.category && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Category</label>
+                        <p className="text-lg font-semibold text-gray-900">{product.category.category_name || 'N/A'}</p>
+                      </div>
+                    )}
+                    {canViewSubCategory && product.sub_category && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Sub Category</label>
+                        <p className="text-lg font-semibold text-gray-900">{product.sub_category.subcategory_name || 'N/A'}</p>
+                      </div>
+                    )}
+                    {canViewProductType && (product as any).product_type && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Product Type</label>
+                        <p className="text-lg font-semibold text-gray-900">{(product as any).product_type}</p>
+                      </div>
+                    )}
+                    {canViewManufacturerPartName && (product as any).manufacturer_part_name && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Manufacturer Part Name</label>
+                        <p className="text-lg font-semibold text-gray-900">{(product as any).manufacturer_part_name}</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  {hasVehicleInfo && (
+                    <div className="space-y-4">
+                      {canViewModel && product.model && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Model</label>
+                          <p className="text-lg font-semibold text-gray-900">{product.model.model_name || 'N/A'}</p>
+                        </div>
+                      )}
+                      {canViewVariant && product.variant && product.variant.length > 0 && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Variants</label>
+                          <div className="flex flex-wrap gap-2">
+                            {product.variant.map((variant, index) => (
+                              <Badge key={index} variant="outline">
+                                {variant.variant_name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {canViewMake && (product as any).make && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Make</label>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {Array.isArray((product as any).make) 
+                              ? (product as any).make.join(', ') 
+                              : (product as any).make}
+                          </p>
+                        </div>
+                      )}
+                      {canViewYearRange && (product as any).year_range && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Year Range</label>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {Array.isArray((product as any).year_range) 
+                              ? (product as any).year_range
+                                  .map((yr: any) => yr.year_name || yr.name || String(yr))
+                                  .filter((yr: string) => yr && yr !== '')
+                                  .join(', ')
+                              : String((product as any).year_range)}
+                          </p>
+                        </div>
+                      )}
+                      {canViewIsUniversal && (product as any).is_universal !== undefined && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Is Universal</label>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {(product as any).is_universal ? 'Yes' : 'No'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Technical Specifications */}
+          {hasTechnicalSpecs && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="h-5 w-5 mr-2" />
+                  Technical Specifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {canViewDimensions && (product as any).dimensions && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Dimensions</label>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {typeof (product as any).dimensions === 'string' 
+                          ? (product as any).dimensions
+                          : JSON.stringify((product as any).dimensions)}
+                      </p>
+                    </div>
+                  )}
+                  {canViewWeight && (product as any).weight !== undefined && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Weight</label>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {(product as any).weight} {(product as any).weight_unit || 'kg'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Video URL */}
+          {canViewVideoUrl && (product as any).video_url && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Package className="h-5 w-5 mr-2" />
+                  Product Video
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-video">
+                  <iframe
+                    src={(product as any).video_url}
+                    className="w-full h-full rounded-lg"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Pricing Information */}
-          {canViewPricing && (
+          {canViewPricing && product.pricing && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -198,19 +353,19 @@ export default function DealerProductView({ product }: ProductViewProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600 mb-2">MRP (with GST)</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(product.pricing.mrp_with_gst)}</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(product.pricing.mrp_with_gst || 0)}</p>
                   </div>
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-gray-600 mb-2">Base Selling Price</p>
-                    <p className="text-2xl font-bold text-blue-600">{formatCurrency(product.pricing.base_selling_price)}</p>
+                    <p className="text-2xl font-bold text-blue-600">{formatCurrency(product.pricing.base_selling_price || 0)}</p>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <p className="text-sm text-gray-600 mb-2">Dealer Selling Price</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(product.pricing.dealer_selling_price)}</p>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(product.pricing.dealer_selling_price || 0)}</p>
                   </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
                     <p className="text-sm text-gray-600 mb-2">GST Percentage</p>
-                    <p className="text-2xl font-bold text-purple-600">{product.pricing.gst_percentage}%</p>
+                    <p className="text-2xl font-bold text-purple-600">{product.pricing.gst_percentage || 0}%</p>
                   </div>
                 </div>
               </CardContent>
@@ -221,7 +376,7 @@ export default function DealerProductView({ product }: ProductViewProps) {
         {/* Sidebar Information */}
         <div className="space-y-6">
           {/* Stock Status */}
-          {canViewStock && (
+          {canViewStock && product.dealer_info && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -237,15 +392,15 @@ export default function DealerProductView({ product }: ProductViewProps) {
                   >
                     {getStockStatusText(product.dealer_info.in_stock, product.dealer_info.quantity_available)}
                   </Badge>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{product.dealer_info.quantity_available}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{product.dealer_info.quantity_available || 0}</p>
                   <p className="text-sm text-gray-600">Units Available</p>
                 </div>
                 
                 <div className="space-y-3">
-                  {canViewPricing && (
+                  {canViewPricing && product.pricing && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Dealer Margin</span>
-                      <span className="font-semibold text-green-600">{product.pricing.dealer_margin}%</span>
+                      <span className="font-semibold text-green-600">{product.pricing.dealer_margin || 0}%</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center">
@@ -263,42 +418,78 @@ export default function DealerProductView({ product }: ProductViewProps) {
           )}
 
           {/* Permissions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Shield className="h-5 w-5 mr-2" />
-                Your Permissions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Can Edit Product</span>
-                  {canEdit ? (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-red-500" />
+          {showPermissionsCard && dealerPermissions && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="h-5 w-5 mr-2" />
+                  Your Permissions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {/* Action Permissions */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Can Add Products</span>
+                    {dealerPermissions.isAdd ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Can Delete Products</span>
+                    {dealerPermissions.isDelete ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Can Update Stock</span>
+                    {dealerPermissions.isUpdateStock ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    )}
+                  </div>
+                  
+                  {/* Divider */}
+                  <div className="border-t border-gray-200 my-3"></div>
+                  
+                  {/* Read Permissions */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Can Read Product Details</span>
+                    {dealerPermissions.readPermissions?.isEnabled ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    )}
+                  </div>
+                  {dealerPermissions.readPermissions?.allowed_fields && dealerPermissions.readPermissions.allowed_fields.length > 0 && (
+                    <div className="text-xs text-gray-500 pl-2">
+                      {dealerPermissions.readPermissions.allowed_fields.length} field(s) allowed
+                    </div>
+                  )}
+                  
+                  {/* Update Permissions */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Can Edit Product Details</span>
+                    {dealerPermissions.updatePermissions?.isEnabled ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    )}
+                  </div>
+                  {dealerPermissions.updatePermissions?.allowed_fields && dealerPermissions.updatePermissions.allowed_fields.length > 0 && (
+                    <div className="text-xs text-gray-500 pl-2">
+                      {dealerPermissions.updatePermissions.allowed_fields.length} field(s) allowed
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Can Manage Stock</span>
-                  {canManageStock ? (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-red-500" />
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Can Manage Pricing</span>
-                  {canManagePricing ? (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-red-500" />
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Product Timeline */}
           <Card>

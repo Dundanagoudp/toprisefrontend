@@ -18,7 +18,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { User, Settings, LogOut as LogOutIcon, Menu, X, Car, Bike } from "lucide-react";
+import {
+  User,
+  Settings,
+  LogOut as LogOutIcon,
+  Menu,
+  X,
+  Car,
+  Bike,
+} from "lucide-react";
 import { CartSidebar } from "./CartSideBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useCart } from "@/hooks/use-cart";
@@ -30,9 +38,12 @@ import { LogOut } from "@/store/slice/auth/authSlice";
 import SearchInputWithVehicles from "@/components/common/search/SearchInputWithVehicles";
 import { UserVehicleDetails } from "@/service/user/userService";
 import { Switch } from "@/components/ui/switch";
-import { selectVehicleType, selectVehicleTypeId, toggleVehicleType } from "@/store/slice/vehicle/vehicleSlice";
+import {
+  selectVehicleType,
+  selectVehicleTypeId,
+  toggleVehicleType,
+} from "@/store/slice/vehicle/vehicleSlice";
 import PurchaseOrderDialog from "../modules/UserSetting/popup/PurchaseOrderBox";
-
 
 export const Header = () => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
@@ -44,15 +55,15 @@ export const Header = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const pathname = usePathname();
-  const isHomePage = pathname === '/';
+  const isHomePage = pathname === "/";
   const { showToast } = useToast();
-    const [poOpen, setPoOpen] = useState(false);
+  const [poOpen, setPoOpen] = useState(false);
   const {
     cartData: cart,
     fetchCart,
     increaseItemQuantity,
     decreaseItemQuantity,
-    removeItemFromCart
+    removeItemFromCart,
   } = useCart();
 
   useEffect(() => {
@@ -60,23 +71,22 @@ export const Header = () => {
   }, [fetchCart]);
 
   const handleLogout = () => {
-    Cookies.remove('token');
-    Cookies.remove('role');
-    Cookies.remove('lastlogin');
+    Cookies.remove("token");
+    Cookies.remove("role");
+    Cookies.remove("lastlogin");
     localStorage.clear();
     sessionStorage.clear();
     dispatch(LogOut());
-    router.replace('/');
+    router.replace("/");
     window.location.reload();
   };
 
   const handleSettings = () => {
-
-    router.push('/profile');
+    router.push("/profile");
   };
 
   const handleSignup = () => {
-    router.push('/login');
+    router.push("/login");
   };
 
   const handleSearchChange = (value: string) => {
@@ -105,7 +115,9 @@ export const Header = () => {
   const handleVehicleSelect = (vehicle: UserVehicleDetails) => {
     // You can customize this behavior based on your needs
     // For example, you might want to search for parts for this specific vehicle
-    const searchQuery = `${vehicle.brand} ${vehicle.model} ${vehicle.variant || ''}`.trim();
+    const searchQuery = `${vehicle.brand} ${vehicle.model} ${
+      vehicle.variant || ""
+    }`.trim();
     setSearchValue(searchQuery);
 
     // Optionally trigger search immediately
@@ -113,9 +125,9 @@ export const Header = () => {
       const params = new URLSearchParams({
         query: searchQuery,
         vehicleTypeId: typeId,
-        brand: vehicle.brand || '',
-        model: vehicle.model || '',
-        variant: vehicle.variant || '',
+        brand: vehicle.brand || "",
+        model: vehicle.model || "",
+        variant: vehicle.variant || "",
       });
       router.push(`/shop/search-results/?${params.toString()}`);
     }
@@ -125,17 +137,20 @@ export const Header = () => {
     dispatch(toggleVehicleType());
   };
 
-  const handleQuantityChange = async (productId: string, action: 'increase' | 'decrease') => {
+  const handleQuantityChange = async (
+    productId: string,
+    action: "increase" | "decrease"
+  ) => {
     try {
-      if (action === 'increase') {
+      if (action === "increase") {
         await increaseItemQuantity(productId);
         showToast("Quantity increased successfully", "success");
-      } else if (action === 'decrease') {
+      } else if (action === "decrease") {
         await decreaseItemQuantity(productId);
         showToast("Quantity decreased successfully", "success");
       }
     } catch (error) {
-      console.error('Failed to update quantity:', error);
+      console.error("Failed to update quantity:", error);
       showToast("Failed to update quantity", "error");
     }
   };
@@ -146,7 +161,10 @@ export const Header = () => {
 
   const calculateTotal = () => {
     if (!cart?.items) return 0;
-    return cart.items.reduce((total: number, item: CartItem) => total + item.product_total, 0);
+    return cart.items.reduce(
+      (total: number, item: CartItem) => total + item.product_total,
+      0
+    );
   };
 
   return (
@@ -183,154 +201,148 @@ export const Header = () => {
 
           {/* Desktop Right Side */}
           <div className="hidden lg:flex items-center space-x-4">
-            {/* Vehicle Type Toggle */}
-            {isHomePage && (
-              <div className="flex items-center space-x-2">
-                <Car 
-                  className={`h-5 w-5 ${vehicleType === "car" ? "text-[#C72920]" : "text-gray-400"}`}
-                />
-                <Switch
-                  id="mode-toggle"
-                  checked={vehicleType === "bike"}
-                  onCheckedChange={handleToggle}
-                />
-                <Bike 
-                  className={`h-5 w-5 ${vehicleType === "bike" ? "text-[#C72920]" : "text-gray-400"}`}
-                />
-              </div>
-            )}
+  {/* Vehicle Type Toggle */}
+  {isHomePage && (
+    <div className="flex items-center space-x-2">
+      <Car
+        className={`h-5 w-5 ${
+          vehicleType === "car" ? "text-[#C72920]" : "text-gray-400"
+        }`}
+      />
+      <Switch
+        id="mode-toggle"
+        checked={vehicleType === "bike"}
+        onCheckedChange={handleToggle}
+      />
+      <Bike
+        className={`h-5 w-5 ${
+          vehicleType === "bike" ? "text-[#C72920]" : "text-gray-400"
+        }`}
+      />
+    </div>
+  )}
 
-            {/* Navigation Menu */}
-            <NavigationMenu>
-              <NavigationMenuList className="flex gap-4">
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                    Services
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="w-48 p-2">
-                        <button
-            onClick={() => setPoOpen(true)}
-            className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-          >
-            Upload Purchase Request
-          </button>
-                      {/* <NavigationMenuLink
-                        href="/services/upload-parts"
-                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      >
-                        Upload Required Parts List
-                      </NavigationMenuLink> */}
-                      <NavigationMenuLink
-                        href="/services/upcoming"
-                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      >
-                        Upcoming Services
-                      </NavigationMenuLink>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                    Resources
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="w-48 p-2">
-                      <NavigationMenuLink
-                        href="/PrivacyPolicy"
-                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      >
-                        Privacy Policy
-                      </NavigationMenuLink>
-                      <NavigationMenuLink
-                        href="/ShippingAndReturnPolicy"
-                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      >
-                        Shipping Policy
-                      </NavigationMenuLink>
-                      <NavigationMenuLink
-                        href="/TermsAndConditions"
-                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      >
-                        Terms & Conditions
-                      </NavigationMenuLink>
-                      {/* <NavigationMenuLink
-                        href="/aboutus"
-                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      >
-                        About Us
-                      </NavigationMenuLink> */}
-                      <NavigationMenuLink
-                        href="/contactus"
-                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      >
-                        Contact Us
-                      </NavigationMenuLink>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            {/* Cart */}
-            <CartSidebar
-              cart={cart}
-              cartOpen={cartOpen}
-              setCartOpen={setCartOpen}
-              handleQuantityChange={handleQuantityChange}
-              removeFromCart={removeFromCart}
-              calculateTotal={calculateTotal}
-            />
-
-            {/* Auth State */}
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-600 hover:text-gray-800"
-                  >
-                    <User className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    onClick={handleSettings}
-                    className="cursor-pointer"
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="cursor-pointer text-red-600 focus:text-red-600"
-                  >
-                    <LogOutIcon className="mr-2 h-4 w-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-gray-600 hover:text-gray-800"
-                onClick={handleSignup}
-              >
-                Login / SignUp
-              </Button>
-            )}
+  {/* Navigation Menu */}
+  <NavigationMenu>
+    <NavigationMenuList className="flex gap-2">
+      <NavigationMenuItem>
+        <NavigationMenuTrigger className="text-gray-700 hover:text-gray-900 px-2 py-2 text-sm font-medium">
+          Services
+        </NavigationMenuTrigger>
+        <NavigationMenuContent>
+          <div className="w-48 p-2">
+            <button
+              onClick={() => setPoOpen(true)}
+              className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Upload Purchase Request
+            </button>
+            <NavigationMenuLink
+              href="/services/upcoming"
+              className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Upcoming Services
+            </NavigationMenuLink>
           </div>
+        </NavigationMenuContent>
+      </NavigationMenuItem>
+      <NavigationMenuItem>
+        <NavigationMenuTrigger className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+          Resources
+        </NavigationMenuTrigger>
+        <NavigationMenuContent>
+          <div className="w-48 p-2">
+            <NavigationMenuLink
+              href="/PrivacyPolicy"
+              className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Privacy Policy
+            </NavigationMenuLink>
+            <NavigationMenuLink
+              href="/ShippingAndReturnPolicy"
+              className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Shipping Policy
+            </NavigationMenuLink>
+            <NavigationMenuLink
+              href="/TermsAndConditions"
+              className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Terms & Conditions
+            </NavigationMenuLink>
+            <NavigationMenuLink
+              href="/contactus"
+              className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Contact Us
+            </NavigationMenuLink>
+          </div>
+        </NavigationMenuContent>
+      </NavigationMenuItem>
+    </NavigationMenuList>
+  </NavigationMenu>
+
+  {/* Cart */}
+  <CartSidebar
+    cart={cart}
+    cartOpen={cartOpen}
+    setCartOpen={setCartOpen}
+    handleQuantityChange={handleQuantityChange}
+    removeFromCart={removeFromCart}
+    calculateTotal={calculateTotal}
+  />
+
+  {/* Auth State */}
+  {isAuthenticated ? (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-gray-600 hover:text-gray-800"
+        >
+          <User className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem
+          onClick={handleSettings}
+          className="cursor-pointer"
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="cursor-pointer text-red-600 focus:text-red-600"
+        >
+          <LogOutIcon className="mr-2 h-4 w-4" />
+          Logout
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : (
+    <Button
+      variant="outline"
+      size="sm"
+      className="text-gray-600 hover:text-gray-800"
+      onClick={handleSignup}
+    >
+      Login / SignUp
+    </Button>
+  )}
+</div>
 
           {/* Mobile Right Side */}
           <div className="flex lg:hidden items-center space-x-2">
             {/* Vehicle Type Toggle */}
             {isHomePage && (
               <div className="flex items-center space-x-1">
-                <Car 
-                  className={`h-4 w-4 ${vehicleType === "car" ? "text-[#C72920]" : "text-gray-400"}`}
+                <Car
+                  className={`h-4 w-4 ${
+                    vehicleType === "car" ? "text-[#C72920]" : "text-gray-400"
+                  }`}
                 />
                 <Switch
                   id="mobile-header-mode-toggle"
@@ -338,8 +350,10 @@ export const Header = () => {
                   onCheckedChange={handleToggle}
                   className="scale-75"
                 />
-                <Bike 
-                  className={`h-4 w-4 ${vehicleType === "bike" ? "text-[#C72920]" : "text-gray-400"}`}
+                <Bike
+                  className={`h-4 w-4 ${
+                    vehicleType === "bike" ? "text-[#C72920]" : "text-gray-400"
+                  }`}
                 />
               </div>
             )}
@@ -357,7 +371,11 @@ export const Header = () => {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="text-gray-600 hover:text-gray-800"
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </Button>
           </div>
         </div>
@@ -377,11 +395,12 @@ export const Header = () => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-200 py-4">
-
             {/* Mobile Navigation Links */}
             <div className="space-y-2">
               <div className="px-4 py-2">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Services</h3>
+                <h3 className="text-sm font-medium text-gray-900 mb-2">
+                  Services
+                </h3>
                 <div className="space-y-1 ml-4">
                   <button
                     onClick={() => {
@@ -410,7 +429,9 @@ export const Header = () => {
               </div>
 
               <div className="px-4 py-2">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Resources</h3>
+                <h3 className="text-sm font-medium text-gray-900 mb-2">
+                  Resources
+                </h3>
                 <div className="space-y-1 ml-4">
                   <a
                     href="/PrivacyPolicy"
@@ -491,10 +512,7 @@ export const Header = () => {
             </div>
           </div>
         )}
-        <PurchaseOrderDialog
-        isOpen={poOpen}
-        onClose={() => setPoOpen(false)}
-      />
+        <PurchaseOrderDialog isOpen={poOpen} onClose={() => setPoOpen(false)} />
       </div>
     </header>
   );

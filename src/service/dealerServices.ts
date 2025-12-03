@@ -320,7 +320,7 @@ export async function getDealerIdFromUserId(userId?: string): Promise<string> {
       throw new Error("User ID not found in token or parameter");
     }
     
-    console.log(`[getDealerIdFromUserId] Getting dealer ID for user ID: ${id}`);
+
     
     const response = await apiClient.get(`/users/api/users/internal/dealers/user/${id}`);
     
@@ -420,12 +420,16 @@ export async function getDealerProfileDetails(dealerId?: string): Promise<Dealer
 //set dealer permissions 
 export async function setDealerPermissions(dealerId: string, permissions: any): Promise<ApiResponse<Dealer>> {
   try {
-    const response = await apiClient.put(`/users/api/users/dealer/resetPermiossions/${dealerId}`, {
-      permissions
-    })
+    console.log(`[setDealerPermissions] API Call for dealer ${dealerId}`)
+    console.log(`[setDealerPermissions] Request payload:`, JSON.stringify(permissions, null, 2))
+    
+    // Send permissions object directly, not wrapped in a "permissions" property
+    const response = await apiClient.put(`/users/api/users/dealer/resetPermiossions/${dealerId}`, permissions)
+    
+    console.log(`[setDealerPermissions] API Response for dealer ${dealerId}:`, response.data)
     return response.data
   } catch (error) {
-    console.error(`Failed to set permissions for dealer with id ${dealerId}:`, error)
+    console.error(`[setDealerPermissions] Failed to set permissions for dealer with id ${dealerId}:`, error)
     throw error
   }
 }

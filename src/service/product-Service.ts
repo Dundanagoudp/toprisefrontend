@@ -918,7 +918,7 @@ export async function editProduct(
 ): Promise<ProductResponse> {
   try {
     const response = await apiClient.put(
-      `/category/products/v1/updateProduct/${productId}`,
+      `/products/products/v1/updateProduct/${productId}`,
       data
     );
     return response.data;
