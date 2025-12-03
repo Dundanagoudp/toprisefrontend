@@ -32,12 +32,12 @@ import {
   editProduct,
   getProductById,
 } from "@/service/product-Service";
-import { getDealersByCategory } from "@/service/dealerServices";
+import { getDealersByCategory, getDealerById, getDealerIdFromUserId } from "@/service/dealerServices";
 import { useParams } from "next/navigation";
 import { Product } from "@/types/product-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { dealerProductSchema } from "@/lib/schemas/product-schema";
-import { checkDealerProductPermission } from "@/service/dealer-product";
+import type { Dealer } from "@/types/dealer-types";
 
 type FormValues = z.infer<typeof dealerProductSchema>;
 
@@ -72,7 +72,9 @@ export default function DealerProductEdit() {
   const [loadingDealers, setLoadingDealers] = useState(false);
   const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-admin", "Dealer"];
+  const [dealerId, setDealerId] = useState<string | null>(null);
   const [allowedFields, setAllowedFields] = useState<string[] | null>(null);
+  const [updatePermissionsEnabled, setUpdatePermissionsEnabled] = useState<boolean>(true);
   const [permissionLoading, setPermissionLoading] = useState(false);
   const [permissionError, setPermissionError] = useState<string>("");
 
@@ -780,29 +782,66 @@ export default function DealerProductEdit() {
       setIsSubmitting(false);
     }
   };
+  // Fetch dealer ID when component mounts (for dealers only)
   useEffect(() => {
-    // Only check permission for Dealer role
-    if (auth && auth.role === "Dealer" && auth._id) {
-      setPermissionLoading(true);
-      setPermissionError("");
-      checkDealerProductPermission(auth._id)
-        .then((res) => {
-          if (res?.hasPermission && res.data?.userPermissions?.allowedFields) {
-            setAllowedFields(res.data.userPermissions.allowedFields);
-          } else {
+    const fetchDealerId = async () => {
+      if (auth && auth.role === "Dealer") {
+        try {
+          const id = await getDealerIdFromUserId();
+          setDealerId(id);
+        } catch (err) {
+          console.error("Failed to get dealer ID:", err);
+          setPermissionError("Failed to fetch dealer information");
+        }
+      }
+    };
+    fetchDealerId();
+  }, [auth]);
+
+  // Fetch dealer permissions using getDealerById
+  useEffect(() => {
+    const fetchDealerPermissions = async () => {
+      // Only check permissions for Dealer role
+      if (auth && auth.role === "Dealer" && dealerId) {
+        setPermissionLoading(true);
+        setPermissionError("");
+        
+        try {
+          const dealerResponse = await getDealerById(dealerId);
+          const dealer = dealerResponse.data as Dealer;
+          console.log("Dealer permissions:", dealer.permission);
+          // Check if update permissions are enabled
+          const isEnabled = dealer.permission?.updatePermissions?.isEnabled ?? true;
+          setUpdatePermissionsEnabled(isEnabled);
+          
+          // If update permissions are disabled, block editing
+          if (!isEnabled) {
+            setPermissionError("You don't have permission to edit products");
             setAllowedFields([]);
+            setPermissionLoading(false);
+            return;
           }
-        })
-        .catch((err) => {
+          
+          // Get allowed fields for updating
+          const fields = dealer.permission?.updatePermissions?.allowed_fields;
+          setAllowedFields(fields || null);
+        } catch (err) {
+          console.error("Failed to fetch dealer permissions:", err);
           setPermissionError("Failed to fetch field permissions");
           setAllowedFields([]);
-        })
-        .finally(() => setPermissionLoading(false));
-    } else {
-      setAllowedFields(null); // null means unrestricted (admin etc)
-    }
-  }, [auth]);
-    if (!auth || !allowedRoles.includes(auth.role)) {
+        } finally {
+          setPermissionLoading(false);
+        }
+      } else if (auth && auth.role !== "Dealer") {
+        // For non-dealer roles (admin, etc.), allow all fields
+        setAllowedFields(null);
+        setUpdatePermissionsEnabled(true);
+      }
+    };
+
+    fetchDealerPermissions();
+  }, [auth, dealerId]);
+  if (!auth || !allowedRoles.includes(auth.role)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-red-600 font-bold">
@@ -819,10 +858,21 @@ export default function DealerProductEdit() {
       </div>
     );
   }
+
   if (permissionError) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-red-600 font-bold">{permissionError}</div>
+      </div>
+    );
+  }
+
+  if (auth.role === "Dealer" && !updatePermissionsEnabled) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600 font-bold">
+          You don't have permission to edit products.
+        </div>
       </div>
     );
   }
@@ -879,7 +929,7 @@ export default function DealerProductEdit() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* No. of Stock */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="noOfStock" className="text-sm font-medium">
                 No. of Stock
               </Label>
@@ -896,6 +946,24 @@ export default function DealerProductEdit() {
               {errors.no_of_stock && (
                 <span className="text-red-500 text-sm">
                   {errors.no_of_stock.message}
+                </span>
+              )}
+            </div> */}
+                {/* Product Name */}
+                <div className="space-y-2">
+              <Label htmlFor="productName" className="text-sm font-medium">
+                Product Name
+              </Label>
+              <Input
+                id="product_name"
+                placeholder="Enter Product Name"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("product_name")}
+                disabled={Boolean(allowedFields && !allowedFields.includes("product_name"))}
+              />
+              {errors.product_name && (
+                <span className="text-red-500 text-sm">
+                  {errors.product_name.message}
                 </span>
               )}
             </div>
@@ -920,24 +988,7 @@ export default function DealerProductEdit() {
                 </span>
               )}
             </div>
-            {/* Product Name */}
-            <div className="space-y-2">
-              <Label htmlFor="productName" className="text-sm font-medium">
-                Product Name
-              </Label>
-              <Input
-                id="product_name"
-                placeholder="Enter Product Name"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("product_name")}
-                disabled={Boolean(allowedFields && !allowedFields.includes("product_name"))}
-              />
-              {errors.product_name && (
-                <span className="text-red-500 text-sm">
-                  {errors.product_name.message}
-                </span>
-              )}
-            </div>
+        
             {/* Brand */}
 
             {/* HSN Code */}

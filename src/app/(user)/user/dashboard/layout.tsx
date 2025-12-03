@@ -8,7 +8,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { WithProtectionRoute } from "@/components/protectionRoute";
+import { UnauthorizedScreen, WithProtectionRoute } from "@/components/protectionRoute";
 import { useCallback, useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { NotificationsPanel } from "@/components/notifications/modules/notifications-panel";
@@ -16,7 +16,14 @@ import { getAllNotifications } from "@/service/notificationServices";
 import { getUserIdFromToken } from "@/utils/auth";
 import { BreadcrumbProvider, useBreadcrumb } from "@/contexts/BreadcrumbContext";
 
-
+const ADMIN_DASHBOARD_ROLES = [
+  "Fulfillment-Admin",
+  "Fulfillment-Staff",
+  "Fullfillment-staff",
+  "Inventory-Admin",
+  "Inventory-Staff",
+  "Super-admin",
+];
 
 function BreadcrumbWithContext() {
   const { customLabels } = useBreadcrumb();
@@ -87,7 +94,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
   }, [refreshUnreadCount]);
   return (
-    <WithProtectionRoute redirectTo="/admin/login">
+    <WithProtectionRoute
+      redirectTo="/admin/login"
+      allowedRoles={ADMIN_DASHBOARD_ROLES}
+      unauthorizedFallback={
+        <UnauthorizedScreen
+          title="Unauthorized Access"
+          description="unauthorized access to this page."
+          actionHref="/"
+          actionLabel="Return to home"
+          secondaryHref="/login"
+          secondaryLabel="Login with another account"
+        />
+      }
+    >
       <BreadcrumbProvider>
         <SidebarProvider>
           <AppSidebar />

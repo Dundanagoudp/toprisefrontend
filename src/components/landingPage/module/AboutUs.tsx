@@ -245,7 +245,7 @@ export default function AboutUs() {
           variants={headerVariants}
         >
           <motion.h2
-            className="text-[#C72920] text-5xl md:text-6xl font-bold font-sans mb-4"
+            className="text-[#C72920] text-6xl md:text-7xl font-bold font-sans mb-4"
             variants={headerItemVariants}
           >
             About Us

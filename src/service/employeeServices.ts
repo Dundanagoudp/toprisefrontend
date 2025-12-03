@@ -38,18 +38,14 @@ export async function getAllEmployees(): Promise<ApiResponse<Employee[]>> {
  */
 export async function getEmployeeById(id: string): Promise<ApiResponse<Employee>> {
   try {
-    console.log("=== EMPLOYEE API DEBUG ===");
-    console.log("Fetching employee with ID:", id);
-    console.log("API URL:", `/users/api/users/employee/${id}`);
+
     
     // Check if token exists
     const token = Cookies.get("token") || Cookies.get("authToken") || Cookies.get("jwt") || Cookies.get("accessToken");
-    console.log("Token from cookies:", token ? "EXISTS" : "MISSING");
-    console.log("Token value:", token);
+
     
     const response = await apiClient.get(`/users/api/users/employee/${id}`)
-    console.log("API Response:", response);
-    console.log("==========================");
+
     return response.data
   } catch (error: any) {
     console.error(`Failed to fetch employee with id ${id}:`, error)
@@ -59,7 +55,7 @@ export async function getEmployeeById(id: string): Promise<ApiResponse<Employee>
       data: error.response?.data,
       headers: error.response?.headers
     });
-    console.log("==========================");
+
     throw error
   }
 }

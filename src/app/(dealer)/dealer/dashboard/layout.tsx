@@ -1,16 +1,30 @@
-'use client';
+"use client";
 
 import { Separator } from "@/components/ui/separator"
-import { WithProtectionRoute } from "@/components/protectionRoute";
+import { UnauthorizedScreen, WithProtectionRoute } from "@/components/protectionRoute";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dealer-sidebar";
 import { DynamicBreadcrumb } from "@/components/dealer-dashboard/DynamicBreadcrumbdealer";
 
+const DEALER_ONLY_ROLES = ["Dealer"];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
  
   return (
-    <WithProtectionRoute redirectTo="/login">
+    <WithProtectionRoute
+      redirectTo="/admin/login"
+      allowedRoles={DEALER_ONLY_ROLES}
+      unauthorizedFallback={
+        <UnauthorizedScreen
+          title="Dealers Only"
+          description="This workspace is limited to approved dealer accounts. Please sign in with a dealer profile or contact support for assistance."
+          actionHref="/"
+          actionLabel="Return to home"
+          secondaryHref="/login"
+          secondaryLabel="Login with another account"
+        />
+      }
+    >
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>

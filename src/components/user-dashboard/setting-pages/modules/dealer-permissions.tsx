@@ -19,7 +19,7 @@ import {
   removeDealerPermissions,
   getAllModules 
 } from "@/service/settingServices"
-import type { Dealer } from "@/types/dealer-types"
+import type { Dealer, DealerPermissions } from "@/types/dealer-types"
 import type { PermissionModule } from "@/types/setting-Types"
 import { MultiSelectField } from "@/components/ui/multi-select-field"
 import { PRODUCT_FIELDS, getFieldLabel } from "@/lib/constants/product-fields"
@@ -49,14 +49,54 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
   const [loading, setLoading] = useState(false)
   const [dealersLoading, setDealersLoading] = useState(false)
   const [modulesLoading, setModulesLoading] = useState(false)
+  
+  // State for current dealer permissions display
+  const [currentDealerPermissions, setCurrentDealerPermissions] = useState<DealerPermissions | null>(null)
+  const [permissionsLoading, setPermissionsLoading] = useState(false)
+  const [selectedDealerForView, setSelectedDealerForView] = useState<string | null>(null)
+  
   const { showToast } = useToast()
 
   // Fetch dealers and modules on component mount
   useEffect(() => {
     fetchDealers()
-    fetchModules()
+    // fetchModules()
     
   }, [])
+
+  // Fetch dealer permissions when a single dealer is selected
+  useEffect(() => {
+    const fetchCurrentDealerPermissions = async () => {
+      // Only fetch when exactly one dealer is selected
+      if (selectedDealers.length === 1) {
+        const dealerId = selectedDealers[0]
+        setSelectedDealerForView(dealerId)
+        setPermissionsLoading(true)
+        
+        try {
+          const response = await getDealerById(dealerId)
+          if (response.success && response.data) {
+            const dealer = response.data as Dealer
+            setCurrentDealerPermissions(dealer.permission || null)
+          } else {
+            setCurrentDealerPermissions(null)
+          }
+        } catch (error) {
+          console.error("Error fetching dealer permissions:", error)
+          setCurrentDealerPermissions(null)
+          // Don't show error toast here as it might be expected (no permissions set)
+        } finally {
+          setPermissionsLoading(false)
+        }
+      } else {
+        // Clear permissions display when no dealer or multiple dealers selected
+        setCurrentDealerPermissions(null)
+        setSelectedDealerForView(null)
+      }
+    }
+
+    fetchCurrentDealerPermissions()
+  }, [selectedDealers])
 
   //get dealer permissions
   const fetchDealerPermissions = async (dealerId: string) => {
@@ -87,106 +127,109 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
     }
   }
 
-  const fetchModules = async () => {
-    try {
-      setModulesLoading(true)
-      const response = await getAllModules()
-      setModules(response.data || [])
-      if (response.data && response.data.length > 0) {
-        setSelectedModule(response.data[0].module)
-      }
-    } catch (error) {
-      console.error("Error fetching modules:", error)
-      showToast("Failed to fetch modules", "error")
-    } finally {
-      setModulesLoading(false)
-    }
-  }
+  // const fetchModules = async () => {
+  //   try {
+  //     setModulesLoading(true)
+  //     const response = await getAllModules()
+  //     setModules(response.data || [])
+  //     if (response.data && response.data.length > 0) {
+  //       setSelectedModule(response.data[0].module)
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching modules:", error)
+  //     showToast("Failed to fetch modules", "error")
+  //   } finally {
+  //     setModulesLoading(false)
+  //   }
+  // }
 
-  const handleAddPermissions = async () => {
-    if (!selectedModule || selectedDealers.length === 0) {
-      showToast("Please select a module and at least one dealer", "error")
-      return
-    }
+  // const handleAddPermissions = async () => {
+  //   if (!selectedModule || selectedDealers.length === 0) {
+  //     showToast("Please select a module and at least one dealer", "error")
+  //     return
+  //   }
 
-    try {
-      setLoading(true)
+  //   try {
+  //     setLoading(true)
       
-      // Parse allowed fields from comma-separated string
-      const allowedFields = allowedFieldsInput
-        .split(",")
-        .map(field => field.trim())
-        .filter(field => field.length > 0)
+  //     // Parse allowed fields from comma-separated string
+  //     const allowedFields = allowedFieldsInput
+  //       .split(",")
+  //       .map(field => field.trim())
+  //       .filter(field => field.length > 0)
 
-      const requestData = {
-        module: selectedModule,
-        role: selectedRole,
-        userIds: selectedDealers,
-        permissions: {
-          allowedFields,
-          read: false,
-          write: false,
-          update: false,
-          delete: false
-        }
-      }
+  //     const requestData = {
+  //       module: selectedModule,
+  //       role: selectedRole,
+  //       userIds: selectedDealers,
+  //       permissions: {
+  //         allowedFields,
+  //         read: false,
+  //         write: false,
+  //         update: false,
+  //         delete: false
+  //       }
+  //     }
 
-      await addDealerPermissions(requestData)
-      showToast("Permissions added successfully", "success")
+  //     await addDealerPermissions(requestData)
+  //     showToast("Permissions added successfully", "success")
       
-      // Reset form
-      resetForm()
-    } catch (error) {
-      console.error("Error adding permissions:", error)
-      showToast("Failed to add permissions", "error")
-    } finally {
-      setLoading(false)
-    }
-  }
+  //     // Reset form
+  //     resetForm()
+  //   } catch (error) {
+  //     console.error("Error adding permissions:", error)
+  //     showToast("Failed to add permissions", "error")
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
-  const handleUpdatePermissions = async () => {
-    if (!selectedModule || selectedDealers.length === 0) {
-      showToast("Please select a module and at least one dealer", "error")
-      return
-    }
+  // const handleUpdatePermissions = async () => {
+  //   if (!selectedModule || selectedDealers.length === 0) {
+  //     showToast("Please select a module and at least one dealer", "error")
+  //     return
+  //   }
 
-    try {
-      setLoading(true)
+  //   try {
+  //     setLoading(true)
       
-      // Parse allowed fields from comma-separated string
-      const allowedFields = allowedFieldsInput
-        .split(",")
-        .map(field => field.trim())
-        .filter(field => field.length > 0)
+  //     // Parse allowed fields from comma-separated string
+  //     const allowedFields = allowedFieldsInput
+  //       .split(",")
+  //       .map(field => field.trim())
+  //       .filter(field => field.length > 0)
 
-      const requestData = {
-        module: selectedModule,
-        role: selectedRole,
-        userIds: selectedDealers,
-        permissions: {
-          allowedFields,
-          read: false,
-          write: false,
-          update: false,
-          delete: false
-        }
-      }
+  //     const requestData = {
+  //       module: selectedModule,
+  //       role: selectedRole,
+  //       userIds: selectedDealers,
+  //       permissions: {
+  //         allowedFields,
+  //         read: false,
+  //         write: false,
+  //         update: false,
+  //         delete: false
+  //       }
+  //     }
 
-      await updateDealerPermissions(requestData)
-      showToast("Permissions updated successfully", "success")
+  //     await updateDealerPermissions(requestData)
+  //     showToast("Permissions updated successfully", "success")
       
-      // Reset form
-      resetForm()
-    } catch (error) {
-      console.error("Error updating permissions:", error)
-      showToast("Failed to update permissions", "error")
-    } finally {
-      setLoading(false)
-    }
-  }
+  //     // Reset form
+  //     resetForm()
+  //   } catch (error) {
+  //     console.error("Error updating permissions:", error)
+  //     showToast("Failed to update permissions", "error")
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
   const handleSetDealerPermissions = async () => {
+
+    
     if (selectedDealers.length === 0) {
+      
       showToast("Please select at least one dealer", "error")
       return
     }
@@ -200,28 +243,53 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
     try {
       setLoading(true)
 
-      // Construct the nested permission structure
-      const permissionsPayload = {
-        readPermissions: {
-          isEnabled: readEnabled,
-          allowed_fields: readFields
-        },
-        updatePermissions: {
-          isEnabled: updateEnabled,
-          allowed_fields: updateFields
-        },
-        isDelete,
-        isAdd,
-        isUpdateStock
+
+      // Construct the nested permission structure - explicitly set all values
+      const permissionsPayload: any = {}
+      
+      // Always include readPermissions with explicit enabled state
+      permissionsPayload.readPermissions = {
+        isEnabled: readEnabled
+      }
+      // Only include allowed_fields if permission is enabled AND fields are selected
+      // If enabled but no fields selected, don't include allowed_fields (backend interprets as "all fields")
+      // If disabled, don't include allowed_fields at all
+      if (readEnabled && readFields.length > 0) {
+        permissionsPayload.readPermissions.allowed_fields = readFields
       }
 
-      // Call setDealerPermissions for each selected dealer
-      const promises = selectedDealers.map(dealerId =>
-        setDealerPermissions(dealerId, permissionsPayload)
-      )
+      // Always include updatePermissions with explicit enabled state
+      permissionsPayload.updatePermissions = {
+        isEnabled: updateEnabled
+      }
+      // Only include allowed_fields if permission is enabled AND fields are selected
+      if (updateEnabled && updateFields.length > 0) {
+        permissionsPayload.updatePermissions.allowed_fields = updateFields
+      }
 
-      await Promise.all(promises)
+      // Always explicitly set action permissions to false if not enabled
+      permissionsPayload.isDelete = isDelete || false
+      permissionsPayload.isAdd = isAdd || false
+      permissionsPayload.isUpdateStock = isUpdateStock || false
       
+
+      // Call setDealerPermissions for each selected dealer
+      const promises = selectedDealers.map(async (dealerId) => {
+        try {
+          const response = await setDealerPermissions(dealerId, permissionsPayload)
+          return { dealerId, success: true, response }
+        } catch (error) {
+          console.error(`❌ Failed to set permissions for dealer ${dealerId}:`, error)
+          return { dealerId, success: false, error }
+        }
+      })
+      
+      const results = await Promise.all(promises)
+      
+      const successCount = results.filter(r => r.success).length
+      const failureCount = results.filter(r => !r.success).length
+      
+        
       showToast(
         `Permissions set successfully for ${selectedDealers.length} dealer${selectedDealers.length > 1 ? 's' : ''}`,
         "success"
@@ -267,6 +335,26 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
 
   const toggleDealerSelection = (userId: string) => {
     setSelectedDealers(prev => (prev.includes(userId) ? [] : [userId]))
+  }
+
+  // Load current permissions into form for editing
+  const loadPermissionsIntoForm = () => {
+    if (!currentDealerPermissions) return
+
+    // Set read permissions
+    setReadEnabled(currentDealerPermissions.readPermissions?.isEnabled || false)
+    setReadFields(currentDealerPermissions.readPermissions?.allowed_fields || [])
+
+    // Set update permissions
+    setUpdateEnabled(currentDealerPermissions.updatePermissions?.isEnabled || false)
+    setUpdateFields(currentDealerPermissions.updatePermissions?.allowed_fields || [])
+
+    // Set action permissions
+    setIsAdd(currentDealerPermissions.isAdd || false)
+    setIsDelete(currentDealerPermissions.isDelete || false)
+    setIsUpdateStock(currentDealerPermissions.isUpdateStock || false)
+
+    showToast("Permissions loaded into form. You can now edit them.", "success")
   }
 
   const resetForm = () => {
@@ -399,6 +487,177 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
           )}
         </CardContent>
       </Card>
+
+      {/* Current Permissions Display (Read-Only) */}
+      {selectedDealers.length === 1 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Current Permissions</CardTitle>
+              {currentDealerPermissions && (
+                <Button
+                  onClick={loadPermissionsIntoForm}
+                  variant="outline"
+                  size="sm"
+                  className="bg-blue-50 hover:bg-blue-100"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Load into Form
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {permissionsLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            ) : currentDealerPermissions ? (
+              <div className="space-y-6">
+                {/* Read Permissions Display */}
+                <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={currentDealerPermissions.readPermissions?.isEnabled || false}
+                        disabled
+                        id="current-read-enabled"
+                      />
+                      <Label htmlFor="current-read-enabled" className="flex items-center gap-2">
+                        <Eye className="w-4 h-4" />
+                        <span className="font-semibold">Read Permissions</span>
+                      </Label>
+                    </div>
+                    {currentDealerPermissions.readPermissions?.isEnabled && (
+                      <Badge variant="secondary">
+                        {currentDealerPermissions.readPermissions?.allowed_fields?.length || 0} field
+                        {(currentDealerPermissions.readPermissions?.allowed_fields?.length || 0) !== 1 ? 's' : ''} selected
+                      </Badge>
+                    )}
+                  </div>
+                  {currentDealerPermissions.readPermissions?.isEnabled && (
+                    <div>
+                      <Label className="text-muted-foreground">Allowed Fields for Reading</Label>
+                      <MultiSelectField
+                        options={PRODUCT_FIELDS.map(field => ({
+                          value: field.value,
+                          label: field.label,
+                          category: field.category
+                        }))}
+                        selected={currentDealerPermissions.readPermissions?.allowed_fields || []}
+                        onChange={() => {}} // Read-only, no-op
+                        placeholder={
+                          (currentDealerPermissions.readPermissions?.allowed_fields?.length || 0) === 0
+                            ? "All fields allowed"
+                            : "No fields selected"
+                        }
+                        searchPlaceholder="Search fields..."
+                        className="mt-2"
+                        disabled={true}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {(currentDealerPermissions.readPermissions?.allowed_fields?.length || 0) === 0
+                          ? "All fields are accessible for reading"
+                          : "Only selected fields are accessible for reading"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Update Permissions Display */}
+                <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={currentDealerPermissions.updatePermissions?.isEnabled || false}
+                        disabled
+                        id="current-update-enabled"
+                      />
+                      <Label htmlFor="current-update-enabled" className="flex items-center gap-2">
+                        <Edit className="w-4 h-4" />
+                        <span className="font-semibold">Update Permissions</span>
+                      </Label>
+                    </div>
+                    {currentDealerPermissions.updatePermissions?.isEnabled && (
+                      <Badge variant="secondary">
+                        {currentDealerPermissions.updatePermissions?.allowed_fields?.length || 0} field
+                        {(currentDealerPermissions.updatePermissions?.allowed_fields?.length || 0) !== 1 ? 's' : ''} selected
+                      </Badge>
+                    )}
+                  </div>
+                  {currentDealerPermissions.updatePermissions?.isEnabled && (
+                    <div>
+                      <Label className="text-muted-foreground">Allowed Fields for Updating</Label>
+                      <MultiSelectField
+                        options={PRODUCT_FIELDS.map(field => ({
+                          value: field.value,
+                          label: field.label,
+                          category: field.category
+                        }))}
+                        selected={currentDealerPermissions.updatePermissions?.allowed_fields || []}
+                        onChange={() => {}} // Read-only, no-op
+                        placeholder={
+                          (currentDealerPermissions.updatePermissions?.allowed_fields?.length || 0) === 0
+                            ? "All fields allowed"
+                            : "No fields selected"
+                        }
+                        searchPlaceholder="Search fields..."
+                        className="mt-2"
+                        disabled={true}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {(currentDealerPermissions.updatePermissions?.allowed_fields?.length || 0) === 0
+                          ? "All fields are accessible for updating"
+                          : "Only selected fields are accessible for updating"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Permissions Display */}
+                <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                  <h4 className="font-semibold">Action Permissions</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={currentDealerPermissions.isAdd || false}
+                        disabled
+                        id="current-is-add"
+                      />
+                      <Label htmlFor="current-is-add" className="cursor-default">Can Add New Products</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={currentDealerPermissions.isDelete || false}
+                        disabled
+                        id="current-is-delete"
+                      />
+                      <Label htmlFor="current-is-delete" className="cursor-default">Can Delete Products</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={currentDealerPermissions.isUpdateStock || false}
+                        disabled
+                        id="current-is-update-stock"
+                      />
+                      <Label htmlFor="current-is-update-stock" className="cursor-default flex items-center gap-1">
+                        <FileUp className="w-4 h-4" />
+                        Can Update Stock
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">No permissions configured for this dealer.</p>
+                <p className="text-xs mt-1">Select permissions below to configure them.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Permissions Configuration */}
       <Card>

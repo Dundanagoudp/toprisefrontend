@@ -10,6 +10,17 @@ export function getAllCookies(): { [key: string]: string } {
   return allCookies
 }
 
+export function getUserRoleFromCookies(): string | null {
+  const possibleRoleNames = ["role", "userRole", "authRole"]
+  for (const name of possibleRoleNames) {
+    const role = getCookie(name)
+    if (role) {
+      return role
+    }
+  }
+  return null
+}
+
 export function getUserIdFromToken(): string | null {
   try {
     // First, let's see all available cookies

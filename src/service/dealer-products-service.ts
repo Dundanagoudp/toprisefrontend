@@ -154,9 +154,9 @@ export async function getDealerProducts(
     // If dealerId is not provided, get it from dealer services
     if (!id) {
       try {
-        console.log(`[getDealerProducts] Getting dealer ID from dealer services`);
+       
         id = await getDealerIdFromUserId();
-        console.log(`[getDealerProducts] Successfully got dealer ID: ${id}`);
+       
       } catch (dealerServiceError) {
         console.error("Failed to get dealer ID from dealer services:", dealerServiceError);
         throw new Error("Unable to determine dealer ID");
@@ -300,4 +300,29 @@ export function getPriorityText(priority: number): string {
   } else {
     return 'Low';
   }
+}
+
+// Check if user can view a specific field based on read permissions
+export function canViewField(
+  allowedFields: string[] | null | undefined,
+  fieldName: string,
+  isEnabled: boolean
+): boolean {
+  // If permissions are disabled, show all fields
+  if (!isEnabled) {
+    return true;
+  }
+  
+  // If allowedFields is null or undefined, show all fields (no restrictions)
+  if (!allowedFields) {
+    return true;
+  }
+  
+  // If allowedFields is empty array, show all fields (no restrictions)
+  if (allowedFields.length === 0) {
+    return true;
+  }
+  
+  // Check if the field is in the allowed fields array
+  return allowedFields.includes(fieldName);
 }

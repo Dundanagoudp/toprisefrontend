@@ -55,6 +55,24 @@ export interface Category {
   type?: string 
 }
 
+export interface ReadPermissions {
+  allowed_fields: string[]
+  isEnabled: boolean
+}
+
+export interface UpdatePermissions {
+  allowed_fields: string[]
+  isEnabled: boolean
+}
+
+export interface DealerPermissions {
+  isAdd?: boolean
+  isDelete?: boolean
+  isUpdateStock?: boolean
+  readPermissions?: ReadPermissions
+  updatePermissions?: UpdatePermissions
+}
+
 export interface Dealer {
   _id: string
   user_id: User
@@ -78,6 +96,7 @@ export interface Dealer {
   created_at: string
   updated_at: string
   __v: number
+  permission?: DealerPermissions
 }
 
 export interface CreateDealerRequest {
