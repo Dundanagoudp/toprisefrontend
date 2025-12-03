@@ -252,6 +252,12 @@ export const Header = () => {
         </NavigationMenuTrigger>
         <NavigationMenuContent>
           <div className="w-48 p-2">
+          <NavigationMenuLink
+              href="/Aboutus"
+              className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              About Us
+            </NavigationMenuLink>
             <NavigationMenuLink
               href="/PrivacyPolicy"
               className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"

@@ -575,7 +575,7 @@ export default function ProductPage() {
                   )}
               </div>
               {/* <p className="text-sm text-green-600">Inclusive of all taxes</p> */}
-              {product.out_of_stock ? (
+              {product.out_of_stock  ? (
                 <p className="text-sm text-red-600">Out of Stock</p>
               ) : (
                 <p className="text-sm text-green-600">In Stock</p>
@@ -664,6 +664,7 @@ export default function ProductPage() {
                 size="lg"
                 onClick={handleAddToCart}
                 disabled={
+                  product.out_of_stock ||
                   (Array.isArray(product.available_dealers) &&
                     product.available_dealers.length > 0 &&
                     !product.available_dealers[0].inStock) ||
@@ -682,6 +683,7 @@ export default function ProductPage() {
                 size="lg"
                 className="flex-1 text-white"
                 disabled={
+                  product.out_of_stock ||
                   (Array.isArray(product.available_dealers) &&
                     product.available_dealers.length > 0 &&
                     !product.available_dealers[0].inStock) ||

@@ -2073,7 +2073,7 @@ export default function ProfilePage() {
               description=" Raise a ticket and we'll get back to you as soon as possible."
             >
               <DynamicButton
-                text="RAISE A TICKET"
+                text="Rice Ticket"
                 className="bg-red-600 hover:bg-red-700 text-white mb-4"
                 onClick={() => setIsRiseTicketOpen(true)}
               />

@@ -91,14 +91,19 @@ export const CartSidebar = ({
                       <h4 className="font-medium text-gray-900 truncate">{item.product_name}</h4>
                       <p className="text-sm text-gray-500">SKU: {item.sku}</p>
                       <div className="flex items-center gap-2">
-                        {item.mrp && item.mrp > item.selling_price ? (
-                          <>
-                            <span className="text-sm text-gray-500 line-through">₹{item.mrp}</span>
-                            <span className="text-sm font-medium text-gray-900">₹{item.selling_price}</span>
-                          </>
-                        ) : (
-                          <span className="text-sm font-medium text-gray-900">₹{item.selling_price}</span>
-                        )}
+                        {(() => {
+                          const unitMrp = item.mrp ? item.mrp / item.quantity : item.mrp;
+                          const unitSellingPrice = item.product_total ? item.product_total / item.quantity : item.selling_price;
+                          
+                          return unitMrp && unitMrp > unitSellingPrice ? (
+                            <>
+                              <span className="text-sm text-gray-500 line-through">₹{Math.round(unitMrp)}</span>
+                              <span className="text-sm font-medium text-gray-900">₹{Math.round(unitSellingPrice)}</span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-medium text-gray-900">₹{Math.round(unitSellingPrice)}</span>
+                          );
+                        })()}
                       </div>
                     </div>
                     
