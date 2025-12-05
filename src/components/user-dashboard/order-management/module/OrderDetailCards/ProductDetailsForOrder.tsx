@@ -27,6 +27,7 @@ import MarkPackedModal from "../order-popus/MarkPackedModal";
 import ViewPicklistsModal from "../order-popus/ViewPicklistsModal";
 import { useAppSelector } from "@/store/hooks";
 import { updateOrderStatusByDealer } from "@/service/dealerOrder-services";
+import { getDealerById } from "@/service/dealerServices";
 import { getCookie, getAuthToken } from "@/utils/auth";
 import {
   getAllPicklists,
@@ -223,7 +224,7 @@ const ProductRow = ({
             </p>
             <p>
               <span className="font-semibold">Total:</span> ₹
-              {item.totalPrice?.toLocaleString()}
+              {item.product_total?.toLocaleString()}
             </p>
             {item.return_info?.is_returned && (
               <p className="text-orange-600">
@@ -329,6 +330,7 @@ export default function ProductDetailsForOrder({
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState<string>("");
+  const [dealerInfoMap, setDealerInfoMap] = useState<Record<string, { trade_name: string; legal_name: string }>>({});
 
   // Group products by dealerId -> array of sku + quantity
   const dealerSkuGroups: Record<string, Array<{ sku: string; quantity: number }>> = React.useMemo(() => {
@@ -407,6 +409,43 @@ export default function ProductDetailsForOrder({
     }
   }, [orderId]);
 
+  // Fetch dealer info for displaying trade_name in CreatePicklist
+  useEffect(() => {
+    const ids = Object.keys(dealerSkuGroups || {});
+    if (!ids.length) {
+      setDealerInfoMap({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const results = await Promise.all(
+          ids.map(async (id) => {
+            try {
+              const res = await getDealerById(id);
+              const dealer = (res as any)?.data;
+              return [id, { trade_name: dealer?.trade_name || "", legal_name: dealer?.legal_name || "" }] as const;
+            } catch {
+              return [id, { trade_name: "", legal_name: "" }] as const;
+            }
+          })
+        );
+        if (!cancelled) {
+          const map: Record<string, { trade_name: string; legal_name: string }> = {};
+          results.forEach(([id, info]) => {
+            map[id] = info;
+          });
+          setDealerInfoMap(map);
+        }
+      } catch {
+        if (!cancelled) setDealerInfoMap({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dealerSkuGroups]);
+
   const handleAction = async (type: string, item: ProductItem) => {
     setSelectedItem(item);
 
@@ -475,6 +514,7 @@ export default function ProductDetailsForOrder({
         });
         if (result.success) {
           showToast("Picklist inspection started", "success");
+          onRefresh?.();
           // window.location.href = `/user/dashboard/picklist?picklistId=${picklistId}`;
         }
       } catch (error) {
@@ -504,6 +544,7 @@ export default function ProductDetailsForOrder({
         );
         if (stopInspect.success) {
           showToast("Picklist inspection stopped", "success");
+          onRefresh?.();
           // window.location.href = `/user/dashboard/picklist?picklistId=${picklistId}`;
         }
       } catch (error) {
@@ -631,7 +672,9 @@ export default function ProductDetailsForOrder({
             products={(products || []).map((p) => ({
               sku: p.sku,
               dealerId: p.dealerId,
+              productId: p.productId,
             }))}
+            onSuccess={() => onRefresh?.()}
           />
           <MarkPackedModal
             open={activeAction === "markPacked"}
@@ -645,6 +688,7 @@ export default function ProductDetailsForOrder({
             orderId={orderId}
             dealerId={safeDealerId(selectedItem?.dealerId)}
             sku={selectedItem?.sku || ""}
+            onSuccess={() => onRefresh?.()}
           />
         </>
       )}
@@ -669,6 +713,7 @@ export default function ProductDetailsForOrder({
             : []
         }
         groupedDealerSkus={dealerSkuGroups}
+        dealerInfoMap={dealerInfoMap}
       />
 
       <ViewPicklistsModal

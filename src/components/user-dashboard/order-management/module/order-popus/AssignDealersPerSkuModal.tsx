@@ -23,6 +23,7 @@ interface AssignDealersPerSkuModalProps {
   onOpenChange: (open: boolean) => void
   orderId?: string
   products?: ProductItem[] | null
+  onSuccess?: () => void
 }
 
 const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
@@ -30,6 +31,7 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
   onOpenChange,
   orderId = "",
   products = [],
+  onSuccess,
 }) => {
   const { showToast } = GlobalToast()
   const [dealers, setDealers] = useState<Dealer[]>([])
@@ -83,6 +85,7 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
       }
       await assignDealersToOrder(payload as any)
       showToast("Dealers assigned", "success")
+      onSuccess?.()
       onOpenChange(false)
     } catch (e) {
       showToast("Failed to assign dealers", "error")

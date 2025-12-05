@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 import { markOrderAsPacked } from "@/service/order-service"
 import { useAppSelector } from "@/store/hooks"
+import { getDealerById } from "@/service/dealerServices"
 
 interface MarkPackedModalProps {
   open: boolean
@@ -13,6 +14,7 @@ interface MarkPackedModalProps {
   orderId?: string
   dealerId?: string
   sku?: string
+  onSuccess?: () => void
 }
 
 export default function MarkPackedModal({ 
@@ -20,16 +22,40 @@ export default function MarkPackedModal({
   onOpenChange, 
   orderId = "", 
   dealerId = "",
-  sku = ""
+  sku = "",
+  onSuccess
 }: MarkPackedModalProps) {
   const { showToast } = useToast()
   const auth = useAppSelector((state) => state.auth.user)
   const [totalWeightKg, setTotalWeightKg] = useState<string | number>("")
   const [loading, setLoading] = useState(false)
+  const [dealerTradeName, setDealerTradeName] = useState<string>("")
 
   useEffect(() => {
     if (!open) setTotalWeightKg("")
   }, [open])
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchDealer = async () => {
+      try {
+        if (!dealerId) {
+          setDealerTradeName("")
+          return
+        }
+        const res = await getDealerById(dealerId)
+        const dealer: any = (res as any)?.data
+        const name = dealer?.trade_name || dealer?.legal_name || ""
+        if (!cancelled) setDealerTradeName(name)
+      } catch {
+        if (!cancelled) setDealerTradeName("")
+      }
+    }
+    fetchDealer()
+    return () => {
+      cancelled = true
+    }
+  }, [dealerId])
 
   const handleMarkPacked = async () => {
     const weight = Number(totalWeightKg)
@@ -49,6 +75,7 @@ export default function MarkPackedModal({
         forcePacking: isSuperAdmin
       })
       showToast("Order marked as packed", "success")
+      onSuccess?.()
       onOpenChange(false)
     } catch (error) {
       showToast("Failed to mark packed", "error")
@@ -77,10 +104,10 @@ export default function MarkPackedModal({
             </div>
             
             <div>
-              <label className="text-sm font-medium text-gray-700">Dealer ID</label>
+              <label className="text-sm font-medium text-gray-700">Dealer Trade Name</label>
               <Input
                 type="text"
-                value={dealerId || "N/A"}
+                value={dealerTradeName || "N/A"}
                 readOnly
                 className="bg-gray-50 cursor-default"
               />

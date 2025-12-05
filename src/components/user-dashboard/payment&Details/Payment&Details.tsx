@@ -71,7 +71,8 @@ export default function PaymentDetails() {
   const [showFilters, setShowFilters] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("all");
-  const [filterDateRange, setFilterDateRange] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   
   // Pagination state from server
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,73 +81,39 @@ export default function PaymentDetails() {
   const itemsPerPage = 10;
 
   const [tempStatus, setTempStatus] = useState("all");
-const [tempMethod, setTempMethod] = useState("all");
-const [tempDate, setTempDate] = useState("all");
+  const [tempMethod, setTempMethod] = useState("all");
+  const [tempStartDate, setTempStartDate] = useState<string>("");
+  const [tempEndDate, setTempEndDate] = useState<string>("");
 
   // Fetch payments with pagination
   useEffect(() => {
-  const fetchPaymentDetails = async () => {
-    try {
-      setLoading(true);
+    const fetchPaymentDetails = async () => {
+      try {
+        setLoading(true);
 
-      const { start, end } = getDateRange();
+        const response = await getPaymentDetails(currentPage, itemsPerPage, {
+          payment_status: filterStatus,
+          payment_method: filterPaymentMethod,
+          startDate: startDate || null,
+          endDate: endDate || null,
+          sort: orderAmountSort || undefined
+        });
 
-      const response = await getPaymentDetails(currentPage, itemsPerPage, {
-        payment_status: filterStatus,
-        payment_method: filterPaymentMethod,
-        startDate: start,
-        endDate: end,
-        sort: orderAmountSort || undefined
-      });
+        setPayments(response.data.data);
+        console.log("🔍 Payment details:", response.data.data);
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalItems(response.data.pagination.totalItems);
 
-      setPayments(response.data.data);
-      console.log("🔍 Payment details:", response.data.data);
-      setTotalPages(response.data.pagination.totalPages);
-      setTotalItems(response.data.pagination.totalItems);
+      } catch (error) {
+        console.log("error in payment details", error);
+        setPayments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    } catch (error) {
-      console.log("error in payment details", error);
-      setPayments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchPaymentDetails();
-}, [currentPage, filterStatus, filterPaymentMethod, filterDateRange, orderAmountSort]);
-// }, [currentPage]);
-
-
-  const getDateRange = () => {
-  const now = new Date();
-  let start = null;
-  let end = now.toISOString().split("T")[0]; // yyyy-mm-dd
-
-  switch (filterDateRange) {
-    case "today":
-      start = end;
-      break;
-    case "week":
-      const week = new Date();
-      week.setDate(now.getDate() - 7);
-      start = week.toISOString().split("T")[0];
-      break;
-    case "month":
-      const month = new Date();
-      month.setMonth(now.getMonth() - 1);
-      start = month.toISOString().split("T")[0];
-      break;
-    case "year":
-      const year = new Date();
-      year.setFullYear(now.getFullYear() - 1);
-      start = year.toISOString().split("T")[0];
-      break;
-    default:
-      start = null;
-  }
-
-  return { start, end };
-};
+    fetchPaymentDetails();
+  }, [currentPage, filterStatus, filterPaymentMethod, startDate, endDate, orderAmountSort]);
 
   // Removed mock data - now using real API data
 
@@ -182,28 +149,18 @@ const [tempDate, setTempDate] = useState("all");
 
 
     // Apply date range filter
-    if (filterDateRange !== "all") {
-      const now = new Date();
-      const filterDate = new Date();
+    if (startDate || endDate) {
+      const paymentDate = (date: string) => new Date(date).setHours(0, 0, 0, 0);
+      const start = startDate ? paymentDate(startDate) : null;
+      const end = endDate ? paymentDate(endDate) : null;
       
-      switch (filterDateRange) {
-        case "today":
-          filterDate.setHours(0, 0, 0, 0);
-          break;
-        case "week":
-          filterDate.setDate(now.getDate() - 7);
-          break;
-        case "month":
-          filterDate.setMonth(now.getMonth() - 1);
-          break;
-        case "year":
-          filterDate.setFullYear(now.getFullYear() - 1);
-          break;
-      }
-      
-      currentPayments = currentPayments.filter(
-        (payment) => new Date(payment.created_at) >= filterDate
-      );
+      currentPayments = currentPayments.filter((payment) => {
+        const created = paymentDate(payment.created_at);
+        if (start && end) return created >= start && created <= end;
+        if (start) return created >= start;
+        if (end) return created <= end;
+        return true;
+      });
     }
 
     // Sort payments
@@ -254,7 +211,7 @@ const [tempDate, setTempDate] = useState("all");
     }
     
     return currentPayments;
-  }, [payments, searchQuery, sortField, sortDirection, filterStatus, filterPaymentMethod, filterDateRange]);
+  }, [payments, searchQuery, sortField, sortDirection, filterStatus, filterPaymentMethod, startDate, endDate]);
 
   // Use filtered payments directly (no additional pagination since server handles it)
   const paginatedData = filteredAndSortedPayments;
@@ -324,25 +281,28 @@ const [tempDate, setTempDate] = useState("all");
 
   // Filter handlers
   const handleClearFilters = () => {
-  setTempStatus("all");
-  setTempMethod("all");
-  setTempDate("all");
+    setTempStatus("all");
+    setTempMethod("all");
+    setTempStartDate("");
+    setTempEndDate("");
 
-  setFilterStatus("all");
-  setFilterPaymentMethod("all");
-  setFilterDateRange("all");
+    setFilterStatus("all");
+    setFilterPaymentMethod("all");
+    setStartDate("");
+    setEndDate("");
 
-  setCurrentPage(1);
-};
+    setCurrentPage(1);
+  };
 
- const handleApplyFilters = () => {
-  setFilterStatus(tempStatus);
-  setFilterPaymentMethod(tempMethod);
-  setFilterDateRange(tempDate);
+  const handleApplyFilters = () => {
+    setFilterStatus(tempStatus);
+    setFilterPaymentMethod(tempMethod);
+    setStartDate(tempStartDate);
+    setEndDate(tempEndDate);
 
-  setCurrentPage(1);
-  setShowFilters(false);
-};
+    setCurrentPage(1);
+    setShowFilters(false);
+  };
 
   
   // Reset page when filter changes
@@ -356,9 +316,19 @@ const [tempDate, setTempDate] = useState("all");
     let count = 0;
     if (filterStatus !== "all") count++;
     if (filterPaymentMethod !== "all") count++;
-    if (filterDateRange !== "all") count++;
+    if (startDate || endDate) count++;
     return count;
   };
+
+  // Sync temp filters when dialog opens
+  useEffect(() => {
+    if (showFilters) {
+      setTempStatus(filterStatus);
+      setTempMethod(filterPaymentMethod);
+      setTempStartDate(startDate);
+      setTempEndDate(endDate);
+    }
+  }, [showFilters]);
 
   // Export functions for payment list
   const exportPaymentsToCSV = () => {
@@ -767,21 +737,24 @@ const [tempDate, setTempDate] = useState("all");
             
             
             <div className="grid gap-2">
-              <Label htmlFor="date-filter">Date Range</Label>
-              {/* <Select value={filterDateRange} onValueChange={setFilterDateRange}> */}
-              <Select value={tempDate} onValueChange={setTempDate}>
-
-                <SelectTrigger>
-                  <SelectValue placeholder="Select date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">Last 7 Days</SelectItem>
-                  <SelectItem value="month">Last 30 Days</SelectItem>
-                  <SelectItem value="year">Last Year</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="start-date">From Date</Label>
+              <input
+                id="start-date"
+                type="date"
+                value={tempStartDate}
+                onChange={(e) => setTempStartDate(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="end-date">To Date</Label>
+              <input
+                id="end-date"
+                type="date"
+                value={tempEndDate}
+                onChange={(e) => setTempEndDate(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
             </div>
           </div>
           <DialogFooter>
