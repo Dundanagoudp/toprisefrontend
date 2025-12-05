@@ -98,9 +98,8 @@ export default function ViewProductDetails() {
     if (typeof value === "boolean") {
       return (
         <span
-          className={`text-sm px-2 py-1 rounded ${
-            value ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-          }`}
+          className={`text-sm px-2 py-1 rounded ${value ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+            }`}
         >
           {value ? "True" : "False"}
         </span>
@@ -295,7 +294,7 @@ export default function ViewProductDetails() {
     router.push(`/user/dashboard/product/productedit/${idObj.id}`);
   };
 
-  React.useEffect(() => {}, []);
+  React.useEffect(() => { }, []);
 
   // Update status if product changes
   React.useEffect(() => {
@@ -358,34 +357,34 @@ export default function ViewProductDetails() {
             data={
               product
                 ? [
-                    { label: "SKU Code", value: product.sku_code || "-" },
-                    {
-                      label: "Manufacturer Part Number (MPN)",
-                      value: product.manufacturer_part_name || "-",
-                    },
-                    {
-                      label: "Product Name",
-                      value: product.product_name || "-",
-                    },
-                    { label: "Brand", value: product.brand?.brand_name || "-" },
-                    {
-                      label: "Category",
-                      value: product.category?.category_name || "-",
-                    },
-                    {
-                      label: "Sub-category",
-                      value: product.sub_category?.subcategory_name || "-",
-                    },
-                    {
-                      label: "Product Type",
-                      value: product.product_type || "-",
-                    },
-                    {
-                      label: "Vehicle Type",
-                      value: product.brand?.type?.type_name || "-",
-                    },
-                    { label: "HSN Code", value: product.hsn_code || "-" },
-                  ]
+                  { label: "SKU Code", value: product.sku_code || "-" },
+                  {
+                    label: "Manufacturer Part Number (MPN)",
+                    value: product.manufacturer_part_name || "-",
+                  },
+                  {
+                    label: "Product Name",
+                    value: product.product_name || "-",
+                  },
+                  { label: "Brand", value: product.brand?.brand_name || "-" },
+                  {
+                    label: "Category",
+                    value: product.category?.category_name || "-",
+                  },
+                  {
+                    label: "Sub-category",
+                    value: product.sub_category?.subcategory_name || "-",
+                  },
+                  {
+                    label: "Product Type",
+                    value: product.product_type || "-",
+                  },
+                  {
+                    label: "Vehicle Type",
+                    value: product.brand?.type?.type_name || "-",
+                  },
+                  { label: "HSN Code", value: product.hsn_code || "-" },
+                ]
                 : []
             }
           />
@@ -400,34 +399,34 @@ export default function ViewProductDetails() {
             data={
               product
                 ? [
-                    {
-                      label: "Make",
-                      value: Array.isArray(product.make)
-                        ? product.make.join(", ")
-                        : "-",
-                    },
-                    { label: "Model", value: product.model?.model_name || "-" },
-                    {
-                      label: "Year Range",
-                      value: Array.isArray(product.year_range)
-                        ? product.year_range.map((y) => y.year_name).join(", ")
-                        : "-",
-                    },
-                    {
-                      label: "Variant",
-                      value: Array.isArray(product.variant)
-                        ? product.variant.map((v) => v.variant_name).join(", ")
-                        : "-",
-                    },
-                    {
-                      label: "Fitment Notes",
-                      value: product.fitment_notes || "-",
-                    },
-                    {
-                      label: "Is Universal",
-                      value: product.is_universal ? "Yes" : "No",
-                    },
-                  ]
+                  {
+                    label: "Make",
+                    value: Array.isArray(product.make)
+                      ? product.make.join(", ")
+                      : "-",
+                  },
+                  { label: "Model", value: product.model?.model_name || "-" },
+                  {
+                    label: "Year Range",
+                    value: Array.isArray(product.year_range)
+                      ? product.year_range.map((y) => y.year_name).join(", ")
+                      : "-",
+                  },
+                  {
+                    label: "Variant",
+                    value: Array.isArray(product.variant)
+                      ? product.variant.map((v) => v.variant_name).join(", ")
+                      : "-",
+                  },
+                  {
+                    label: "Fitment Notes",
+                    value: product.fitment_notes || "-",
+                  },
+                  {
+                    label: "Is Universal",
+                    value: product.is_universal ? "Yes" : "No",
+                  },
+                ]
                 : []
             }
           />
@@ -439,29 +438,29 @@ export default function ViewProductDetails() {
             data={
               product
                 ? [
-                    {
-                      label: "Key Specifications",
-                      value: product.key_specifications || "-",
-                    },
-                    {
-                      label: "Dimensions",
-                      value: product.weight ? `${product.weight} kg` : "-",
-                    },
-                    {
-                      label: "Certifications",
-                      value: product.certifications || "-",
-                    },
-                    {
-                      label: "Warranty",
-                      value: product.warranty
-                        ? `${product.warranty} months`
-                        : "-",
-                    },
-                    {
-                      label: "Is Consumable",
-                      value: product.is_consumable ? "Yes" : "No",
-                    },
-                  ]
+                  {
+                    label: "Key Specifications",
+                    value: product.key_specifications || "-",
+                  },
+                  {
+                    label: "Dimensions",
+                    value: product.weight ? `${product.weight} kg` : "-",
+                  },
+                  {
+                    label: "Certifications",
+                    value: product.certifications || "-",
+                  },
+                  {
+                    label: "Warranty",
+                    value: product.warranty
+                      ? `${product.warranty} months`
+                      : "-",
+                  },
+                  {
+                    label: "Is Consumable",
+                    value: product.is_consumable ? "Yes" : "No",
+                  },
+                ]
                 : []
             }
           />
@@ -476,17 +475,16 @@ export default function ViewProductDetails() {
           >
             <div className="space-y-4">
               {product &&
-              Array.isArray(product.images) &&
-              product.images.length > 0 ? (
+                Array.isArray(product.images) &&
+                product.images.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
                   {product.images.map((img: string, idx: number) => (
                     <div key={idx} className={idx === 0 ? "col-span-2" : ""}>
                       <img
                         src={img}
                         alt={`img-${idx}`}
-                        className={`w-full bg-gray-200 rounded-md object-cover ${
-                          idx === 0 ? "aspect-video" : "aspect-square"
-                        }`}
+                        className={`w-full bg-gray-200 rounded-md object-cover ${idx === 0 ? "aspect-video" : "aspect-square"
+                          }`}
                       />
                     </div>
                   ))}
@@ -504,33 +502,33 @@ export default function ViewProductDetails() {
             data={
               product
                 ? [
-                    {
-                      label: "MRP (with GST)",
-                      value: product.mrp_with_gst
-                        ? `₹${product.mrp_with_gst}`
-                        : "-",
-                    },
-                    {
-                      label: "Selling Price",
-                      value: product.selling_price
-                        ? `₹${product.selling_price}`
-                        : "-",
-                    },
-                    {
-                      label: "GST %",
-                      value: product.gst_percentage
-                        ? String(product.gst_percentage)
-                        : "-",
-                    },
-                    {
-                      label: "Returnable",
-                      value: product.is_returnable ? "Yes" : "No",
-                    },
-                    // {
-                    //   label: "Return Policy",
-                    //   value: product.return_policy || "-",
-                    // },
-                  ]
+                  {
+                    label: "MRP (with GST)",
+                    value: product.mrp_with_gst
+                      ? `₹${product.mrp_with_gst}`
+                      : "-",
+                  },
+                  {
+                    label: "Selling Price",
+                    value: product.selling_price
+                      ? `₹${product.selling_price}`
+                      : "-",
+                  },
+                  {
+                    label: "GST %",
+                    value: product.gst_percentage
+                      ? String(product.gst_percentage)
+                      : "-",
+                  },
+                  {
+                    label: "Returnable",
+                    value: product.is_returnable ? "Yes" : "No",
+                  },
+                  // {
+                  //   label: "Return Policy",
+                  //   value: product.return_policy || "-",
+                  // },
+                ]
                 : []
             }
           />
@@ -571,18 +569,18 @@ export default function ViewProductDetails() {
               data={
                 product
                   ? [
-                      { label: "SEO Title", value: product.seo_title || "-" },
-                      {
-                        label: "SEO Description",
-                        value: product.seo_description || "-",
-                      },
-                      {
-                        label: "Search Tags",
-                        value: Array.isArray(product.search_tags)
-                          ? product.search_tags.join(", ")
-                          : "-",
-                      },
-                    ]
+                    { label: "SEO Title", value: product.seo_title || "-" },
+                    {
+                      label: "SEO Description",
+                      value: product.seo_description || "-",
+                    },
+                    {
+                      label: "Search Tags",
+                      value: Array.isArray(product.search_tags)
+                        ? product.search_tags.join(", ")
+                        : "-",
+                    },
+                  ]
                   : []
               }
             />
@@ -594,37 +592,37 @@ export default function ViewProductDetails() {
               data={
                 product
                   ? [
-                      {
-                        label: "Product Version",
-                        value: product.product_Version || "-",
-                      },
-                      {
-                        label: "Iteration Number",
-                        value: product.iteration_number
-                          ? String(product.iteration_number)
-                          : "-",
-                      },
-                      {
-                        label: "Live Status",
-                        value: product.live_status || "-",
-                      },
-                      {
-                        label: "QC Status",
-                        value: product.Qc_status || "-",
-                      },
-                      {
-                        label: "Created At",
-                        value: product.created_at
-                          ? new Date(product.created_at).toLocaleDateString()
-                          : "-",
-                      },
-                      {
-                        label: "Last Updated",
-                        value: product.updated_at
-                          ? new Date(product.updated_at).toLocaleDateString()
-                          : "-",
-                      },
-                    ]
+                    {
+                      label: "Product Version",
+                      value: product.product_Version || "-",
+                    },
+                    {
+                      label: "Iteration Number",
+                      value: product.iteration_number
+                        ? String(product.iteration_number)
+                        : "-",
+                    },
+                    {
+                      label: "Live Status",
+                      value: product.live_status || "-",
+                    },
+                    {
+                      label: "QC Status",
+                      value: product.Qc_status || "-",
+                    },
+                    {
+                      label: "Created At",
+                      value: product.created_at
+                        ? new Date(product.created_at).toLocaleDateString()
+                        : "-",
+                    },
+                    {
+                      label: "Last Updated",
+                      value: product.updated_at
+                        ? new Date(product.updated_at).toLocaleDateString()
+                        : "-",
+                    },
+                  ]
                   : []
               }
             >
@@ -720,7 +718,18 @@ export default function ViewProductDetails() {
 
       {/* Product History Timeline Drawer */}
       <Sheet open={showHistoryDrawer} onOpenChange={setShowHistoryDrawer}>
-        <SheetContent className="w-full sm:w-[90vw] md:w-[600px] lg:w-[700px] max-w-[700px] p-0 bg-gray-50 flex flex-col">
+        <SheetContent
+          side="right"
+          className="
+    !w-[95vw] 
+    !max-w-[900px] 
+    !h-screen 
+    !p-0 
+    bg-gray-50 
+    flex flex-col
+  "
+        >
+
           <SheetHeader className="bg-white p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
             <SheetTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-semibold text-gray-900">
               <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
@@ -743,13 +752,9 @@ export default function ViewProductDetails() {
               <ScrollArea className="flex-1 px-2 sm:px-4 py-4 overflow-y-auto">
                 <div className="space-y-4 sm:space-y-6">
                   {(() => {
-                    const sortedLogs = [...product.change_logs].sort(
-                      (a: any, b: any) => {
-                        const dateA = new Date(a.modified_At).getTime();
-                        const dateB = new Date(b.modified_At).getTime();
-                        return dateB - dateA; // Descending order (most recent first)
-                      }
-                    );
+                    const sortedLogs = [...product.change_logs]
+                      .sort((a, b) => Number(b.iteration_number) - Number(a.iteration_number));
+
                     return sortedLogs.map((log: any, index: number) => {
                       const formattedLog = formatChangeLog(log);
                       return (
