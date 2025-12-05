@@ -1,5 +1,5 @@
 import apiClient from "@/apiClient";
-import { ReturnRequestsResponse, SingleReturnResponse } from "@/types/return-Types";
+import { ReturnRequestsResponse, SingleReturnResponse, ReturnStatsResponse } from "@/types/return-Types";
 
 export const getReturnRequests = async (params?: {
   refundMethod?: string;
@@ -250,6 +250,16 @@ export const processManualRefund = async (
     );
     return response.data;
   } catch (error: any) {
+    throw error;
+  }
+};
+
+export const getReturnStats = async (): Promise<ReturnStatsResponse> => {
+  try {
+    const response = await apiClient.get('/orders/api/returns/return/stats');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching return stats:", error);
     throw error;
   }
 };

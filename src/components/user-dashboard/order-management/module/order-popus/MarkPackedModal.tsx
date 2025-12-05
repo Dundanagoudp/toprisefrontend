@@ -14,6 +14,8 @@ interface MarkPackedModalProps {
   orderId?: string
   dealerId?: string
   sku?: string
+  productName?: string
+  mpn?: string
   onSuccess?: () => void
 }
 
@@ -23,6 +25,8 @@ export default function MarkPackedModal({
   orderId = "", 
   dealerId = "",
   sku = "",
+  productName = "",
+  mpn = "",
   onSuccess
 }: MarkPackedModalProps) {
   const { showToast } = useToast()
@@ -108,6 +112,26 @@ export default function MarkPackedModal({
               <Input
                 type="text"
                 value={dealerTradeName || "N/A"}
+                readOnly
+                className="bg-gray-50 cursor-default"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700">Product Name</label>
+              <Input
+                type="text"
+                value={productName || "N/A"}
+                readOnly
+                className="bg-gray-50 cursor-default"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700">MPN</label>
+              <Input
+                type="text"
+                value={mpn || "N/A"}
                 readOnly
                 className="bg-gray-50 cursor-default"
               />

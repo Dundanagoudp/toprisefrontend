@@ -86,9 +86,24 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const [borzoLoading, setBorzoLoading] = useState(false);
   const { showToast } = useGlobalToast();
 
+  // Image modal state
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
   useEffect(() => {
     fetchReturnDetails();
   }, [returnId]);
+
+  // Image modal handlers
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setIsImageModalOpen(true);
+  };
+
+  const closeImageModal = () => {
+    setIsImageModalOpen(false);
+    setSelectedImage(null);
+  };
 
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -822,65 +837,73 @@ const handleRefund = async () => {
                    {/* Debug Information */}
               
                    
-                   {returnRequest.returnImages && returnRequest.returnImages.length > 0 ? (
-                     <div className="space-y-4">
-                       <div className="text-sm text-gray-600 mb-2">
-                         Found {returnRequest.returnImages.length} image(s)
-                       </div>
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                       {returnRequest.returnImages.map((img, idx) => (
-                           <div key={idx} className="mb-2">
-                             <img 
-                               src={img} 
-                               alt={`Test ${idx + 1}`}
-                               className="w-20 h-20 object-cover border rounded"
-                               onLoad={() => console.log(`Simple test image ${idx + 1} loaded`)}
-                               onError={() => console.log(`Simple test image ${idx + 1} failed`)}
-                             />
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   ) : (
-                     <div className="text-center py-8 text-gray-500">
-                       <Image className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                       <p>No return images attached</p>
-                       <p className="text-xs text-gray-400 mt-2">
-                         Images uploaded by the customer will appear here
-                       </p>
-                     </div>
-                   )}
+                  {returnRequest.returnImages && returnRequest.returnImages.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="text-sm text-gray-600 mb-2">
+                        Found {returnRequest.returnImages.length} image(s)
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {returnRequest.returnImages.map((img, idx) => (
+                          <div 
+                            key={idx} 
+                            className="relative group cursor-pointer"
+                            onClick={() => handleImageClick(img)}
+                          >
+                            <img 
+                              src={img} 
+                              alt={`Return image ${idx + 1}`}
+                              className="w-full h-48 object-cover rounded-lg border border-gray-200 transition-transform duration-200 group-hover:scale-105"
+                              onError={(e) => {
+                                e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
+                              }}
+                            />
+                            <div className="absolute inset-0  group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-full p-2">
+                                <Eye className="h-5 w-5 text-gray-800" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Image className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>No return images attached</p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Images uploaded by the customer will appear here
+                      </p>
+                    </div>
+                  )}
                    
-                   {returnRequest.inspection?.inspectionImages && returnRequest.inspection.inspectionImages.length > 0 && (
-                     <div className="mt-8">
-                       <h4 className="font-medium text-gray-900 mb-4">Inspection Images</h4>
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                         {returnRequest.inspection.inspectionImages.map((imageUrl, index) => (
-                           <div key={index} className="relative group">
-                             <img
-                               src={imageUrl}
-                               alt={`Inspection image ${index + 1}`}
-                               className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                               onError={(e) => {
-                                 e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
-                               }}
-                             />
-                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
-                               <Button
-                                 variant="secondary"
-                                 size="sm"
-                                 className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                 onClick={() => window.open(imageUrl, '_blank')}
-                               >
-                                 <Eye className="h-4 w-4 mr-2" />
-                                 View Full
-                               </Button>
-                             </div>
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   )}
+                  {returnRequest.inspection?.inspectionImages && returnRequest.inspection.inspectionImages.length > 0 && (
+                    <div className="mt-8">
+                      <h4 className="font-medium text-gray-900 mb-4">Inspection Images</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {returnRequest.inspection.inspectionImages.map((imageUrl, index) => (
+                          <div 
+                            key={index} 
+                            className="relative group cursor-pointer"
+                            onClick={() => handleImageClick(imageUrl)}
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={`Inspection image ${index + 1}`}
+                              className="w-full h-48 object-cover rounded-lg border border-gray-200 transition-transform duration-200 group-hover:scale-105"
+                              onError={(e) => {
+                                e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
+                              }}
+                            />
+                            <div className="absolute inset-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-full p-2">
+                                <Eye className="h-5 w-5 text-gray-800" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                  </CardContent>
                </Card>
              </TabsContent>
@@ -1167,6 +1190,27 @@ const handleRefund = async () => {
         returnId={returnId ?? undefined}
         returnRequest={returnRequest}
       />
+      
+      {/* Image Modal */}
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+        <DialogContent className="max-w-4xl w-full p-0">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle>Image Preview</DialogTitle>
+          </DialogHeader>
+          <div className="p-6">
+            {selectedImage && (
+              <img
+                src={selectedImage}
+                alt="Full size preview"
+                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                onError={(e) => {
+                  e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='16' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* <ManualRefundDialog
         open={manualRefundDialog}
