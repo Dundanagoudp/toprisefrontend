@@ -8,6 +8,7 @@ import {
   Eye,
   MoreHorizontal,
   CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ import { getReturnRequests, initiateBorzoPickup, getReturnStats } from "@/servic
 import { ReturnRequest, ReturnRequestsResponse, ReturnStatsResponse } from "@/types/return-Types";
 import ValidateReturnRequest from "./modules/modalpopus/Validate";
 import { getAllDealers } from "@/service/dealerServices";
+import RejectReturnDialog from "./modules/modalpopus/RejectReturnDialog";
 
 import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog";
 import CompletePickupDialog from "./modules/modalpopus/CompletePickupDialog";
@@ -89,6 +91,16 @@ export default function ReturnClaims() {
     open: false,
     returnId: null,
   });
+
+  // Reject dialog state
+  const [rejectDialog, setRejectDialog] = useState<{
+    open: boolean;
+    returnId: string | null;
+  }>({
+    open: false,
+    returnId: null,
+  });
+
 
 
 
@@ -226,6 +238,14 @@ export default function ReturnClaims() {
     });
   };
 
+  // Handle reject dialog open
+  const handleOpenRejectReturn = (returnId: string) => {
+    setRejectDialog({
+      open: true,
+      returnId,
+    });
+  };
+
   // Handle details dialog open
   const handleOpenDetails = (returnId: string) => {
     router.push(`/user/dashboard/returnclaims/${returnId}`);
@@ -276,6 +296,15 @@ export default function ReturnClaims() {
       returnId: null,
     });
   };
+
+  // Handle reject dialog close
+  const handleCloseRejectReturn = () => {
+    setRejectDialog({
+      open: false,
+      returnId: null,
+    });
+  };
+
 
 
 
@@ -332,6 +361,14 @@ export default function ReturnClaims() {
 
   // Handle validation completion
   const handleValidationComplete = (success: boolean) => {
+    if (success) {
+      // Refresh the return requests to get updated status
+      fetchReturnRequests();
+    }
+  };
+
+  // Handle reject completion
+  const handleRejectComplete = (success: boolean) => {
     if (success) {
       // Refresh the return requests to get updated status
       fetchReturnRequests();
@@ -816,6 +853,19 @@ const formatStatusName = (status: string) => {
                                     Validate
                                   </DropdownMenuItem>
                                 )}
+                                
+                                {/* Reject → only when Requested */}
+                                {request.returnStatus === "Requested" && (
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-red-600 hover:text-red-700"
+                                    onClick={() =>
+                                      handleOpenRejectReturn(request._id)
+                                    }
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />{" "}
+                                    Reject Return
+                                  </DropdownMenuItem>
+                                )}
 
                                 {/* Schedule Pickup → only when Validated */}
                                 {request.returnStatus === "Validated" && (
@@ -928,6 +978,13 @@ const formatStatusName = (status: string) => {
           onValidationComplete={handleValidationComplete}
           onNextStep={handleValidationNextStep}
           returnId={validationDialog.returnId}
+        />
+
+        <RejectReturnDialog
+          open={rejectDialog.open}
+          onClose={handleCloseRejectReturn}
+          onRejectComplete={handleRejectComplete}
+          returnId={rejectDialog.returnId}
         />
 
         <SchedulePickupDialog

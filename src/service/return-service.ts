@@ -64,6 +64,22 @@ export const validateReturnRequest = async (
   }
 };
 
+export const rejectReturnRequest = async (
+  returnId: string,
+  rejectionReason: string
+): Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(
+      `/orders/api/returns/Reject-return/${returnId}`,
+      { rejectionReason }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error rejecting return request:", error);
+    throw error;
+  }
+};
+
 
 //initiate borzo pickup
 export const initiateBorzoPickup = async (returnId: string) : Promise<ReturnRequestsResponse> => {

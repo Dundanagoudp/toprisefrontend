@@ -49,6 +49,7 @@ import { Label } from "@/components/ui/label"
 
 interface PurchaseDocument {
   _id: string
+  order_id?: string
   document_files: {
     url: string
     file_type: string
@@ -74,6 +75,9 @@ interface PurchaseDocument {
   createdAt: string
   updatedAt: string
   document_number: string
+  rejection_reason?: string
+  rejected_by?: string
+  rejected_at?: string
   __v: number
 }
 
@@ -113,6 +117,8 @@ export default function PurchaseRequestsPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
   const [isRejecting, setIsRejecting] = useState(false)
+  const [isViewRejectDialogOpen, setIsViewRejectDialogOpen] = useState(false)
+  const [selectedRejectRequest, setSelectedRejectRequest] = useState<PurchaseDocument | null>(null)
   const auth = useAppSelector((state) => state.auth.user)
   const { showToast } = useToast()
   
@@ -247,6 +253,7 @@ export default function PurchaseRequestsPage() {
         })
         
         setPurchaseRequests(sortedData)
+        console.log("Purchase requests:", sortedData)
         setPagination(response.data.data.pagination)
       } else {
         showToast("Failed to fetch purchase requests", "error")
@@ -316,6 +323,16 @@ export default function PurchaseRequestsPage() {
     } finally {
       setIsRejecting(false)
     }
+  }
+
+  const handleViewRejectReason = (request: PurchaseDocument) => {
+    setSelectedRejectRequest(request)
+    setIsViewRejectDialogOpen(true)
+  }
+
+  const handleCloseViewRejectDialog = () => {
+    setIsViewRejectDialogOpen(false)
+    setSelectedRejectRequest(null)
   }
 
   const getStatusBadge = (status: string) => {
@@ -421,7 +438,7 @@ export default function PurchaseRequestsPage() {
                 <div className="text-sm text-gray-600">Total Requests</div>
                 <div className="text-2xl font-bold text-gray-900">
                   {pagination?.totalItems || purchaseRequests.length}
-                </div>
+                </div>Manage and track all purchase requests
               </CardContent>
             </Card>
             <Card>
@@ -466,14 +483,14 @@ export default function PurchaseRequestsPage() {
             {/* Advanced Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Date Range */}
-              <div className="space-y-2 md:col-span-2">
+              {/* <div className="space-y-2 md:col-span-2">
                 <label className="text-sm font-medium text-gray-700">Date Range</label>
                 <SimpleDatePicker
                   value={dateRange}
                   onChange={setDateRange}
                   placeholder="Select date range"
                 />
-              </div>
+              </div> */}
 
               {/* Status Filter */}
               <div className="space-y-2">
@@ -486,9 +503,9 @@ export default function PurchaseRequestsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#C72920] focus:border-transparent"
                 >
                   <option value="">All Status</option>
-                  <option value="Pending-Review">Pending-Review</option>
-                  <option value="Under-Review">Under-Review</option>
-                  <option value="Contacted">Contacted</option>
+                  <option value="Pending-Review">Pending</option>
+                  {/* <option value="Under-Review">Under-Review</option> */}
+                  {/* <option value="Contacted">Contacted</option> */}
                   <option value="Order-Created">Order-Created</option>
                   <option value="Rejected">Rejected</option>
                   <option value="Cancelled">Cancelled</option>
@@ -624,7 +641,7 @@ export default function PurchaseRequestsPage() {
                       {/* <TableCell>{getPriorityBadge(request.priority)}</TableCell> */}
                       <TableCell>{getStatusBadge(request.status)}</TableCell>
                       <TableCell className="text-right">
-                        {request.status.toLowerCase() === "order-created" || request.status.toLowerCase() === "rejected" ? (
+                        {request.status.toLowerCase() === "rejected" ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
@@ -636,10 +653,26 @@ export default function PurchaseRequestsPage() {
                                 onClick={() => router.push(`/user/dashboard/purchase-requests/${request._id}`)}
                               >
                                 <Eye className="h-4 w-4 mr-2" />
-                                View
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleViewRejectReason(request)}
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                View Reject Reason
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                        ) : request.status.toLowerCase() === "order-created" ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-1"
+                            onClick={() => router.push(`/user/dashboard/purchase-requests/${request._id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Button>
                         ) : (
                           //show drop down to create order
                           <DropdownMenu>
@@ -745,6 +778,76 @@ export default function PurchaseRequestsPage() {
               disabled={!rejectionReason.trim() || isRejecting}
             >
               {isRejecting ? "Rejecting..." : "Reject Order"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Rejection Reason Dialog */}
+      <Dialog open={isViewRejectDialogOpen} onOpenChange={handleCloseViewRejectDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-600" />
+              Rejection Details
+            </DialogTitle>
+            <DialogDescription>
+              This purchase request was rejected by the admin.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Rejection Reason */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-700">Rejection Reason</Label>
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                  {selectedRejectRequest?.rejection_reason || "No reason provided"}
+                </p>
+              </div>
+            </div>
+
+            {/* Rejected By */}
+            {selectedRejectRequest?.rejected_by && (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">Rejected By</Label>
+                <p className="text-sm text-gray-600 px-4 py-2 bg-gray-50 rounded-md">
+                  Admin ID: {selectedRejectRequest.rejected_by}
+                </p>
+              </div>
+            )}
+
+            {/* Rejected At */}
+            {selectedRejectRequest?.rejected_at && (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">Rejected On</Label>
+                <p className="text-sm text-gray-600 px-4 py-2 bg-gray-50 rounded-md">
+                  {new Date(selectedRejectRequest.rejected_at).toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </p>
+              </div>
+            )}
+
+            {/* Document Number */}
+            {selectedRejectRequest?.document_number && (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">Document Number</Label>
+                <p className="text-sm text-gray-600 px-4 py-2 bg-gray-50 rounded-md font-medium">
+                  {selectedRejectRequest.document_number}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button onClick={handleCloseViewRejectDialog} className="w-full">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
