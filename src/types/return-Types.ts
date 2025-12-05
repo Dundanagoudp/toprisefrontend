@@ -1,21 +1,21 @@
 // Return Claims Type Definitions
 
-export interface ReturnRequestsResponse {
+// Base Response Types
+export interface BaseApiResponse<T> {
   success: boolean;
   message: string;
-  data: {
-    returnRequests: ReturnRequest[];
-    pagination: ReturnPagination;
-    userStats: UserStats;
-  };
+  data: T;
 }
 
-export interface SingleReturnResponse {
-  success: boolean;
-  message: string;
-  data: ReturnRequest;
-}
+export interface ReturnRequestsResponse extends BaseApiResponse<{
+  returnRequests: ReturnRequest[];
+  pagination: ReturnPagination;
+  userStats: UserStats;
+}> {}
 
+export interface SingleReturnResponse extends BaseApiResponse<ReturnRequest> {}
+
+// Core Return Request Type
 export interface ReturnRequest {
   _id: string;
   orderId: string | null;
@@ -28,20 +28,21 @@ export interface ReturnRequest {
   isEligible: boolean;
   eligibilityReason?: string | null;
   returnWindowDays?: number | null;
-  returnStatus?: string | null;
+  returnStatus: ReturnStatus;
   inspection?: InspectionDetails | null;
   refund?: RefundDetails | null;
-  actionTaken?: string | null;
+  actionTaken?: ReturnAction | null;
   timestamps?: ReturnTimestamps | null;
   originalOrderDate?: string | null;
   dealerId?: string;
-  notes?: any[];
+  notes?: ReturnNote[];
   createdAt?: string;
   updatedAt?: string;
   __v?: number;
   isProductReturnable?: boolean;
   isWithinReturnWindow?: boolean;
   pickupRequest?: PickupRequest | null;
+  tracking_info?: TrackingInfo | null;  // Add this line
   orderSku?: any | null;
   productDetails?: ProductDetails | null;
   timeSinceRequest?: number | null;
@@ -51,13 +52,31 @@ export interface ReturnRequest {
   statusDisplay?: string | null;
 }
 
+// Order and Customer Types
 export interface OrderInfo {
   _id: string;
   orderId: string;
   orderDate: string;
   customerDetails: CustomerDetails;
 }
-
+export interface TrackingInfo {
+  status: string;
+  borzo_delivery_fee_amount?: number;
+  borzo_last_updated?: string;
+  borzo_order_id?: string;
+  borzo_payment_amount?: number;
+  borzo_tracking_status?: string;
+  borzo_tracking_url?: string;
+  borzo_weight_fee_amount?: number;
+  timestamps?: {
+    confirmedAt?: string;
+    assignedAt?: string;
+    shippedAt?: string;
+    deliveredAt?: string;
+    onTheWayToNextDeliveryPointAt?: string;
+    outForDeliveryAt?: string;
+  };
+}
 export interface CustomerDetails {
   userId: string;
   name: string;
@@ -67,6 +86,7 @@ export interface CustomerDetails {
   email: string;
 }
 
+// Pickup Request Types
 export interface PickupRequest {
   pickupId: string;
   pickupAddress: Address;
@@ -75,6 +95,7 @@ export interface PickupRequest {
   logisticsPartner: string;
   trackingNumber?: string;
   completedDate?: string;
+  status?: PickupStatus;
 }
 
 export interface Address {
@@ -84,6 +105,7 @@ export interface Address {
   state: string;
 }
 
+// Inspection Types
 export interface InspectionDetails {
   skuMatch?: boolean;
   inspectionImages?: string[];
@@ -91,28 +113,49 @@ export interface InspectionDetails {
   inspectedAt?: string | null;
   inspectedBy?: string | null;
   inspectedByUser?: InspectedByUser | null;
-  condition?: string | null;
+  condition?: InspectionCondition | null;
   conditionNotes?: string | null;
   rejectionReason?: string | null;
 }
 
-export interface RefundDetails {
-  refundAmount?: number | null;
-  refundMethod?: string | null;
-  refundStatus?: string | null;
-  refund_id?: string | null;
-  processedByUser?: any | null;
+export interface InspectedByUser {
+  id: string;
+  name: string;
+  role?: string | null;
 }
 
+// Refund Types
+export interface RefundDetails {
+  refundAmount?: number | null;
+  refundMethod?: RefundMethod | null;
+  refundStatus?: RefundStatus | null;
+  refund_id?: string | null;
+  processedByUser?: any | null;
+  transactionId?: string;
+  initiatedAt?: string;
+  completedAt?: string;
+  expectedDate?: string;
+}
+
+// Timestamps
 export interface ReturnTimestamps {
   requestedAt: string;
   validatedAt?: string;
-  pickupScheduledAt?: string;
-  pickupCompletedAt?: string;
+  borzoShipmentInitiatedAt?: string;
+  borzoShipmentCompletedAt?: string;
   inspectionStartedAt?: string;
   inspectionCompletedAt?: string;
+  refundInitiatedAt?: string;
+  refundCompletedAt?: string;
+  // Legacy/alternative names (keep for backward compatibility if needed)
+  pickupScheduledAt?: string;
+  pickupCompletedAt?: string;
+  shipmentInitiatedAt?: string;
+  shipmentCompletedAt?: string;
+  
 }
 
+// Pagination and Stats
 export interface ReturnPagination {
   page: number;
   limit: number;
@@ -124,17 +167,10 @@ export interface UserStats {
   totalReturns: number;
   totalRefundAmount: number;
   averageProcessingTime?: number | null;
-  statusBreakdown: {
-    [status: string]: number;
-  };
+  statusBreakdown: Record<ReturnStatus, number>;
 }
 
-export interface InspectedByUser {
-  id: string;
-  name: string;
-  role?: string | null;
-}
-
+// Product Details
 export interface ProductDetails {
   sku?: string | null;
   productName?: string | null;
@@ -146,18 +182,28 @@ export interface ProductDetails {
   returnPolicy?: string | null;
 }
 
+// Note Type
+export interface ReturnNote {
+  id: string;
+  text: string;
+  createdAt: string;
+  createdBy?: string;
+  isInternal?: boolean;
+}
+
 // Enums and Type Unions
 export type ReturnStatus = 
   | "Requested"
   | "Validated" 
-  | "Approved" 
-  | "Rejected" 
   | "Pickup_Scheduled" 
   | "Pickup_Completed" 
+  | "Inspection_Started"
+  | "Inspection_Completed"
   | "Approved"
-  | "Refund_Processed"
-  | "Completed"
-  | "Under_Inspection";
+  | "Rejected"
+  | "Refund_Initiated"
+  | "Refund_Completed"
+  | "Completed";
 
 export type ReturnAction = 
   | "Pending" 
@@ -187,6 +233,13 @@ export type RefundStatus =
   | "Failed" 
   | "Cancelled";
 
+export type PickupStatus = 
+  | "Scheduled"
+  | "In_Progress"
+  | "Completed"
+  | "Failed"
+  | "Cancelled";
+
 // Filter and Search Types
 export interface ReturnRequestFilters {
   returnStatus?: ReturnStatus[];
@@ -202,6 +255,7 @@ export interface ReturnRequestFilters {
   refundStatus?: RefundStatus[];
   inspectionCondition?: InspectionCondition[];
   logisticsPartner?: string;
+  isOverdue?: boolean;
 }
 
 export interface ReturnRequestSearchParams {
@@ -228,19 +282,13 @@ export interface CreateReturnRequestPayload {
 export interface UpdateReturnRequestPayload {
   returnStatus?: ReturnStatus;
   actionTaken?: ReturnAction;
-  notes?: string[];
+  notes?: ReturnNote[];
   inspection?: Partial<InspectionDetails>;
   refund?: Partial<RefundDetails>;
   pickupRequest?: Partial<PickupRequest>;
 }
 
 // API Response Types
-export interface SingleReturnRequestResponse {
-  success: boolean;
-  message: string;
-  data: ReturnRequest;
-}
-
 export interface ReturnRequestActionResponse {
   success: boolean;
   message: string;
@@ -262,23 +310,11 @@ export interface ReturnRequestStats {
   returnsByStatus: Record<ReturnStatus, number>;
 }
 
-export interface ReturnRequestStatsResponse {
-  success: boolean;
-  message: string;
-  data: ReturnRequestStats;
-}
+export interface ReturnRequestStatsResponse extends BaseApiResponse<ReturnRequestStats> {}
 
 export interface ReturnStatsResponse {
   success: boolean;
   message: string;
   totalReturns: number;
-  statusCounts: {
-    Rejected: number;
-    Validated: number;
-    Requested: number;
-    Inspection_Started: number;
-    Inspection_Completed: number;
-    Initiated_Refund: number;
-    Refund_Completed: number;
-  };
+  statusCounts: Record<ReturnStatus, number>;
 }

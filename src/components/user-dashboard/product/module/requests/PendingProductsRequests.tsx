@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
-import { getPendingProducts, approveSingleProduct, rejectSingleProduct } from "@/service/product-Service";
+import { getPendingProducts, approveSingleProduct, rejectSingleProduct, rejectBulkProducts } from "@/service/product-Service";
 import Image from "next/image";
 import {
   Table,

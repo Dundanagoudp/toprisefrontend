@@ -3,21 +3,34 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useBreadcrumb } from "@/contexts/BreadcrumbContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-  import { fetchEmployeeByUserId, getOrderById } from "@/service/order-service";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { fetchEmployeeByUserId, getOrderById } from "@/service/order-service";
 import { getUserIdFromToken } from "@/utils/auth";
-import { 
-  ArrowLeft, 
-  Eye, 
-  CheckCircle, 
-  Edit, 
-  Truck, 
-  Package, 
+import {
+  ArrowLeft,
+  Eye,
+  CheckCircle,
+  Edit,
+  Truck,
+  Package,
   DollarSign,
   Clock,
   User,
@@ -34,7 +47,7 @@ import {
   Check,
   X,
   AlertCircle,
-  Info
+  Info,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -43,7 +56,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getReturnRequestsById, startInspection } from "@/service/return-service";
+import {
+  getReturnRequestsById,
+  startInspection,
+} from "@/service/return-service";
 import { ReturnRequest } from "@/types/return-Types";
 import ValidateReturnRequest from "./modules/modalpopus/Validate";
 import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog";
@@ -64,7 +80,9 @@ interface ReturnDetailsProps {
 export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const router = useRouter();
   const { updateLabel } = useBreadcrumb();
-  const [returnRequest, setReturnRequest] = useState<ReturnRequest | null>(null);
+  const [returnRequest, setReturnRequest] = useState<ReturnRequest | null>(
+    null
+  );
   const userId = useAppSelector((state) => state.auth.user._id);
   const userRole = useAppSelector((state) => state.auth.user?.role);
   const [loading, setLoading] = useState(true);
@@ -80,11 +98,15 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const [completePickupDialog, setCompletePickupDialog] = useState(false);
   const [inspectDialog, setInspectDialog] = useState(false);
   const [initiateRefundDialog, setInitiateRefundDialog] = useState(false);
-  const [completeInspectionDialog, setCompleteInspectionDialog] = useState(false);
+  const [completeInspectionDialog, setCompleteInspectionDialog] =
+    useState(false);
   const [onlineRefundDialog, setOnlineRefundDialog] = useState(false);
   const [manualRefundDialog, setManualRefundDialog] = useState(false);
   const [codRefundDialog, setCodRefundDialog] = useState(false);
-  const [borzoConfirmDialog, setBorzoConfirmDialog] = useState<{ open: boolean; returnId: string | null }>({ open: false, returnId: null });
+  const [borzoConfirmDialog, setBorzoConfirmDialog] = useState<{
+    open: boolean;
+    returnId: string | null;
+  }>({ open: false, returnId: null });
   const [borzoLoading, setBorzoLoading] = useState(false);
   const { showToast } = useGlobalToast();
 
@@ -110,15 +132,15 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
-
-        
         if (userId) {
-
           const response = await fetchEmployeeByUserId(userId);
           console.log("Employee API response:", response.data);
-          
-          if (response.success ) {
-            console.log("Employee ID fetched successfully:", response.employee._id);
+
+          if (response.success) {
+            console.log(
+              "Employee ID fetched successfully:",
+              response.employee._id
+            );
             setEmployeeId(response.employee._id);
           } else {
             console.error("Failed to get employee ID from response:", response);
@@ -139,13 +161,13 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
       setError(null);
       const response = await getReturnRequestsById(returnId);
       console.log("Return details API response:", response);
-      
+
       if (response.success && response.data) {
         // The API returns the return data directly in response.data
         console.log("Return data:", response.data);
         console.log("Return images:", response.data.returnImages);
         setReturnRequest(response.data);
-        
+
         // Update breadcrumb with "Return Details" for the return ID segment
         if (!breadcrumbUpdatedRef.current) {
           updateLabel(returnId, "Return Details");
@@ -166,21 +188,21 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   // Borzo pickup handler
   const handleConfirmBorzo = async () => {
     if (!borzoConfirmDialog.returnId) return;
-    
+
     setBorzoLoading(true);
     try {
       // TODO: Replace with actual Borzo API call
       // const response = await initiateBorzoPickup(borzoConfirmDialog.returnId);
-      
+
       // Simulated success for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       showToast({
         title: "Success",
         description: "Borzo pickup has been initiated successfully",
         variant: "default",
       });
-      
+
       setBorzoConfirmDialog({ open: false, returnId: null });
       fetchReturnDetails();
     } catch (error) {
@@ -197,108 +219,114 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
 
   // Start inspection handler
   const handleStartInspection = async () => {
-
-    
     const isSuperAdmin = userRole === "Super-admin";
-    
+
     if (!isSuperAdmin && !employeeId) {
-      console.error("Employee ID not available. Please ensure you are logged in.");
-      alert("Unable to start inspection: Employee ID not found. Please try refreshing the page or logging in again.");
+      console.error(
+        "Employee ID not available. Please ensure you are logged in."
+      );
+      alert(
+        "Unable to start inspection: Employee ID not found. Please try refreshing the page or logging in again."
+      );
       return;
     }
-    
+
     setInspectionLoading(true);
     try {
       // Build request body based on user role
       const requestBody: any = {
         inspectedBy: userId,
-        isSuperAdmin
+        isSuperAdmin,
       };
-      
+
       // Only add inspectedBy if not super admin
       if (!isSuperAdmin) {
         requestBody.inspectedBy = employeeId;
       }
-      
+
       console.log("Calling startInspection API with:", {
         returnId,
-        ...requestBody
+        ...requestBody,
       });
-      
+
       const response = await startInspection(returnId, requestBody);
-      
+
       console.log("Start Inspection API response:", response);
-      
+
       if (response.success) {
         console.log("Inspection started successfully, refreshing details...");
         await fetchReturnDetails();
         alert("Inspection started successfully!");
       } else {
         console.error("API returned success: false", response);
-        alert(`Failed to start inspection: ${response.message || "Unknown error"}`);
+        alert(
+          `Failed to start inspection: ${response.message || "Unknown error"}`
+        );
       }
     } catch (error: any) {
       console.error("Failed to start inspection:", error);
       console.error("Error details:", {
         message: error?.message,
         response: error?.response?.data,
-        status: error?.response?.status
+        status: error?.response?.status,
       });
-      alert(`Error starting inspection: ${error?.response?.data?.message || error?.message || "Unknown error"}`);
+      alert(
+        `Error starting inspection: ${
+          error?.response?.data?.message || error?.message || "Unknown error"
+        }`
+      );
     } finally {
       setInspectionLoading(false);
     }
   };
 
-// complete inspection handler
-const handleCompleteInspection = () => {
+  // complete inspection handler
+  const handleCompleteInspection = () => {
     setCompleteInspectionDialog(true);
-}
+  };
 
-const handleRefund = async () => {
-  if (!returnRequest) return;
+  const handleRefund = async () => {
+    if (!returnRequest) return;
 
-  let paymentType = "";
+    let paymentType = "";
 
-  // Try to use paymentType already present on the order object
-  if (
-    returnRequest.orderId &&
-    typeof returnRequest.orderId === "object" &&
-    returnRequest.orderId !== null
-  ) {
-    paymentType = (returnRequest.orderId as any).paymentType || "";
-  }
-
-  // Fallback: fetch order to get paymentType
-  if (!paymentType) {
-    try {
-      const orderId = (returnRequest.orderId as any)?._id || "";
-      if (orderId) {
-        const order = await getOrderById(orderId);
-        paymentType = order.data?.paymentType || "";
-      }
-    } catch (error) {
-      console.error("Failed to resolve payment type for refund:", error);
+    // Try to use paymentType already present on the order object
+    if (
+      returnRequest.orderId &&
+      typeof returnRequest.orderId === "object" &&
+      returnRequest.orderId !== null
+    ) {
+      paymentType = (returnRequest.orderId as any).paymentType || "";
     }
-  }
 
-  if (paymentType === "Prepaid") {
-    setOnlineRefundDialog(true);
-    return;
-  }
+    // Fallback: fetch order to get paymentType
+    if (!paymentType) {
+      try {
+        const orderId = (returnRequest.orderId as any)?._id || "";
+        if (orderId) {
+          const order = await getOrderById(orderId);
+          paymentType = order.data?.paymentType || "";
+        }
+      } catch (error) {
+        console.error("Failed to resolve payment type for refund:", error);
+      }
+    }
 
-  setCodRefundDialog(true);
-};
+    if (paymentType === "Prepaid") {
+      setOnlineRefundDialog(true);
+      return;
+    }
 
-const handleOpenRejectReturn = () => {
-  setRejectDialog(true);
-};
+    setCodRefundDialog(true);
+  };
 
-
+  const handleOpenRejectReturn = () => {
+    setRejectDialog(true);
+  };
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-3 py-1 rounded-full text-xs font-medium border";
-    
+
     switch (status) {
       case "Requested":
         return `${baseClasses} text-yellow-600 bg-yellow-50 border-yellow-200`;
@@ -379,9 +407,9 @@ const handleOpenRejectReturn = () => {
 
   const getAvailableActions = () => {
     if (!returnRequest) return [];
-    
+
     const actions = [];
-    
+
     switch (returnRequest.returnStatus) {
       case "Requested":
         actions.push({
@@ -401,7 +429,8 @@ const handleOpenRejectReturn = () => {
         actions.push({
           label: "Initiate Borzo Pickup",
           icon: <Truck className="h-4 w-4" />,
-          onClick: () => setBorzoConfirmDialog({ open: true, returnId: returnId }),
+          onClick: () =>
+            setBorzoConfirmDialog({ open: true, returnId: returnId }),
           variant: "default" as const,
         });
         break;
@@ -431,7 +460,7 @@ const handleOpenRejectReturn = () => {
         });
         break;
     }
-    
+
     return actions;
   };
 
@@ -489,7 +518,7 @@ const handleOpenRejectReturn = () => {
             <p className="text-gray-600">Return ID: {returnRequest._id}</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {returnRequest.returnStatus === "Shipment_Intiated" && (
             <Badge className="px-3 py-2 bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-2">
@@ -509,7 +538,7 @@ const handleOpenRejectReturn = () => {
               {inspectionLoading ? "Starting..." : "Start Inspection"}
             </Button>
           )}
-                 {returnRequest.returnStatus === "Inspection_Started" && (
+          {returnRequest.returnStatus === "Inspection_Started" && (
             <Button
               variant="default"
               size="sm"
@@ -521,7 +550,7 @@ const handleOpenRejectReturn = () => {
               {inspectionLoading ? "Processing..." : "Complete Inspection"}
             </Button>
           )}
-                    {returnRequest.returnStatus === "Inspection_Completed" && (
+          {returnRequest.returnStatus === "Inspection_Completed" && (
             <Button
               variant="default"
               size="sm"
@@ -542,7 +571,7 @@ const handleOpenRejectReturn = () => {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
@@ -572,7 +601,7 @@ const handleOpenRejectReturn = () => {
                 </Badge>
               </div>
             </div>
-            
+
             {availableActions.length > 0 && (
               <div className="flex gap-2">
                 {availableActions.map((action, index) => (
@@ -601,7 +630,7 @@ const handleOpenRejectReturn = () => {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
-              <TabsTrigger value="actions">Actions</TabsTrigger>
+              {/* <TabsTrigger value="actions">Actions</TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -616,20 +645,36 @@ const handleOpenRejectReturn = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">SKU</label>
-                      <p className="text-sm font-mono text-gray-900">{returnRequest.sku}</p>
+                      <label className="text-sm font-medium text-gray-500">
+                        SKU
+                      </label>
+                      <p className="text-sm font-mono text-gray-900">
+                        {returnRequest.sku}
+                      </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Quantity</label>
-                      <p className="text-sm text-gray-900">{returnRequest.quantity}</p>
+                      <label className="text-sm font-medium text-gray-500">
+                        Quantity
+                      </label>
+                      <p className="text-sm text-gray-900">
+                        {returnRequest.quantity}
+                      </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Return Reason</label>
-                      <p className="text-sm text-gray-900">{returnRequest.returnReason}</p>
+                      <label className="text-sm font-medium text-gray-500">
+                        Return Reason
+                      </label>
+                      <p className="text-sm text-gray-900">
+                        {returnRequest.returnReason}
+                      </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Request Date</label>
-                      <p className="text-sm text-gray-900">{formatDate(returnRequest.createdAt)}</p>
+                      <label className="text-sm font-medium text-gray-500">
+                        Request Date
+                      </label>
+                      <p className="text-sm text-gray-900">
+                        {formatDate(returnRequest.createdAt)}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -646,227 +691,452 @@ const handleOpenRejectReturn = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Order ID</label>
+                      <label className="text-sm font-medium text-gray-500">
+                        Order ID
+                      </label>
                       <p className="text-sm font-mono text-gray-900">
                         {returnRequest.orderId?.orderId || "N/A"}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Order Date</label>
+                      <label className="text-sm font-medium text-gray-500">
+                        Order Date
+                      </label>
                       <p className="text-sm text-gray-900">
-                        {returnRequest.orderId?.orderDate 
+                        {returnRequest.orderId?.orderDate
                           ? formatDate(returnRequest.orderId.orderDate)
-                          : "N/A"
-                        }
+                          : "N/A"}
                       </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-                             {/* Refund Information */}
-               <Card>
-                 <CardHeader>
-                   <CardTitle className="flex items-center gap-2">
-                     <DollarSign className="h-5 w-5" />
-                     Refund Information
-                   </CardTitle>
-                 </CardHeader>
-                 <CardContent className="space-y-4">
-                   <div className="grid grid-cols-2 gap-4">
-                     <div>
-                       <label className="text-sm font-medium text-gray-500">Refund Amount</label>
-                       <p className="text-lg font-semibold text-green-600">
-                         {formatCurrency(returnRequest.refund.refundAmount)}
-                       </p>
-                     </div>
-                     <div>
-                       <label className="text-sm font-medium text-gray-500">Refund Method</label>
-                       <p className="text-sm text-gray-900">
-                         {returnRequest.refund.refundMethod || "Not specified"}
-                       </p>
-                     </div>
-                     <div>
-                       <label className="text-sm font-medium text-gray-500">Refund Status</label>
-                       <Badge className={getStatusBadge(returnRequest.refund.refundStatus)}>
-                         {returnRequest.refund.refundStatus}
-                       </Badge>
-                     </div>
-                   </div>
-                 </CardContent>
-               </Card>
+              {/* Refund Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Refund Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Refund Amount
+                      </label>
+                      <p className="text-lg font-semibold text-green-600">
+                        {formatCurrency(returnRequest.refund.refundAmount)}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Refund Method
+                      </label>
+                      <p className="text-sm text-gray-900">
+                        {returnRequest.refund.refundMethod || "Not specified"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Refund Status
+                      </label>
+                      <Badge
+                        className={getStatusBadge(
+                          returnRequest.refund.refundStatus
+                        )}
+                      >
+                        {returnRequest.refund.refundStatus}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-               {/* Inspection Information */}
-               {returnRequest.inspection && (
-                 <Card>
-                   <CardHeader>
-                     <CardTitle className="flex items-center gap-2">
-                       <Eye className="h-5 w-5" />
-                       Inspection Information
-                     </CardTitle>
-                   </CardHeader>
-                   <CardContent className="space-y-4">
-                     <div className="grid grid-cols-2 gap-4">
-                       <div>
-                         <label className="text-sm font-medium text-gray-500">Inspection Status</label>
-                         <Badge className={returnRequest.inspection.isApproved 
-                           ? "px-3 py-1 rounded-full text-xs font-medium border text-green-600 bg-green-50 border-green-200"
-                           : "px-3 py-1 rounded-full text-xs font-medium border text-red-600 bg-red-50 border-red-200"
-                         }>
-                           {returnRequest.inspection.isApproved ? "Approved" : "Rejected"}
-                         </Badge>
-                       </div>
-                       <div>
-                         <label className="text-sm font-medium text-gray-500">SKU Match</label>
-                         <Badge className={returnRequest.inspection.skuMatch 
-                           ? "px-3 py-1 rounded-full text-xs font-medium border text-green-600 bg-green-50 border-green-200"
-                           : "px-3 py-1 rounded-full text-xs font-medium border text-red-600 bg-red-50 border-red-200"
-                         }>
-                           {returnRequest.inspection.skuMatch ? "Matched" : "Not Matched"}
-                         </Badge>
-                       </div>
-                       <div>
-                         <label className="text-sm font-medium text-gray-500">Condition</label>
-                         <p className="text-sm text-gray-900">{returnRequest.inspection.condition || "N/A"}</p>
-                       </div>
-                       <div>
-                         <label className="text-sm font-medium text-gray-500">Inspected At</label>
-                         <p className="text-sm text-gray-900">
-                           {returnRequest.inspection.inspectedAt 
-                             ? formatDate(returnRequest.inspection.inspectedAt)
-                             : "N/A"
-                           }
-                         </p>
-                       </div>
-                     </div>
-                     {returnRequest.inspection.conditionNotes && (
-                       <div>
-                         <label className="text-sm font-medium text-gray-500">Condition Notes</label>
-                         <p className="text-sm text-gray-900 mt-1">{returnRequest.inspection.conditionNotes}</p>
-                       </div>
-                     )}
-                   </CardContent>
-                 </Card>
-               )}
+              {/* Inspection Information */}
+              {returnRequest.inspection && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Eye className="h-5 w-5" />
+                      Inspection Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">
+                          Inspection Status
+                        </label>
+                        <Badge
+                          className={
+                            returnRequest.inspection.isApproved
+                              ? "px-3 py-1 rounded-full text-xs font-medium border text-green-600 bg-green-50 border-green-200"
+                              : "px-3 py-1 rounded-full text-xs font-medium border text-red-600 bg-red-50 border-red-200"
+                          }
+                        >
+                          {returnRequest.inspection.isApproved
+                            ? "Approved"
+                            : "Rejected"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">
+                          SKU Match
+                        </label>
+                        <Badge
+                          className={
+                            returnRequest.inspection.skuMatch
+                              ? "px-3 py-1 rounded-full text-xs font-medium border text-green-600 bg-green-50 border-green-200"
+                              : "px-3 py-1 rounded-full text-xs font-medium border text-red-600 bg-red-50 border-red-200"
+                          }
+                        >
+                          {returnRequest.inspection.skuMatch
+                            ? "Matched"
+                            : "Not Matched"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">
+                          Condition
+                        </label>
+                        <p className="text-sm text-gray-900">
+                          {returnRequest.inspection.condition || "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">
+                          Inspected At
+                        </label>
+                        <p className="text-sm text-gray-900">
+                          {returnRequest.inspection?.inspectedAt
+                            ? formatDate(returnRequest.inspection.inspectedAt)
+                            : returnRequest.timestamps?.inspectionCompletedAt
+                            ? formatDate(
+                                returnRequest.timestamps.inspectionCompletedAt
+                              )
+                            : returnRequest.timestamps?.inspectionStartedAt
+                            ? formatDate(
+                                returnRequest.timestamps.inspectionStartedAt
+                              )
+                            : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    {returnRequest.inspection.conditionNotes && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">
+                          Condition Notes
+                        </label>
+                        <p className="text-sm text-gray-900 mt-1">
+                          {returnRequest.inspection.conditionNotes}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            <TabsContent value="timeline" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Return Timeline</CardTitle>
+                  <CardDescription>
+                    Track the progress of this return request
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Return Requested */}
+                    <div className="flex items-start gap-4">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">Return Requested</p>
+                          <Badge variant="outline" className="text-xs">
+                            Initiated
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {returnRequest.timestamps?.requestedAt
+                            ? formatDate(returnRequest.timestamps.requestedAt, {
+                                includeTime: true,
+                              })
+                            : formatDate(returnRequest.createdAt, {
+                                includeTime: true,
+                              })}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Customer submitted return request
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Return Validated */}
+                    {returnRequest.timestamps?.validatedAt && (
+                      <div className="flex items-start gap-4">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">Return Validated</p>
+                            <Badge variant="outline" className="text-xs">
+                              Approved
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(returnRequest.timestamps.validatedAt, {
+                              includeTime: true,
+                            })}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Return request was validated by admin
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Shipment Initiated */}
+                    {returnRequest.timestamps?.shipmentInitiatedAt && (
+                      <div className="flex items-start gap-4">
+                        <div className="w-3 h-3 bg-indigo-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">Pickup Initiated</p>
+                            <Badge variant="outline" className="text-xs">
+                              In Progress
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(
+                              returnRequest.timestamps.borzoShipmentInitiatedAt,
+                              { includeTime: true }
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Return pickup was scheduled
+                          </p>
+
+                          {returnRequest.tracking_info?.borzo_tracking_url && (
+                            <div className="mt-2">
+                              <a
+                                href={
+                                  returnRequest.tracking_info.borzo_tracking_url
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                              >
+                                Track Return Shipment
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Shipment Completed */}
+                    {returnRequest.timestamps?.borzoShipmentCompletedAt && (
+                      <div className="flex items-start gap-4">
+                        <div className="w-3 h-3 bg-purple-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">Pickup Completed</p>
+                            <Badge variant="outline" className="text-xs">
+                              Collected
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(
+                              returnRequest.timestamps.borzoShipmentCompletedAt,
+                              { includeTime: true }
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Item was successfully picked up
+                          </p>
+                          {returnRequest.tracking_info?.borzo_order_id && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Tracking ID:{" "}
+                              {returnRequest.tracking_info.borzo_order_id}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Inspection Started */}
+                    {returnRequest.timestamps?.inspectionStartedAt && (
+                      <div className="flex items-start gap-4">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">Inspection Started</p>
+                            <Badge variant="outline" className="text-xs">
+                              Reviewed
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(
+                              returnRequest.timestamps.inspectionStartedAt,
+                              { includeTime: true }
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Item inspection began
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Inspection Completed */}
+                    {returnRequest.timestamps?.inspectionCompletedAt && (
+                      <div className="flex items-start gap-4">
+                        <div className="w-3 h-3 bg-pink-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">Inspection Completed</p>
+                            <Badge
+                              variant={
+                                returnRequest.inspection?.isApproved
+                                  ? "default"
+                                  : "destructive"
+                              }
+                              className="text-xs"
+                            >
+                              {returnRequest.inspection?.isApproved
+                                ? "Approved"
+                                : "Rejected"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(
+                              returnRequest.timestamps.inspectionCompletedAt,
+                              { includeTime: true }
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Item inspection completed -{" "}
+                            {returnRequest.inspection?.isApproved
+                              ? "Approved for refund"
+                              : "Rejected"}
+                          </p>
+                          {returnRequest.inspection?.notes && (
+                            <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                              <p className="font-medium text-gray-700">
+                                Notes:
+                              </p>
+                              <p className="text-gray-600">
+                                {returnRequest.inspection.notes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Refund Initiated */}
+                    {returnRequest.timestamps?.refundInitiatedAt && (
+                      <div className="flex items-start gap-4">
+                        <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">Refund Initiated</p>
+                            <Badge variant="outline" className="text-xs">
+                              Processing
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(
+                              returnRequest.timestamps.refundInitiatedAt,
+                              { includeTime: true }
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Refund has been initiated to your original payment
+                            method
+                          </p>
+                          {returnRequest.refund?.amount && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              Refund Amount: ₹{returnRequest.refund.amount}
+                            </p>
+                          )}
+                          {returnRequest.refund?.expectedDate && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Expected by{" "}
+                              {formatDate(returnRequest.refund.expectedDate)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Current Status */}
+                    {returnRequest.tracking_info?.status && (
+                      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">
+                              Current Status
+                            </p>
+                            <p className="text-lg font-semibold">
+                              {returnRequest.tracking_info.status}
+                            </p>
+                          </div>
+                          {returnRequest.tracking_info?.borzo_last_updated && (
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500">
+                                Last Updated
+                              </p>
+                              <p className="text-sm">
+                                {formatDate(
+                                  returnRequest.tracking_info
+                                    .borzo_last_updated,
+                                  { includeTime: true }
+                                )}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
-                         <TabsContent value="timeline" className="space-y-6">
-               <Card>
-                 <CardHeader>
-                   <CardTitle>Return Timeline</CardTitle>
-                   <CardDescription>Track the progress of this return request</CardDescription>
-                 </CardHeader>
-                 <CardContent>
-                   <div className="space-y-4">
-                     {/* Return Requested */}
-                     <div className="flex items-start gap-4">
-                       <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
-                       <div className="flex-1">
-                         <p className="font-medium">Return Requested</p>
-                         <p className="text-sm text-gray-500">
-                           {returnRequest.timestamps?.requestedAt 
-                             ? formatDate(returnRequest.timestamps.requestedAt)
-                             : formatDate(returnRequest.createdAt)
-                           }
-                         </p>
-                         <p className="text-sm text-gray-600 mt-1">Customer submitted return request</p>
-                       </div>
-                     </div>
-                     
-                     {/* Return Validated */}
-                     {returnRequest.timestamps?.validatedAt && (
-                       <div className="flex items-start gap-4">
-                         <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
-                         <div className="flex-1">
-                           <p className="font-medium">Return Validated</p>
-                           <p className="text-sm text-gray-500">{formatDate(returnRequest.timestamps.validatedAt)}</p>
-                           <p className="text-sm text-gray-600 mt-1">Return request was validated by admin</p>
-                         </div>
-                       </div>
-                     )}
-                     
-                     {/* Pickup Scheduled */}
-                     {returnRequest.timestamps?.pickupScheduledAt && (
-                       <div className="flex items-start gap-4">
-                         <div className="w-3 h-3 bg-indigo-500 rounded-full mt-2"></div>
-                         <div className="flex-1">
-                           <p className="font-medium">Pickup Scheduled</p>
-                           <p className="text-sm text-gray-500">{formatDate(returnRequest.timestamps.pickupScheduledAt)}</p>
-                           <p className="text-sm text-gray-600 mt-1">Pickup was scheduled for the return</p>
-                         </div>
-                       </div>
-                     )}
-                     
-                     {/* Pickup Completed */}
-                     {returnRequest.timestamps?.pickupCompletedAt && (
-                       <div className="flex items-start gap-4">
-                         <div className="w-3 h-3 bg-purple-500 rounded-full mt-2"></div>
-                         <div className="flex-1">
-                           <p className="font-medium">Pickup Completed</p>
-                           <p className="text-sm text-gray-500">{formatDate(returnRequest.timestamps.pickupCompletedAt)}</p>
-                           <p className="text-sm text-gray-600 mt-1">Item was successfully picked up</p>
-                         </div>
-                       </div>
-                     )}
-                     
-                     {/* Inspection Started */}
-                     {returnRequest.timestamps?.inspectionStartedAt && (
-                       <div className="flex items-start gap-4">
-                         <div className="w-3 h-3 bg-orange-500 rounded-full mt-2"></div>
-                         <div className="flex-1">
-                           <p className="font-medium">Inspection Started</p>
-                           <p className="text-sm text-gray-500">{formatDate(returnRequest.timestamps.inspectionStartedAt)}</p>
-                           <p className="text-sm text-gray-600 mt-1">Item inspection began</p>
-                         </div>
-                       </div>
-                     )}
-                     
-                     {/* Inspection Completed */}
-                     {returnRequest.timestamps?.inspectionCompletedAt && (
-                       <div className="flex items-start gap-4">
-                         <div className="w-3 h-3 bg-pink-500 rounded-full mt-2"></div>
-                         <div className="flex-1">
-                           <p className="font-medium">Inspection Completed</p>
-                           <p className="text-sm text-gray-500">{formatDate(returnRequest.timestamps.inspectionCompletedAt)}</p>
-                           <p className="text-sm text-gray-600 mt-1">
-                             Item inspection completed - {returnRequest.inspection?.isApproved ? 'Approved' : 'Rejected'}
-                           </p>
-                         </div>
-                       </div>
-                     )}
-                   </div>
-                 </CardContent>
-               </Card>
-             </TabsContent>
+            <TabsContent value="documents" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Documents & Attachments</CardTitle>
+                  <CardDescription>
+                    Related documents and images
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Debug Information */}
 
-                         <TabsContent value="documents" className="space-y-6">
-               <Card>
-                 <CardHeader>
-                   <CardTitle>Documents & Attachments</CardTitle>
-                   <CardDescription>Related documents and images</CardDescription>
-                 </CardHeader>
-                 <CardContent>
-                   {/* Debug Information */}
-              
-                   
-                  {returnRequest.returnImages && returnRequest.returnImages.length > 0 ? (
+                  {returnRequest.returnImages &&
+                  returnRequest.returnImages.length > 0 ? (
                     <div className="space-y-4">
                       <div className="text-sm text-gray-600 mb-2">
                         Found {returnRequest.returnImages.length} image(s)
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {returnRequest.returnImages.map((img, idx) => (
-                          <div 
-                            key={idx} 
+                          <div
+                            key={idx}
                             className="relative group cursor-pointer"
                             onClick={() => handleImageClick(img)}
                           >
-                            <img 
-                              src={img} 
+                            <img
+                              src={img}
                               alt={`Return image ${idx + 1}`}
                               className="w-full h-48 object-cover rounded-lg border border-gray-200 transition-transform duration-200 group-hover:scale-105"
                               onError={(e) => {
-                                e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
+                                e.currentTarget.src =
+                                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
                               }}
                             />
                             <div className="absolute inset-0  group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
@@ -887,44 +1157,52 @@ const handleOpenRejectReturn = () => {
                       </p>
                     </div>
                   )}
-                   
-                  {returnRequest.inspection?.inspectionImages && returnRequest.inspection.inspectionImages.length > 0 && (
-                    <div className="mt-8">
-                      <h4 className="font-medium text-gray-900 mb-4">Inspection Images</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {returnRequest.inspection.inspectionImages.map((imageUrl, index) => (
-                          <div 
-                            key={index} 
-                            className="relative group cursor-pointer"
-                            onClick={() => handleImageClick(imageUrl)}
-                          >
-                            <img
-                              src={imageUrl}
-                              alt={`Inspection image ${index + 1}`}
-                              className="w-full h-48 object-cover rounded-lg border border-gray-200 transition-transform duration-200 group-hover:scale-105"
-                              onError={(e) => {
-                                e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
-                              }}
-                            />
-                            <div className="absolute inset-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-full p-2">
-                                <Eye className="h-5 w-5 text-gray-800" />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                 </CardContent>
-               </Card>
-             </TabsContent>
 
-            <TabsContent value="actions" className="space-y-6">
+                  {returnRequest.inspection?.inspectionImages &&
+                    returnRequest.inspection.inspectionImages.length > 0 && (
+                      <div className="mt-8">
+                        <h4 className="font-medium text-gray-900 mb-4">
+                          Inspection Images
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {returnRequest.inspection.inspectionImages.map(
+                            (imageUrl, index) => (
+                              <div
+                                key={index}
+                                className="relative group cursor-pointer"
+                                onClick={() => handleImageClick(imageUrl)}
+                              >
+                                <img
+                                  src={imageUrl}
+                                  alt={`Inspection image ${index + 1}`}
+                                  className="w-full h-48 object-cover rounded-lg border border-gray-200 transition-transform duration-200 group-hover:scale-105"
+                                  onError={(e) => {
+                                    e.currentTarget.src =
+                                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
+                                  }}
+                                />
+                                <div className="absolute inset-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-full p-2">
+                                    <Eye className="h-5 w-5 text-gray-800" />
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* <TabsContent value="actions" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Available Actions</CardTitle>
-                  <CardDescription>Actions you can perform on this return</CardDescription>
+                  <CardDescription>
+                    Actions you can perform on this return
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {availableActions.length > 0 ? (
@@ -949,7 +1227,7 @@ const handleOpenRejectReturn = () => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
           </Tabs>
         </div>
 
@@ -977,9 +1255,9 @@ const handleOpenRejectReturn = () => {
                   </p>
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-gray-400" />
@@ -1014,52 +1292,64 @@ const handleOpenRejectReturn = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                                     <div>
-                     <label className="text-sm font-medium text-gray-500">Pickup Address</label>
-                     <p className="text-sm text-gray-900">
-                       {returnRequest.pickupRequest.pickupAddress 
-                         ? `${returnRequest.pickupRequest.pickupAddress.address}, ${returnRequest.pickupRequest.pickupAddress.city}, ${returnRequest.pickupRequest.pickupAddress.state} - ${returnRequest.pickupRequest.pickupAddress.pincode}`
-                         : "N/A"
-                       }
-                     </p>
-                   </div>
-                                     <div>
-                     <label className="text-sm font-medium text-gray-500">Scheduled Date</label>
-                     <p className="text-sm text-gray-900">
-                       {returnRequest.pickupRequest.scheduledDate 
-                         ? formatDate(returnRequest.pickupRequest.scheduledDate)
-                         : "N/A"
-                       }
-                     </p>
-                   </div>
-                   <div>
-                     <label className="text-sm font-medium text-gray-500">Logistics Partner</label>
-                     <p className="text-sm text-gray-900">
-                       {returnRequest.pickupRequest.logisticsPartner || "N/A"}
-                     </p>
-                   </div>
-                   {returnRequest.pickupRequest.trackingNumber && (
-                     <div>
-                       <label className="text-sm font-medium text-gray-500">Tracking Number</label>
-                       <p className="text-sm font-mono text-gray-900">
-                         {returnRequest.pickupRequest.trackingNumber}
-                       </p>
-                     </div>
-                   )}
-                   {returnRequest.pickupRequest.completedDate && (
-                     <div>
-                       <label className="text-sm font-medium text-gray-500">Completed Date</label>
-                       <p className="text-sm text-gray-900">
-                         {formatDate(returnRequest.pickupRequest.completedDate)}
-                       </p>
-                     </div>
-                   )}
-                                     <div>
-                     <label className="text-sm font-medium text-gray-500">Pickup Status</label>
-                     <Badge className={getStatusBadge(returnRequest.returnStatus)}>
-                       {returnRequest.returnStatus}
-                     </Badge>
-                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Pickup Address
+                    </label>
+                    <p className="text-sm text-gray-900">
+                      {returnRequest.pickupRequest.pickupAddress
+                        ? `${returnRequest.pickupRequest.pickupAddress.address}, ${returnRequest.pickupRequest.pickupAddress.city}, ${returnRequest.pickupRequest.pickupAddress.state} - ${returnRequest.pickupRequest.pickupAddress.pincode}`
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Scheduled Date
+                    </label>
+                    <p className="text-sm text-gray-900">
+                      {returnRequest.pickupRequest.scheduledDate
+                        ? formatDate(returnRequest.pickupRequest.scheduledDate)
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Logistics Partner
+                    </label>
+                    <p className="text-sm text-gray-900">
+                      {returnRequest.pickupRequest.logisticsPartner || "N/A"}
+                    </p>
+                  </div>
+                  {returnRequest.pickupRequest.trackingNumber && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Tracking Number
+                      </label>
+                      <p className="text-sm font-mono text-gray-900">
+                        {returnRequest.pickupRequest.trackingNumber}
+                      </p>
+                    </div>
+                  )}
+                  {returnRequest.pickupRequest.completedDate && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Completed Date
+                      </label>
+                      <p className="text-sm text-gray-900">
+                        {formatDate(returnRequest.pickupRequest.completedDate)}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Pickup Status
+                    </label>
+                    <Badge
+                      className={getStatusBadge(returnRequest.returnStatus)}
+                    >
+                      {returnRequest.returnStatus}
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1072,9 +1362,15 @@ const handleOpenRejectReturn = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Days Since Request</span>
+                <span className="text-sm text-gray-500">
+                  Days Since Request
+                </span>
                 <span className="text-sm font-medium text-gray-900">
-                  {Math.floor((Date.now() - new Date(returnRequest.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days
+                  {Math.floor(
+                    (Date.now() - new Date(returnRequest.createdAt).getTime()) /
+                      (1000 * 60 * 60 * 24)
+                  )}{" "}
+                  days
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -1100,7 +1396,7 @@ const handleOpenRejectReturn = () => {
         }}
         returnId={returnId}
       />
-      
+
       <RejectReturnDialog
         open={rejectDialog}
         onClose={() => setRejectDialog(false)}
@@ -1112,22 +1408,28 @@ const handleOpenRejectReturn = () => {
         }}
         returnId={returnId}
       />
-      
-      <Dialog 
-        open={borzoConfirmDialog.open} 
-        onOpenChange={(open) => !borzoLoading && setBorzoConfirmDialog({ ...borzoConfirmDialog, open })}
+
+      <Dialog
+        open={borzoConfirmDialog.open}
+        onOpenChange={(open) =>
+          !borzoLoading &&
+          setBorzoConfirmDialog({ ...borzoConfirmDialog, open })
+        }
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Initiate Borzo Pickup</DialogTitle>
             <DialogDescription>
-              Are you sure you want to initiate Borzo pickup for this return request?
+              Are you sure you want to initiate Borzo pickup for this return
+              request?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setBorzoConfirmDialog({ open: false, returnId: null })}
+              onClick={() =>
+                setBorzoConfirmDialog({ open: false, returnId: null })
+              }
               disabled={borzoLoading}
             >
               Cancel
@@ -1138,7 +1440,7 @@ const handleOpenRejectReturn = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       <CompletePickupDialog
         open={completePickupDialog}
         onClose={() => setCompletePickupDialog(false)}
@@ -1151,7 +1453,7 @@ const handleOpenRejectReturn = () => {
         returnId={returnId}
         returnRequest={returnRequest}
       />
-      
+
       <InspectDialog
         open={inspectDialog}
         onClose={() => setInspectDialog(false)}
@@ -1164,7 +1466,7 @@ const handleOpenRejectReturn = () => {
         returnId={returnId}
         returnStatus={returnRequest.returnStatus}
       />
-      
+
       <InitiateRefundForm
         open={initiateRefundDialog}
         onClose={() => setInitiateRefundDialog(false)}
@@ -1176,7 +1478,7 @@ const handleOpenRejectReturn = () => {
           setInitiateRefundDialog(false);
         }}
       />
-      
+
       <CompleteInspectionDialog
         open={completeInspectionDialog}
         onClose={() => setCompleteInspectionDialog(false)}
@@ -1189,7 +1491,7 @@ const handleOpenRejectReturn = () => {
         returnId={returnId}
         returnRequest={returnRequest}
       />
-      
+
       <OnlineRefundDialog
         open={onlineRefundDialog}
         onClose={() => setOnlineRefundDialog(false)}
@@ -1201,7 +1503,7 @@ const handleOpenRejectReturn = () => {
         }}
         returnId={returnId}
       />
-      
+
       <CODRefundDialog
         open={codRefundDialog}
         onClose={() => setCodRefundDialog(false)}
@@ -1214,7 +1516,7 @@ const handleOpenRejectReturn = () => {
         returnId={returnId ?? undefined}
         returnRequest={returnRequest}
       />
-      
+
       {/* Image Modal */}
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
         <DialogContent className="max-w-4xl w-full p-0">
@@ -1228,14 +1530,15 @@ const handleOpenRejectReturn = () => {
                 alt="Full size preview"
                 className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
                 onError={(e) => {
-                  e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='16' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
+                  e.currentTarget.src =
+                    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect width='400' height='400' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='16' fill='%236b7280'%3EImage not available%3C/text%3E%3C/svg%3E";
                 }}
               />
             )}
           </div>
         </DialogContent>
       </Dialog>
-      
+
       {/* <ManualRefundDialog
         open={manualRefundDialog}
         onClose={() => setManualRefundDialog(false)}

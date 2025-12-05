@@ -25,7 +25,7 @@ export default function ReturnStatsCards({ stats, className = "" }: ReturnStatsC
     approvedReturns: stats?.statusCounts?.Validated || 0,
     rejectedReturns: stats?.statusCounts?.Rejected || 0,
     underInspection: (stats?.statusCounts?.Inspection_Started || 0) + (stats?.statusCounts?.Inspection_Completed || 0),
-    completedReturns: (stats?.statusCounts?.Initiated_Refund || 0) + (stats?.statusCounts?.Refund_Completed || 0),
+    completedReturns: (stats?.statusCounts?.Refund_Initiated || 0) + (stats?.statusCounts?.Refund_Completed || 0),
   };
 
   const statsCards = [
