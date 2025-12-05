@@ -37,7 +37,7 @@ import DynamicButton from "@/components/common/button/button";
 import {
   getProductRequestStats,
   putRequestInReview,
-  exportProductRequests,
+  getProductRequests,
 } from "@/service/product-request-service";
 import { aproveDealerProduct, rejectSingleProduct } from "@/service/product-Service";
 import {
@@ -75,6 +75,9 @@ export default function ProductRequests() {
   // Selection state
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  
+  // Export state
+  const [isExporting, setIsExporting] = useState(false);
   
   // Dialog states
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
@@ -259,26 +262,205 @@ export default function ProductRequests() {
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const filters: ProductRequestFilters = {
-        startDate: dateRange.from?.toISOString(),
-        endDate: dateRange.to?.toISOString(),
-        status: activeTab.toLowerCase() as 'pending' | 'approved' | 'rejected',
-      };
+  // Format phone number with country code and prevent Excel scientific notation
+  const formatPhoneNumber = (phone: string | undefined) => {
+    if (!phone) return 'N/A';
+    // Remove any spaces, dashes, or special characters
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    // If it doesn't start with +, add +91
+    let formattedPhone = '';
+    if (!cleaned.startsWith('+')) {
+      formattedPhone = `+91${cleaned}`;
+    } else {
+      formattedPhone = cleaned;
+    }
+    // Prepend with single quote to force Excel text format
+    return `'${formattedPhone}`;
+  };
 
-      const blob = await exportProductRequests(filters);
+  // Generate CSV from product data
+  const generateCSV = (products: any[]) => {
+    // Debug: Log first product to see actual structure
+    if (products.length > 0) {
+      console.log("=== CSV Export Debug ===");
+      console.log("First product:", products[0]);
+      console.log("Available keys:", Object.keys(products[0]));
+      console.log("Dealer field:", products[0].dealer);
+      console.log("Dealer name field:", products[0].dealer_name);
+      console.log("Created by field:", products[0].created_by);
+    }
+    
+    // Prepare CSV headers (removed Dealer Name)
+    const headers = [
+      "Product ID",
+      "Product Name",
+      "SKU Code",
+      "Category",
+      "Brand",
+      "Manufacturer",
+      "MRP",
+      "Selling Price",
+      "Stock Quantity",
+      "Status",
+      "QC Status",
+      "Live Status",
+      "Created Date",
+      "Updated Date",
+      "Description"
+    ];
+
+    // Helper function to safely get value and handle objects
+    const getValue = (value: any, field: string = '') => {
+      if (value === null || value === undefined) return 'N/A';
+      
+      // If it's an object and not a Date
+      if (typeof value === 'object' && !(value instanceof Date)) {
+        // Try to extract meaningful value from object
+        if (value.name) return String(value.name);
+        if (value.category_name) return String(value.category_name);
+        if (value.brand_name) return String(value.brand_name);
+        if (value.trade_name) return String(value.trade_name);
+        if (value.legal_name) return String(value.legal_name);
+        if (value.title) return String(value.title);
+        if (value.value) return String(value.value);
+        if (value._id) return String(value._id);
+        // Return 'N/A' instead of [object Object]
+        return 'N/A';
+      }
+      
+      return String(value);
+    };
+
+    // Prepare CSV rows with correct field names
+    const rows = products.map((product: any) => {
+      // Extract category - could be object or string
+      let category = 'N/A';
+      if (product.category) {
+        if (typeof product.category === 'object') {
+          category = product.category.category_name || product.category.name || getValue(product.category);
+        } else {
+          category = String(product.category);
+        }
+      } else if (product.category_name) {
+        category = String(product.category_name);
+      }
+
+      // Extract brand - could be object or string
+      let brand = 'N/A';
+      if (product.brand) {
+        if (typeof product.brand === 'object') {
+          brand = product.brand.brand_name || product.brand.name || getValue(product.brand);
+        } else {
+          brand = String(product.brand);
+        }
+      } else if (product.brand_name) {
+        brand = String(product.brand_name);
+      }
+
+      // Extract manufacturer
+      let manufacturer = 'N/A';
+      if (product.manufacturer) {
+        manufacturer = getValue(product.manufacturer);
+      } else if (product.manufacturer_part_name) {
+        manufacturer = String(product.manufacturer_part_name);
+      }
+
+      return [
+        getValue(product._id || product.id),
+        getValue(product.product_name || product.name || product.productName),
+        getValue(product.sku_code || product.sku || product.skuCode),
+        category,
+        brand,
+        manufacturer,
+        getValue(product.mrp_with_gst || product.mrp || product.MRP || '0'),
+        getValue(product.selling_price || product.sellingPrice || product.price || '0'),
+        getValue(product.stock_quantity || product.stockQuantity || product.quantity || '0'),
+        getValue(product.status || product.product_status || product.live_status),
+        getValue(product.Qc_status || product.qc_status || product.qcStatus),
+        getValue(product.live_status || product.liveStatus),
+        product.created_at ? format(new Date(product.created_at), "MMM dd, yyyy HH:mm") : 
+          (product.createdAt ? format(new Date(product.createdAt), "MMM dd, yyyy HH:mm") : 'N/A'),
+        product.updated_at ? format(new Date(product.updated_at), "MMM dd, yyyy HH:mm") : 
+          (product.updatedAt ? format(new Date(product.updatedAt), "MMM dd, yyyy HH:mm") : 'N/A'),
+        getValue((product.admin_notes || product.description || product.notes || 'N/A')).replace(/[\r\n]+/g, ' ')
+      ];
+    });
+
+    // Convert to CSV format
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => 
+        row.map(cell => {
+          // Escape quotes and wrap in quotes if contains comma, quote, or newline
+          const cellStr = String(cell);
+          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        }).join(',')
+      )
+    ].join('\n');
+
+    return csvContent;
+  };
+
+  // Download CSV file
+  const downloadCSV = (csvContent: string, filename: string) => {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `product_requests_${activeTab.toLowerCase()}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      showToast("Export completed successfully", "success");
+  };
+
+  // Export ALL data for active tab
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      
+      // Build filters based on active tab and date range
+      const filters: any = {
+        status: activeTab, // "Pending", "Approved", or "Rejected"
+      };
+      
+      if (dateRange.from) {
+        filters.startDate = dateRange.from.toISOString();
+      }
+      if (dateRange.to) {
+        filters.endDate = dateRange.to.toISOString();
+      }
+
+      // Fetch ALL data for export (not paginated)
+      const response = await getProductRequests(1, 10000, filters);
+      
+      if (!response.success) {
+        showToast("Failed to fetch data for export", "error");
+        return;
+      }
+      
+      const allProducts = response.data?.products || [];
+      
+      if (allProducts.length === 0) {
+        showToast("No data to export", "error");
+        return;
+      }
+      
+      // Generate CSV directly without dealer fetching to avoid 404 errors
+      const csvContent = generateCSV(allProducts);
+      const statusText = activeTab.toLowerCase();
+      const filename = `product_requests_${statusText}_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.csv`;
+      
+      downloadCSV(csvContent, filename);
+      showToast(`CSV exported successfully (${allProducts.length} records)`, "success");
     } catch (error) {
-      showToast("Failed to export requests", "error");
+      console.error("Export error:", error);
+      showToast("Failed to export data", "error");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -302,9 +484,23 @@ export default function ProductRequests() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button onClick={handleExport} variant="outline">
+          <Button 
+            onClick={handleExport} 
+            variant="outline"
+            disabled={isExporting}
+            className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+          >
+            {isExporting ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
             <Download className="h-4 w-4 mr-2" />
-            Export
+                Export CSV
+              </>
+            )}
           </Button>
         </div>
       </div>

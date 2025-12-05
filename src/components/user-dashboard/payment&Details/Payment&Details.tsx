@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Filter, ChevronDown, ChevronUp, Download, FileText, FileSpreadsheet } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, Download, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,12 +23,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Card,
   CardContent,
   CardDescription,
@@ -47,7 +41,7 @@ import {
 } from "@/components/ui/table";
 import useDebounce from "@/utils/useDebounce";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
-import { getPaymentDetails } from "@/service/payment-service";
+import { getPaymentDetails, exportAllPaymentDetails } from "@/service/payment-service";
 import { PaymentDetail, PaymentDetailsResponse, PaymentPagination } from "@/types/paymentDetails-Types";
 import PaymentStatsCards from "./PaymentStatsCards";
 import PaymentDetailedStats from "./PaymentDetailedStats";
@@ -61,6 +55,7 @@ export default function PaymentDetails() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   // Sorting state
   const [sortField, setSortField] = useState("");
@@ -330,54 +325,91 @@ export default function PaymentDetails() {
     }
   }, [showFilters]);
 
-  // Export functions for payment list
-  const exportPaymentsToCSV = () => {
-    if (!payments || payments.length === 0) return;
-    
-    const csvData = [
-      ["Payment ID", "Razorpay Order ID", "Payment Method", "Payment Status", "Amount", "Created At", "Order ID", "Customer Name", "Customer Phone"],
-      ...payments.map(payment => [
-        payment.payment_id || payment._id,
-        payment.razorpay_order_id,
-        payment.payment_method,
-        payment.payment_status,
-        `₹${payment.amount.toLocaleString()}`,
-        new Date(payment.created_at).toLocaleDateString(),
-        payment.orderDetails?.orderId || payment.order_id?.orderId || "N/A",
-        payment.orderDetails?.customerName || payment.order_id?.customerDetails?.name || "N/A",
-        payment.orderDetails?.customerPhone || payment.order_id?.customerDetails?.phone || "N/A"
-      ])
-    ];
+  // Export functions for payment list - Fetch ALL data with filters
+  const exportPaymentsToCSV = async () => {
+    try {
+      setIsExporting(true);
+      
+      // Fetch ALL payments with current filters
+      const response = await exportAllPaymentDetails({
+        payment_status: filterStatus,
+        payment_method: filterPaymentMethod,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        sort: orderAmountSort || undefined
+      });
+      
+      const allPayments = response.data.data || [];
+      
+      if (allPayments.length === 0) {
+        alert("No data to export");
+        return;
+      }
+      
+      // Format phone number with +91
+      const formatPhoneNumber = (phone: string | undefined) => {
+        if (!phone) return 'N/A';
+        const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+        let formattedPhone = '';
+        if (!cleaned.startsWith('+')) {
+          formattedPhone = `+91${cleaned}`;
+        } else {
+          formattedPhone = cleaned;
+        }
+        return `'${formattedPhone}`;
+      };
+      
+      const csvData = [
+        ["Payment ID", "Razorpay Order ID", "Payment Method", "Razorpay Payment Method", "Payment Status", "Amount", "Created At", "Order ID", "Order Amount", "Customer Name", "Customer Phone"],
+        ...allPayments.map((payment: any) => [
+          payment.payment_id || payment._id || 'N/A',
+          payment.razorpay_order_id || 'N/A',
+          payment.payment_method || 'N/A',
+          payment.razorpay_payment_method || 'N/A',
+          payment.payment_status || 'N/A',
+          `₹${payment.amount?.toLocaleString() || '0'}`,
+          payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A',
+          payment.orderDetails?.orderId || payment.order_id?.orderId || "N/A",
+          `₹${payment.orderDetails?.order_Amount?.toLocaleString() || payment.order_id?.order_Amount?.toLocaleString() || '0'}`,
+          payment.orderDetails?.customerName || payment.order_id?.customerDetails?.name || "N/A",
+          formatPhoneNumber(payment.orderDetails?.customerPhone || payment.order_id?.customerDetails?.phone)
+        ])
+      ];
 
-    const csvContent = csvData.map(row => row.join(",")).join("\n");
-    
-    // Create and download file
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `payments-list-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const exportPaymentsToJSON = () => {
-    if (!payments || payments.length === 0) return;
-    
-    const jsonContent = JSON.stringify(payments, null, 2);
-    
-    // Create and download file
-    const blob = new Blob([jsonContent], { type: "application/json" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `payments-list-${new Date().toISOString().split('T')[0]}.json`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const csvContent = csvData.map(row => 
+        row.map(cell => {
+          const cellStr = String(cell);
+          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        }).join(',')
+      ).join("\n");
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      
+      // Include filter info in filename
+      const statusText = filterStatus !== 'all' ? `_${filterStatus}` : '';
+      const dateText = startDate || endDate ? `_${startDate || 'start'}-to-${endDate || 'end'}` : '';
+      const filename = `payments-list${statusText}${dateText}_${new Date().toISOString().split('T')[0]}.csv`;
+      
+      link.setAttribute("download", filename);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert(`CSV exported successfully (${allPayments.length} records)`);
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Failed to export CSV");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -407,9 +439,30 @@ export default function PaymentDetails() {
       <Card className="shadow-sm rounded-none min-w-0">
         {/* Header */}
         <CardHeader className="space-y-4 sm:space-y-6">
-          <CardTitle className="text-[#000000] font-bold text-lg font-sans">
-            <span>Payment & Details</span>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-[#000000] font-bold text-lg font-sans">
+              <span>Payment & Details</span>
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportPaymentsToCSV}
+              disabled={isExporting}
+              className="flex items-center gap-2 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+            >
+              {isExporting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </>
+              )}
+            </Button>
+          </div>
 
           {/* Payment Statistics Cards */}
           <PaymentStatsCards className="mb-6" />
@@ -434,34 +487,6 @@ export default function PaymentDetails() {
                   icon={<Filter className="h-4 w-4 mr-2" />}
                   onClick={() => setShowFilters(true)}
                 />
-                {orderAmountSort && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleResetSort}
-                    className="flex items-center gap-2"
-                  >
-                    Reset Sort
-                  </Button>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Export
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={exportPaymentsToCSV} className="flex items-center gap-2">
-                      <FileSpreadsheet className="h-4 w-4" />
-                      Export as CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={exportPaymentsToJSON} className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Export as JSON
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             </div>
           </div>

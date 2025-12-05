@@ -87,7 +87,6 @@ export default function RejectedProducts({
       if (response.success) {
         const products = response.data?.products || [];
         const pagination = response.data?.pagination || {};
-        console.log("products", products);
         setRequests(products);
         setTotalPages(pagination.totalPages || 1);
         setTotalItems(pagination.totalItems || 0);

@@ -39,6 +39,42 @@ export async function getPaymentDetails(
   }
 }
 
+// Export all payment details for CSV (fetches all records)
+export async function exportAllPaymentDetails(
+  filters: {
+    payment_status?: string;
+    payment_method?: string;
+    razorpay_payment_method?: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    sort?: string;
+  }
+): Promise<PaymentDetailsResponse> {
+  try {
+    const params = new URLSearchParams({
+      page: '1',
+      limit: '10000', // Large limit to get all records
+      payment_status: filters.payment_status || "all",
+      payment_method: filters.payment_method || "all",
+      razorpay_payment_method: filters.razorpay_payment_method || "all"
+    });
+
+    // If date range filters exist, add them
+    if (filters.startDate) params.append("startDate", filters.startDate);
+    if (filters.endDate) params.append("endDate", filters.endDate);
+    if (filters.sort) params.append("sort", filters.sort);
+
+    const response = await apiClient.get(
+      `orders/api/payments/all?${params.toString()}`
+    );
+
+    return response.data;
+  } catch (error) {
+    console.log("error in payment export service", error);
+    throw error;
+  }
+}
+
 export async function getPaymentDetailsById(id: string): Promise<PaymentDetailByIdResponse> {
     try {
       const response = await apiClient.get(`orders/api/payments/by-id/${id}`);
