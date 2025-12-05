@@ -87,6 +87,7 @@ export default function ApprovedProduct({
   modelFilter,
   variantFilter,
   refreshKey,
+  resetSortKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
@@ -96,6 +97,7 @@ export default function ApprovedProduct({
   modelFilter?: string;
   variantFilter?: string;
   refreshKey?: number;
+  resetSortKey?: number;
 }) {
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state) => state.auth);
@@ -104,7 +106,11 @@ export default function ApprovedProduct({
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
 
-  const { selectedProductIds: selectedItems, setSelectedProductIds: setSelectedItems, toggleProductSelection: handleToggleSelection } = useProductSelection();
+  const {
+    selectedProductIds: selectedItems,
+    setSelectedProductIds: setSelectedItems,
+    toggleProductSelection: handleToggleSelection,
+  } = useProductSelection();
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -112,7 +118,9 @@ export default function ApprovedProduct({
   const [viewProductLoading, setViewProductLoading] = useState(false);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [sortPriceDirection, setSortPriceDirection] = useState<"L-H" | "H-L">("L-H");
+  const [sortPriceDirection, setSortPriceDirection] = useState<"L-H" | "H-L">(
+    "L-H"
+  );
   const { showToast } = useGlobalToast();
   const [totalPages, setTotalPages] = useState(0);
   const itemsPerPage = 10;
@@ -230,6 +238,15 @@ export default function ApprovedProduct({
     setCurrentPage(1);
   }, [searchQuery, categoryFilter, subCategoryFilter]);
 
+  // Reset sorting when resetSortKey changes
+  useEffect(() => {
+    if (resetSortKey !== undefined && resetSortKey > 0) {
+      setSortField("");
+      setSortDirection("asc");
+      setSortPriceDirection("L-H");
+    }
+  }, [resetSortKey]);
+
   // Filter products by approved live status and search query
 
   const sortedProducts = React.useMemo(() => {
@@ -273,7 +290,10 @@ export default function ApprovedProduct({
       }
 
       // Pre-populate dealer assignments if product has available_dealers
-      if (product?.available_dealers && Array.isArray(product.available_dealers)) {
+      if (
+        product?.available_dealers &&
+        Array.isArray(product.available_dealers)
+      ) {
         const existingAssignments = product.available_dealers
           .filter((dealer: any) => dealer.dealers_Ref)
           .map((dealer: any) => ({
@@ -282,7 +302,7 @@ export default function ApprovedProduct({
             dealer_margin: dealer.dealer_margin || 20,
             dealer_priority_override: dealer.dealer_priority_override || 10,
           }));
-        
+
         setDealerAssignments(existingAssignments);
       }
     } catch (error) {
@@ -356,27 +376,25 @@ export default function ApprovedProduct({
 
   const handleQcStatusChange = async (
     productId: string,
-    newStatus: 'Approved' | 'Pending' | 'Rejected'
+    newStatus: "Approved" | "Pending" | "Rejected"
   ) => {
-    if (newStatus === 'Rejected') {
+    if (newStatus === "Rejected") {
       setQcRejectTargetId(productId);
       setIsRejectDialogOpen(true);
       return;
     }
-    
+
     try {
-      if (newStatus === 'Approved') {
+      if (newStatus === "Approved") {
         await aproveProduct(productId);
-          dispatch(updateProductQcStatus({ id: productId, qcStatus: newStatus }));
+        dispatch(updateProductQcStatus({ id: productId, qcStatus: newStatus }));
       }
 
-    
-    
-      showToast(`QC status set to ${newStatus.toLowerCase()}`,'success');
+      showToast(`QC status set to ${newStatus.toLowerCase()}`, "success");
       await fetchProducts();
     } catch (error) {
-      console.error('Failed to update QC status:', error);
-      showToast('Failed to update QC status','error');
+      console.error("Failed to update QC status:", error);
+      showToast("Failed to update QC status", "error");
     }
   };
 
@@ -384,23 +402,35 @@ export default function ApprovedProduct({
     if (!qcRejectTargetId) return;
     try {
       await rejectSingleProduct(qcRejectTargetId, data.reason, auth?.user?._id);
-      dispatch(updateProductQcStatus({ id: qcRejectTargetId, qcStatus: 'Rejected' }));
-      showToast('Product rejected','success');
+      dispatch(
+        updateProductQcStatus({ id: qcRejectTargetId, qcStatus: "Rejected" })
+      );
+      showToast("Product rejected", "success");
       await fetchProducts();
     } catch (error: any) {
-      console.error('Failed to reject product:', error);
-      showToast(error?.message || 'Failed to reject product','error');
+      console.error("Failed to reject product:", error);
+      showToast(error?.message || "Failed to reject product", "error");
     } finally {
       setIsRejectDialogOpen(false);
       setQcRejectTargetId(null);
     }
   };
 
-  const handleLiveStatusChange = async (productId: string, newStatus: 'Approved' | 'Rejected') => {
+  const handleLiveStatusChange = async (
+    productId: string,
+    newStatus: "Approved" | "Rejected"
+  ) => {
     try {
       await updateProductStatus([productId], newStatus);
-      showToast(`Product ${newStatus === 'Approved' ? 'approved for shop' : 'removed from shop'}`, "success");
-      dispatch(updateProductLiveStatus({ id: productId, liveStatus: newStatus }));
+      showToast(
+        `Product ${
+          newStatus === "Approved" ? "approved for shop" : "removed from shop"
+        }`,
+        "success"
+      );
+      dispatch(
+        updateProductLiveStatus({ id: productId, liveStatus: newStatus })
+      );
       await fetchProducts();
     } catch (error) {
       console.error("Failed to update product status:", error);
@@ -443,22 +473,22 @@ export default function ApprovedProduct({
   };
 
   // 1. Update the sort handler to support price
-    const handleSortByPrice = () => {
-      if (sortField === "selling_price") {
-        setSortPriceDirection(sortPriceDirection === "L-H" ? "H-L" : "L-H");
-      } else {
-        setSortField("selling_price");
-        setSortPriceDirection("L-H");
-      }
-    };
+  const handleSortByPrice = () => {
+    if (sortField === "selling_price") {
+      setSortPriceDirection(sortPriceDirection === "L-H" ? "H-L" : "L-H");
+    } else {
+      setSortField("selling_price");
+      setSortPriceDirection("L-H");
+    }
+  };
 
-const handleSelectAll = (checked: boolean) => {
-  if (checked) {
-    setSelectedItems(sortedProducts.map(product => product._id));
-  } else {
-    setSelectedItems([]);
-  }
-};
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(sortedProducts.map((product) => product._id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
 
   // Empty state
   if (!loadingProducts && sortedProducts.length === 0) {
@@ -487,16 +517,20 @@ const handleSelectAll = (checked: boolean) => {
               className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer select-none"
               onClick={handleSortByName}
             >
-              Name
-              {sortField === "manufacturer_part_name" && (
-                <span className="ml-1">
-                  {sortDirection === "asc" ? (
-                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
+              <div className="flex items-center">
+                <span>Name</span>
+                <div className="w-4 h-4 ml-1 flex items-center justify-center">
+                  {sortField === "manufacturer_part_name" ? (
+                    sortDirection === "asc" ? (
+                      <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                    )
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                    <ChevronUp className="w-4 h-4 text-gray-400" />
                   )}
-                </span>
-              )}
+                </div>
+              </div>
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-sans">
               Category
@@ -514,19 +548,23 @@ const handleSelectAll = (checked: boolean) => {
               className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
               onClick={handleSortByPrice}
             >
-              Price
-              {sortField === "selling_price" && (
-                <span className="ml-1">
-                  {sortPriceDirection === "L-H" ? (
-                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
+              <div className="flex items-center">
+                <span>Price</span>
+                <div className="w-4 h-4 ml-1 flex items-center justify-center">
+                  {sortField === "selling_price" ? (
+                    sortPriceDirection === "L-H" ? (
+                      <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                    )
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                    <ChevronUp className="w-4 h-4 text-gray-400" />
                   )}
-                </span>
-              )}
+                </div>
+              </div>
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-sans">
-              Product Status
+              Qc Status
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-sans">
               Product Live status
@@ -581,7 +619,7 @@ const handleSelectAll = (checked: boolean) => {
               ))
             : // Original content when not loading
               sortedProducts.map((product: any, index: number) => {
-              const isSelected = selectedItems.includes(product._id);
+                const isSelected = selectedItems.includes(product._id);
                 return (
                   <TableRow
                     key={product._id}
@@ -615,10 +653,7 @@ const handleSelectAll = (checked: boolean) => {
                     >
                       <div className="font-medium text-gray-900 b2 font-sans">
                         {product.product_name.length > 8
-                          ? `${product.product_name.substring(
-                              0,
-                              8
-                            )}...`
+                          ? `${product.product_name.substring(0, 8)}...`
                           : product.product_name}
                       </div>
                       <div className="text-xs text-gray-500 mt-1 md:hidden">
@@ -667,15 +702,22 @@ const handleSelectAll = (checked: boolean) => {
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
-                            className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(product.Qc_status)}`}
+                            className={`h-auto p-2 justify-between min-w-[120px] ${getStatusColor(
+                              product.Qc_status
+                            )}`}
                           >
                             <span className="b2">{product.Qc_status}</span>
                             <ChevronDown className="h-4 w-4 ml-2" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="min-w-[120px]">
+                        <DropdownMenuContent
+                          align="start"
+                          className="min-w-[120px]"
+                        >
                           <DropdownMenuItem
-                            onClick={() => handleQcStatusChange(product._id, "Approved")}
+                            onClick={() =>
+                              handleQcStatusChange(product._id, "Approved")
+                            }
                             className="text-green-600 focus:text-green-600"
                           >
                             Approve
@@ -687,7 +729,9 @@ const handleSelectAll = (checked: boolean) => {
                             Pending
                           </DropdownMenuItem> */}
                           <DropdownMenuItem
-                            onClick={() => handleQcStatusChange(product._id, "Rejected")}
+                            onClick={() =>
+                              handleQcStatusChange(product._id, "Rejected")
+                            }
                             className="text-red-600 focus:text-red-600"
                           >
                             Reject
@@ -713,13 +757,17 @@ const handleSelectAll = (checked: boolean) => {
                           className="min-w-[120px]"
                         >
                           <DropdownMenuItem
-                            onClick={() => handleLiveStatusChange(product._id, "Approved")}
+                            onClick={() =>
+                              handleLiveStatusChange(product._id, "Approved")
+                            }
                             className="text-green-600 focus:text-green-600"
                           >
                             Approve
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleLiveStatusChange(product._id, "Rejected")}
+                            onClick={() =>
+                              handleLiveStatusChange(product._id, "Rejected")
+                            }
                             className="text-red-600 focus:text-red-600"
                           >
                             Reject
@@ -754,7 +802,9 @@ const handleSelectAll = (checked: boolean) => {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="cursor-pointer"
-                            onClick={() => handleAssignDealers(product._id, product)}
+                            onClick={() =>
+                              handleAssignDealers(product._id, product)
+                            }
                           >
                             Assign Dealers
                           </DropdownMenuItem>
@@ -791,13 +841,13 @@ const handleSelectAll = (checked: boolean) => {
           {/* Pagination Controls */}
 
           <div className="flex justify-center sm:justify-end">
-           <DynamicPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalProducts}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-          />
+            <DynamicPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalProducts}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </div>
       )}

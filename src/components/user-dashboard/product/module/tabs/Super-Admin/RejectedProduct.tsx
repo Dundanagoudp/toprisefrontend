@@ -49,6 +49,12 @@ import { DynamicPagination } from "@/components/common/pagination";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProductSelection } from "@/contexts/ProductSelectionContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -74,6 +80,7 @@ export default function RejectedProduct({
   modelFilter,
   variantFilter,
   refreshKey,
+  resetSortKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
@@ -83,6 +90,7 @@ export default function RejectedProduct({
   modelFilter?: string;
   variantFilter?: string;
   refreshKey?: number;
+  resetSortKey?: number;
 }) {
   const dispatch = useAppDispatch();
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
@@ -102,6 +110,8 @@ export default function RejectedProduct({
     setSelectedProductIds,
     toggleProductSelection,
   } = useProductSelection();
+  const [isRejectReasonDialogOpen, setIsRejectReasonDialogOpen] = useState(false);
+  const [selectedProductForRejectReason, setSelectedProductForRejectReason] = useState<any>(null);
 
   // Fetch products when component mounts or when pagination changes
   useEffect(() => {
@@ -148,9 +158,10 @@ export default function RejectedProduct({
           const rejectedProducts = response.data.products.filter(
             product => product.live_status === "Rejected"
           );
+          const paginationData = response.data.pagination;
           setPaginatedProducts(rejectedProducts);
-          setTotalProducts(rejectedProducts.length);
-          setTotalPages(response.data.pagination?.totalPages || 0);
+          setTotalProducts(paginationData?.totalItems || 0);
+          setTotalPages(paginationData?.totalPages || 0);
         } else {
           console.error("Unexpected API response structure:", response.data);
         }
@@ -168,6 +179,15 @@ export default function RejectedProduct({
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, categoryFilter, subCategoryFilter, brandFilter, sortPriceDirection, modelFilter, variantFilter]);
+
+  // Reset sorting when resetSortKey changes
+  useEffect(() => {
+    if (resetSortKey !== undefined && resetSortKey > 0) {
+      setSortField("");
+      setSortDirection("asc");
+      setSortPriceDirection("L-H");
+    }
+  }, [resetSortKey]);
 
   // Server handles search/sort; return products as-is
   const filteredProducts = React.useMemo(() => {
@@ -190,6 +210,28 @@ export default function RejectedProduct({
 
   const handleViewProduct = (id: string) => {
     route.push(`/user/dashboard/product/product-details/${id}`);
+  };
+
+  const handleViewRejectReason = (productId: string) => {
+    const product = filteredProducts.find((p) => p._id === productId);
+    if (product) {
+      setSelectedProductForRejectReason(product);
+      setIsRejectReasonDialogOpen(true);
+    }
+  };
+
+  const getRejectReason = (product: any): string => {
+    if (product?.rejection_state && Array.isArray(product.rejection_state) && product.rejection_state.length > 0) {
+      const latestRejection = product.rejection_state[product.rejection_state.length - 1];
+      return latestRejection?.reason || latestRejection || "No reason provided";
+    }
+    if (product?.reject_reason) {
+      return product.reject_reason;
+    }
+    if (product?.rejectionReason) {
+      return product.rejectionReason;
+    }
+    return "No rejection reason available";
   };
 
   const handleQcStatusChange = async (productId: string, newStatus: 'Approved' | 'Pending') => {
@@ -272,16 +314,21 @@ export default function RejectedProduct({
               className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[200px] font-[Red Hat Display] cursor-pointer select-none"
               onClick={handleSortByName}
             >
-              Name
-              {sortField === "manufacturer_part_name" && (
-                <span className="ml-1">
-                  {sortDirection === "asc" ? (
+              <div className="flex items-center">
+              <span>Name</span>
+              <div className="w-4 h-4 ml-1 flex items-center justify-center">
+                {sortField === "manufacturer_part_name" ? (
+                  sortDirection === "asc" ? (
                     <ChevronUp className="w-4 h-4 text-[#C72920]" />
                   ) : (
                     <ChevronDown className="w-4 h-4 text-[#C72920]" />
-                  )}
-                </span>
-              )}
+                  )
+                ) : (
+                  <ChevronUp className="w-4 h-4 text-gray-400" />
+                )}
+              </div>
+              </div>
+              
             </TableHead>
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[120px] hidden md:table-cell font-[Red Hat Display]">
               Category
@@ -299,20 +346,24 @@ export default function RejectedProduct({
               className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
               onClick={handleSortByPrice}
             >
-              Price
-              {sortField === "selling_price" && (
-                <span className="ml-1"> 
-                  {sortPriceDirection === "L-H" ? (
-                    <ChevronUp className="w-4 h-4 text-[#C72920]" />
+              <div className="flex items-center">
+                <span>Price</span>
+                <div className="w-4 h-4 ml-1 flex items-center justify-center">
+                  {sortField === "selling_price" ? (
+                    sortPriceDirection === "L-H" ? (
+                      <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                    )
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                    <ChevronUp className="w-4 h-4 text-gray-400" />
                   )}
-                </span>
-              )}
+                </div>
+              </div>
             </TableHead>
-            <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
+            {/* <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
               QC Status
-            </TableHead>
+            </TableHead> */}
             <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
               Product status
             </TableHead>
@@ -434,7 +485,7 @@ export default function RejectedProduct({
                         {product.selling_price || "N/A"}
                     </span>
                   </TableCell>
-                  <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                  {/* <TableCell className="px-6 py-4 font-[Red Hat Display]">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -451,16 +502,16 @@ export default function RejectedProduct({
                           className="text-green-600 focus:text-green-600"
                         >
                           Approve
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                         {/* <DropdownMenuItem
                           onClick={() => handleQcStatusChange(product._id, "Pending")}
                           className="text-yellow-600 focus:text-yellow-600"
                         >
                           Pending
                         </DropdownMenuItem> */}
-                      </DropdownMenuContent>
+                      {/* </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell className="px-6 py-4 font-[Red Hat Display]">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -513,6 +564,12 @@ export default function RejectedProduct({
                         >
                           View Details
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleViewRejectReason(product._id)}
+                        >
+                          View Reject Reason
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -541,6 +598,31 @@ export default function RejectedProduct({
           </div>
         </div>
       )}
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={isRejectReasonDialogOpen} onOpenChange={setIsRejectReasonDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Reject Reason</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {selectedProductForRejectReason && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Product:</p>
+                  <p className="text-sm text-gray-900">{selectedProductForRejectReason.product_name || selectedProductForRejectReason.manufacturer_part_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Rejection Reason:</p>
+                  <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
+                    {getRejectReason(selectedProductForRejectReason)}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

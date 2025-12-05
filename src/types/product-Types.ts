@@ -71,7 +71,7 @@ export interface Brand {
   _id: string;
   brand_name: string;
   brand_code: string;
-  type: string;
+  type: VehicleType;
   created_by: string;
   updated_by: string;
   brand_logo: string;
@@ -93,6 +93,16 @@ export interface Category {
   created_by: string;
   updated_by: string;
   created_at: string;
+  __v: number;
+}
+export interface VehicleType {
+  _id: string;
+  type_name: string;
+  type_code: string;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
   __v: number;
 }
 

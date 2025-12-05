@@ -76,6 +76,7 @@ export default function PendingProduct({
   modelFilter,
   variantFilter,
   refreshKey,
+  resetSortKey,
 }: {
   searchQuery: string;
   selectedTab?: string;
@@ -85,6 +86,7 @@ export default function PendingProduct({
   modelFilter?: string;
   variantFilter?: string;
   refreshKey?: number;
+  resetSortKey?: number;
 }) {
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state) => state.auth);
@@ -153,11 +155,8 @@ export default function PendingProduct({
           ? response.data.products
           : [];
         const pagination = response.data.pagination || {};
-          // const pendingProducts = products.filter(
-          //   (product) => product.Qc_status === "Pending"
-          // );
         setPaginatedProducts(products);
-        setTotalProducts(products.length);
+        setTotalProducts(pagination.totalItems || 0);
         setTotalPages(pagination.totalPages || 0);
       } else {
         console.error("Unexpected API response structure:", response);
@@ -223,6 +222,14 @@ export default function PendingProduct({
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, categoryFilter, subCategoryFilter]);
+
+  // Reset sorting when resetSortKey changes
+  useEffect(() => {
+    if (resetSortKey !== undefined && resetSortKey > 0) {
+      setSortField("");
+      setSortDirection("asc");
+    }
+  }, [resetSortKey]);
 
   // Server handles search/sort; return products as-is
   const filteredProducts = React.useMemo(() => {
@@ -393,19 +400,23 @@ export default function PendingProduct({
                 className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] hidden lg:table-cell font-[Red Hat Display] cursor-pointer select-none"
                 onClick={handleSortByPrice}
               >
-                Price
-                {sortField === "mrp_with_gst" && (
-                  <span className="ml-1">
-                    {sortDirection === "asc" ? (
-                      <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                <div className="flex items-center">
+                  <span>Price</span>
+                  <div className="w-4 h-4 ml-1 flex items-center justify-center">
+                    {sortField === "mrp_with_gst" ? (
+                      sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4 text-[#C72920]" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                      )
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-[#C72920]" />
+                      <ChevronUp className="w-4 h-4 text-gray-400" />
                     )}
-                  </span>
-                )}
+                  </div>
+                </div>
               </TableHead>
               <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
-                QC Status
+                Product Status
               </TableHead>
               {/* <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left min-w-[100px] font-[Red Hat Display]">
                 Product status
@@ -535,7 +546,7 @@ export default function PendingProduct({
                     </TableCell>
                     <TableCell className="px-6 py-4 hidden lg:table-cell font-[Red Hat Display]">
                       <span className="text-gray-700 b2 font-[Red Hat Display]">
-                        {product.price || "N/A"}
+                        {product.selling_price || "N/A"}
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-[Red Hat Display]">

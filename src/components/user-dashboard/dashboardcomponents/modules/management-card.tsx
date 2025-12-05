@@ -32,49 +32,50 @@ const ManagementCard: React.FC<ManagementCardProps> = ({ title, stats, className
 
   return (
     <ChartCard title={title} className={`p-3 sm:p-5 ${className}`} contentClassName="pt-1">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-        {stats.map((stat, index) => {
-          const IconComponent = getIcon(stat.label)
-          return (
-            <div key={index} className="space-y-1 sm:space-y-2">
-              <div className="flex items-center gap-1 sm:gap-2">
-                <div
-                  className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center"
-                  style={{ backgroundColor: stat.color }}
-                >
-                  <IconComponent className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
-                </div>
-                <span className="text-xs sm:text-sm text-gray-600 leading-tight">{stat.label}</span>
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+      {stats.map((stat, index) => {
+        const IconComponent = getIcon(stat.label)
+        return (
+          <div key={index} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: stat.color }}
+              >
+                <IconComponent className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
               </div>
-              <div className="space-y-1">
-                <p className="text-lg sm:text-xl font-bold text-gray-900">{stat.value}</p>
-                {(() => {
-                  const currentValue = parseNumericValue(stat.value)
-                  const isTotal = index === 0
-                  const percentage = isTotal
-                    ? 100
-                    : totalReference > 0
-                    ? Math.max(0, Math.min(100, (currentValue / totalReference) * 100))
-                    : 0
-
-                  const widthStyle =
-                    !isTotal && percentage === 0
-                      ? { width: 6 }
-                      : { width: `${percentage}%` }
-
-                  return (
-                    <div
-                      className="h-1 rounded-full"
-                      style={{ backgroundColor: stat.color, ...widthStyle }}
-                    />
-                  )
-                })()}
-              </div>
+              <span className="text-xs sm:text-sm text-gray-600 truncate">{stat.label}</span>
             </div>
-          )
-        })}
-      </div>
-    </ChartCard>
+            <div className="space-y-1">
+              <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{stat.value}</p>
+              {(() => {
+                const currentValue = parseNumericValue(stat.value)
+                const isTotal = index === 0
+                const percentage = isTotal
+                  ? 100
+                  : totalReference > 0
+                  ? Math.max(0, Math.min(100, (currentValue / totalReference) * 100))
+                  : 0
+  
+                return (
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{ 
+                        backgroundColor: stat.color, 
+                        width: isTotal ? '100%' : `${percentage}%`,
+                        minWidth: isTotal ? '100%' : percentage > 0 ? '6px' : '0'
+                      }}
+                    />
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </ChartCard>
   )
 }
 

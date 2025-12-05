@@ -81,9 +81,8 @@ export default function Dashboard() {
   const [dealerSummary, setDealerSummary] = useState<
     DealerStatsResponse["data"]["summary"] | null
   >(null);
-  const [revenueData, setRevenueData] = useState<
-    OrderSummaryRevenueResponse | null
-  >(null);
+  const [revenueData, setRevenueData] =
+    useState<OrderSummaryRevenueResponse | null>(null);
   const [summaryPeriod, setSummaryPeriod] =
     useState<OrderSummaryPeriod>("week");
   const [userCounts, setUserCounts] = useState<
@@ -248,14 +247,14 @@ export default function Dashboard() {
       return [
         { name: "APPROVED", value: 0, color: "#6366f1" },
         { name: "PENDING", value: 0, color: "#f97316" },
-        { name: "CREATED", value: 0, color: "#10b981" },
+
         { name: "REJECTED", value: 0, color: "#ef4444" },
       ];
     }
     return [
       { name: "APPROVED", value: productStats.approved, color: "#6366f1" },
       { name: "PENDING", value: productStats.pending, color: "#f97316" },
-      { name: "CREATED", value: productStats.created, color: "#10b981" },
+
       { name: "REJECTED", value: productStats.rejected, color: "#ef4444" },
     ];
   }, [productStats]);
@@ -265,16 +264,19 @@ export default function Dashboard() {
     if (!revenueData || !revenueData.data || revenueData.data.length === 0) {
       return [];
     }
-    
+
     return revenueData.data.map((item) => {
       // For weekly view, use dayName. For monthly view, format the date
       let displayName = item.dayName;
       if (!displayName && item.date) {
         const date = new Date(item.date);
         // Format as "Nov 1", "Nov 2", etc.
-        displayName = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        displayName = date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
       }
-      
+
       return {
         name: displayName || item.date,
         value1: item.revenue,
@@ -293,47 +295,18 @@ export default function Dashboard() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
               {/* <SearchInput
-            value={searchValue}
-            onChange={setSearchValue}
-            onClear={() => setSearchValue("")}
-            placeholder="Search Spare parts"
-            className="w-full sm:max-w-md"
-          /> */}
-
-              <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                <div className="relative w-full sm:w-auto">
-                  <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
-                    <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
-                    <input
-                      type="date"
-                      className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-neutral-700 placeholder:text-neutral-500 h-10 p-0 flex-1 outline-none text-sm"
-                      value={startDate}
-                      max={endDate}
-                      onChange={(e) => handleStartDateChange(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="relative w-full sm:w-auto">
-                  <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
-                    <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
-                    <input
-                      type="date"
-                      className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-neutral-700 placeholder:text-neutral-500 h-10 p-0 flex-1 outline-none text-sm"
-                      value={endDate}
-                      min={startDate}
-                      onChange={(e) => handleEndDateChange(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
+        value={searchValue}
+        onChange={setSearchValue}
+        onClear={() => setSearchValue("")}
+        placeholder="Search Spare parts"
+        className="w-full sm:max-w-md"
+      /> */}
             </div>
 
-            {/* Order Statistics - Moved to be with Order Summary Chart */}
-
             {/* Management + Product Grid: Responsive layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-[50%_20%_28%] gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] lg:grid-cols-[50%_20%_28%] gap-4">
               {/* Row 1, Col 1 */}
-              <div className="space-y-4">
+              <div className="space-y-4 md:col-span-2 lg:col-span-1">
                 <ManagementCard
                   title="Employee Management"
                   stats={employeeStats}
@@ -390,22 +363,27 @@ export default function Dashboard() {
                 </ChartCard>
               </div>
 
-              {/* Col 3 spans both rows */}
-              <ChartCard
-                title="Product Management"
-                className="lg:row-span-2 w-full"
-                contentClassName="h-50"
-              >
-                <DonutChart
-                  data={productData}
-                  centerValue={(productStats?.total ?? 0).toString()}
-                  centerLabel="PRODUCTS"
-                />
-              </ChartCard>
+              {/* Product Management Stat Cards */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Product Management
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {productData.map((stat, index) => (
+                    <StatCard
+                      key={index}
+                      className="p-3"
+                      title={stat.name}
+                      value={stat.value}
+                      color={stat.color}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Bottom Row - Order Summary Widget with Order Statistics */}
-            <div className="grid grid-cols-1 lg:grid-cols-[72%_28%] gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-[65%_35%] lg:grid-cols-[72%_28%] gap-4">
               {revenueData && revenueData.data.length > 0 ? (
                 <ChartCard
                   title="Order Summary"
@@ -451,8 +429,16 @@ export default function Dashboard() {
               ) : (
                 <ChartCard
                   title="Order Summary"
-                  value={revenueData ? `₹${revenueData.totalRevenue.toLocaleString()}` : undefined}
-                  change={revenueData ? `${revenueData.totalOrders} orders` : undefined}
+                  value={
+                    revenueData
+                      ? `₹${revenueData.totalRevenue.toLocaleString()}`
+                      : undefined
+                  }
+                  change={
+                    revenueData
+                      ? `${revenueData.totalOrders} orders`
+                      : undefined
+                  }
                   changeType="positive"
                   className="w-full rounded-[15px] p-2"
                   contentClassName="h-32 flex items-center justify-center"
@@ -501,6 +487,32 @@ export default function Dashboard() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                   Order Status
                 </h3>
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-auto">
+                    <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
+                      <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
+                      <input
+                        type="date"
+                        className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-neutral-700 placeholder:text-neutral-500 h-10 p-0 flex-1 outline-none text-sm"
+                        value={startDate}
+                        max={endDate}
+                        onChange={(e) => handleStartDateChange(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="relative w-full sm:w-auto">
+                    <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
+                      <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
+                      <input
+                        type="date"
+                        className="bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-neutral-700 placeholder:text-neutral-500 h-10 p-0 flex-1 outline-none text-sm"
+                        value={endDate}
+                        min={startDate}
+                        onChange={(e) => handleEndDateChange(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   {orderStats.map((stat, index) => (
                     <StatCard
@@ -514,63 +526,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-
-            {/* Returns Dashboard */}
-            {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <ChartCard
-            title="Returns Overview"
-            className="lg:col-span-2 rounded-[15px] p-4"
-            contentClassName="h-48"
-          >
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-gray-900 mb-2">
-                  {stats ? stats.statusCounts.Returned : 0}
-                </div>
-                <div className="text-lg text-gray-600 mb-4">Total Returns</div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-red-50 p-3 rounded-lg">
-                    <div className="font-semibold text-red-800">Return Rate</div>
-                    <div className="text-red-600">
-                      {stats ? ((stats.statusCounts.Returned / stats.totalOrders) * 100).toFixed(1) : 0}%
-                    </div>
-                  </div>
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <div className="font-semibold text-blue-800">Processing</div>
-                    <div className="text-blue-600">Active</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ChartCard> */}
-
-            {/* <ChartCard
-            title="Return Trends"
-            className="rounded-[15px] p-4"
-            contentClassName="h-48"
-          >
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 mb-2">📊</div>
-                <div className="text-sm text-gray-600 mb-2">Return Analytics</div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span>This Week:</span>
-                    <span className="font-semibold">-5%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>This Month:</span>
-                    <span className="font-semibold">+12%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Avg. Processing:</span>
-                    <span className="font-semibold">2.3 days</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ChartCard> */}
-            {/* </div> */}
           </>
         )}
       </div>

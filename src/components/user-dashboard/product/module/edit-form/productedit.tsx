@@ -464,7 +464,7 @@ export default function ProductEdit() {
           category: product.category?._id || "",
           sub_category: product.sub_category?._id || "",
           product_type: product.product_type || "",
-          vehicle_type: product.brand?.type || "",
+          vehicle_type: product.brand?.type?._id || "",
           no_of_stock: product.no_of_stock || 0,
           selling_price: product.selling_price || 0,
           updatedBy: product.updated_at || "",
@@ -564,9 +564,9 @@ export default function ProductEdit() {
     if (!product) return;
 
     // Set vehicle type ID for brand dependency using the brand's type
-    if (product.brand?.type) {
-      setSelectedProductTypeId(product.brand.type);
-      setValue("vehicle_type", product.brand.type);
+    if (product.brand?.type?._id) {
+      setSelectedProductTypeId(product.brand.type._id);
+      setValue("vehicle_type", product.brand.type._id);
     }
 
     // Set brand ID for model dependency
@@ -639,9 +639,9 @@ export default function ProductEdit() {
         try {
           console.log(
             "[ProductEdit] Fetching brands for edit, brand.type=",
-            product.brand?.type
+            product.brand?.type?._id
           );
-          const response = await getBrandByType(product.brand.type);
+          const response = await getBrandByType(product.brand.type._id);
           console.log("[ProductEdit] getBrandByType response:", response);
           if (response.success && Array.isArray(response.data)) {
             setBrandOptions(response.data);
@@ -663,11 +663,19 @@ export default function ProductEdit() {
 
   // Prepopulate dependent dropdowns in correct order after product data loads
 
+  // Ensure vehicle_type is set when both product and typeOptions are available
   useEffect(() => {
-    if (!product) return;
-
-    // Vehicle Type will be set separately when the user selects it
-    // since it's not part of the Product interface from the API
+    if (product && typeOptions.length > 0 && product.brand?.type) {
+      // Find the matching vehicle type in typeOptions
+      const selectedTypeObj = typeOptions.find(
+        (t) => t._id === product.brand?.type?._id
+      );
+      
+      if (selectedTypeObj) {
+        setValue("vehicle_type", selectedTypeObj._id);
+        setSelectedProductTypeId(selectedTypeObj._id);
+      }
+    }
   }, [product, typeOptions, setValue]);
 
   useEffect(() => {

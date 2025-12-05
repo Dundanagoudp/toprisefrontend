@@ -235,9 +235,9 @@ export default function Dealertable({
               <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
                 Contact Person
               </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+              {/* <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
                 Role
-              </th>
+              </th> */}
               <th
                 className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
                 onClick={() => handleSort("status")}
@@ -354,14 +354,14 @@ export default function Dealertable({
                 Contact Person
               </div>
             </th>
-            <th
+            {/* <th
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-20"
               onClick={() => handleSort("role")}
             >
               <div className="flex items-center gap-1">
                 Role
               </div>
-            </th>
+            </th> */}
             <th
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-16"
               onClick={() => handleSort("status")}
@@ -415,11 +415,11 @@ export default function Dealertable({
                   </div>
                 </div>
               </td>
-              <td className="p-3 md:p-4 text-gray-600 text-sm">
+              {/* <td className="p-3 md:p-4 text-gray-600 text-sm">
                 <div className="truncate max-w-[60px]" title={dealer.user_id.role}>
                   {dealer.user_id.role}
                 </div>
-              </td>
+              </td> */}
               <td className="p-3 md:p-4">{getStatusBadge(dealer.is_active)}</td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">
                 <div className="flex flex-wrap gap-1 max-w-[120px]">

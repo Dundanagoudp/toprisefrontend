@@ -31,7 +31,7 @@ const AVAILABLE_REGIONS = ["North", "South", "East", "West", "Central", "Northea
 const DEALER_ROLES = ["admin", "user", "dealer"] as const;
 const DEALER_STATUSES = ["active", "inactive"] as const;
 // For app users, roles are dynamic (usually just "User"); status filter available
-const USER_STATUSES = ["Active", "Inactive (Deleted)"] as const
+const USER_STATUSES = ["Active", "Inactive"] as const
 
 // Utility function to format role for display
 // Maps "Fulfillment-Admin" -> "Fullfillment-Admin" and "Fulfillment-Staff" -> "Fullfillment-Staff"
