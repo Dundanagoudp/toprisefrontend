@@ -88,7 +88,7 @@ const schema = z.object({
   gst_percentage: z.number().min(1, "GST is required"),
   selling_price: z.number().min(1, "Selling Price is required"),
   // Return & Availability
-  is_returnable: z.string().min(1, "is_returnable is required"),
+  is_returnable: z.boolean(),
   // return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
   dealerAssignments: z
@@ -479,7 +479,7 @@ export default function ProductEdit() {
               ? product.variant[0]._id
               : "",
           fitment_notes: product.fitment_notes || "",
-        key_specifications: product.key_specifications || "",
+          key_specifications: product.key_specifications || "",
 
           is_universal: product.is_universal ? "yes" : "no",
           is_consumable: product.is_consumable ? "yes" : "no",
@@ -491,7 +491,7 @@ export default function ProductEdit() {
             (product as any).video_url || (product as any).videoUrl || "",
           mrp_with_gst: product.mrp_with_gst || 0,
           gst_percentage: product.gst_percentage || 0,
-          is_returnable: product.is_returnable ? "yes" : "no",
+          is_returnable: product.is_returnable || false,
           // return_policy: product.return_policy || "",
           dealerAssignments: [],
           LastinquiredAt: product.last_stock_inquired || "",
@@ -502,7 +502,6 @@ export default function ProductEdit() {
         });
 
         setYearRangeSelected(product.year_range?.map((y) => y._id) || []);
-
 
         // Set brand ID for model dependency
         if (product.brand?._id) {
@@ -670,7 +669,7 @@ export default function ProductEdit() {
       const selectedTypeObj = typeOptions.find(
         (t) => t._id === product.brand?.type?._id
       );
-      
+
       if (selectedTypeObj) {
         setValue("vehicle_type", selectedTypeObj._id);
         setSelectedProductTypeId(selectedTypeObj._id);
@@ -753,84 +752,102 @@ export default function ProductEdit() {
     }
   }, [product, yearRangeOptions, setValue]);
 
-const onSubmit = async (data: FormValues) => {
-  setApiError("");
-  setIsSubmitting(true);
+  const onSubmit = async (data: FormValues) => {
+    setApiError("");
+    setIsSubmitting(true);
 
-  if (typeof id.id === "string") {
-    const formData = new FormData();
+    if (typeof id.id === "string") {
+      const formData = new FormData();
 
-    // 1. Append dealer assignments (filter out empty dealerIds)
-    const validAssignments = dealerAssignments.filter(a => a.dealerId && a.dealerId.trim() !== "");
-    
-    
-    validAssignments.forEach((assignment, index) => {
-      formData.append(`available_dealers[${index}][dealers_Ref]`, assignment.dealerId);
-      formData.append(`available_dealers[${index}][quantity_per_dealer]`, assignment.quantity.toString());
-      formData.append(`available_dealers[${index}][dealer_margin]`, (assignment.margin || 0).toString());
-      formData.append(`available_dealers[${index}][dealer_priority_override]`, (assignment.priority || 0).toString());
-      formData.append(`available_dealers[${index}][inStock]`, (assignment.quantity > 0).toString());
-    });
+      // 1. Append dealer assignments (filter out empty dealerIds)
+      const validAssignments = dealerAssignments.filter(
+        (a) => a.dealerId && a.dealerId.trim() !== ""
+      );
 
-    // 2. Append other form fields
-    Object.entries(data).forEach(([key, value]) => {
-      if (key !== "images" && key !== "dealerAssignments" && value != null) {
-        if (Array.isArray(value)) {
-          value.forEach((v) =>
-            formData.append(
-              `${key}[]`,
-              typeof v === "string" ? v : JSON.stringify(v)
-            )
-          );
-        } else {
-          formData.append(key, value.toString());
-        }
-      }
-    });
-
-    // 3. Handle images
-    selectedImages.forEach((file) => {
-      formData.append("images", file);
-    });
-
-    const remainingExistingImages = existingImages.filter(
-      (url, idx) => !removedExistingIndexes.includes(idx)
-    );
-
-    if (remainingExistingImages.length > 0) {
-      remainingExistingImages.forEach((url) => {
-        formData.append("existingImages[]", url);
+      validAssignments.forEach((assignment, index) => {
+        formData.append(
+          `available_dealers[${index}][dealers_Ref]`,
+          assignment.dealerId
+        );
+        formData.append(
+          `available_dealers[${index}][quantity_per_dealer]`,
+          assignment.quantity.toString()
+        );
+        formData.append(
+          `available_dealers[${index}][dealer_margin]`,
+          (assignment.margin || 0).toString()
+        );
+        formData.append(
+          `available_dealers[${index}][dealer_priority_override]`,
+          (assignment.priority || 0).toString()
+        );
+        formData.append(
+          `available_dealers[${index}][inStock]`,
+          (assignment.quantity > 0).toString()
+        );
       });
-      formData.append(
-        "existingImagesJson",
-        JSON.stringify(remainingExistingImages)
-      );
-    }
 
-    try {
-      const response = await editProduct(id.id, formData);
-      showToast("Product updated successfully", "success");
-      setApiError("");
-      setTimeout(() => {
-        router.push("/user/dashboard/product");
-      }, 1500);
-    } catch (error: any) {
-      console.error("Failed to edit product:", error);
-      showToast("Failed to update product", "error");
-      setApiError(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to update product"
+      // 2. Append other form fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (key !== "images" && key !== "dealerAssignments" && value != null) {
+          if (key === "is_returnable") {
+            formData.append(key, value ? "true" : "false");
+          }else if (Array.isArray(value)) {
+            value.forEach((v) =>
+              formData.append(
+                `${key}[]`,
+                typeof v === "string" ? v : JSON.stringify(v)
+              )
+            );
+          } else {
+            formData.append(key, value.toString());
+          }
+        }
+      });
+
+      // 3. Handle images
+      selectedImages.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      const remainingExistingImages = existingImages.filter(
+        (url, idx) => !removedExistingIndexes.includes(idx)
       );
-    } finally {
+
+      if (remainingExistingImages.length > 0) {
+        remainingExistingImages.forEach((url) => {
+          formData.append("existingImages[]", url);
+        });
+        formData.append(
+          "existingImagesJson",
+          JSON.stringify(remainingExistingImages)
+        );
+      }
+
+      try {
+        const response = await editProduct(id.id, formData);
+        showToast("Product updated successfully", "success");
+        setApiError("");
+        setTimeout(() => {
+          router.push("/user/dashboard/product");
+        }, 1500);
+      } catch (error: any) {
+        console.error("Failed to edit product:", error);
+        showToast("Failed to update product", "error");
+        setApiError(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to update product"
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      showToast("Invalid product ID", "error");
+      setApiError("Product ID is missing or invalid.");
       setIsSubmitting(false);
     }
-  } else {
-    showToast("Invalid product ID", "error");
-    setApiError("Product ID is missing or invalid.");
-    setIsSubmitting(false);
-  }
-};
+  };
   if (!auth || !allowedRoles.includes(auth.role)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -1274,42 +1291,44 @@ const onSubmit = async (data: FormValues) => {
                   )}
                 </div>
                 {/* Year Range */}
-           <div className="space-y-2">
-  <Label htmlFor="yearRange" className="text-sm font-medium">
-    Year Range
-  </Label>
+                <div className="space-y-2">
+                  <Label htmlFor="yearRange" className="text-sm font-medium">
+                    Year Range
+                  </Label>
 
-  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded bg-gray-50">
-    {yearRangeOptions.map((year) => (
-      <label
-        key={year._id}
-        className="flex items-center gap-2 bg-white p-2 rounded border cursor-pointer"
-      >
-        <input
-          type="checkbox"
-          checked={yearRangeSelected.includes(year._id)}
-          onChange={() => {
-            let updated;
-            if (yearRangeSelected.includes(year._id)) {
-              updated = yearRangeSelected.filter((id) => id !== year._id);
-            } else {
-              updated = [...yearRangeSelected, year._id];
-            }
-            setYearRangeSelected(updated);
-            setValue("year_range", updated);
-          }}
-        />
-        <span className="text-sm">{year.year_name}</span>
-      </label>
-    ))}
-  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded bg-gray-50">
+                    {yearRangeOptions.map((year) => (
+                      <label
+                        key={year._id}
+                        className="flex items-center gap-2 bg-white p-2 rounded border cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={yearRangeSelected.includes(year._id)}
+                          onChange={() => {
+                            let updated;
+                            if (yearRangeSelected.includes(year._id)) {
+                              updated = yearRangeSelected.filter(
+                                (id) => id !== year._id
+                              );
+                            } else {
+                              updated = [...yearRangeSelected, year._id];
+                            }
+                            setYearRangeSelected(updated);
+                            setValue("year_range", updated);
+                          }}
+                        />
+                        <span className="text-sm">{year.year_name}</span>
+                      </label>
+                    ))}
+                  </div>
 
-  {errors.year_range && (
-    <span className="text-red-500 text-sm">{errors.year_range.message}</span>
-  )}
-</div>
-
-
+                  {errors.year_range && (
+                    <span className="text-red-500 text-sm">
+                      {errors.year_range.message}
+                    </span>
+                  )}
+                </div>
 
                 {/* Fitment Notes */}
                 <div className="space-y-2">
@@ -1369,22 +1388,25 @@ const onSubmit = async (data: FormValues) => {
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Key Specifications */}
-               <div className="space-y-2">
-  <Label htmlFor="key_specifications" className="text-base font-medium font-sans">
-    Key Specifications
-  </Label>
-  <Input
-    id="key_specifications"
-    placeholder="Enter Key Specifications"
-    className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-    {...register("key_specifications")}
-  />
-  {errors.key_specifications && (
-    <span className="text-red-500 text-sm">
-      {errors.key_specifications.message}
-    </span>
-  )}
-</div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="key_specifications"
+                    className="text-base font-medium font-sans"
+                  >
+                    Key Specifications
+                  </Label>
+                  <Input
+                    id="key_specifications"
+                    placeholder="Enter Key Specifications"
+                    className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                    {...register("key_specifications")}
+                  />
+                  {errors.key_specifications && (
+                    <span className="text-red-500 text-sm">
+                      {errors.key_specifications.message}
+                    </span>
+                  )}
+                </div>
 
                 {/* Weight */}
                 <div className="space-y-2">
@@ -1668,8 +1690,10 @@ const onSubmit = async (data: FormValues) => {
                     Returnable
                   </Label>
                   <Select
-                    value={watch("is_returnable") || ""}
-                    onValueChange={(value) => setValue("is_returnable", value)}
+                    value={watch("is_returnable") ? "yes" : "no"}
+                    onValueChange={(value) =>
+                      setValue("is_returnable", value === "yes")
+                    }
                   >
                     <SelectTrigger
                       id="is_returnable"
