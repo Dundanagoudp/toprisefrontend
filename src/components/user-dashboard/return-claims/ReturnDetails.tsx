@@ -53,6 +53,7 @@ import InitiateRefundForm from "./modules/modalpopus/InitiateReturn";
 import CompleteInspectionDialog from "./modules/modalpopus/CompleteInspectionDialog";
 import OnlineRefundDialog from "./modules/modalpopus/OnlineRefundDialog";
 import CODRefundDialog from "./modules/modalpopus/CODRefundDialog";
+import RejectReturnDialog from "./modules/modalpopus/RejectReturnDialog";
 import { useAppSelector } from "@/store/hooks";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 
@@ -74,6 +75,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
 
   // Dialog states
   const [validationDialog, setValidationDialog] = useState(false);
+  const [rejectDialog, setRejectDialog] = useState(false);
   const [schedulePickupDialog, setSchedulePickupDialog] = useState(false);
   const [completePickupDialog, setCompletePickupDialog] = useState(false);
   const [inspectDialog, setInspectDialog] = useState(false);
@@ -288,6 +290,10 @@ const handleRefund = async () => {
   setCodRefundDialog(true);
 };
 
+const handleOpenRejectReturn = () => {
+  setRejectDialog(true);
+};
+
 
 
   const getStatusBadge = (status: string) => {
@@ -383,6 +389,12 @@ const handleRefund = async () => {
           icon: <CheckCircle className="h-4 w-4" />,
           onClick: () => setValidationDialog(true),
           variant: "default" as const,
+        });
+        actions.push({
+          label: "Reject Return",
+          icon: <X className="h-4 w-4" />,
+          onClick: () => handleOpenRejectReturn(),
+          variant: "destructive" as const,
         });
         break;
       case "Validated":
@@ -1085,6 +1097,18 @@ const handleRefund = async () => {
             fetchReturnDetails();
           }
           setValidationDialog(false);
+        }}
+        returnId={returnId}
+      />
+      
+      <RejectReturnDialog
+        open={rejectDialog}
+        onClose={() => setRejectDialog(false)}
+        onRejectComplete={(success) => {
+          if (success) {
+            fetchReturnDetails();
+          }
+          setRejectDialog(false);
         }}
         returnId={returnId}
       />

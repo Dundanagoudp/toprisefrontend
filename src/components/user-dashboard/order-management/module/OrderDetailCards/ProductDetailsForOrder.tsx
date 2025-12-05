@@ -133,11 +133,20 @@ const ProductRow = ({
   const isStopInspection =
     scanStatus === "In Progress" || scanStatus === "Completed";
   // Prefer item-level tracking status; fallback to overall orderStatus
+
+
+  
   const packedSource = (
-    item?.tracking_info?.status || orderStatus || ""
+    item?.tracking_info?.status ||
+    orderStatus ||
+    ""
   ).toLowerCase();
-  const isOrderPacked =
-    packedSource === "packed" || packedSource === "packed completed";
+  const isOrderPacked = React.useMemo(() => {
+    const status = item?.tracking_info?.status || orderStatus || "";
+    return status.toLocaleLowerCase() === "packed" || 
+           status.toLocaleLowerCase() === "packed completed" ||
+           status.toLocaleLowerCase() === "packedcompleted";
+  }, [item?.tracking_info?.status, orderStatus]);
 
   // Debug once if orderStatus absent but item shows packed
   useEffect(() => {
@@ -148,6 +157,7 @@ const ProductRow = ({
       );
     }
   }, [orderStatus, packedSource, item?.tracking_info?.status]);
+
 
   return (
     <div className="flex flex-col gap-3 p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center">
@@ -236,7 +246,9 @@ const ProductRow = ({
             )}
             <p>Total: ₹{item.product_total?.toLocaleString()}</p>
             {item.return_info?.is_returned && (
-              <p className="text-orange-600">Returned: {item.return_info.return_id}</p>
+              <p className="text-orange-600">
+                Returned: {item.return_info.return_id}
+              </p>
             )}
           </div>
         )}
@@ -245,43 +257,61 @@ const ProductRow = ({
       {/* Actions */}
       <div className="lg:col-span-2 flex justify-end">
         {isOrderPacked ? (
-          <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">Packed Completed</Badge>
+            <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">
+            Packed Completed
+          </Badge>
         ) : (
           (isAuth || isStaff) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <DynamicButton variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <DynamicButton
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
                   <MoreHorizontal className="h-4 w-4" />
                 </DynamicButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 {isAuth && !safeDealerId(item.dealerId) && (
-                  <DropdownMenuItem onClick={() => actions.trigger("assignDealers", item)}>
+                  <DropdownMenuItem
+                    onClick={() => actions.trigger("assignDealers", item)}
+                  >
                     <UserCheck className="h-4 w-4 mr-2" /> Assign Dealers
                   </DropdownMenuItem>
                 )}
                 {isAuth && safeDealerId(item.dealerId) && !hasPicklist && (
-                  <DropdownMenuItem onClick={() => actions.trigger("createPicklist", item)}>
+                  <DropdownMenuItem
+                    onClick={() => actions.trigger("createPicklist", item)}
+                  >
                     <Edit className="h-4 w-4 mr-2" /> Create Picklist
                   </DropdownMenuItem>
                 )}
                 {isAuth && scanStatus !== "Completed" && (
-                  <DropdownMenuItem onClick={() => actions.trigger("markPacked", item)}>
+                  <DropdownMenuItem
+                    onClick={() => actions.trigger("markPacked", item)}
+                  >
                     <Package className="h-4 w-4 mr-2" /> Mark Packed
                   </DropdownMenuItem>
                 )}
                 {isStaff && !isInspectionInProgress && (
-                  <DropdownMenuItem onClick={() => actions.trigger("inspect", item)}>
+                  <DropdownMenuItem
+                    onClick={() => actions.trigger("inspect", item)}
+                  >
                     <ClipboardCheck className="h-4 w-4 mr-2" /> Inspect Picklist
                   </DropdownMenuItem>
                 )}
                 {isStaff && isStopInspection && scanStatus !== "Completed" && (
-                  <DropdownMenuItem onClick={() => actions.trigger("stopInspect", item)}>
+                  <DropdownMenuItem
+                    onClick={() => actions.trigger("stopInspect", item)}
+                  >
                     <CircleX className="h-4 w-4 mr-2" /> Stop Inspection
                   </DropdownMenuItem>
                 )}
                 {isStaff && (
-                  <DropdownMenuItem onClick={() => actions.trigger("markPacked", item)}>
+                  <DropdownMenuItem
+                    onClick={() => actions.trigger("markPacked", item)}
+                  >
                     <Package className="h-4 w-4 mr-2" /> Mark Packed
                   </DropdownMenuItem>
                 )}
@@ -290,7 +320,6 @@ const ProductRow = ({
           )
         )}
       </div>
-    
     </div>
   );
 };
@@ -315,7 +344,7 @@ export default function ProductDetailsForOrder({
 
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ProductItem | null>(null);
-  
+
   const [modalsOpen, setModalsOpen] = useState({
     action: false,
     viewPick: false,
@@ -328,10 +357,15 @@ export default function ProductDetailsForOrder({
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState<string>("");
-  const [dealerInfoMap, setDealerInfoMap] = useState<Record<string, { trade_name: string; legal_name: string }>>({});
+  const [dealerInfoMap, setDealerInfoMap] = useState<
+    Record<string, { trade_name: string; legal_name: string }>
+  >({});
 
   // Group products by dealerId -> array of sku + quantity
-  const dealerSkuGroups: Record<string, Array<{ sku: string; quantity: number }>> = React.useMemo(() => {
+  const dealerSkuGroups: Record<
+    string,
+    Array<{ sku: string; quantity: number }>
+  > = React.useMemo(() => {
     const map: Record<string, Array<{ sku: string; quantity: number }>> = {};
     (products || []).forEach((p) => {
       const dId = safeDealerId(p.dealerId);
@@ -400,12 +434,23 @@ export default function ProductDetailsForOrder({
           const status = res?.data?.[0]?.status || "";
           setOrderStatus(status);
         })
-        
+
         .catch(() => {
           setOrderStatus("");
         });
     }
   }, [orderId]);
+  const refreshAllData = async () => {
+    await Promise.all([
+      fetchEmployeeDetails(),
+      fetchPicklists(),
+      orderId ? getOrderById(orderId).then((res) => {
+        const status = res?.data?.[0]?.status || "";
+        setOrderStatus(status);
+      }) : Promise.resolve()
+    ]);
+    onRefresh?.();
+  };
 
   // Fetch dealer info for displaying trade_name in CreatePicklist
   useEffect(() => {
@@ -422,14 +467,23 @@ export default function ProductDetailsForOrder({
             try {
               const res = await getDealerById(id);
               const dealer = (res as any)?.data;
-              return [id, { trade_name: dealer?.trade_name || "", legal_name: dealer?.legal_name || "" }] as const;
+              return [
+                id,
+                {
+                  trade_name: dealer?.trade_name || "",
+                  legal_name: dealer?.legal_name || "",
+                },
+              ] as const;
             } catch {
               return [id, { trade_name: "", legal_name: "" }] as const;
             }
           })
         );
         if (!cancelled) {
-          const map: Record<string, { trade_name: string; legal_name: string }> = {};
+          const map: Record<
+            string,
+            { trade_name: string; legal_name: string }
+          > = {};
           results.forEach(([id, info]) => {
             map[id] = info;
           });
@@ -446,7 +500,7 @@ export default function ProductDetailsForOrder({
 
   const handleAction = async (type: string, item: ProductItem) => {
     setSelectedItem(item);
-
+  
     if (type === "markShipped") {
       try {
         const weightInput = window.prompt(
@@ -459,7 +513,7 @@ export default function ProductDetailsForOrder({
           showToast("Please enter a valid weight in kg", "error");
           return;
         }
-
+  
         let dealerIdResolved = safeDealerId(item.dealerId);
         if (!dealerIdResolved) {
           dealerIdResolved = getCookie("dealerId") || "";
@@ -473,46 +527,45 @@ export default function ProductDetailsForOrder({
             }
           }
         }
-
+  
         if (!orderId || !dealerIdResolved) {
           showToast("Missing order ID or dealer ID", "error");
           return;
         }
-
+  
         await updateOrderStatusByDealer(
           String(dealerIdResolved),
           String(orderId),
           totalWeightKg
         );
         showToast("Order marked as shipped", "success");
-        onRefresh?.();
+        await refreshAllData(); // Refresh all data
       } catch (e) {
         showToast("Failed to mark as shipped", "error");
       }
       return;
     }
-
+  
     if (type === "inspect") {
       try {
         if (!employeeId) {
           showToast("Employee ID not found", "error");
           return;
         }
-
+  
         const picklistRes = await getPicklistByOrderId(orderId, employeeId);
-
         const picklistId = picklistRes?.data?.picklists?.[0]?.picklistId;
         if (!picklistId) {
           showToast("No picklist found", "error");
           return;
         }
-
+  
         const result = await inspectPicklist(picklistId, employeeId, {
           sku: item.sku,
         });
         if (result.success) {
           showToast("Picklist inspection started", "success");
-          onRefresh?.();
+          await refreshAllData(); // Refresh all data
           // window.location.href = `/user/dashboard/picklist?picklistId=${picklistId}`;
         }
       } catch (error) {
@@ -521,14 +574,14 @@ export default function ProductDetailsForOrder({
       }
       return;
     }
-    // top stop inspection
+  
     if (type === "stopInspect") {
       try {
         if (!employeeId) {
           showToast("Employee ID not found", "error");
           return;
         }
-
+  
         const picklistRes = await getPicklistByOrderId(orderId, employeeId);
         const picklistId = picklistRes?.data?.picklists?.[0]?.picklistId;
         if (!picklistId) {
@@ -542,7 +595,7 @@ export default function ProductDetailsForOrder({
         );
         if (stopInspect.success) {
           showToast("Picklist inspection stopped", "success");
-          onRefresh?.();
+          await refreshAllData(); // Refresh all data
           // window.location.href = `/user/dashboard/picklist?picklistId=${picklistId}`;
         }
       } catch (error) {
@@ -551,7 +604,7 @@ export default function ProductDetailsForOrder({
       }
       return;
     }
-
+  
     if (type === "createPicklist") {
       setModalsOpen((p) => ({ ...p, createPick: true }));
     } else {
@@ -559,11 +612,17 @@ export default function ProductDetailsForOrder({
       setModalsOpen((p) => ({ ...p, action: true }));
     }
   };
-
+  
   const actionHandlers = {
     trigger: handleAction,
     viewProduct: onProductEyeClick,
     viewDealer: onDealerEyeClick,
+  };
+
+  // Check if a dealer has any picklist
+  const dealerHasPicklist = (dealerId: string): boolean => {
+    const skus = dealerSkuGroups[dealerId] || [];
+    return skus.some(sku => picklistSkus.has(sku.sku));
   };
 
   // Determine if all product picklist scan statuses are Completed
@@ -625,34 +684,48 @@ export default function ProductDetailsForOrder({
           </div>
 
           {/* Footer Action */}
+      
           {isAuthorized && products && products.length > 0 && (
-            <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
-              <DynamicButton
-                text="View All Picklists"
-                variant="outline"
-                onClick={() => {
-                  const firstDealer = products[0]?.dealerId;
-                  const dId = safeDealerId(firstDealer);
-                  if (!dId) {
-                    showToast("No dealer found for this order", "error");
-                    return;
-                  }
-                  setSelectedItem(products[0]);
-                  setModalsOpen((p) => ({ ...p, viewPick: true }));
-                }}
-              />
-              {/* hide is scan status is "Completed" */}
-              {!allScanCompleted && (
-                <DynamicButton
-                  text="Create Picklist"
-                  onClick={() => {
-                    setSelectedItem(null); // no pre-selected item
-                    setModalsOpen((p) => ({ ...p, createPick: true }));
-                  }}
-                />
-              )}
-            </div>
-          )}
+  <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
+    <DynamicButton
+      text="View All Picklists"
+      variant="outline"
+      onClick={() => {
+        const firstDealer = products[0]?.dealerId;
+        const dId = safeDealerId(firstDealer);
+        if (!dId) {
+          showToast("No dealer found for this order", "error");
+          return;
+        }
+        setSelectedItem(products[0]);
+        setModalsOpen((p) => ({ ...p, viewPick: true }));
+      }}
+    />
+    {/* Admin button - only show if dealer doesn't have picklist */}
+    {!dealerHasPicklist(safeDealerId(products[0]?.dealerId)) && (
+      <DynamicButton
+        text="Create Picklist"
+        onClick={() => {
+          setSelectedItem(null);
+          setModalsOpen((p) => ({ ...p, createPick: true }));
+        }}
+      />
+    )}
+  </div>
+)}
+
+{/* Staff button - only visible when scans aren't completed and dealer doesn't have picklist */}
+{isFulfillmentStaff && products && products.length > 0 && !allScanCompleted && !dealerHasPicklist(safeDealerId(products[0]?.dealerId)) && (
+  <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
+    <DynamicButton
+      text="Create Picklist"
+      onClick={() => {
+        setSelectedItem(null);
+        setModalsOpen((p) => ({ ...p, createPick: true }));
+      }}
+    />
+  </div>
+)}
         </CardContent>
       </Card>
 
@@ -661,11 +734,11 @@ export default function ProductDetailsForOrder({
         <>
           <AssignDealersPerSkuModal
             open={activeAction === "assignDealers"}
-            onOpenChange={(o: boolean) => {
+            onOpenChange={async (o: boolean) => {
               setModalsOpen((p) => ({ ...p, action: o }));
               if (!o) {
                 setActiveAction(null);
-                onRefresh?.();
+                await refreshAllData(); // Refresh all data
               }
             }}
             orderId={orderId}
@@ -674,15 +747,15 @@ export default function ProductDetailsForOrder({
               dealerId: p.dealerId,
               productId: p.productId,
             }))}
-            onSuccess={() => onRefresh?.()}
+            onSuccess={() => refreshAllData()}
           />
           <MarkPackedModal
             open={activeAction === "markPacked"}
-            onOpenChange={(o: boolean) => {
+            onOpenChange={async (o: boolean) => {
               setModalsOpen((p) => ({ ...p, action: o }));
               if (!o) {
                 setActiveAction(null);
-                onRefresh?.();
+                await refreshAllData(); // Refresh all data
               }
             }}
             orderId={orderId}
@@ -690,17 +763,17 @@ export default function ProductDetailsForOrder({
             sku={selectedItem?.sku || ""}
             productName={selectedItem?.productName || ""}
             mpn={selectedItem?.manufacturer_part_name || ""}
-            onSuccess={() => onRefresh?.()}
+            onSuccess={() => refreshAllData()}
           />
         </>
       )}
 
       <CreatePicklist
         open={modalsOpen.createPick}
-        onClose={() => {
+        onClose={async () => {
           setModalsOpen((p) => ({ ...p, createPick: false }));
           fetchPicklists();
-          onRefresh?.();
+          await refreshAllData();
         }}
         orderId={orderId}
         defaultDealerId={safeDealerId(selectedItem?.dealerId)}
@@ -720,9 +793,12 @@ export default function ProductDetailsForOrder({
 
       <ViewPicklistsModal
         open={modalsOpen.viewPick}
-        onOpenChange={(o: boolean) =>
+        onOpenChange={async (o: boolean) => {
           setModalsOpen((p) => ({ ...p, viewPick: o }))
-        }
+          if (!o) {
+            await refreshAllData(); // Refresh all data when modal closes
+          }
+        }}
         dealerId={safeDealerId(selectedItem?.dealerId)}
         orderId={orderId}
       />

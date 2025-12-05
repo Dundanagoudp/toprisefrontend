@@ -42,7 +42,7 @@ import RiseTicket from './popups/RiseTicket'
 import OrderReviewModal from '../UserSetting/popup/OrderReviewModal'
 import { addOrderRating } from '@/service/user/orderService'
 import BankDetailsPromptModal from './popups/BankDetailsPromptModal'
-import { getBankDetails } from '@/service/user/userService'
+import { getBankDetails, getUserById } from '@/service/user/userService'
 import { getUserIdFromToken } from '@/utils/auth'
 
 
@@ -235,15 +235,10 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
 
       try {
         setCheckingBankDetails(true)
-        const bankResponse = await getBankDetails(userId)
+        const bankResponse = await getUserById(userId)
         
         // Check if bank details exist (at least one field should be populated)
-        const bankDetailsExist =
-          bankResponse.success &&
-          bankResponse.data &&
-          (bankResponse.data.account_number ||
-            bankResponse.data.ifsc_code ||
-            bankResponse.data.bank_name)
+        const bankDetailsExist = bankResponse.data?.bank_details
 
         if (!bankDetailsExist) {
           // Show bank details prompt modal
@@ -284,7 +279,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
       showToast('Please provide a description for return', 'error')
       return
     }
-
+  
     // Get SKUs with quantities > 0
     const skusToReturn = Object.entries(skuReturnQuantities).filter(([_, qty]) => qty > 0)
     
@@ -292,34 +287,31 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
       showToast('Please select at least one product with quantity to return', 'error')
       return
     }
-
+  
     setReturnLoading(true)
     try {
-      // Upload images first if any
+      // Convert images to base64 URLs
       let imageUrls: string[] = []
       if (returnImages.length > 0) {
-        const formData = new FormData()
-        returnImages.forEach((file) => {
-          formData.append('images', file)
-        })
-
-        try {
-          // Upload images to your backend
-          const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/orders/api/upload-return-images`, {
-            method: 'POST',
-            body: formData,
+        const convertToBase64 = (file: File): Promise<string> => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.readAsDataURL(file)
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = error => reject(error)
           })
-          
-          if (uploadResponse.ok) {
-            const uploadData = await uploadResponse.json()
-            imageUrls = uploadData.imageUrls || []
-          }
-        } catch (uploadError) {
-          console.error('Failed to upload images:', uploadError)
-          showToast('Warning: Failed to upload images, proceeding without them', 'warning')
+        }
+  
+        try {
+          // Convert all images to base64
+          const base64Promises = returnImages.map(file => convertToBase64(file))
+          imageUrls = await Promise.all(base64Promises)
+        } catch (conversionError) {
+          console.error('Failed to convert images to base64:', conversionError)
+          showToast('Warning: Failed to process images, proceeding without them', 'warning')
         }
       }
-
+  
       // Create return requests for each SKU
       const returnPromises = skusToReturn.map(([sku, quantity]) => {
         return createReturnRequest({
@@ -329,14 +321,14 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
           quantity: quantity,
           returnReason: returnReason,
           returnDescription: returnDescription,
-          returnImages: imageUrls
+          returnImages: imageUrls // Send the base64 URLs directly
         })
       })
-
+  
       await Promise.all(returnPromises)
-
+  
       showToast(`Return request${skusToReturn.length > 1 ? 's' : ''} submitted successfully! Our team will contact you shortly.`, 'success')
-
+  
       setReturnModalOpen(false)
       setReturnReason('')
       setReturnDescription('')

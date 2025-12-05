@@ -32,6 +32,7 @@ export default function PurchaseRequestDetailsPage() {
         setError(null)
         const res = await apiClient.get(`/orders/api/documents/${id}`)
         const data = res?.data?.data
+        console.log("Purchase request details:", data)
         setRequest(data || null)
       } catch (e: any) {
         setError(e?.response?.data?.message || "Failed to load purchase request")
@@ -161,11 +162,17 @@ export default function PurchaseRequestDetailsPage() {
             <div className="text-sm text-gray-500">Description</div>
             <div className="font-medium">{request.description || "—"}</div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
+              <div className="text-sm text-gray-500">Order ID</div>
+              <div className="font-medium">{request.order_id.orderId || "—"}</div>
+            </div>
+            {/* <div>
               <div className="text-sm text-gray-500">Estimated Order Value</div>
               <div className="font-semibold">₹{(request.estimated_order_value || 0).toLocaleString()}</div>
-            </div>
+            </div> */}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div className="text-sm text-gray-500">Created</div>
               <div className="font-medium">{new Date(request.createdAt).toLocaleString()}</div>
