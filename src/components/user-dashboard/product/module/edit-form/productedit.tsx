@@ -1966,7 +1966,7 @@ const onSubmit = async (data: FormValues) => {
                   )}
                 </div>
                 {/* Last Inquired At */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label
                     htmlFor="LastinquiredAt"
                     className="text-sm font-medium"
@@ -1984,9 +1984,9 @@ const onSubmit = async (data: FormValues) => {
                       {errors.LastinquiredAt.message}
                     </span>
                   )}
-                </div>
+                </div> */}
                 {/* Admin Notes */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="admin_notes" className="text-sm font-medium">
                     Admin Notes
                   </Label>
@@ -2001,7 +2001,7 @@ const onSubmit = async (data: FormValues) => {
                       {errors.admin_notes.message}
                     </span>
                   )}
-                </div>
+                </div> */}
               </CardContent>
             </Card>
             {/* SEO & Search Optimization */}

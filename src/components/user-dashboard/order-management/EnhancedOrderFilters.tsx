@@ -162,14 +162,14 @@ export default function EnhancedOrderFilters({
             </CardDescription>
           </div>
           <div className="flex items-center space-x-2">
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
             >
               <Filter className="h-4 w-4 mr-2" />
               {isExpanded ? "Collapse" : "Expand"}
-            </Button>
+            </Button> */}
             <Button
               variant="outline"
               size="sm"
@@ -286,10 +286,10 @@ export default function EnhancedOrderFilters({
 
         {/* Advanced Filters - Expandable */}
         {isExpanded && (
-          <div className="space-y-4 border-t pt-4">
+          <div className="space-y-4 pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Order Value Range */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label>Order Value Range</Label>
                 <div className="flex space-x-2">
                   <Input
@@ -305,10 +305,10 @@ export default function EnhancedOrderFilters({
                     onChange={(e) => handleFilterChange("orderValue", { ...filters.orderValue, max: e.target.value })}
                   />
                 </div>
-              </div>
+              </div> */}
 
               {/* Customer Type */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label>Customer Type</Label>
                 <Select value={filters.customerType} onValueChange={(value) => handleFilterChange("customerType", value)}>
                   <SelectTrigger>
@@ -322,10 +322,10 @@ export default function EnhancedOrderFilters({
                     <SelectItem value="retail">Retail</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
 
               {/* Region */}
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label>Region</Label>
                 <Select value={filters.region} onValueChange={(value) => handleFilterChange("region", value)}>
                   <SelectTrigger>
@@ -340,11 +340,11 @@ export default function EnhancedOrderFilters({
                     <SelectItem value="central">Central</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
             </div>
 
             {/* Assigned Dealer */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Assigned Dealer</Label>
                 <Select value={filters.assignedDealer} onValueChange={(value) => handleFilterChange("assignedDealer", value)}>
@@ -360,7 +360,7 @@ export default function EnhancedOrderFilters({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </div> */}
           </div>
         )}
 
