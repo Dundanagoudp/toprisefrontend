@@ -420,3 +420,36 @@ export const bulkAssignPickup = async (
     throw error;
   }
 };
+
+// Export all picklists for CSV download - uses regular endpoint with large limit
+export const exportAllPicklists = async (
+  status?: string,
+  startDate?: string,
+  endDate?: string
+): Promise<PicklistResponse> => {
+  try {
+    console.log("Fetching all picklists for export...");
+    
+    // Use regular picklists endpoint with large limit to get all data
+    let url = `/orders/api/orders/picklists?page=1&limit=10000`;
+    
+    if (status && status !== "all") {
+      url += `&status=${status}`;
+    }
+    
+    if (startDate) {
+      url += `&startDate=${startDate}`;
+    }
+    
+    if (endDate) {
+      url += `&endDate=${endDate}`;
+    }
+    
+    const response = await apiClient.get(url);
+    console.log("Export API Response:", response);
+    return response.data;
+  } catch (error) {
+    console.error("Error exporting picklists:", error);
+    throw error;
+  }
+};

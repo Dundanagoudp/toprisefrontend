@@ -59,6 +59,7 @@ import { format } from "date-fns";
 import { useToast } from "@/components/ui/toast";
 import {
   getAllPicklists,
+  exportAllPicklists,
   type PickupRequest,
   type PickupItem,
   type PicklistData,
@@ -84,6 +85,7 @@ export default function PickupManagement() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingSinglePDF, setIsGeneratingSinglePDF] = useState(false);
+  const [isExportingCSV, setIsExportingCSV] = useState(false);
   const [skuDetailsMap, setSkuDetailsMap] = useState<Record<string, any>>({});
   const [loadingSKUs, setLoadingSKUs] = useState(false);
   
@@ -291,6 +293,151 @@ export default function PickupManagement() {
     }
   };
 
+  // Format phone number to include country code and prevent scientific notation in Excel
+  const formatPhoneNumber = (phone: string | undefined) => {
+    if (!phone) return 'N/A';
+    // Remove any spaces, dashes, or special characters
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    // If it doesn't start with +, add +91
+    let formattedPhone = '';
+    if (!cleaned.startsWith('+')) {
+      formattedPhone = `+91${cleaned}`;
+    } else {
+      formattedPhone = cleaned;
+    }
+    // Prepend with single quote to force Excel text format
+    return `'${formattedPhone}`;
+  };
+
+  // Handle CSV export - Fetch ALL data for export
+  const handleExportCSV = async () => {
+    try {
+      setIsExportingCSV(true);
+      
+      // Fetch ALL picklists for export using dedicated export API
+      const response = await exportAllPicklists(
+        statusFilter !== "all" ? statusFilter : undefined
+      );
+      
+      let allPickups: PicklistData[] = [];
+      
+      // Handle different response structures
+      if (response?.data) {
+        allPickups = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+      }
+      
+      // Enrich the pickup data with dealer and staff info
+      const enrichedData = await enrichPickupData(allPickups);
+      
+      // Filter by search term if provided
+      const dataToExport = enrichedData.filter(pickup => {
+        if (!searchTerm) return true;
+        const matchesSearch = 
+          (pickup._id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (pickup.linkedOrderId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (pickup.dealerId?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (pickup.fulfilmentStaff?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        return matchesSearch;
+      });
+      
+      if (dataToExport.length === 0) {
+        showToast("No data to export", "error");
+        return;
+      }
+      
+      // Prepare CSV headers
+      const headers = [
+        "Picklist ID",
+        "Order ID",
+        "Order Amount",
+        "Customer Name",
+        "Customer Phone",
+        "Customer Email",
+        "Customer Address",
+        "Customer Pincode",
+        "Dealer Name",
+        "Dealer Email",
+        "Staff Name",
+        "Staff Email",
+        "Created Date",
+        "Updated Date",
+        "Status",
+        "Total Items",
+        "Unique SKUs",
+        "Invoice Generated",
+        "Payment Type",
+        "Delivery Charges"
+      ];
+
+      // Prepare CSV rows
+      const rows = dataToExport.map(pickup => [
+        pickup._id || 'N/A',
+        pickup.orderInfo?.orderId || pickup.linkedOrderId || 'N/A',
+        pickup.orderInfo?.order_Amount?.toString() || '0',
+        pickup.orderInfo?.customerDetails?.name || 'N/A',
+        formatPhoneNumber(pickup.orderInfo?.customerDetails?.phone),
+        pickup.orderInfo?.customerDetails?.email || 'N/A',
+        pickup.orderInfo?.customerDetails?.address || 'N/A',
+        pickup.orderInfo?.customerDetails?.pincode || 'N/A',
+        pickup.dealerInfo?.name || pickup.dealerId || 'N/A',
+        pickup.dealerInfo?.email || 'N/A',
+        pickup.staffInfo?.name || pickup.fulfilmentStaff || 'N/A',
+        pickup.staffInfo?.email || 'N/A',
+        pickup.createdAt ? format(new Date(pickup.createdAt), "MMM dd, yyyy HH:mm") : 'N/A',
+        pickup.updatedAt ? format(new Date(pickup.updatedAt), "MMM dd, yyyy HH:mm") : 'N/A',
+        pickup.scanStatus || 'N/A',
+        (pickup.totalItems || pickup.skuList?.length || 0).toString(),
+        (pickup.uniqueSKUs || 0).toString(),
+        pickup.invoiceGenerated ? 'Yes' : 'No',
+        pickup.orderInfo?.paymentType || 'N/A',
+        (pickup.orderInfo?.deliveryCharges || 0).toString()
+      ]);
+
+      // Convert to CSV format
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => 
+          row.map(cell => {
+            // Escape quotes and wrap in quotes if contains comma, quote, or newline
+            const cellStr = String(cell);
+            if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+              return `"${cellStr.replace(/"/g, '""')}"`;
+            }
+            return cellStr;
+          }).join(',')
+        )
+      ].join('\n');
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      // Generate filename with status filter and date
+      const statusText = statusFilter !== 'all' ? `_${statusFilter.replace(/\s+/g, '_')}` : '';
+      const filename = `Picklist_Report${statusText}_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.csv`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast(
+        `CSV exported successfully (${dataToExport.length} records)${statusFilter !== 'all' ? ` - Status: ${statusFilter}` : ''}`, 
+        "success"
+      );
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      showToast("Failed to export CSV", "error");
+    } finally {
+      setIsExportingCSV(false);
+    }
+  };
+
   // Utility functions
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -369,13 +516,22 @@ export default function PickupManagement() {
         </div>
         <div className="flex items-center space-x-3">
           <Button 
-            onClick={handleGeneratePDF} 
+            onClick={handleExportCSV} 
             variant="outline"
-            disabled={isGeneratingPDF || filteredPickups.length === 0}
+            disabled={isExportingCSV}
             className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
           >
-            <Download className="h-4 w-4 mr-2" />
-            {isGeneratingPDF ? "Generating..." : "Download PDF"}
+            {isExportingCSV ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </>
+            )}
           </Button>
           <Button onClick={fetchPickupData} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -708,12 +864,123 @@ export default function PickupManagement() {
                           <DialogFooter className="flex justify-between">
                             <Button 
                               variant="outline"
-                              onClick={() => selectedPickup && handleGenerateSinglePickupPDF(selectedPickup)}
-                              disabled={isGeneratingSinglePDF}
+                              onClick={() => {
+                                if (selectedPickup) {
+                                  // Export single picklist as CSV
+                                  const headers = [
+                                    "Picklist ID",
+                                    "Order ID",
+                                    "Order Amount",
+                                    "Customer Name",
+                                    "Customer Phone",
+                                    "Customer Email",
+                                    "Customer Address",
+                                    "Customer Pincode",
+                                    "Dealer Name",
+                                    "Dealer Email",
+                                    "Staff Name",
+                                    "Staff Email",
+                                    "Created Date",
+                                    "Updated Date",
+                                    "Status",
+                                    "Total Items",
+                                    "Unique SKUs",
+                                    "Invoice Generated",
+                                    "Payment Type",
+                                    "Delivery Charges",
+                                    "SKU",
+                                    "Quantity"
+                                  ];
+                                  
+                                  const rows: string[][] = [];
+                                  const skuList = selectedPickup.skuDetails || selectedPickup.skuList || [];
+                                  
+                                  if (skuList.length > 0) {
+                                    skuList.forEach((item: any) => {
+                                      rows.push([
+                                        selectedPickup._id || 'N/A',
+                                        selectedPickup.orderInfo?.orderId || selectedPickup.linkedOrderId || 'N/A',
+                                        selectedPickup.orderInfo?.order_Amount?.toString() || '0',
+                                        selectedPickup.orderInfo?.customerDetails?.name || 'N/A',
+                                        formatPhoneNumber(selectedPickup.orderInfo?.customerDetails?.phone),
+                                        selectedPickup.orderInfo?.customerDetails?.email || 'N/A',
+                                        selectedPickup.orderInfo?.customerDetails?.address || 'N/A',
+                                        selectedPickup.orderInfo?.customerDetails?.pincode || 'N/A',
+                                        selectedPickup.dealerInfo?.name || selectedPickup.dealerId || 'N/A',
+                                        selectedPickup.dealerInfo?.email || 'N/A',
+                                        selectedPickup.staffInfo?.name || selectedPickup.fulfilmentStaff || 'N/A',
+                                        selectedPickup.staffInfo?.email || 'N/A',
+                                        selectedPickup.createdAt ? format(new Date(selectedPickup.createdAt), "MMM dd, yyyy HH:mm") : 'N/A',
+                                        selectedPickup.updatedAt ? format(new Date(selectedPickup.updatedAt), "MMM dd, yyyy HH:mm") : 'N/A',
+                                        selectedPickup.scanStatus || 'N/A',
+                                        (selectedPickup.totalItems || selectedPickup.skuList?.length || 0).toString(),
+                                        (selectedPickup.uniqueSKUs || 0).toString(),
+                                        selectedPickup.invoiceGenerated ? 'Yes' : 'No',
+                                        selectedPickup.orderInfo?.paymentType || 'N/A',
+                                        (selectedPickup.orderInfo?.deliveryCharges || 0).toString(),
+                                        item.sku || 'N/A',
+                                        (item.quantity || 0).toString()
+                                      ]);
+                                    });
+                                  } else {
+                                    rows.push([
+                                      selectedPickup._id || 'N/A',
+                                      selectedPickup.orderInfo?.orderId || selectedPickup.linkedOrderId || 'N/A',
+                                      selectedPickup.orderInfo?.order_Amount?.toString() || '0',
+                                      selectedPickup.orderInfo?.customerDetails?.name || 'N/A',
+                                      formatPhoneNumber(selectedPickup.orderInfo?.customerDetails?.phone),
+                                      selectedPickup.orderInfo?.customerDetails?.email || 'N/A',
+                                      selectedPickup.orderInfo?.customerDetails?.address || 'N/A',
+                                      selectedPickup.orderInfo?.customerDetails?.pincode || 'N/A',
+                                      selectedPickup.dealerInfo?.name || selectedPickup.dealerId || 'N/A',
+                                      selectedPickup.dealerInfo?.email || 'N/A',
+                                      selectedPickup.staffInfo?.name || selectedPickup.fulfilmentStaff || 'N/A',
+                                      selectedPickup.staffInfo?.email || 'N/A',
+                                      selectedPickup.createdAt ? format(new Date(selectedPickup.createdAt), "MMM dd, yyyy HH:mm") : 'N/A',
+                                      selectedPickup.updatedAt ? format(new Date(selectedPickup.updatedAt), "MMM dd, yyyy HH:mm") : 'N/A',
+                                      selectedPickup.scanStatus || 'N/A',
+                                      (selectedPickup.totalItems || selectedPickup.skuList?.length || 0).toString(),
+                                      (selectedPickup.uniqueSKUs || 0).toString(),
+                                      selectedPickup.invoiceGenerated ? 'Yes' : 'No',
+                                      selectedPickup.orderInfo?.paymentType || 'N/A',
+                                      (selectedPickup.orderInfo?.deliveryCharges || 0).toString(),
+                                      'N/A',
+                                      '0'
+                                    ]);
+                                  }
+                                  
+                                  const csvContent = [
+                                    headers.join(','),
+                                    ...rows.map(row => 
+                                      row.map(cell => {
+                                        const cellStr = String(cell);
+                                        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                                          return `"${cellStr.replace(/"/g, '""')}"`;
+                                        }
+                                        return cellStr;
+                                      }).join(',')
+                                    )
+                                  ].join('\n');
+                                  
+                                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                  const link = document.createElement('a');
+                                  const url = URL.createObjectURL(blob);
+                                  const filename = `Picklist_${selectedPickup._id}_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.csv`;
+                                  
+                                  link.setAttribute('href', url);
+                                  link.setAttribute('download', filename);
+                                  link.style.visibility = 'hidden';
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  
+                                  showToast("CSV exported successfully", "success");
+                                }
+                              }}
                               className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                             >
                               <Download className="h-4 w-4 mr-2" />
-                              {isGeneratingSinglePDF ? "Generating..." : "Download PDF"}
+                              Export CSV
                             </Button>
                             <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
                               Close
