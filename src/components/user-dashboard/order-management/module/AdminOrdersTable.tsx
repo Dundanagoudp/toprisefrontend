@@ -24,6 +24,7 @@ interface AdminOrder {
   customer: string;
   amount: string;
   status: string;
+  paymentStatus: string;
   date: string;
   dealers: number;
 }
@@ -70,6 +71,7 @@ export default function AdminOrdersTable() {
       customer: o.customerDetails?.name || "N/A",
       amount: `₹${o.order_Amount}`,
       status: o.status,
+      paymentStatus: o.payment_id?.payment_status || "N/A",
       date: o.orderDate ? new Date(o.orderDate).toLocaleDateString() : "",
       dealers: o.dealerMapping?.length || 0,
     }));
@@ -95,6 +97,25 @@ export default function AdminOrdersTable() {
         return "bg-red-100 text-red-800 hover:bg-red-100";
       case "returned":
         return "bg-orange-100 text-orange-800 hover:bg-orange-100";
+      default:
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100";
+    }
+  };
+
+  const getPaymentStatusBadge = (status: string) => {
+    const s = (status || "").toLowerCase();
+    switch (s) {
+      case "paid":
+      case "success":
+      case "successful":
+        return "bg-green-100 text-green-800 hover:bg-green-100";
+      case "pending":
+      case "created":
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
+      case "failed":
+        return "bg-red-100 text-red-800 hover:bg-red-100";
+      case "refunded":
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100";
       default:
         return "bg-gray-100 text-gray-800 hover:bg-gray-100";
     }
@@ -213,7 +234,7 @@ export default function AdminOrdersTable() {
         return;
       }
 
-      const headers = ["Order ID", "Date", "Customer", "Amount", "Dealers", "Status"];
+      const headers = ["Order ID", "Date", "Customer", "Amount", "Dealers", "Status", "Payment Status"];
       const dataRows = exportData.map((order: AdminOrder) => [
         order.orderId,
         order.date,
@@ -221,6 +242,7 @@ export default function AdminOrdersTable() {
         normalizeAmount(order.amount),
         order.dealers,
         order.status,
+        order.paymentStatus,
       ]);
       const csvContent = [headers, ...dataRows]
         .map((row) => row.map((cell) => toCSVValue(cell as string | number)).join(","))
@@ -311,17 +333,18 @@ export default function AdminOrdersTable() {
                 </TableHead>
                 <TableHead>Dealers</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Payment Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center">Loading...</TableCell>
+                  <TableCell colSpan={8} className="text-center">Loading...</TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                     No Orders found
                   </TableCell>
                 </TableRow>
@@ -336,6 +359,11 @@ export default function AdminOrdersTable() {
                     <TableCell>
                       <Badge className={getStatusBadge(order.status)}>
                         {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getPaymentStatusBadge(order.paymentStatus)}>
+                        {order.paymentStatus}
                       </Badge>
                     </TableCell>
                     <TableCell>

@@ -261,26 +261,6 @@ export default function PaymentDetailedStats({ className = "" }: PaymentDetailed
             <TabsTrigger value="methods">Methods</TabsTrigger>
             <TabsTrigger value="recent">Recent</TabsTrigger>
           </TabsList>
-          
-          {/* Export Button */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export Report
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportToCSV} className="flex items-center gap-2">
-                <FileSpreadsheet className="h-4 w-4" />
-                Export as CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToJSON} className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Export as JSON
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
 
         <TabsContent value="overview" className="space-y-6">
