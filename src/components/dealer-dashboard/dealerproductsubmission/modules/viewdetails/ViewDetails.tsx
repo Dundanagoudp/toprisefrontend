@@ -147,6 +147,8 @@ export default function DealerProdutView() {
                       label: "Product Type",
                       value: product.product_type || "-",
                     },
+                    {label:"Vehicle Type", value: product.sub_category?.subcategory_name || "-" },
+
                     { label: "HSN Code", value: product.hsn_code || "-" },
                   ]
                 : []

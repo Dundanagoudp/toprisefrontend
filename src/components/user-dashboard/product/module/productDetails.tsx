@@ -19,6 +19,7 @@ import {
   deactivateProduct,
   rejectSingleProduct,
 } from "@/service/product-Service";
+import { getAppUserById } from "@/service/user-service";
 import DynamicButton from "../../../common/button/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -46,6 +47,9 @@ export default function ViewProductDetails() {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [showDealersModal, setShowDealersModal] = React.useState(false);
   const [showHistoryDrawer, setShowHistoryDrawer] = React.useState(false);
+  const [userNamesMap, setUserNamesMap] = React.useState<
+    Record<string, string>
+  >({});
   const auth = useAppSelector((state) => state.auth.user);
   const authState = useAppSelector((state) => state.auth);
   const id = useParams<{ id: string }>();
@@ -53,6 +57,106 @@ export default function ViewProductDetails() {
   const dispatch = useAppDispatch();
 
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
+
+  // Helper function to parse and format the change logs
+  const formatChangeLog = (log: any) => {
+    let oldValue, newValue;
+
+    try {
+      oldValue =
+        typeof log.old_value === "string"
+          ? JSON.parse(log.old_value)
+          : log.old_value;
+      newValue =
+        typeof log.new_value === "string"
+          ? JSON.parse(log.new_value)
+          : log.new_value;
+    } catch (e) {
+      // If parsing fails, use the raw values
+      oldValue = log.old_value;
+      newValue = log.new_value;
+    }
+
+    const changes = log.changes
+      .split(", ")
+      .map((change: string) => change.trim());
+
+    return {
+      ...log,
+      parsedOldValue: oldValue,
+      parsedNewValue: newValue,
+      changesList: changes,
+    };
+  };
+
+  // Helper function to render different types of values
+  const renderValue = (value: any) => {
+    if (value === null || value === undefined) {
+      return <span className="text-gray-500 text-sm">No value</span>;
+    }
+
+    if (typeof value === "boolean") {
+      return (
+        <span
+          className={`text-sm px-2 py-1 rounded ${
+            value ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+          }`}
+        >
+          {value ? "True" : "False"}
+        </span>
+      );
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return <span className="text-gray-500 text-sm">Empty array</span>;
+      }
+
+      return (
+        <div className="space-y-1">
+          {value.map((item, idx) => (
+            <div
+              key={idx}
+              className="text-sm bg-white p-2 rounded border border-gray-100"
+            >
+              {typeof item === "object" ? (
+                <div className="space-y-1">
+                  {Object.entries(item).map(([key, val]) => (
+                    <div key={key} className="flex">
+                      <span className="font-medium text-gray-600 mr-2">
+                        {key}:
+                      </span>
+                      <span className="text-gray-800">{String(val)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-gray-800">{String(item)}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (typeof value === "object") {
+      return (
+        <div className="space-y-1">
+          {Object.entries(value).map(([key, val]) => (
+            <div key={key} className="flex">
+              <span className="font-medium text-gray-600 mr-2 text-sm">
+                {key}:
+              </span>
+              <span className="text-gray-800 text-sm">{String(val)}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return <span className="text-sm text-gray-800">{String(value)}</span>;
+  };
+
   const getStatusColor = (currentStatus: string) => {
     switch (currentStatus) {
       case "Created":
@@ -67,6 +171,7 @@ export default function ViewProductDetails() {
         return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
+
   // Function to handle product approval
   const handleStatusChange = async (newStatus: string) => {
     setStatus(newStatus);
@@ -74,12 +179,48 @@ export default function ViewProductDetails() {
     if (newStatus === "Approved") {
       await aproveProduct(id.id);
       await fetchProductData();
-    } else if (newStatus === "Pending") {
-      await deactivateProduct(id.id);
-      await fetchProductData();
-    } else if (newStatus === "Rejected") {
+    }
+
+    // else if (newStatus === "Pending") {
+    //   await deactivateProduct(id.id);
+    //   await fetchProductData();
+    // }
+    else if (newStatus === "Rejected") {
       setIsRejectDialogOpen(true);
     }
+  };
+
+  // Function to fetch user names for change logs
+  const fetchUserNames = async (userIds: string[]) => {
+    const uniqueUserIds = [...new Set(userIds.filter((id) => id && id.trim()))];
+    const namesMap: Record<string, string> = {};
+
+    await Promise.all(
+      uniqueUserIds.map(async (userId) => {
+        try {
+          const response = await getAppUserById(userId);
+          if (response.success && response.data) {
+            const user = response.data;
+            // Try to get name from various possible fields
+            const name =
+              user.username ||
+              (user.firstName && user.lastName
+                ? `${user.firstName} ${user.lastName}`
+                : user.firstName) ||
+              user.email ||
+              userId;
+            namesMap[userId] = name;
+          } else {
+            namesMap[userId] = userId; // Fallback to ID if fetch fails
+          }
+        } catch (error) {
+          console.error(`Failed to fetch user ${userId}:`, error);
+          namesMap[userId] = userId; // Fallback to ID if fetch fails
+        }
+      })
+    );
+
+    setUserNamesMap((prev) => ({ ...prev, ...namesMap }));
   };
 
   // Function to refresh product data
@@ -97,20 +238,31 @@ export default function ViewProductDetails() {
         : (data as Product);
 
       setProduct(prod);
+      console.log("Product data:", prod);
       dispatch(fetchProductByIdSuccess(prod));
 
       if (prod?.live_status) {
         setStatus(prod.live_status);
+      }
+
+      // Fetch user names for change logs
+      if (prod?.change_logs && Array.isArray(prod.change_logs)) {
+        const userIds = prod.change_logs
+          .map((log: any) => log.modified_by)
+          .filter((id: string) => id && !userNamesMap[id]);
+        if (userIds.length > 0) {
+          await fetchUserNames(userIds);
+        }
       }
     } catch (error) {
       console.error(error);
       dispatch(fetchProductByIdFailure(error as string));
     }
   };
+
   React.useEffect(() => {
     fetchProductData();
   }, [id.id]);
-  // open light box for images
 
   // Function to handle product rejection
   const handleRejectProduct = async (data: { reason: string }) => {
@@ -137,10 +289,12 @@ export default function ViewProductDetails() {
       showToast(errorMessage, "error");
     }
   };
+
   const handleEdit = (idObj: { id: string }) => {
     setIsEditLoading(true);
     router.push(`/user/dashboard/product/productedit/${idObj.id}`);
   };
+
   React.useEffect(() => {}, []);
 
   // Update status if product changes
@@ -177,7 +331,7 @@ export default function ViewProductDetails() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
+                {/* <SelectItem value="Pending">Pending</SelectItem> */}
                 <SelectItem value="Rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
@@ -225,6 +379,10 @@ export default function ViewProductDetails() {
                     {
                       label: "Product Type",
                       value: product.product_type || "-",
+                    },
+                    {
+                      label: "Vehicle Type",
+                      value: product.brand?.type?.type_name || "-",
                     },
                     { label: "HSN Code", value: product.hsn_code || "-" },
                   ]
@@ -281,10 +439,10 @@ export default function ViewProductDetails() {
             data={
               product
                 ? [
-                    // {
-                    //   label: "Key Specifications",
-                    //   value: product.key_specifications || "-",
-                    // },
+                    {
+                      label: "Key Specifications",
+                      value: product.key_specifications || "-",
+                    },
                     {
                       label: "Dimensions",
                       value: product.weight ? `${product.weight} kg` : "-",
@@ -368,10 +526,10 @@ export default function ViewProductDetails() {
                       label: "Returnable",
                       value: product.is_returnable ? "Yes" : "No",
                     },
-                    {
-                      label: "Return Policy",
-                      value: product.return_policy || "-",
-                    },
+                    // {
+                    //   label: "Return Policy",
+                    //   value: product.return_policy || "-",
+                    // },
                   ]
                 : []
             }
@@ -490,56 +648,56 @@ export default function ViewProductDetails() {
                       )}
                     </div>
                     <div className="space-y-3">
-                      {product.change_logs
+                      {[...product.change_logs]
+                        .sort((a: any, b: any) => {
+                          const dateA = new Date(a.modified_At).getTime();
+                          const dateB = new Date(b.modified_At).getTime();
+                          return dateB - dateA; // Descending order (most recent first)
+                        })
                         .slice(0, 3)
-                        .map((log: any, index: number) => (
-                          <div
-                            key={log._id || index}
-                            className="bg-gray-50 rounded-lg p-3 border border-gray-200"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-medium text-gray-600">
-                                Iteration {log.iteration_number}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {new Date(log.modified_At).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-700 mb-1">
-                              <span className="font-medium">Modified by:</span>{" "}
-                              {log.modified_by}
-                            </div>
-                            <div className="text-xs text-gray-700 mb-1">
-                              <span className="font-medium">Changes:</span>{" "}
-                              {log.changes}
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              <details className="cursor-pointer">
-                                <summary className="font-medium text-gray-700">
-                                  View Details
-                                </summary>
-                                <div className="mt-2 space-y-1">
-                                  <div>
-                                    <span className="font-medium">
-                                      Old Value:
-                                    </span>
-                                    <pre className="text-xs bg-gray-100 p-1 rounded mt-1 overflow-x-auto">
-                                      {log.old_value}
-                                    </pre>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">
-                                      New Value:
-                                    </span>
-                                    <pre className="text-xs bg-gray-100 p-1 rounded mt-1 overflow-x-auto">
-                                      {log.new_value}
-                                    </pre>
-                                  </div>
+                        .map((log: any, index: number) => {
+                          const formattedLog = formatChangeLog(log);
+                          return (
+                            <div
+                              key={log._id || index}
+                              className="bg-gray-50 rounded-lg p-3 border border-gray-200"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-gray-600">
+                                  Iteration {log.iteration_number}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(
+                                    log.modified_At
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-700 mb-1">
+                                <span className="font-medium">
+                                  Modified by:
+                                </span>{" "}
+                                {userNamesMap[log.modified_by] ||
+                                  log.modified_by ||
+                                  "Unknown"}
+                              </div>
+                              <div className="text-xs text-gray-700 mb-1">
+                                <span className="font-medium">Changes:</span>{" "}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {formattedLog.changesList.map(
+                                    (change: string, idx: number) => (
+                                      <span
+                                        key={idx}
+                                        className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs"
+                                      >
+                                        {change}
+                                      </span>
+                                    )
+                                  )}
                                 </div>
-                              </details>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                     </div>
                   </div>
                 )}
@@ -562,15 +720,17 @@ export default function ViewProductDetails() {
 
       {/* Product History Timeline Drawer */}
       <Sheet open={showHistoryDrawer} onOpenChange={setShowHistoryDrawer}>
-        <SheetContent className="w-[600px] sm:w-[600px] overflow-y-auto bg-gray-50">
-          <SheetHeader className="bg-white p-6 border-b border-gray-200 -mx-6 -mt-6 mb-6">
-            <SheetTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="h-6 w-6 text-blue-600" />
+        <SheetContent className="w-full sm:w-[90vw] md:w-[600px] lg:w-[700px] max-w-[700px] p-0 bg-gray-50 flex flex-col">
+          <SheetHeader className="bg-white p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+            <SheetTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-semibold text-gray-900">
+              <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
               </div>
-              <div>
-                <div>Product Change History</div>
-                <div className="text-sm font-normal text-gray-500 mt-1">
+              <div className="min-w-0 flex-1">
+                <div className="text-base sm:text-lg truncate">
+                  Product Change History
+                </div>
+                <div className="text-xs sm:text-sm font-normal text-gray-500 mt-1">
                   Complete timeline of all product modifications
                 </div>
               </div>
@@ -580,88 +740,119 @@ export default function ViewProductDetails() {
           {product &&
             product.change_logs &&
             Array.isArray(product.change_logs) && (
-              <ScrollArea className="h-full px-2">
-                <div className="space-y-6">
-                  {product.change_logs.map((log: any, index: number) => (
-                    <div key={log._id || index} className="relative">
-                      {/* Timeline connector */}
-                      {index < product.change_logs.length - 1 && (
-                        <div className="absolute left-6 top-12 w-0.5 h-16 bg-gray-200"></div>
-                      )}
+              <ScrollArea className="flex-1 px-2 sm:px-4 py-4 overflow-y-auto">
+                <div className="space-y-4 sm:space-y-6">
+                  {(() => {
+                    const sortedLogs = [...product.change_logs].sort(
+                      (a: any, b: any) => {
+                        const dateA = new Date(a.modified_At).getTime();
+                        const dateB = new Date(b.modified_At).getTime();
+                        return dateB - dateA; // Descending order (most recent first)
+                      }
+                    );
+                    return sortedLogs.map((log: any, index: number) => {
+                      const formattedLog = formatChangeLog(log);
+                      return (
+                        <div key={log._id || index} className="relative">
+                          {/* Timeline connector */}
+                          {index < sortedLogs.length - 1 && (
+                            <div className="absolute left-5 sm:left-6 top-10 sm:top-12 w-0.5 h-12 sm:h-16 bg-gray-200"></div>
+                          )}
 
-                      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                        <div className="flex items-start gap-4">
-                          {/* Timeline dot */}
-                          <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-semibold text-blue-600">
-                              {log.iteration_number}
-                            </span>
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                Iteration {log.iteration_number}
-                              </h3>
-                              <span className="text-sm text-gray-500">
-                                {new Date(log.modified_At).toLocaleDateString()}{" "}
-                                at{" "}
-                                {new Date(log.modified_At).toLocaleTimeString()}
-                              </span>
-                            </div>
-
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-gray-700">
-                                  Modified by:
-                                </span>
-                                <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                                  {log.modified_by}
+                          <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                            <div className="flex items-start gap-3 sm:gap-4">
+                              {/* Timeline dot */}
+                              <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-xs sm:text-sm font-semibold text-blue-600">
+                                  {log.iteration_number}
                                 </span>
                               </div>
 
-                              <div>
-                                <span className="text-sm font-medium text-gray-700">
-                                  Changes:
-                                </span>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {log.changes
-                                    .split(", ")
-                                    .map((change: string, idx: number) => (
-                                      <span
-                                        key={idx}
-                                        className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
-                                      >
-                                        {change.trim()}
-                                      </span>
-                                    ))}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+                                    Iteration {log.iteration_number}
+                                  </h3>
+                                  <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+                                    {new Date(
+                                      log.modified_At
+                                    ).toLocaleDateString()}{" "}
+                                    at{" "}
+                                    {new Date(
+                                      log.modified_At
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
                                 </div>
-                              </div>
 
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                                <div>
-                                  <span className="text-sm font-medium text-gray-700">
-                                    Previous Values:
-                                  </span>
-                                  <pre className="text-xs bg-gray-50 p-3 rounded-lg border border-gray-200 mt-1 overflow-x-auto text-gray-700">
-                                    {log.old_value}
-                                  </pre>
-                                </div>
-                                <div>
-                                  <span className="text-sm font-medium text-gray-700">
-                                    New Values:
-                                  </span>
-                                  <pre className="text-xs bg-green-50 p-3 rounded-lg border border-green-200 mt-1 overflow-x-auto text-green-700">
-                                    {log.new_value}
-                                  </pre>
+                                <div className="space-y-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <span className="text-xs sm:text-sm font-medium text-gray-700 flex-shrink-0">
+                                      Modified by:
+                                    </span>
+                                    <span className="text-xs sm:text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded truncate">
+                                      {userNamesMap[log.modified_by] ||
+                                        log.modified_by ||
+                                        "Unknown"}
+                                    </span>
+                                  </div>
+
+                                  <div>
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Changes:
+                                    </span>
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {formattedLog.changesList.map(
+                                        (change: string, idx: number) => (
+                                          <span
+                                            key={idx}
+                                            className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                                          >
+                                            {change}
+                                          </span>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-4">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                                      <div className="min-w-0">
+                                        <span className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">
+                                          Previous Values:
+                                        </span>
+                                        <div className="mt-2 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                                          <div className="overflow-x-auto">
+                                            {renderValue(
+                                              formattedLog.parsedOldValue
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="min-w-0">
+                                        <span className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">
+                                          New Values:
+                                        </span>
+                                        <div className="mt-2 p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200 overflow-hidden">
+                                          <div className="overflow-x-auto">
+                                            {renderValue(
+                                              formattedLog.parsedNewValue
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    });
+                  })()}
                 </div>
               </ScrollArea>
             )}

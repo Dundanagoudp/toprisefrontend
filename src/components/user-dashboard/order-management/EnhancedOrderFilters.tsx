@@ -146,7 +146,7 @@ export default function EnhancedOrderFilters({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between ">
           <div>
             <CardTitle className="flex items-center space-x-2">
               <SlidersHorizontal className="h-5 w-5" />

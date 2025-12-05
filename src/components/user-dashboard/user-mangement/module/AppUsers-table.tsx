@@ -89,7 +89,7 @@ export default function AppUsersTable({
 				(u.username || "").toLowerCase().includes(q) ||
 				(u.phone_Number || "").toLowerCase().includes(q)
 			const matchesRole = !role || role.toLowerCase() === "all" || (u.role || "").toLowerCase() === role.toLowerCase()
-			const matchesStatus = !status || status.toLowerCase() === "all" || (u.isDeleted ? "inactive (deleted)" : "active").toLowerCase() === status.toLowerCase()
+			const matchesStatus = !status || status.toLowerCase() === "all" || (u.isDeleted ? "inactive" : "active").toLowerCase() === status.toLowerCase()
 			return matchesSearch && matchesRole && matchesStatus
 		})
 	}, [sorted, search, role, status])

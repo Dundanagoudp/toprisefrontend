@@ -110,7 +110,7 @@ export function LoginForm({
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
                 <div className="flex items-center justify-center mb-2">
-                  <img src={LogoNoname.src} alt="Logo" className="h-16 w-16 " />
+                  
                   <h1 className="text-2xl font-bold">
                     Welcome <span className="text-primary-red">back</span>
                   </h1>

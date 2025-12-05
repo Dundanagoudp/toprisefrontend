@@ -54,6 +54,7 @@ function ProductManagementContent() {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedTab, setSelectedTab] = useState("Approved");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [resetSortKey, setResetSortKey] = useState(0);
 const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState<"upload" | "edit" | "uploadDealer">(
     "upload"
@@ -254,8 +255,7 @@ useEffect(() => {
       // Call debounced search
       debouncedSearch(sanitizedValue);
       
-      console.log("🔍 ProductManagement: Search input set to:", sanitizedValue);
-      console.log("🔍 ProductManagement: isSearching set to:", sanitizedValue.trim() !== "");
+ 
     } catch (error) {
       console.error("❌ Error in handleSearchChange:", error);
       setSearchInput("");
@@ -273,6 +273,9 @@ useEffect(() => {
     setSearchInput("");
     setSearchQuery("");
     setIsSearching(false);
+  };
+  const handleResetSort = () => {
+    setResetSortKey((prev) => prev + 1);
   };
   // refreshKey triggers when any filter changes we care about
 
@@ -384,6 +387,7 @@ useEffect(() => {
         modelFilter={selectedModelId || undefined}
         variantFilter={selectedVariantId || undefined}
         refreshKey={refreshKey}
+        resetSortKey={resetSortKey}
       />
     );
   }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryId, selectedSubCategoryId, activeTab, refreshKey]);
@@ -675,16 +679,22 @@ useEffect(() => {
               <DynamicButton
                 variant="outline"
                 customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
+                text="Reset Sort"
+                onClick={handleResetSort}
+              />
+              <DynamicButton
+                variant="outline"
+                customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
                 text="Export"
                 onClick={handleDownload}
               />
-              {/* <DynamicButton
+              <DynamicButton
                 variant="outline"
                 customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
                 text="Logs"
                 onClick={() => route.push('/user/dashboard/product/Logs')}
                 icon={<FileBarChart className="w-4 h-4 mr-2" />}
-              /> */}
+              />
             </div>
             
             {/* Bottom Row: Action Buttons */}

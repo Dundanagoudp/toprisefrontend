@@ -584,7 +584,7 @@ export default function AddDealer() {
                   </FormItem>
                 )}
               />
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="last_fulfillment_date"
                 render={({ field }) => (
@@ -601,7 +601,7 @@ export default function AddDealer() {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
             </CardContent>
           </Card>
 
