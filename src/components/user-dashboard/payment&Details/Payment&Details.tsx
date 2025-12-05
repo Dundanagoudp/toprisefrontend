@@ -517,32 +517,32 @@ const [tempDate, setTempDate] = useState("all");
                   </TableHead>
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("payment_id")}
+              
                   >
                     <div className="flex items-center gap-1">
                       Payment ID
-                      {getSortIcon("payment_id")}
+                 
                     </div>
                   </TableHead>
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("razorpay_order_id")}
+                   
                   >
                     <div className="flex items-center gap-1">
                       Razorpay Order ID
-                      {getSortIcon("razorpay_order_id")}
+                    
                     </div>
                   </TableHead>
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("created_at")}
+               
                   >
                     <div className="flex items-center gap-1">
                       Date
-                      {getSortIcon("created_at")}
+                     
                     </div>
                   </TableHead>
-                  <TableHead 
+                  {/* <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
                     onClick={() => handleSort("amount")}
                   >
@@ -550,23 +550,23 @@ const [tempDate, setTempDate] = useState("all");
                       Amount
                       {getSortIcon("amount")}
                     </div>
-                  </TableHead>
+                  </TableHead> */}
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("payment_method")}
+                
                   >
                     <div className="flex items-center gap-1">
                       Payment Method
-                      {getSortIcon("payment_method")}
+                     
                     </div>
                   </TableHead>
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                    onClick={() => handleSort("payment_status")}
+                    
                   >
                     <div className="flex items-center gap-1">
                       Payment Status
-                      {getSortIcon("payment_status")}
+                      {/* {getSortIcon("payment_status")} */}
                     </div>
                   </TableHead>
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display]">
@@ -646,9 +646,9 @@ const [tempDate, setTempDate] = useState("all");
                         <TableCell className="px-6 py-4 font-semibold text-[#000000] font-sans">
                           {new Date(payment.created_at).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-semibold text-[#000000]">
+                        {/* <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           ₹{payment.amount.toLocaleString()}
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           {payment.payment_method === "Razorpay" 
                             ? payment.razorpay_payment_method 

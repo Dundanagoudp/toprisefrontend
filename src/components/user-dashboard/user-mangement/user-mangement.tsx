@@ -55,6 +55,14 @@ export default function Usermangement() {
     }
   }, [auth?.role]);
 
+  // Reset filters when tab changes
+  useEffect(() => {
+    setSearch("");
+    setRole("");
+    setStatus("");
+    setRegion("");
+  }, [activeTab]);
+
   // Fetch regions for employee filtering
   useEffect(() => {
     const fetchFilterData = async () => {
@@ -176,7 +184,7 @@ export default function Usermangement() {
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-4 md:mb-6">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
             <GlobalFilters 
-              type={activeTab === "dealer" ? "users" : (activeTab as "employee" | "dealer" | "users")}
+              type={activeTab as "employee" | "dealer" | "users"}
               search={search}
               onSearchChange={handleSearchChange}
               currentRole={activeTab === "dealer" ? "all" : (role || "all")}

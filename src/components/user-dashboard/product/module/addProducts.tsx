@@ -1620,7 +1620,7 @@ export default function AddProducts() {
               )}
             </div>
             {/* Admin Notes */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label
                 htmlFor="adminNotes"
                 className="text-base font-medium font-sans"
@@ -1638,7 +1638,7 @@ export default function AddProducts() {
                   {errors.admin_notes.message}
                 </span>
               )}
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 

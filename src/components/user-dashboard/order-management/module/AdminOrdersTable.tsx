@@ -73,33 +73,34 @@ export default function AdminOrdersTable() {
   };
 
   // Data Fetching
-useEffect(() => {
-    const init = async () => {
-      dispatch(fetchOrdersRequest());
-      try {
-        setLoading(true);
-        const [orderRes, statsRes] = await Promise.all([
-          getOrders(currentPage, itemsPerPage, filters.paymentMethod),
-          fetchEnhancedOrderStats({})
-        ]);
+  const fetchOrdersData = async () => {
+    dispatch(fetchOrdersRequest());
+    try {
+      setLoading(true);
+      const [orderRes, statsRes] = await Promise.all([
+        getOrders(currentPage, itemsPerPage, filters.paymentMethod),
+        fetchEnhancedOrderStats({})
+      ]);
 
-        const apiData: any = orderRes.data;
-        const mapped = mapApiOrders(apiData);
-        console.log("Mapped Orders:", mapped);
-        setOrders(mapped);
-        dispatch(fetchOrdersSuccess(mapped));
-        setStats(statsRes.data);
-        // Handle pagination if present, else fallback
-        setTotalOrders(apiData.pagination?.totalItems || mapped.length);
-        setTotalPages(apiData.pagination?.totalPages || Math.ceil(mapped.length / itemsPerPage));
-      } catch (err: any) {
-        dispatch(fetchOrdersFailure(err.message));
-      }
-      finally {
-        setLoading(false);
-      }
-    };
-    init();
+      const apiData: any = orderRes.data;
+      const mapped = mapApiOrders(apiData);
+      console.log("Mapped Orders:", mapped);
+      setOrders(mapped);
+      dispatch(fetchOrdersSuccess(mapped));
+      setStats(statsRes.data);
+      // Handle pagination if present, else fallback
+      setTotalOrders(apiData.pagination?.totalItems || mapped.length);
+      setTotalPages(apiData.pagination?.totalPages || Math.ceil(mapped.length / itemsPerPage));
+    } catch (err: any) {
+      dispatch(fetchOrdersFailure(err.message));
+    }
+    finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrdersData();
   }, [dispatch, currentPage, filters.paymentMethod]);
 
   // Client-side Filtering (Replace with Server-side in future)
@@ -181,7 +182,7 @@ useEffect(() => {
         onFiltersChange={setFilters} 
         loading={loading || exporting} 
         onExport={handleExportOrders}
-        onRefresh={() => dispatch(fetchOrdersRequest())}
+        onRefresh={fetchOrdersData}
       />
 
       <Card>
