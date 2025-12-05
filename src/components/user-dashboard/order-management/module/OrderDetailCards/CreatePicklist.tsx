@@ -18,6 +18,7 @@ interface CreatePicklistProps {
   defaultDealerId?: string
   defaultSkuList?: Array<{ sku: string; quantity: number; barcode?: string }>
   groupedDealerSkus?: Record<string, Array<{ sku: string; quantity: number }>>
+  dealerInfoMap?: Record<string, { trade_name?: string; legal_name?: string }>
 }
 
 type SkuRow = { sku: string; quantity: number; barcode?: string }
@@ -29,6 +30,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
   defaultDealerId = "",
   defaultSkuList = [],
   groupedDealerSkus = {},
+  dealerInfoMap = {},
 }) => {
   const { showToast } = GlobalToast()
   const [dealerId, setDealerId] = useState<string>(defaultDealerId)
@@ -187,7 +189,9 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
                   {Object.keys(groupedDealerSkus).map(dId => (
                     <SelectItem key={dId} value={dId} className="py-2">
                       <div className="flex flex-col">
-                        <span className="font-medium">{dId}</span>
+                        <span className="font-medium">
+                          {dealerInfoMap?.[dId]?.trade_name || dealerInfoMap?.[dId]?.legal_name || dId}
+                        </span>
                         <span className="text-xs text-gray-500">{groupedDealerSkus[dId].length} SKU(s)</span>
                       </div>
                     </SelectItem>
@@ -244,7 +248,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
 
           <div className="space-y-3">
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 De">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
