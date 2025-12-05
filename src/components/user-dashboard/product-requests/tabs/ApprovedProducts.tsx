@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
-import { getProductRequests } from "@/service/product-request-service";
+import { getProductRequests, getProductRequestsForInventoryApproval } from "@/service/product-request-service";
 import { ProductRequest } from "@/types/product-request-Types";
 
 interface ApprovedProductsProps {
@@ -65,18 +65,26 @@ export default function ApprovedProducts({
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
-      
+      console.log("Fetching approved requests with date range:", dateRange);
+      const formatOnlyDate = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
       const filters: any = { status: "Approved" };
       
       if (dateRange.from) {
-        filters.startDate = dateRange.from.toISOString();
+        filters.startDate =  formatOnlyDate(dateRange.from);
       }
       if (dateRange.to) {
-        filters.endDate = dateRange.to.toISOString();
+        filters.endDate = formatOnlyDate(dateRange.to);
       }
-
-      const response = await getProductRequests(currentPage, itemsPerPage, filters);
-
+console.log("Filters applied:", filters);
+      // const response2 = await getProductRequestsForInventoryApproval(currentPage, itemsPerPage, filters);
+      // console.log("Approved requests response (inventory):", response2);
+const response = await getProductRequests(currentPage, itemsPerPage, filters);
+      // console.log("Approved requests response:", response);
       if (response.success) {
         const products = response.data?.products || [];
         const pagination = response.data?.pagination || {};
@@ -96,6 +104,10 @@ export default function ApprovedProducts({
       setLoading(false);
     }
   }, [currentPage, dateRange]);
+   useEffect(() => {
+  setCurrentPage(1);   // reset to first page
+  //  setRefreshTrigger(prev => prev + 1);
+}, [dateRange]);
 
   useEffect(() => {
     fetchRequests();

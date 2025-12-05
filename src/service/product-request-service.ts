@@ -28,6 +28,7 @@ export async function getProductRequests(
         }
       });
     }
+    console.log('Request Params:', params.toString());
 
     
     const response = await apiClient.get(`/category/products/v1/pending?${params.toString()}`);
@@ -40,6 +41,36 @@ export async function getProductRequests(
   }
 }
 
+export async function getProductRequestsForInventoryApproval(
+  page: number = 1,
+  limit: number = 10,
+  filters?: ProductRequestFilters
+): Promise<ProductRequestResponse> {
+  try {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    
+    // Add filters if provided
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+    }
+    console.log('Request Params: (For Inventory Approval)', params.toString());
+
+    
+    const response = await apiClient.get(`/category/products/v1?${params.toString()}`);
+    
+    console.log('API Response:(For Inventory Approval)', response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch product requests:", error);
+    throw error;
+  }
+}
 // Get product request statistics
 export async function getProductRequestStats(): Promise<ApprovalStatsResponse> {
   try {

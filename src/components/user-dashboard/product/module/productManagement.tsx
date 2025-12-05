@@ -26,6 +26,7 @@ import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
 import { fetchAndDownloadCSV } from "@/components/common/ExportCsv";
 import { SelectContext } from "@/utils/SelectContext";
 import { ProductSelectionProvider, useProductSelection } from "@/contexts/ProductSelectionContext";
+import apiClient from "@/apiClient";
 
 
 type TabType = "Approved" | "Pending" | "Rejected";
@@ -100,6 +101,12 @@ const getStatusColor = (status: string) => {
       return "text-gray-700";
   }
 };
+const statusMap: Record<TabType, string> = {
+  Approved: "Approved",
+  Pending: "Pending",
+  Rejected: "Rejected",
+};
+
 
 
   const performSearch = useCallback((query: string) => {
@@ -392,6 +399,124 @@ useEffect(() => {
     );
   }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryId, selectedSubCategoryId, activeTab, refreshKey]);
 
+ 
+const handleFrontendExport = async () => {
+  try {
+    console.log("Export Started...");
+
+    // 🔥 EVERYTHING IN ONE PLACE 🔥
+
+    // 1️⃣ ACTIVE TAB → STATUS
+    const status = activeTab; // ("Approved", "Pending", "Rejected")
+
+    // 2️⃣ DEFINE COLUMNS BASED ON ACTIVE TAB (ONLY ONCE)
+    const columns =
+      status === "Approved"
+        ? [
+            { label: "Product_Name", key: "product_name" },
+            { label: "SKU", key: "sku_code" },
+            { label: "Brand", key: "brand.brand_name" },
+            { label: "Category", key: "category.category_name" },
+            { label: "Subcategory", key: "sub_category.subcategory_name" },
+            { label: "Model", key: "model.model_name" },
+            { label: "Variant", key: "variant[0].variant_name" },
+            { label: "MRP", key: "mrp_with_gst" },
+            { label: "Selling_Price", key: "selling_price" },
+            // { label: "Stock", key: "no_of_stock" },
+            { label: "Status", key: "Qc_status" },
+          ]
+        : status === "Pending"
+        ? [
+            { label: "Product_Name", key: "product_name" },
+            { label: "SKU", key: "sku_code" },
+            { label: "Brand", key: "brand.brand_name" },
+            { label: "Category", key: "category.category_name" },
+            { label: "Subcategory", key: "sub_category.subcategory_name" },
+            { label: "Model", key: "model.model_name" },
+            { label: "Variant", key: "variant[0].variant_name" },
+            { label: "MRP", key: "mrp_with_gst" },
+            { label: "Selling_Price", key: "selling_price" },
+            // { label: "Stock", key: "no_of_stock" },
+            { label: "Status", key: "Qc_status" },
+          ]
+        : [
+            { label: "Product_Name", key: "product_name" },
+            { label: "SKU", key: "sku_code" },
+            { label: "Brand", key: "brand.brand_name" },
+            { label: "Category", key: "category.category_name" },
+            { label: "Subcategory", key: "sub_category.subcategory_name" },
+            { label: "Model", key: "model.model_name" },
+            { label: "Variant", key: "variant[0].variant_name" },
+            { label: "MRP", key: "mrp_with_gst" },
+            { label: "Selling_Price", key: "selling_price" },
+            // { label: "Stock", key: "no_of_stock" },
+            { label: "Status", key: "Qc_status" },
+          ];
+
+    // 3️⃣ FUNCTION FOR NESTED KEYS
+    const getNestedValue = (obj, path) => {
+      try {
+        return path
+          .replace(/\[(\d+)\]/g, ".$1")
+          .split(".")
+          .reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : ""), obj);
+      } catch {
+        return "";
+      }
+    };
+
+    // 4️⃣ PREPARE FILTER QUERIES
+    const params = new URLSearchParams();
+    params.append("status", status);
+    // params.append("sort_by", "L-H");
+
+    if (selectedCategoryId) params.append("category", selectedCategoryId);
+    if (selectedSubCategoryId) params.append("sub_category", selectedSubCategoryId);
+    if (selectedBrandId) params.append("brand", selectedBrandId);
+    if (selectedModelId) params.append("model", selectedModelId);
+    if (selectedVariantId) params.append("variant", selectedVariantId);
+    if (searchQuery) params.append("search", searchQuery);
+    console.log("Export Filters:", Object.fromEntries(params.entries()));
+
+    // 5️⃣ FINAL API ENDPOINT
+    const url = `/category/products/v1/get/product/for-export?${params.toString()}`;
+
+    // 6️⃣ FETCH DATA
+    const res = await apiClient.get(url);
+    const products = res.data?.data.products || [];
+
+    if (!products.length) {
+      showToast("No products found to export", "error");
+      return;
+    }
+
+    // 7️⃣ CREATE CSV CONTENT
+    const headerRow = columns.map((c) => c.label).join(",");
+    const dataRows = products.map((item) =>
+      columns
+        .map((col) => JSON.stringify(getNestedValue(item, col.key)))
+        .join(",")
+    );
+    const csv = [headerRow, ...dataRows].join("\n");
+
+    // 8️⃣ DOWNLOAD CSV FILE
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const downloadLink = document.createElement("a");
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = `products_${status}.csv`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    showToast("Export Successful!", "success");
+  } catch (error) {
+    console.error("EXPORT ERROR:", error);
+    showToast("Export failed", "error");
+  }
+};
+
+
+
   return (
     <div className="w-full min-w-0 overflow-x-hidden">
       <Card className="shadow-sm rounded-none min-w-0">
@@ -682,12 +807,19 @@ useEffect(() => {
                 text="Reset Sort"
                 onClick={handleResetSort}
               />
-              <DynamicButton
+              {/* <DynamicButton
                 variant="outline"
                 customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
                 text="Export"
                 onClick={handleDownload}
-              />
+              /> */}
+              <DynamicButton
+  variant="outline"
+  customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
+  text="Export"
+  onClick={handleFrontendExport}   // ⬅ Replace here
+/>
+
               <DynamicButton
                 variant="outline"
                 customClassName="border-[#C72920] text-[#C72920] bg-white hover:bg-[#c728203a] min-w-[100px] flex-shrink-0 h-10"
