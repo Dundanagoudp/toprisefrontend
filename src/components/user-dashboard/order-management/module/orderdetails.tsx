@@ -433,6 +433,7 @@ export default function OrderDetailsView() {
     return orderData.skus.map((sku: any) => ({
       productId: sku.productId || sku._id,
       productName: sku.productName || "",
+      manufacturer_part_name: sku.manufacturer_part_name || "",
       dealerId: sku.dealerId || orderData.dealerMapping?.[0]?.dealerId || "N/A", // Get from dealerMapping or SKU
       sku: sku.sku || "",
       quantity: sku.quantity || 0,
@@ -456,6 +457,7 @@ export default function OrderDetailsView() {
     setSelectedProduct({
       productId: product.productId || product.id,
       productName: product.productName || product.name,
+      manufacturer_part_name: product.manufacturer_part_name || product.mpn,
       category: "Braking", // You can update this if you have category info
       brand: "Maruti Suzuki", // You can update this if you have brand info
       description:
@@ -489,7 +491,7 @@ export default function OrderDetailsView() {
           <Badge className={`px-2 sm:px-3 py-1 text-xs sm:text-sm ${getStatusBadgeClasses(orderById?.status)}`}>
             {orderById?.status || "Active"}
           </Badge>
-          {isAuthorized && (
+          {isAuthorized && !["packed", "shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()) && (
             <DynamicButton
               variant="outline"
               customClassName="border-gray-300 text-gray-700 hover:bg-gray-50 px-3 sm:px-4 h-8 sm:h-10 text-xs sm:text-sm"
@@ -752,6 +754,7 @@ export default function OrderDetailsView() {
             onDealerEyeClick={handleDealerEyeClick}
             orderId={orderId}
             onRefresh={fetchOrder}
+            deliveryCharges={orderById?.deliveryCharges || 0}
           />
 
           {/* Order Summary */}

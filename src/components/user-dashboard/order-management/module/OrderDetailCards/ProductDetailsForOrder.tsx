@@ -48,6 +48,7 @@ interface ProductItem {
   _id?: string;
   productId?: string;
   productName: string;
+  manufacturer_part_name?: string;
   dealerId: any;
   sku?: string;
   quantity?: number;
@@ -70,6 +71,7 @@ interface ProductDetailsForOrderProps {
   onDealerEyeClick: (dealerId: string) => void;
   orderId?: string;
   onRefresh?: () => void;
+  deliveryCharges?: number;
 }
 
 // Helpers
@@ -120,6 +122,8 @@ const ProductRow = ({
   hasPicklist,
   scanStatus,
   orderStatus,
+  deliveryCharges,
+  totalProducts,
 }: any) => {
   const [expanded, setExpanded] = useState(false);
   // hide isInspectionInProgress flag when scanStatus is "In Progress" and "Completed"
@@ -201,7 +205,18 @@ const ProductRow = ({
             {item.tracking_info?.status || "Pending"}
           </Badge>
         </div>
+      </div>
 
+      {/* Price */}
+      <div className="flex flex-col gap-1 lg:col-span-2">
+        <div className="flex justify-between lg:justify-start">
+          <span className="lg:hidden text-sm text-gray-500 font-medium">
+            Total:
+          </span>
+          <span className="text-sm font-medium">
+            ₹{item.totalPrice?.toLocaleString()}
+          </span>
+        </div>
         <button
           onClick={() => setExpanded(!expanded)}
           className="flex items-center gap-1 text-xs text-blue-600 hover:underline w-fit"
@@ -210,39 +225,21 @@ const ProductRow = ({
             className={`w-3 h-3 transition-transform ${
               expanded ? "rotate-90" : ""
             }`}
-          />{" "}
-          Tracking Info
+          />
+          Breakdown
         </button>
-
         {expanded && (
-          <div className="bg-gray-50 p-2 rounded text-xs space-y-1 border border-gray-100 mt-1">
-            <p>
-              <span className="font-semibold">SKU:</span> {item.sku}
-            </p>
-            <p>
-              <span className="font-semibold">GST:</span> {item.gst_percentage}%
-            </p>
-            <p>
-              <span className="font-semibold">Total:</span> ₹
-              {item.product_total?.toLocaleString()}
-            </p>
+          <div className="bg-gray-50 p-2 rounded text-xs space-y-1 border border-gray-100">
+            <p>GST: {item.gst_percentage}%</p>
+            {deliveryCharges > 0 && totalProducts > 0 && (
+              <p>Delivery: ₹{(deliveryCharges / totalProducts).toFixed(2)}</p>
+            )}
+            <p>Total: ₹{item.product_total?.toLocaleString()}</p>
             {item.return_info?.is_returned && (
-              <p className="text-orange-600">
-                Returned: {item.return_info.return_id}
-              </p>
+              <p className="text-orange-600">Returned: {item.return_info.return_id}</p>
             )}
           </div>
         )}
-      </div>
-
-      {/* Price */}
-      <div className="flex justify-between lg:block lg:col-span-2">
-        <span className="lg:hidden text-sm text-gray-500 font-medium">
-          Total:
-        </span>
-        <span className="text-sm font-medium">
-          ₹{item.totalPrice?.toLocaleString()}
-        </span>
       </div>
 
       {/* Actions */}
@@ -305,6 +302,7 @@ export default function ProductDetailsForOrder({
   onDealerEyeClick,
   orderId = "",
   onRefresh,
+  deliveryCharges = 0,
 }: ProductDetailsForOrderProps) {
   const { showToast } = GlobalToast();
   const auth = useAppSelector((state) => state.auth.user);
@@ -615,6 +613,8 @@ export default function ProductDetailsForOrder({
                 hasPicklist={picklistSkus.has(item.sku || "")}
                 scanStatus={picklistScanStatuses.get(item.sku || "")}
                 orderStatus={orderStatus}
+                deliveryCharges={deliveryCharges}
+                totalProducts={products?.length || 1}
               />
             ))}
             {!products?.length && (
@@ -688,6 +688,8 @@ export default function ProductDetailsForOrder({
             orderId={orderId}
             dealerId={safeDealerId(selectedItem?.dealerId)}
             sku={selectedItem?.sku || ""}
+            productName={selectedItem?.productName || ""}
+            mpn={selectedItem?.manufacturer_part_name || ""}
             onSuccess={() => onRefresh?.()}
           />
         </>

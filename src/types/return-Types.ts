@@ -267,3 +267,18 @@ export interface ReturnRequestStatsResponse {
   message: string;
   data: ReturnRequestStats;
 }
+
+export interface ReturnStatsResponse {
+  success: boolean;
+  message: string;
+  totalReturns: number;
+  statusCounts: {
+    Rejected: number;
+    Validated: number;
+    Requested: number;
+    Inspection_Started: number;
+    Inspection_Completed: number;
+    Initiated_Refund: number;
+    Refund_Completed: number;
+  };
+}

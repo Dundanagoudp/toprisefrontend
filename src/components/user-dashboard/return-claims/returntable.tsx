@@ -46,8 +46,8 @@ import {
 import SearchFiltersModal from "./modules/modalpopus/searchfilters";
 import SearchInput from "@/components/common/search/SearchInput";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { getReturnRequests, initiateBorzoPickup } from "@/service/return-service";
-import { ReturnRequest, ReturnRequestsResponse } from "@/types/return-Types";
+import { getReturnRequests, initiateBorzoPickup, getReturnStats } from "@/service/return-service";
+import { ReturnRequest, ReturnRequestsResponse, ReturnStatsResponse } from "@/types/return-Types";
 import ValidateReturnRequest from "./modules/modalpopus/Validate";
 import { getAllDealers } from "@/service/dealerServices";
 
@@ -67,6 +67,10 @@ export default function ReturnClaims() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
+  
+  // Stats state
+  const [stats, setStats] = useState<ReturnStatsResponse | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
   
   // Advanced filter states from modal
   const [advancedFilterStatus, setAdvancedFilterStatus] = useState<string | null>(null);
@@ -159,8 +163,10 @@ export default function ReturnClaims() {
       params.limit = itemsPerPage;
       
       const response: ReturnRequestsResponse = await getReturnRequests(params);
+
       if (response.success && response.data) {
         setReturnRequests(response.data.returnRequests);
+  
         setTotalPages(response.data.pagination.pages);
         setTotalItems(response.data.pagination.total);
       }
@@ -175,6 +181,24 @@ export default function ReturnClaims() {
   useEffect(() => {
     fetchReturnRequests();
   }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId, currentPage]);
+
+  // Fetch return stats on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoadingStats(true);
+        const response = await getReturnStats();
+        if (response.success) {
+          setStats(response);
+        }
+      } catch (error) {
+        console.error("Failed to fetch return stats:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   // Fetch dealers on mount
   useEffect(() => {
@@ -486,7 +510,7 @@ const formatStatusName = (status: string) => {
         {/* Header: Search and Filters */}
         <CardHeader className="space-y-4 sm:space-y-6">
           {/* Return Statistics Cards */}
-          <ReturnStatsCards returnRequests={returnRequests} className="mb-6" />
+          <ReturnStatsCards stats={stats} className="mb-6" />
           
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 py-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1">
