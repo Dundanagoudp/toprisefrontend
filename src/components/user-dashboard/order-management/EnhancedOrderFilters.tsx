@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -30,6 +30,8 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
+import { getAllDealers } from "@/service/dealerServices";
+import type { Dealer } from "@/types/dealer-types";
 
 interface EnhancedOrderFiltersProps {
   onFiltersChange: (filters: OrderFilters) => void;
@@ -54,6 +56,9 @@ interface OrderFilters {
   customerType: string;
   region: string;
   assignedDealer: string;
+  dealerId: string;
+  sortBy: string;
+  order: string;
 }
 
 export default function EnhancedOrderFilters({
@@ -62,6 +67,8 @@ export default function EnhancedOrderFilters({
   onRefresh,
   loading = false,
 }: EnhancedOrderFiltersProps) {
+
+  const [dealerList, setDealerList] = useState<Dealer[]>([]);
   const [filters, setFilters] = useState<OrderFilters>({
     search: "",
     status: "all",
@@ -78,6 +85,9 @@ export default function EnhancedOrderFilters({
     customerType: "all",
     region: "all",
     assignedDealer: "all",
+    dealerId: "all",
+    sortBy: "createdAt",
+    order: "asc",
   });
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -89,6 +99,17 @@ export default function EnhancedOrderFilters({
     onFiltersChange(newFilters);
   };
 
+  useEffect(() => {
+    fetchDealerList();
+    console.log(dealerList);
+  }, []);
+//get all dealer 
+const fetchDealerList = async () => {
+  const response = await getAllDealers();
+  if (response.success) {
+    setDealerList(response.data);
+  }
+}
   const handleDateRangeChange = (range: { from: Date | undefined; to: Date | undefined }) => {
     console.log("Date range changed:", range);
     
@@ -122,6 +143,9 @@ export default function EnhancedOrderFilters({
       customerType: "all",
       region: "all",
       assignedDealer: "all",
+      dealerId: "all",
+      sortBy: "createdAt",
+      order: "asc",
     };
     setFilters(clearedFilters);
     onFiltersChange(clearedFilters);
@@ -138,6 +162,8 @@ export default function EnhancedOrderFilters({
     if (filters.customerType !== "all") count++;
     if (filters.region !== "all") count++;
     if (filters.assignedDealer !== "all") count++;
+    if (filters.dealerId !== "all") count++;
+    if (filters.sortBy !== "createdAt" || filters.order !== "asc") count++;
     return count;
   };
 
@@ -199,7 +225,7 @@ export default function EnhancedOrderFilters({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Order ID, customer, phone..."
+                placeholder="Order ID, customer-name..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
                 className="pl-10"
@@ -254,7 +280,6 @@ export default function EnhancedOrderFilters({
                 <SelectItem value="all">All Sources</SelectItem>
                 <SelectItem value="Web">Web</SelectItem>
                 <SelectItem value="Mobile">Mobile</SelectItem>
-                <SelectItem value="POS">POS</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -282,6 +307,51 @@ export default function EnhancedOrderFilters({
               className="w-full"
             />
           </div>
+          {/* Dealer Dropdown */}
+          <div className="space-y-2">
+            <Label>Dealer</Label>
+            <Select value={filters.dealerId} onValueChange={(value) => handleFilterChange("dealerId", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Dealers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Dealers</SelectItem>
+                {dealerList.map((dealer) => (
+                  <SelectItem key={dealer._id} value={dealer._id}>
+                    {dealer.trade_name || dealer.legal_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sort By */}
+          {/* <div className="space-y-2">
+            <Label>Sort By</Label>
+            <Select value={filters.sortBy} onValueChange={(value) => handleFilterChange("sortBy", value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="createdAt">Date</SelectItem>
+                <SelectItem value="ValueAt">Value</SelectItem>
+              </SelectContent>
+            </Select>
+          </div> */}
+
+          {/* Order */}
+          {/* <div className="space-y-2">
+            <Label>Order</Label>
+            <Select value={filters.order} onValueChange={(value) => handleFilterChange("order", value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Ascending</SelectItem>
+                <SelectItem value="desc">Descending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div> */}
         </div>
 
         {/* Advanced Filters - Expandable */}
@@ -481,6 +551,43 @@ export default function EnhancedOrderFilters({
                       e.stopPropagation();
                       console.log('Clearing order value filter');
                       handleFilterChange("orderValue", { min: "", max: "" });
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              )}
+              {filters.dealerId !== "all" && (
+                <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  <span>
+                    Dealer: {dealerList.find(d => d._id === filters.dealerId)?.trade_name || dealerList.find(d => d._id === filters.dealerId)?.legal_name || filters.dealerId}
+                  </span>
+                  <button
+                    type="button"
+                    className="h-3 w-3 cursor-pointer hover:bg-blue-200 rounded-sm flex items-center justify-center"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleFilterChange("dealerId", "all");
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              )}
+              {(filters.sortBy !== "createdAt" || filters.order !== "asc") && (
+                <Badge className="flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  <span>
+                    Sort: {filters.sortBy === "ValueAt" ? "Value" : "Date"} ({filters.order === "asc" ? "Asc" : "Desc"})
+                  </span>
+                  <button
+                    type="button"
+                    className="h-3 w-3 cursor-pointer hover:bg-blue-200 rounded-sm flex items-center justify-center"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleFilterChange("sortBy", "createdAt");
+                      handleFilterChange("order", "asc");
                     }}
                   >
                     <X className="h-2 w-2" />

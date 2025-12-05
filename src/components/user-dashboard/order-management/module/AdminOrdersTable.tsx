@@ -3,17 +3,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOrdersRequest, fetchOrdersSuccess, fetchOrdersFailure } from "@/store/slice/order/orderSlice";
-import { getOrders } from "@/service/order-service";
+import { getOrders, type OrderFilters } from "@/service/order-service";
 import { fetchEnhancedOrderStats } from "@/service/dashboardServices";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import DynamicButton from "@/components/common/button/button";
 import EnhancedOrderFilters from "@/components/user-dashboard/order-management/EnhancedOrderFilters";
 import EnhancedOrderStatsCards from "@/components/user-dashboard/order-management/EnhancedOrderStatsCards";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Eye } from "lucide-react";
+import { MoreHorizontal, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DynamicPagination } from "@/components/common/pagination";
+import { format } from "date-fns";
 
 // Strict Type Definition
 interface AdminOrder {
@@ -36,7 +38,19 @@ export default function AdminOrdersTable() {
   const [Orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [stats, setStats] = useState<any>(null);
-  const [filters, setFilters] = useState<any>({ status: "all", search: "" });
+  const [filters, setFilters] = useState<any>({ 
+    status: "all", 
+    search: "",
+    paymentMethod: "all",
+    orderSource: "all",
+    dealerId: "all",
+    sortBy: "order_Amount",
+    order: "desc",
+    dateRange: {
+      from: undefined,
+      to: undefined,
+    }
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -61,6 +75,31 @@ export default function AdminOrdersTable() {
     }));
   };
 
+  const getStatusBadge = (status: string) => {
+    const s = (status || "").toLowerCase();
+    switch (s) {
+      case "confirmed":
+        return "bg-green-100 text-green-800 hover:bg-green-100";
+      case "assigned":
+        return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+      case "scanning":
+        return "bg-purple-100 text-purple-800 hover:bg-purple-100";
+      case "packed":
+        return "bg-indigo-100 text-indigo-800 hover:bg-indigo-100";
+      case "shipped":
+        return "bg-cyan-100 text-cyan-800 hover:bg-cyan-100";
+      case "delivered":
+        return "bg-emerald-100 text-emerald-800 hover:bg-emerald-100";
+      case "cancelled":
+      case "canceled":
+        return "bg-red-100 text-red-800 hover:bg-red-100";
+      case "returned":
+        return "bg-orange-100 text-orange-800 hover:bg-orange-100";
+      default:
+        return "bg-gray-100 text-gray-800 hover:bg-gray-100";
+    }
+  };
+
   const applyFilters = (ordersToFilter: AdminOrder[]) => {
     return ordersToFilter.filter((o: AdminOrder) => {
       const matchSearch =
@@ -77,8 +116,26 @@ export default function AdminOrdersTable() {
     dispatch(fetchOrdersRequest());
     try {
       setLoading(true);
+      
+      const orderFilters: OrderFilters = {
+        paymentType: filters.paymentMethod,
+        status: filters.status,
+        orderSource: filters.orderSource,
+        dealerId: filters.dealerId,
+        searchTerm: filters.search,
+        sortBy: filters.sortBy,
+        order: filters.order,
+      };
+
+      if (filters.dateRange?.from) {
+        orderFilters.startDate = format(filters.dateRange.from, 'yyyy-MM-dd');
+      }
+      if (filters.dateRange?.to) {
+        orderFilters.endDate = format(filters.dateRange.to, 'yyyy-MM-dd');
+      }
+
       const [orderRes, statsRes] = await Promise.all([
-        getOrders(currentPage, itemsPerPage, filters.paymentMethod),
+        getOrders(currentPage, itemsPerPage, orderFilters),
         fetchEnhancedOrderStats({})
       ]);
 
@@ -101,7 +158,7 @@ export default function AdminOrdersTable() {
 
   useEffect(() => {
     fetchOrdersData();
-  }, [dispatch, currentPage, filters.paymentMethod]);
+  }, [dispatch, currentPage, filters.paymentMethod, filters.status, filters.orderSource, filters.dealerId, filters.search, filters.sortBy, filters.order, filters.dateRange?.from, filters.dateRange?.to]);
 
   // Client-side Filtering (Replace with Server-side in future)
   const filteredData = useMemo(() => {
@@ -124,10 +181,27 @@ export default function AdminOrdersTable() {
     try {
       setExporting(true);
 
+      const orderFilters: OrderFilters = {
+        paymentType: filters.paymentMethod,
+        status: filters.status,
+        orderSource: filters.orderSource,
+        dealerId: filters.dealerId,
+        searchTerm: filters.search,
+        sortBy: filters.sortBy,
+        order: filters.order,
+      };
+
+      if (filters.dateRange?.from) {
+        orderFilters.startDate = format(filters.dateRange.from, 'yyyy-MM-dd');
+      }
+      if (filters.dateRange?.to) {
+        orderFilters.endDate = format(filters.dateRange.to, 'yyyy-MM-dd');
+      }
+
       const pageNumbers = totalPages > 1 ? Array.from({ length: totalPages }, (_, idx) => idx + 1) : [currentPage];
       const responses = await Promise.all(
         pageNumbers.map(async (page) => {
-          const res = await getOrders(page, itemsPerPage);
+          const res = await getOrders(page, itemsPerPage, orderFilters);
           return mapApiOrders(res.data);
         })
       );
@@ -167,6 +241,25 @@ export default function AdminOrdersTable() {
     }
   };
 
+  const handleSort = (field: string) => {
+    setFilters((prev: any) => {
+      const currentSortBy = prev.sortBy || "order_Amount";
+      const currentOrder = prev.order || "asc";
+      
+      if (field === "Amount") {
+        // Toggle between asc and desc for Amount
+        const newOrder = currentSortBy === "order_Amount" && currentOrder === "asc" ? "dec" : "asc";
+        return {
+          ...prev,
+          sortBy: "order_Amount",
+          order: newOrder
+        };
+      }
+      
+      return { ...prev, sortBy: field };
+    });
+  };
+
   return (
     <div className="space-y-6">
       <EnhancedOrderStatsCards 
@@ -189,7 +282,7 @@ export default function AdminOrdersTable() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Order Management</CardTitle>
-            <DynamicButton text="Dashboard" variant="outline" onClick={() => route.push("/user/dashboard/orders-dashboard")} />
+            {/* <DynamicButton text="Dashboard" variant="outline" onClick={() => route.push("/user/dashboard/orders-dashboard")} /> */}
           </div>
         </CardHeader>
         <CardContent>
@@ -199,34 +292,65 @@ export default function AdminOrdersTable() {
                 <TableHead>Order ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Customer</TableHead>
-                <TableHead>Value</TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-gray-100 select-none"
+                  onClick={() => handleSort("Amount")}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Amount</span>
+                    {filters.sortBy === "order_Amount" ? (
+                      filters.order === "asc" ? (
+                        <ArrowUp className="h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="h-4 w-4" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-4 w-4 text-gray-400" />
+                    )}
+                  </div>
+                </TableHead>
                 <TableHead>Dealers</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow> : 
-               filteredData.map((order: AdminOrder) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.orderId}</TableCell>
-                  <TableCell>{order.date}</TableCell>
-                  <TableCell>{order.customer}</TableCell>
-                  <TableCell>{order.amount}</TableCell>
-                  <TableCell>{order.dealers}</TableCell>
-                  <TableCell>{order.status}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger><MoreHorizontal className="w-4 h-4" /></DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => route.push(`/user/dashboard/order/orderdetails/${order.id}`)}>
-                            <Eye className="mr-2 h-4 w-4"/> View
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">Loading...</TableCell>
+                </TableRow>
+              ) : filteredData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    No Orders found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredData.map((order: AdminOrder) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.orderId}</TableCell>
+                    <TableCell>{order.date}</TableCell>
+                    <TableCell>{order.customer}</TableCell>
+                    <TableCell>{order.amount}</TableCell>
+                    <TableCell>{order.dealers}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadge(order.status)}>
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger><MoreHorizontal className="w-4 h-4" /></DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => route.push(`/user/dashboard/order/orderdetails/${order.id}`)}>
+                              <Eye className="mr-2 h-4 w-4"/> View
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

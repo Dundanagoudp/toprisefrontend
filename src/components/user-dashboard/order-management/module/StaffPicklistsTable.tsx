@@ -5,6 +5,7 @@ import { getAuthToken } from "@/utils/auth";
 import { fetchEmployeeByUserId, fetchPicklistsByEmployee, fetchStaffPicklistStats } from "@/service/order-service";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import DynamicButton from "@/components/common/button/button";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +21,32 @@ const getUserIdFromToken = () => {
     } catch { 
         return null; 
     }
+};
+
+const getStatusBadge = (status: string) => {
+  const s = (status || "").toLowerCase();
+  switch (s) {
+    case "confirmed":
+      return "bg-green-100 text-green-800 hover:bg-green-100";
+    case "assigned":
+      return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+    case "scanning":
+      return "bg-purple-100 text-purple-800 hover:bg-purple-100";
+    case "packed":
+      return "bg-indigo-100 text-indigo-800 hover:bg-indigo-100";
+    case "shipped":
+      return "bg-cyan-100 text-cyan-800 hover:bg-cyan-100";
+    case "delivered":
+    case "completed":
+      return "bg-emerald-100 text-emerald-800 hover:bg-emerald-100";
+    case "cancelled":
+    case "canceled":
+      return "bg-red-100 text-red-800 hover:bg-red-100";
+    case "returned":
+      return "bg-orange-100 text-orange-800 hover:bg-orange-100";
+    default:
+      return "bg-gray-100 text-gray-800 hover:bg-gray-100";
+  }
 };
 
 export default function StaffPicklistsTable() {
@@ -116,7 +143,11 @@ export default function StaffPicklistsTable() {
                         {loading ? (
                              [1,2,3].map(i => <TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-8 w-full"/></TableCell></TableRow>)
                         ) : picklists.length === 0 ? (
-                            <TableRow><TableCell colSpan={4} className="text-center h-24">No picklists assigned.</TableCell></TableRow>
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                                    No Picklists found
+                                </TableCell>
+                            </TableRow>
                         ) : (
                             picklists.map((p) => (
                                 <TableRow key={p.picklistId || p._id} className="cursor-pointer hover:bg-gray-50" onClick={() => route.push(`/user/dashboard/order/orderdetails/${p.order._id}`)}>
@@ -124,9 +155,9 @@ export default function StaffPicklistsTable() {
                                     <TableCell>{p.orderId}</TableCell>
                                     <TableCell>{new Date(p.orderDate).toLocaleDateString()}</TableCell>
                                     <TableCell>
-                                        <span className={`px-2 py-1 rounded text-xs ${p.orderStatus === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                                        <Badge className={getStatusBadge(p.orderStatus || p.scanStatus)}>
                                             {p.orderStatus || p.scanStatus}
-                                        </span>
+                                        </Badge>
                                     </TableCell>
                                 </TableRow>
                             ))

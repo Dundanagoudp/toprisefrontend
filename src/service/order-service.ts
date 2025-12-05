@@ -3,12 +3,52 @@ import apiClient from "@/apiClient";
 
 import axios from "axios";
 
-export async function getOrders(page:number,limit:number, paymentType?:string): Promise<orderResponse> {
+export interface OrderFilters {
+  paymentType?: string;
+  status?: string;
+  orderSource?: string;
+  startDate?: string;
+  endDate?: string;
+  searchTerm?: string;
+  dealerId?: string;
+  sortBy?: string;
+  order?: string;
+}
+
+export async function getOrders(page: number, limit: number, filters?: OrderFilters): Promise<orderResponse> {
   try {
     let url = `/orders/api/orders/all?page=${page}&limit=${limit}`;
-    if (paymentType && paymentType !== 'all') {
-      url += `&paymentType=${paymentType}`;
+    
+    if (filters) {
+      if (filters.paymentType && filters.paymentType !== 'all') {
+        url += `&paymentType=${filters.paymentType}`;
+      }
+      if (filters.status && filters.status !== 'all') {
+        url += `&status=${filters.status}`;
+      }
+      if (filters.orderSource && filters.orderSource !== 'all') {
+        url += `&orderSource=${filters.orderSource}`;
+      }
+      if (filters.startDate) {
+        url += `&startDate=${filters.startDate}`;
+      }
+      if (filters.endDate) {
+        url += `&endDate=${filters.endDate}`;
+      }
+      if (filters.searchTerm) {
+        url += `&searchTerm=${encodeURIComponent(filters.searchTerm)}`;
+      }
+      if (filters.dealerId && filters.dealerId !== 'all') {
+        url += `&dealerId=${filters.dealerId}`;
+      }
+      if (filters.sortBy) {
+        url += `&sortBy=${filters.sortBy}`;
+      }
+      if (filters.order) {
+        url += `&order=${filters.order}`;
+      }
     }
+    
     const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
