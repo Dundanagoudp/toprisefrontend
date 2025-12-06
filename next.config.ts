@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       "193.203.161.146",
     ],
   },
+  reactStrictMode: false,
 
   // 👇 Add this block
   eslint: {
@@ -15,6 +16,7 @@ const nextConfig: NextConfig = {
     // even if there are ESLint errors. You'll still see the
     // errors in the console and in `npm run lint`.
     ignoreDuringBuilds: true,
+    
   },
 
   // 👇 Add TypeScript configuration to ignore type errors during builds
