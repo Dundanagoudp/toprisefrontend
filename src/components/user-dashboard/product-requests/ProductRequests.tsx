@@ -87,7 +87,8 @@ export default function ProductRequests() {
   const [selectedRequestId, setSelectedRequestId] = useState<string>("");
   const [rejectNotes, setRejectNotes] = useState("");
   const [reviewNotes, setReviewNotes] = useState("");
-  
+ 
+
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -302,20 +303,20 @@ export default function ProductRequests() {
     
     // Prepare CSV headers (removed Dealer Name)
     const headers = [
-      "Product ID",
-      "Product Name",
-      "SKU Code",
+      "Product_ID",
+      "Product_Name",
+      "SKU_Code",
       "Category",
       "Brand",
       "Manufacturer",
       "MRP",
-      "Selling Price",
-      "Stock Quantity",
+      "Selling_Price",
+      "Stock_Quantity",
       "Status",
-      "QC Status",
-      "Live Status",
-      "Created Date",
-      "Updated Date",
+      "QC_Status",
+      "Live_Status",
+      "Created_Date",
+      "Updated_Date",
       "Description"
     ];
 
@@ -478,6 +479,138 @@ export default function ProductRequests() {
     if (num === undefined || num === null) return '0';
     return new Intl.NumberFormat().format(num);
   };
+  
+
+  // ==================================================
+// EXPORT FILTERED PRODUCTS (inside this same file)
+// ==================================================
+
+const formatOnlyDate = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const handleFrontendExport = async () => {
+  try {
+    setIsExporting(true);
+//     console.log("Export Started...");
+//     console.log("EXPORT dateRange.from TYPE →", typeof dateRange.from);
+// console.log("EXPORT instanceof Date →", dateRange.from instanceof Date);
+// if(dateRange){
+//   console.log("EXPORT dateRange.from VALUE →", dateRange.from);
+// }else{
+//   console.log("EXPORT dateRange is undefined");
+// }
+
+
+    const status = activeTab; // "Approved" | "Pending" | "Rejected"
+
+    // 1️⃣ Define columns ONCE, same for all tabs
+    const columns = [
+      { label: "Product_Name", key: "product_name" },
+      { label: "SKU", key: "sku_code" },
+      { label: "Brand", key: "brand.brand_name" },
+      { label: "Category", key: "category.category_name" },
+      { label: "Subcategory", key: "sub_category.subcategory_name" },
+      { label: "Model", key: "model.model_name" },
+      { label: "Variant", key: "variant.0.variant_name" },
+      { label: "MRP", key: "mrp_with_gst" },
+      { label: "Selling_Price", key: "selling_price" },
+      { label: "Status", key: "Qc_status" },
+    ];
+
+    // 2️⃣ Safely read nested keys
+    const getNestedValue = (obj, path) => {
+      try {
+        return path
+          .replace(/\[(\d+)\]/g, ".$1")
+          .split(".")
+          .reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : ""), obj);
+      } catch {
+        return "";
+      }
+    };
+
+    // 3️⃣ Build filters EXACTLY like table filters
+    const params = new URLSearchParams();
+
+    params.append("status", status);
+
+    // if (selectedCategoryId) params.append("category", selectedCategoryId);
+    // if (selectedSubCategoryId) params.append("subcategory", selectedSubCategoryId);
+    // if (selectedBrandId) params.append("brand", selectedBrandId);
+    // if (selectedModelId) params.append("model", selectedModelId);
+    // if (selectedVariantId) params.append("variant", selectedVariantId);
+    // if (minPrice) params.append("min_price", minPrice);
+    // if (maxPrice) params.append("max_price", maxPrice);
+    // if (sortType) params.append("sort_by", sortType);
+    // if (searchQuery) params.append("search", searchQuery);
+    
+
+   if (dateRange.from) {
+  params.append("startDate", formatOnlyDate(dateRange.from));
+}
+if (dateRange.to) {
+  params.append("endDate", formatOnlyDate(dateRange.to));
+}
+
+
+    console.log("Export Filters →", Object.fromEntries(params.entries()));
+
+    // 4️⃣ API URL
+    const url = `/category/products/v1/get/product/for-export?${params.toString()}`;
+
+    // 5️⃣ Fetch products
+    const res = await apiClient.get(url);
+    const products = res.data?.data?.products || [];
+
+    if (!products.length) {
+      showToast("No products found to export", "error");
+      return;
+    }
+
+    // 6️⃣ Build CSV
+    const headerRow = columns.map((c) => c.label).join(",");
+
+    const dataRows = products.map((item) =>
+      columns
+        .map((col) => {
+          const value = getNestedValue(item, col.key);
+
+          // ESCAPE CSV values (fix commas, quotes, newlines)
+          if (typeof value === "string") {
+            return `"${value.replace(/"/g, '""').replace(/\n/g, " ")}"`;
+          }
+          return `"${String(value)}"`;
+        })
+        .join(",")
+    );
+
+    const csv = [headerRow, ...dataRows].join("\n");
+
+    // 7️⃣ Download file
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+
+    link.download = `products_${status}_${format(new Date(), "yyyy-MM-dd_HH-mm")}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast("Export Successful!", "success");
+  } catch (error) {
+    console.error("EXPORT ERROR:", error);
+    showToast("Export failed", "error");
+  }finally {
+    setIsExporting(false);
+  }
+};
+
+
 
   return (
     <div className="space-y-6 p-6">
@@ -495,23 +628,24 @@ export default function ProductRequests() {
             Refresh
           </Button>
           <Button 
-            onClick={handleExport} 
-            variant="outline"
-            disabled={isExporting}
-            className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-          >
-            {isExporting ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-            <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </>
-            )}
-          </Button>
+  onClick={handleFrontendExport} 
+  variant="outline"
+  disabled={isExporting}
+  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+>
+  {isExporting ? (
+    <>
+      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+      Exporting...
+    </>
+  ) : (
+    <>
+      <Download className="h-4 w-4 mr-2" />
+      Export CSV
+    </>
+  )}
+</Button>
+
         </div>
       </div>
 
@@ -715,7 +849,7 @@ export default function ProductRequests() {
         <CardContent>
           {activeTab === "Pending" && (
             <PendingProducts
-              dateRange={dateRange}
+              dateRange={{ ...dateRange }} 
               selectedRequests={selectedRequests}
               onSelectRequest={handleSelectRequest}
               onSelectAll={handleSelectAll}
@@ -728,7 +862,7 @@ export default function ProductRequests() {
           )}
           {activeTab === "Approved" && (
             <ApprovedProducts
-              dateRange={dateRange}
+              dateRange={{ ...dateRange }} 
               selectedRequests={selectedRequests}
               onSelectRequest={handleSelectRequest}
               onSelectAll={handleSelectAll}
@@ -738,7 +872,7 @@ export default function ProductRequests() {
           )}
           {activeTab === "Rejected" && (
             <RejectedProducts
-              dateRange={dateRange}
+              dateRange={{ ...dateRange }} 
               selectedRequests={selectedRequests}
               onSelectRequest={handleSelectRequest}
               onSelectAll={handleSelectAll}
