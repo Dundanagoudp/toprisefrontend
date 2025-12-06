@@ -386,76 +386,19 @@ export async function rejectProduct(
  * @throws Re-throws any API errors after logging
  */
 export async function rejectSingleProduct(
-  productId: string,
-  reason: string,
-  userId?: string
-): Promise<ProductResponse> {
-  try {
-    // Validate required parameters
-    if (!productId) {
-      throw new Error("Product ID is required for rejection");
-    }
-    if (!reason || reason.trim() === "") {
-      throw new Error("Rejection reason is required");
-    }
-    
-    // Create JSON payload with rejection information
-    const payload: any = {
-      reason: reason.trim()
-    };
-    
-    // Add user information if provided (for audit logging)
-    if (userId) {
-      payload.rejectedBy = userId;
-    } else {
-      console.warn("No user ID provided for product rejection - audit logging may fail");
-    }
-    
-    console.log(`Rejecting product ${productId} with payload:`, payload);
-    
-    const { data: responseData } = await apiClient.patch(
-      `/category/products/v1/reject/${productId}`,
-      payload
-    );
-    
-    console.log(`Product ${productId} rejected successfully:`, responseData);
-    return responseData;
-  } catch (error: any) {
-    console.error(`Failed to reject product ${productId}:`, error);
-    
-    // Provide more specific error messages
-    if (error.response?.status === 500) {
-      throw new Error("Server error occurred while rejecting product. Please try again.");
-    } else if (error.response?.status === 404) {
-      throw new Error("Product not found.");
-    } else if (error.response?.status === 403) {
-      throw new Error("You don't have permission to reject this product.");
-    } else if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    } else {
-      throw new Error("Failed to reject product. Please try again.");
-    }
+  data: {
+    productIds: string[];
+    reason: string;
+    rejectedBy: string;
   }
-}
-
-/**
- * Update QC status for a product
- * @param productId - Product ID
- * @param qcStatus - New QC status (Approved, Rejected, or Pending)
- * @returns Promise resolving to product response
- */
-export async function updateQcStatus(
-  productId: string,
-  qcStatus: 'Approved' | 'Rejected' | 'Pending'
 ): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
-      `/category/products/v1/update/qcStatus/${productId}`,
-      { qcStatus }
-    );
+      `/category/products/v1/bulk/reject`,
+      data);
     return response.data;
   } catch (error) {
-    console.error('Failed to update QC status:', error);
+    console.error("Failed to reject product:", error);
     throw error;
   }
 }

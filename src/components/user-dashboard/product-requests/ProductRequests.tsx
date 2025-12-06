@@ -48,13 +48,15 @@ import { useToast as useGlobalToast } from "@/components/ui/toast";
 import PendingProducts from "./tabs/PendingProducts";
 import ApprovedProducts from "./tabs/ApprovedProducts";
 import RejectedProducts from "./tabs/RejectedProducts";
+import { auth } from "@/lib/firebase";
+import { useAppSelector } from "@/store/hooks";
 
 type TabType = "Pending" | "Approved" | "Rejected";
 
 export default function ProductRequests() {
   const router = useRouter();
   const { showToast } = useGlobalToast();
-  
+  const userid = useAppSelector((state)=>state.auth.user._id)
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>("Pending");
   
@@ -184,7 +186,11 @@ export default function ProductRequests() {
     }
 
     try {
-      await rejectSingleProduct(selectedRequestId, rejectNotes);
+      const response = await rejectSingleProduct({
+        productIds: [selectedRequestId],
+        reason: rejectNotes,
+        rejectedBy: userid,
+      });
       showToast("Product rejected successfully", "success");
       setIsRejectDialogOpen(false);
       setRejectNotes("");
@@ -249,7 +255,11 @@ export default function ProductRequests() {
     }
 
     try {
-      const promises = selectedRequests.map(productId => rejectSingleProduct(productId, rejectNotes));
+      const promises = selectedRequests.map(productId => rejectSingleProduct({
+        productIds: [productId],
+        reason: rejectNotes,
+        rejectedBy: userid,
+      }));
       await Promise.all(promises);
       showToast("Products rejected successfully", "success");
       setSelectedRequests([]);
