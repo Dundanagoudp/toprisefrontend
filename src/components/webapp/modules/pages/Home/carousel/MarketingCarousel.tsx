@@ -43,7 +43,7 @@ export default function MarketingCarousel() {
       try {
         setLoading(true);
         const response = await getRandomBanners(vehicle_type);
-        console.log("banners", response.data);
+        // console.log("banners", response.data);
         setBanners(response.data);
       } catch (err: any) {
         setError(err.message);

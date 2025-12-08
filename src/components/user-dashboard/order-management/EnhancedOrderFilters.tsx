@@ -242,14 +242,14 @@ const fetchDealerList = async () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="assigned">Assigned</SelectItem>
-                <SelectItem value="scanning">Scanning</SelectItem>
-                <SelectItem value="packed">Packed</SelectItem>
-                <SelectItem value="shipped">Shipped</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="returned">Returned</SelectItem>
+                <SelectItem value="Confirmed">Confirmed</SelectItem>
+                <SelectItem value="Assigned">Assigned</SelectItem>
+                <SelectItem value="Scanning">Scanning</SelectItem>
+                <SelectItem value="Packed">Packed</SelectItem>
+                <SelectItem value="Shipped">Shipped</SelectItem>
+                <SelectItem value="Delivered">Delivered</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+                <SelectItem value="Returned">Returned</SelectItem>
               </SelectContent>
             </Select>
           </div>

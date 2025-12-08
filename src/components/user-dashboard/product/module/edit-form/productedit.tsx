@@ -479,7 +479,7 @@ export default function ProductEdit() {
               ? product.variant[0]._id
               : "",
           fitment_notes: product.fitment_notes || "",
-          key_specifications: product.key_specifications || "",
+          key_specifications: product.key_specifications ?? "",
 
           is_universal: product.is_universal ? "yes" : "no",
           is_consumable: product.is_consumable ? "yes" : "no",

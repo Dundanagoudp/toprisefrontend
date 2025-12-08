@@ -158,7 +158,7 @@ const response = await getProductRequests(currentPage, itemsPerPage, filters);
                 <Checkbox checked={selectAll} onCheckedChange={onSelectAll} />
               </TableHead>
               <TableHead>Product</TableHead>
-              <TableHead>Type</TableHead>
+              {/* <TableHead>Type</TableHead> */}
               <TableHead>Status</TableHead>
               <TableHead>Created By</TableHead>
               <TableHead>Date</TableHead>
@@ -203,12 +203,12 @@ const response = await getProductRequests(currentPage, itemsPerPage, filters);
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <div className="flex items-center space-x-2">
                       <Package className="w-4 h-4" />
                       <span className="capitalize">Product</span>
                     </div>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     {getStatusBadge(request.Qc_status || request.live_status || "Approved")}
                   </TableCell>

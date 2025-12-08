@@ -8,6 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Package, 
   Search, 
@@ -22,7 +29,11 @@ import {
   XCircle,
   Star,
   ShoppingCart,
-  BarChart3
+  BarChart3,
+  MoreVertical,
+  MoreHorizontal,
+  Plus,
+  Minus
 } from "lucide-react";
 import { 
   getDealerProducts, 
@@ -34,23 +45,22 @@ import {
   getPriorityText,
   canEditField,
   canManage,
+  updateStockByDealer,
   type DealerProduct,
   type DealerProductsResponse,
   type ProductsSummary
 } from "@/service/dealer-products-service";
+import { getDealerIdFromUserId } from "@/service/dealerServices";
 import { useToast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 
 interface ProductTableRowProps {
   product: DealerProduct;
   onViewDetails: (product: DealerProduct) => void;
-  onEdit: (productId: string) => void;
+  onUpdateStock: (product: DealerProduct) => void;
 }
 
-const ProductTableRow = ({ product, onViewDetails, onEdit }: ProductTableRowProps) => {
-  const canEdit = canEditField(product.permission_matrix, 'product_name');
-  const canManageStock = canManage(product.permission_matrix, 'stock');
-  const canManagePricing = canManage(product.permission_matrix, 'pricing');
+const ProductTableRow = ({ product, onViewDetails, onUpdateStock }: ProductTableRowProps) => {
 
   return (
     <TableRow className="hover:bg-gray-50">
@@ -123,24 +133,24 @@ const ProductTableRow = ({ product, onViewDetails, onEdit }: ProductTableRowProp
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onViewDetails(product)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          {canEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(product._id)}
-            >
-              <Edit className="h-4 w-4" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <MoreHorizontal className="h-4 w-4" />
             </Button>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onViewDetails(product)}>
+              <Eye className="h-4 w-4 mr-2" />
+              View details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onUpdateStock(product)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Update stock
+            </DropdownMenuItem>
+          
+          </DropdownMenuContent>
+        </DropdownMenu>
       </TableCell>
     </TableRow>
   );
@@ -217,6 +227,10 @@ export default function DealerProductsTable() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("created_at");
   const [sortOrder, setSortOrder] = useState<string>("desc");
+  const [isUpdateStockOpen, setIsUpdateStockOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<DealerProduct | null>(null);
+  const [stockQuantity, setStockQuantity] = useState(0);
+  const [updatingStock, setUpdatingStock] = useState(false);
   
   const { showToast } = useToast();
   const router = useRouter();
@@ -268,8 +282,29 @@ export default function DealerProductsTable() {
     router.push(`/dealer/dashboard/product/productdetails/${product._id}`);
   };
 
-  const handleEdit = (productId: string) => {
-    router.push(`/dealer/dashboard/product/productedit/${productId}`);
+  const handleUpdateStock = (product: DealerProduct) => {
+    setSelectedProduct(product);
+    setStockQuantity(product.dealer_info.quantity_available);
+    setIsUpdateStockOpen(true);
+  };
+
+  const handleStockUpdate = async () => {
+    if (!selectedProduct) return;
+    
+    setUpdatingStock(true);
+    try {
+      console.log("product info",selectedProduct)
+      const dealerId = await getDealerIdFromUserId();
+      await updateStockByDealer(selectedProduct._id, dealerId, stockQuantity);
+      showToast("Stock updated successfully", "success");
+      setIsUpdateStockOpen(false);
+      fetchProducts(currentPage);
+    } catch (err: any) {
+      console.error("Failed to update stock:", err);
+      showToast(err?.response?.data?.message || "Failed to update stock", "error");
+    } finally {
+      setUpdatingStock(false);
+    }
   };
 
   const handleRefresh = () => {
@@ -329,6 +364,7 @@ export default function DealerProductsTable() {
     }
     return true;
   });
+  console.log("filteredProducts",filteredProducts)
 
   if (loading && products.length === 0) {
     return (
@@ -580,7 +616,7 @@ export default function DealerProductsTable() {
                       key={product._id} 
                       product={product} 
                       onViewDetails={handleViewDetails}
-                      onEdit={handleEdit}
+                      onUpdateStock={handleUpdateStock}
                     />
                   ))}
                 </TableBody>
@@ -614,6 +650,76 @@ export default function DealerProductsTable() {
           </Button>
         </div>
       )}
+
+      {/* Update Stock Dialog */}
+      <Dialog open={isUpdateStockOpen} onOpenChange={setIsUpdateStockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Stock</DialogTitle>
+          </DialogHeader>
+          {selectedProduct && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                {selectedProduct.images && selectedProduct.images.length > 0 ? (
+                  <img 
+                    src={selectedProduct.images[0]} 
+                    alt={selectedProduct.product_name}
+                    className="w-20 h-20 rounded-lg object-cover border"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <Package className="h-10 w-10 text-gray-400" />
+                  </div>
+                )}
+                <div>
+                  <div className="font-semibold text-gray-900">{selectedProduct.product_name}</div>
+                  <div className="text-sm text-gray-600">SKU: {selectedProduct.sku_code}</div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    Current Stock: <span className="font-medium">{selectedProduct.dealer_info.quantity_available}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Quantity</label>
+                <div className="flex items-center space-x-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStockQuantity(Math.max(0, stockQuantity - 1))}
+                    disabled={updatingStock}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={stockQuantity}
+                    onChange={(e) => setStockQuantity(Math.max(0, parseInt(e.target.value) || 0))}
+                    disabled={updatingStock}
+                    className="w-24 text-center"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStockQuantity(stockQuantity + 1)}
+                    disabled={updatingStock}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsUpdateStockOpen(false)} disabled={updatingStock}>
+                  Cancel
+                </Button>
+                <Button onClick={handleStockUpdate} disabled={updatingStock}>
+                  {updatingStock ? "Updating..." : "Update Stock"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

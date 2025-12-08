@@ -1,6 +1,7 @@
 import apiClient from "@/apiClient";
 import { getDealerIdFromUserId } from "./dealerServices";
-
+import axios from "axios";
+import { getAuthToken } from "@/utils/auth";
 export interface ProductPricing {
   mrp_with_gst: number;
   base_selling_price: number;
@@ -163,7 +164,7 @@ export async function getDealerProducts(
       }
     }
     
-    console.log(`[getDealerProducts] Fetching products for dealer ID: ${id}`);
+
     
     // Build query parameters
     const queryParams = new URLSearchParams({
@@ -212,6 +213,29 @@ export async function getDealerProductById(productId: string): Promise<DealerPro
     }
   } catch (error) {
     console.error("Error fetching product by ID:", error);
+    throw error;
+  }
+}
+
+// Update stock by dealer
+export async function updateStockByDealer(
+  productId: string,
+  dealerId: string,
+  quantity: number
+): Promise<any> {
+  try {
+    const response = await axios.put(`https://api.toprise.in/products/products/v1/update-stockByDealer/${productId}`, {
+      dealerId,
+      quantity,
+    },{
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": getAuthToken() ? `Bearer ${getAuthToken()}` : "",
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating stock by dealer:", error);
     throw error;
   }
 }

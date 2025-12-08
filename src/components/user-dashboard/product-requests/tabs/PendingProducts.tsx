@@ -152,7 +152,7 @@ export default function PendingProducts({
                 <Checkbox checked={selectAll} onCheckedChange={onSelectAll} />
               </TableHead>
               <TableHead>Product</TableHead>
-              <TableHead>Type</TableHead>
+              {/* <TableHead>Type</TableHead> */}
               <TableHead>Status</TableHead>
               <TableHead>Created By</TableHead>
               <TableHead>Date</TableHead>
@@ -197,12 +197,12 @@ export default function PendingProducts({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <div className="flex items-center space-x-2">
                       <Package className="w-4 h-4" />
                       <span className="capitalize">Product</span>
                     </div>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     {getStatusBadge(request.Qc_status || request.live_status || "Pending")}
                   </TableCell>
