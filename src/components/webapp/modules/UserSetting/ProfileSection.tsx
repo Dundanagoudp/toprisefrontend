@@ -16,17 +16,17 @@ export function ProfileSection({
 }: ProfileSectionProps) {
   return (
     <Card className={`bg-card border-border/50 ${className}`}>
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-foreground">
+      <CardHeader className="pb-4 max-sm:px-3 max-sm:pt-4">
+        <CardTitle className="text-lg font-semibold text-foreground max-sm:text-base">
           {title}
         </CardTitle>
         {description && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1 max-sm:text-xs">
             {description}
           </p>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="max-sm:px-3 max-sm:pb-4">
         {children}
       </CardContent>
     </Card>

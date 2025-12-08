@@ -1075,11 +1075,11 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-background">
       <div className="bg-card border-b border-border/50">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
-              <p className="text-sm text-muted-foreground mt-1">
+        <div className="container mx-auto px-4 py-6 max-sm:px-3 max-sm:py-4">
+          <div className="flex items-center justify-between max-sm:flex-col max-sm:gap-3 max-sm:items-start">
+            <div className="max-sm:w-full">
+              <h1 className="text-2xl font-bold text-foreground max-sm:text-xl max-sm:text-left">My Profile</h1>
+              <p className="text-sm text-muted-foreground mt-1 max-sm:text-xs max-sm:text-left">
                 Manage your account settings and preferences
               </p>
             </div>
@@ -1088,7 +1088,7 @@ export default function ProfilePage() {
                 onClick={() =>
                   isEditing ? handleSaveProfile() : setIsEditing(true)
                 }
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg max-sm:w-full max-sm:px-4"
                 disabled={updatingProfile}
               >
                 {isEditing ? (
@@ -1112,73 +1112,75 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-sm:px-3 max-sm:py-4">
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
-          className="space-y-6"
+          className="space-y-6 max-sm:space-y-4"
         >
-          <TabsList className="bg-gray-100 border border-gray-300 p-1 h-auto flex-wrap">
+          <div className="max-sm:overflow-x-auto max-sm:-mx-3 max-sm:px-3">
+            <TabsList className="bg-gray-100 border border-gray-300 p-1 h-auto flex-wrap max-sm:flex-nowrap max-sm:min-w-max">
             <TabsTrigger
               value="profile"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700 max-sm:text-xs max-sm:whitespace-nowrap max-sm:px-3"
             >
-              <User className="mr-2 h-4 w-4" />
+              <User className="mr-2 h-4 w-4 max-sm:mr-1 max-sm:h-3 max-sm:w-3" />
               Profile
             </TabsTrigger>
             <TabsTrigger
               value="orders"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700 max-sm:text-xs max-sm:whitespace-nowrap max-sm:px-3"
             >
-              <ShoppingBag className="mr-2 h-4 w-4" />
+              <ShoppingBag className="mr-2 h-4 w-4 max-sm:mr-1 max-sm:h-3 max-sm:w-3" />
               Orders
             </TabsTrigger>
             <TabsTrigger
               value="wishlists"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700 max-sm:text-xs max-sm:whitespace-nowrap max-sm:px-3"
             >
-              <Heart className="mr-2 h-4 w-4" />
+              <Heart className="mr-2 h-4 w-4 max-sm:mr-1 max-sm:h-3 max-sm:w-3" />
               Favourites
             </TabsTrigger>
             <TabsTrigger
               value="addresses"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700 max-sm:text-xs max-sm:whitespace-nowrap max-sm:px-3"
             >
-              <MapPin className="mr-2 h-4 w-4" />
+              <MapPin className="mr-2 h-4 w-4 max-sm:mr-1 max-sm:h-3 max-sm:w-3" />
               Addresses
             </TabsTrigger>
             <TabsTrigger
               value="saved-vehicles"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700 max-sm:text-xs max-sm:whitespace-nowrap max-sm:px-3"
             >
-              <Bus className="mr-2 h-4 w-4" />
+              <Bus className="mr-2 h-4 w-4 max-sm:mr-1 max-sm:h-3 max-sm:w-3" />
               Saved Vehicles
             </TabsTrigger>
             <TabsTrigger
               value="tickets"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700 max-sm:text-xs max-sm:whitespace-nowrap max-sm:px-3"
             >
-              <TicketIcon className="mr-2 h-4 w-4" />
+              <TicketIcon className="mr-2 h-4 w-4 max-sm:mr-1 max-sm:h-3 max-sm:w-3" />
               Tickets
             </TabsTrigger>
             <TabsTrigger
               value="purchase order requests"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700 max-sm:text-xs max-sm:whitespace-nowrap max-sm:px-3"
             >
-              <NotepadText className="mr-2 h-4 w-4" />
+              <NotepadText className="mr-2 h-4 w-4 max-sm:mr-1 max-sm:h-3 max-sm:w-3" />
               Purchase Order Requests
             </TabsTrigger>
             <TabsTrigger
               value="return requests"
-              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700"
+              className="data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-200 text-gray-700 max-sm:text-xs max-sm:whitespace-nowrap max-sm:px-3"
             >
-              <Redo2 className="mr-2 h-4 w-4" />
+              <Redo2 className="mr-2 h-4 w-4 max-sm:mr-1 max-sm:h-3 max-sm:w-3" />
               Return Requests
             </TabsTrigger>
           </TabsList>
+          </div>
 
           {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6 mt-6">
+          <TabsContent value="profile" className="space-y-6 mt-6 max-sm:space-y-4 max-sm:mt-4">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -1186,12 +1188,12 @@ export default function ProfilePage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-sm:gap-4">
                   <ProfileSection
                     title="Personal Details"
                     description="Your personal information and contact details"
                   >
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-sm:space-y-3">
                       {isEditing ? (
                         <>
                           <div className="space-y-2">
@@ -1257,10 +1259,10 @@ export default function ProfilePage() {
                     title="Bank Details"
                     description="Manage your banking information for payments and refunds"
                   >
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-sm:space-y-3">
                       {isEditing ? (
                         <>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1 max-sm:gap-3">
                             <div className="space-y-2">
                               <Label htmlFor="account_number">
                                 Account Number
@@ -1415,8 +1417,8 @@ export default function ProfilePage() {
                   title="Account Settings"
                   description="Manage your account preferences and security"
                 >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+                  <div className="space-y-4 max-sm:space-y-3">
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-destructive/5 border border-destructive/20 max-sm:flex-col max-sm:gap-3 max-sm:p-3">
                       <div>
                         <p className="font-medium text-destructive">
                           Delete Account
@@ -1428,6 +1430,7 @@ export default function ProfilePage() {
                       <Button
                         variant="destructive"
                         onClick={handleDeleteAccount}
+                        className="max-sm:w-full"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
@@ -1440,12 +1443,12 @@ export default function ProfilePage() {
           </TabsContent>
 
           {/* Orders Tab */}
-          <TabsContent value="orders" className="space-y-6 mt-6">
+          <TabsContent value="orders" className="space-y-6 mt-6 max-sm:space-y-4 max-sm:mt-4">
             <ProfileSection
               title="Order History"
               description="View and track all your orders"
             >
-              <ScrollArea className="h-[600px] pr-4">
+              <ScrollArea className="h-[600px] pr-4 max-sm:h-[500px] max-sm:pr-2">
                 {ordersLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -1457,29 +1460,29 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground">No orders found</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-sm:space-y-3">
                     {userOrders.map((order) => (
                       <div
                         key={order._id}
-                        className="p-4 rounded-lg border border-border/50 hover:shadow-md transition-all"
+                        className="p-4 rounded-lg border border-border/50 hover:shadow-md transition-all max-sm:p-3"
                       >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Package className="h-6 w-6 text-primary" />
+                      <div className="flex items-center justify-between max-sm:flex-col max-sm:items-start max-sm:gap-3">
+                        <div className="flex items-center gap-4 max-sm:gap-3 max-sm:w-full">
+                          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center max-sm:h-10 max-sm:w-10 flex-shrink-0">
+                            <Package className="h-6 w-6 text-primary max-sm:h-5 max-sm:w-5" />
                           </div>
-                          <div>
-                            <p className="font-medium text-foreground">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground max-sm:text-sm">
                               {order.orderId}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground max-sm:text-xs">
                               {formatDate(order.orderDate)} •{" "}
                               {order.skus.length} items
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-foreground">
+                        <div className="text-right max-sm:w-full max-sm:flex max-sm:items-center max-sm:justify-between max-sm:text-left">
+                          <p className="font-semibold text-foreground max-sm:text-sm">
                           ₹{(order.order_Amount)?.toLocaleString() || '0'}
                           </p>
                           <Badge className={getStatusBadgeColor(order.status)}>
@@ -1489,18 +1492,19 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <div className="mt-3 pt-3 border-t">
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground max-sm:flex-col max-sm:items-start max-sm:gap-2 max-sm:text-xs">
                           <span>Payment: {order.paymentType}</span>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 max-sm:flex-wrap max-sm:w-full">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleViewOrderDetails(order._id)}
+                              className="max-sm:flex-1"
                             >
                               View Details
                             </Button>
                             {order.order_track_info?.borzo_tracking_url && (
-                              <Button variant="outline" size="sm" asChild>
+                              <Button variant="outline" size="sm" asChild className="max-sm:flex-1">
                                 <a
                                   href={
                                     order.order_track_info.borzo_tracking_url
@@ -1508,8 +1512,9 @@ export default function ProfilePage() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
-                                  <ExternalLink className="h-4 w-4 mr-1" />
-                                  Track Order
+                                  <ExternalLink className="h-4 w-4 mr-1 max-sm:h-3 max-sm:w-3" />
+                                  <span className="max-sm:hidden">Track Order</span>
+                                  <span className="sm:hidden">Track</span>
                                 </a>
                               </Button>
                             )}
@@ -1518,10 +1523,11 @@ export default function ProfilePage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleOpenReviewModal(order._id)}
-                                className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                                className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 max-sm:flex-1"
                               >
-                                <Star className="h-4 w-4 mr-1" />
-                                Add Review
+                                <Star className="h-4 w-4 mr-1 max-sm:h-3 max-sm:w-3" />
+                                <span className="max-sm:hidden">Add Review</span>
+                                <span className="sm:hidden">Review</span>
                               </Button>
                             )}
                           </div>
@@ -1535,7 +1541,7 @@ export default function ProfilePage() {
           </TabsContent>
 
           {/* Wishlists Tab */}
-          <TabsContent value="wishlists" className="space-y-6 mt-6">
+          <TabsContent value="wishlists" className="space-y-6 mt-6 max-sm:space-y-4 max-sm:mt-4">
             <ProfileSection
               title="My Wishlists"
               description="Items you've saved for later"
@@ -1556,7 +1562,7 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                   {Array.isArray(userWishlist) &&
                     userWishlist.map((item, index) => {
                       const product = item.productDetails || item;
@@ -1565,7 +1571,7 @@ export default function ProfilePage() {
                           key={item._id || index}
                           className="group bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg hover:scale-[1.01] transition-all duration-200 overflow-hidden"
                         >
-                          <div className="relative h-32 bg-gray-100 overflow-hidden">
+                          <div className="relative h-32 bg-gray-100 overflow-hidden max-sm:h-28">
                             {product.model?.model_image ? (
                               <img
                                 src={product.model.model_image}
@@ -1621,24 +1627,24 @@ export default function ProfilePage() {
                               </button>
                             </div>
                           </div>
-                          <div className="relative p-4">
-                            <div className="flex items-start justify-between mb-3">
+                          <div className="relative p-4 max-sm:p-3">
+                            <div className="flex items-start justify-between mb-3 max-sm:mb-2">
                               <div className="flex-1 min-w-0">
-                                <CardTitle className="text-base font-semibold text-gray-900 line-clamp-1 mb-1">
+                                <CardTitle className="text-base font-semibold text-gray-900 line-clamp-1 mb-1 max-sm:text-sm">
                                   {product.product_name ||
                                     product.name ||
                                     "Unnamed Product"}
                                 </CardTitle>
                                 <Badge
                                   variant="outline"
-                                  className="text-xs bg-red-50 text-red-700 border-red-200 font-medium px-2 py-0.5"
+                                  className="text-xs bg-red-50 text-red-700 border-red-200 font-medium px-2 py-0.5 max-sm:text-[10px] max-sm:px-1.5"
                                 >
                                   {product.sku_code || product.sku || "No SKU"}
                                 </Badge>
                               </div>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2 max-sm:space-y-1.5">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-gray-600 font-medium">
                                   Price
@@ -1686,11 +1692,11 @@ export default function ProfilePage() {
                               </div>
                             </div>
 
-                            <div className="mt-3 flex gap-2">
-                              <Link href={`/shop/product/${product._id}`}>
+                            <div className="mt-3 flex gap-2 max-sm:mt-2">
+                              <Link href={`/shop/product/${product._id}`} className="flex-1">
                                 <Button
                                   size="sm"
-                                  className="flex-1 bg-primary hover:opacity-90 text-white text-xs"
+                                  className="w-full bg-primary hover:opacity-90 text-white text-xs max-sm:text-[10px]"
                                 >
                                   View Details
                                 </Button>
@@ -1719,17 +1725,17 @@ export default function ProfilePage() {
           </TabsContent>
 
           {/* Addresses Tab */}
-          <TabsContent value="addresses" className="space-y-6 mt-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-foreground">
+          <TabsContent value="addresses" className="space-y-6 mt-6 max-sm:space-y-4 max-sm:mt-4">
+            <div className="flex justify-between items-center mb-4 gap-3">
+              <h2 className="text-lg font-semibold text-foreground max-sm:text-base max-sm:flex-shrink-0">
                 Saved Addresses
               </h2>
               <Button
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg max-sm:px-4 max-sm:text-sm max-sm:whitespace-nowrap"
                 onClick={handleAddAddress}
                 disabled={isAddingAddress || editingAddressIndex !== null}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-4 w-4 max-sm:h-3 max-sm:w-3" />
                 Add New Address
               </Button>
             </div>
@@ -1804,9 +1810,9 @@ export default function ProfilePage() {
                       placeholder="Enter street address"
                     />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="city">City *</Label>
+                      <Label htmlFor="city" className="text-sm">City *</Label>
                       <Input
                         id="city"
                         value={newAddress.city}
@@ -1831,11 +1837,11 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-                  <div className="flex gap-2 pt-4">
+                  <div className="flex gap-2 pt-4 max-sm:flex-col">
                     <Button
                       onClick={handleSaveAddress}
                       disabled={updatingAddress || showUpdateConfirmation}
-                      className="bg-gradient-to-r from-[#c72920] to-[#e5665f] text-white hover:opacity-90"
+                      className="bg-gradient-to-r from-[#c72920] to-[#e5665f] text-white hover:opacity-90 max-sm:w-full"
                     >
                       {updatingAddress ? (
                         <>
@@ -1869,7 +1875,7 @@ export default function ProfilePage() {
               </ProfileSection>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-sm:gap-4">
               {profileData.address && profileData.address.length > 0 ? (
                 profileData.address.map((address, index) => (
                   <ProfileSection
@@ -1877,11 +1883,11 @@ export default function ProfilePage() {
                     title={address.nick_name || `Address ${index + 1}`}
                     className="relative"
                   >
-                    <div className="space-y-3">
-                      <p className="text-sm text-muted-foreground">
+                    <div className="space-y-3 max-sm:space-y-2">
+                      <p className="text-sm text-muted-foreground max-sm:text-xs">
                         {address.street}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground max-sm:text-xs">
                         {address.city}, {address.state} - {address.pincode}
                       </p>
                       <div className="flex gap-2 pt-2">
@@ -1892,6 +1898,7 @@ export default function ProfilePage() {
                           disabled={
                             updatingAddress || editingAddressIndex !== null
                           }
+                          className="max-sm:flex-1"
                         >
                           <Edit2 className="mr-2 h-3 w-3" />
                           Edit
@@ -1899,7 +1906,7 @@ export default function ProfilePage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-destructive hover:bg-destructive/10"
+                          className="text-destructive hover:bg-destructive/10 max-sm:flex-1"
                           onClick={() => handleDeleteAddress(index)}
                           disabled={
                             updatingAddress ||
@@ -1933,35 +1940,42 @@ export default function ProfilePage() {
           </TabsContent>
 
           {/* Saved Vehicles Tab */}
-          <TabsContent value="saved-vehicles" className="space-y-6 mt-6">
-            <ProfileSection
-              title="Saved Vehicles"
-              description="Vehicles linked to your account"
-            >
-              {/* Always-visible Add Vehicle button */}
-              <div className="flex justify-end mb-4">
-                <Button
-                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg"
-                  onClick={() => setIsOpen(true)}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Vehicle
-                </Button>
+          <TabsContent value="saved-vehicles" className="space-y-6 mt-6 max-sm:space-y-4 max-sm:mt-4">
+            <div className="flex justify-between items-center mb-4 gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground max-sm:text-base">
+                  Saved Vehicles
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1 max-sm:text-xs">
+                  Vehicles linked to your account
+                </p>
               </div>
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg max-sm:px-4 max-sm:text-sm max-sm:whitespace-nowrap flex-shrink-0"
+                onClick={() => setIsOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4 max-sm:h-3 max-sm:w-3" />
+                Add Vehicle
+              </Button>
+            </div>
+            <ProfileSection
+              title=""
+              description=""
+            >
               {vehicleDetailsLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin" />
                   <span className="ml-2">Loading vehicle details...</span>
                 </div>
               ) : vehicleDetails?.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-sm:gap-3">
                   {vehicleDetails.map((vehicle: any, index: number) => (
                     <div key={index} className="relative">
                       <Link href={`/profile/vehicles/${vehicle._id}`}>
-                        <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                          <div className="flex items-center gap-4">
+                        <Card className="p-3 sm:p-4 hover:shadow-md transition-shadow cursor-pointer">
+                          <div className="flex items-center gap-3 sm:gap-4">
                             {/* Brand Logo */}
-                            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                               {vehicle.brand?.brand_logo ? (
                                 <img
                                   src={vehicle.brand.brand_logo}
@@ -2067,17 +2081,17 @@ export default function ProfilePage() {
           </TabsContent>
 
           {/* Tickets Tab - Enhanced Minimalist Design */}
-          <TabsContent value="tickets" className="space-y-6 mt-6">
+          <TabsContent value="tickets" className="space-y-6 mt-6 max-sm:space-y-4 max-sm:mt-4">
             <ProfileSection
               title="Tickets"
               description=" Raise a ticket and we'll get back to you as soon as possible."
             >
               <DynamicButton
                 text="Rice Ticket"
-                className="bg-red-600 hover:bg-red-700 text-white mb-4"
+                className="bg-red-600 hover:bg-red-700 text-white mb-4 max-sm:w-full max-sm:text-sm"
                 onClick={() => setIsRiseTicketOpen(true)}
               />
-               <ScrollArea className="h-[600px] pr-4">
+               <ScrollArea className="h-[600px] pr-4 max-sm:h-[500px] max-sm:pr-2">
               {ticketsLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <div className="flex flex-col items-center gap-4">
@@ -2116,7 +2130,7 @@ export default function ProfilePage() {
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 max-sm:space-y-3">
                   {tickets.map((t: any) => {
                     const status = (t.status || "").toLowerCase();
                     const statusConfigs: Record<string, { bg: string; text: string; dot: string; label: string }> = {
@@ -2167,12 +2181,12 @@ export default function ProfilePage() {
                         {/* Subtle gradient overlay on hover */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-50/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                        <div className="relative p-5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <div className="relative p-5 max-sm:p-3">
+                          <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
+                            <div className="flex items-center gap-4 min-w-0 flex-1 max-sm:gap-3 max-sm:w-full">
                               {/* Status Indicator */}
                               <div className="flex-shrink-0">
-                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusConfig.bg} ${statusConfig.text} text-xs font-semibold`}>
+                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusConfig.bg} ${statusConfig.text} text-xs font-semibold max-sm:gap-1.5 max-sm:px-2 max-sm:py-1 max-sm:text-[10px]`}>
                                   <div className={`h-2 w-2 rounded-full ${statusConfig.dot} animate-pulse`}></div>
                                   {statusConfig.label}
                                 </div>
@@ -2180,14 +2194,14 @@ export default function ProfilePage() {
 
                               {/* Content */}
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <TicketIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                  <span className="text-xs font-mono text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
+                                <div className="flex items-center gap-2 mb-1 max-sm:gap-1.5">
+                                  <TicketIcon className="h-4 w-4 text-gray-400 flex-shrink-0 max-sm:h-3 max-sm:w-3" />
+                                  <span className="text-xs font-mono text-gray-500 bg-gray-50 px-2 py-0.5 rounded truncate max-sm:text-[10px] max-sm:px-1.5">
                                     #{t.ticket_number || t._id || t.id}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                  <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                                <div className="flex items-center gap-2 text-sm text-gray-600 max-sm:gap-1.5 max-sm:text-xs">
+                                  <Calendar className="h-3.5 w-3.5 text-gray-400 max-sm:h-3 max-sm:w-3" />
                                   <span>
                                     {new Date(
                                       t.created_at ||
@@ -2205,14 +2219,14 @@ export default function ProfilePage() {
                             </div>
 
                             {/* Action Button */}
-                            <div className="flex-shrink-0 ml-4">
+                            <div className="flex-shrink-0 ml-4 max-sm:ml-0 max-sm:w-full">
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleView(t)}
-                                className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-sm"
+                                className="bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-sm max-sm:w-full max-sm:text-xs"
                               >
-                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                                <ExternalLink className="h-3.5 w-3.5 mr-1.5 max-sm:h-3 max-sm:w-3" />
                                 View Details
                               </Button>
                             </div>
@@ -2229,18 +2243,19 @@ export default function ProfilePage() {
             </ProfileSection>
           </TabsContent>
 
-<TabsContent value="purchase order requests" className="space-y-6 mt-6">
+<TabsContent value="purchase order requests" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
   <ProfileSection
     title="Purchase Order Requests"
     description="Your submitted purchase order requests"
   >
     <div className="flex justify-end mb-4">
       <Button
-        className="bg-red-600 hover:bg-red-700 text-white"
+        className="bg-red-600 hover:bg-red-700 text-white text-sm w-full sm:w-auto px-4 py-2"
         onClick={() => setUploadDialogOpen(true)}
       >
         <Plus className="mr-2 h-4 w-4" />
-        Upload Purchase Order Request
+        <span className="hidden sm:inline">Upload Purchase Order Request</span>
+        <span className="sm:hidden">Upload PO</span>
       </Button>
     </div>
 
@@ -2263,32 +2278,32 @@ export default function ProfilePage() {
       </div>
     ) : (
       <>
-        <div className="space-y-4">
+        <div className="space-y-4 max-sm:space-y-3">
           {purchaseOrders.map((po) => (
             <div
               key={po._id}
-              className="p-4 border rounded-lg bg-card shadow-sm hover:shadow-md transition"
+              className="p-4 border rounded-lg bg-card shadow-sm hover:shadow-md transition max-sm:p-3"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground truncate">
                     ID: {po._id}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => { setSelected(po); setDialogOpen(true); }}>
+                  <Button size="sm" variant="outline" onClick={() => { setSelected(po); setDialogOpen(true); }} className="text-xs max-sm:px-3">
                     View
                   </Button>
                 </div>
               </div>
 
-              <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+              <p className="mt-2 text-sm text-muted-foreground line-clamp-2 max-sm:text-xs">
                 {po.description || "No description provided."}
               </p>
 
               {Array.isArray(po.req_files) && po.req_files.length > 0 && (
-                <div className="mt-3">
-                  <div className="flex gap-2 overflow-x-auto">
+                <div className="mt-3 max-sm:mt-2">
+                  <div className="flex gap-2 overflow-x-auto pb-2">
                     {po.req_files.map((url: string, idx: number) => (
                       <a
                         key={idx}
@@ -2300,7 +2315,7 @@ export default function ProfilePage() {
                         <img
                           src={url}
                           alt={`Attachment ${idx + 1}`}
-                          className="w-16 h-16 object-cover rounded-md border border-border hover:border-primary transition-colors"
+                          className="w-16 h-16 object-cover rounded-md border border-border hover:border-primary transition-colors max-sm:w-12 max-sm:h-12"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).src = "/placeholder.svg";
                           }}
@@ -2314,11 +2329,11 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">
+              <div className="mt-3 flex items-center justify-between text-xs max-sm:mt-2">
+                <span className="text-muted-foreground truncate">
                   Created: {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : "—"}
                 </span>
-                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize flex-shrink-0 ml-2 ${
                   (po.status || "").toLowerCase() === "approved"
                     ? "bg-green-100 text-green-800"
                     : (po.status || "").toLowerCase() === "pending"
@@ -2350,7 +2365,7 @@ export default function ProfilePage() {
 </TabsContent>
 
 
-<TabsContent value="return requests" className="space-y-6 mt-6">
+<TabsContent value="return requests" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
   <ProfileSection
     title="Return Requests"
     description="Your submitted return requests"

@@ -402,8 +402,8 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     <div className="min-h-screen bg-background">
       {/* Breadcrumb */}
       <div className="border-b border-border bg-card">
-        <div className="max-w-screen-2xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="max-w-screen-2xl mx-auto px-4 py-4 max-sm:px-3 max-sm:py-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground max-sm:text-xs">
             <Link 
               href="/" 
               className="hover:text-primary cursor-pointer transition-colors"
@@ -417,24 +417,24 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
         </div>
       </div>
 
-      <div className="max-w-screen-2xl mx-auto px-4 py-8">
+      <div className="max-w-screen-2xl mx-auto px-4 py-8 max-sm:px-3 max-sm:py-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 max-sm:mb-4">
+          <div className="flex items-center gap-4 max-sm:flex-col max-sm:items-start max-sm:gap-2 max-sm:w-full">
             <Link href="/profile">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="max-sm:w-full max-sm:justify-start">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Shop
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Order Details</h1>
-              <p className="text-gray-600">Order #{order.orderId}</p>
+            <div className="max-sm:w-full">
+              <h1 className="text-2xl font-bold text-gray-900 max-sm:text-xl">Order Details</h1>
+              <p className="text-gray-600 max-sm:text-sm truncate">Order #{order.orderId}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge className={`px-3 py-1 ${getStatusColor(order.status)}`}>
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 max-sm:flex-wrap max-sm:gap-2 max-sm:w-full">
+            <Badge className={`px-3 py-1 ${getStatusColor(order.status)} max-sm:text-xs max-sm:px-2`}>
+              <div className="flex items-center gap-2 max-sm:gap-1">
                 {getStatusIcon(order.status)}
                 {order.status}
               </div>
@@ -443,12 +443,13 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
               variant="outline"
               size="sm"
               onClick={handleRiseTicket}
+              className="max-sm:flex-1 max-sm:text-xs"
             >
-              <Ticket className="w-4 h-4 mr-2" />
+              <Ticket className="w-4 h-4 mr-2 max-sm:w-3 max-sm:h-3 max-sm:mr-1" />
              Rise Ticket
             </DynamicButton>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={handleDownload} className="max-sm:flex-1 max-sm:text-xs max-sm:hidden">
+              <Download className="w-4 h-4 mr-2 max-sm:w-3 max-sm:h-3 max-sm:mr-1" />
               Download Invoice
             </Button>
             <Button
@@ -460,16 +461,19 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 order.skus?.every((sku: any) => sku.return_info?.return_id) ||
                 checkingBankDetails
               }
+              className="max-sm:flex-1 max-sm:text-xs"
             >
               {checkingBankDetails ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Checking...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin max-sm:w-3 max-sm:h-3" />
+                  <span className="max-sm:hidden">Checking...</span>
+                  <span className="sm:hidden">...</span>
                 </>
               ) : (
                 <>
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Return Product
+                  <RotateCcw className="w-4 h-4 mr-2 max-sm:w-3 max-sm:h-3 max-sm:mr-1" />
+                  <span className="max-sm:hidden">Return Product</span>
+                  <span className="sm:hidden">Return</span>
                 </>
               )}
             </Button>
@@ -481,16 +485,16 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
         </div>
 
         {/* Order Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 max-sm:grid-cols-1 max-sm:gap-4 max-sm:mb-4">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Calendar className="h-6 w-6 text-blue-600" />
+            <CardContent className="p-6 max-sm:p-4">
+              <div className="flex items-center gap-4 max-sm:gap-3">
+                <div className="p-3 bg-blue-100 rounded-lg max-sm:p-2">
+                  <Calendar className="h-6 w-6 text-blue-600 max-sm:h-5 max-sm:w-5" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Order Date</p>
-                  <p className="font-semibold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-gray-600 max-sm:text-xs">Order Date</p>
+                  <p className="font-semibold text-gray-900 max-sm:text-sm truncate">
                     {order.orderDate ? formatDate(order.orderDate, { includeTime: true }) : '-'}
                   </p>
                 </div>
@@ -499,14 +503,14 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <CreditCard className="h-6 w-6 text-green-600" />
+            <CardContent className="p-6 max-sm:p-4">
+              <div className="flex items-center gap-4 max-sm:gap-3">
+                <div className="p-3 bg-green-100 rounded-lg max-sm:p-2">
+                  <CreditCard className="h-6 w-6 text-green-600 max-sm:h-5 max-sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Payment Method</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="text-sm text-gray-600 max-sm:text-xs">Payment Method</p>
+                  <p className="font-semibold text-gray-900 max-sm:text-sm">
                     {order.paymentType || '-'}
                   </p>
                 </div>
@@ -515,14 +519,14 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Truck className="h-6 w-6 text-purple-600" />
+            <CardContent className="p-6 max-sm:p-4">
+              <div className="flex items-center gap-4 max-sm:gap-3">
+                <div className="p-3 bg-purple-100 rounded-lg max-sm:p-2">
+                  <Truck className="h-6 w-6 text-purple-600 max-sm:h-5 max-sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Delivery Type</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="text-sm text-gray-600 max-sm:text-xs">Delivery Type</p>
+                  <p className="font-semibold text-gray-900 max-sm:text-sm">
                     {order.type_of_delivery || 'Standard'}
                   </p>
                 </div>
@@ -531,14 +535,14 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <Package className="h-6 w-6 text-orange-600" />
+            <CardContent className="p-6 max-sm:p-4">
+              <div className="flex items-center gap-4 max-sm:gap-3">
+                <div className="p-3 bg-orange-100 rounded-lg max-sm:p-2">
+                  <Package className="h-6 w-6 text-orange-600 max-sm:h-5 max-sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Amount</p>
-                  <p className="font-semibold text-gray-900 text-lg">
+                  <p className="text-sm text-gray-600 max-sm:text-xs">Total Amount</p>
+                  <p className="font-semibold text-gray-900 text-lg max-sm:text-base">
                     ₹{(order.order_Amount)?.toLocaleString() || '0'}
                   </p>
                 </div>
@@ -547,30 +551,30 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-sm:gap-4">
           {/* Left Column - Customer & Delivery Info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 max-sm:space-y-4">
             {/* Customer Information */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
+              <CardHeader className="max-sm:px-4 max-sm:py-4">
+                <CardTitle className="flex items-center gap-2 max-sm:text-base">
+                  <User className="h-5 w-5 max-sm:h-4 max-sm:w-4" />
                   Customer Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-4 max-sm:px-4 max-sm:pb-4 max-sm:space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-sm:grid-cols-1 max-sm:gap-3">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Name</p>
-                    <p className="font-medium">{order.customerDetails?.name || '-'}</p>
+                    <p className="text-sm text-gray-600 mb-1 max-sm:text-xs">Name</p>
+                    <p className="font-medium max-sm:text-sm">{order.customerDetails?.name || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Email</p>
-                    <p className="font-medium">{order.customerDetails?.email || '-'}</p>
+                    <p className="text-sm text-gray-600 mb-1 max-sm:text-xs">Email</p>
+                    <p className="font-medium max-sm:text-sm truncate">{order.customerDetails?.email || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Phone</p>
-                    <p className="font-medium">{order.customerDetails?.phone || '-'}</p>
+                    <p className="text-sm text-gray-600 mb-1 max-sm:text-xs">Phone</p>
+                    <p className="font-medium max-sm:text-sm">{order.customerDetails?.phone || '-'}</p>
                   </div>
                   {/* <div>
                     <p className="text-sm text-gray-600 mb-1">User ID</p>
@@ -581,13 +585,13 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 <Separator />
                 
                 <div>
-                  <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
+                  <p className="text-sm text-gray-600 mb-2 flex items-center gap-2 max-sm:text-xs">
+                    <MapPin className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
                     Delivery Address
                   </p>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="font-medium">{order.customerDetails?.address || '-'}</p>
-                    <p className="text-sm text-gray-600">Pincode: {order.customerDetails?.pincode || '-'}</p>
+                  <div className="bg-gray-50 p-4 rounded-lg max-sm:p-3">
+                    <p className="font-medium max-sm:text-sm">{order.customerDetails?.address || '-'}</p>
+                    <p className="text-sm text-gray-600 max-sm:text-xs">Pincode: {order.customerDetails?.pincode || '-'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -595,13 +599,13 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
 
             {/* Order Items */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
+              <CardHeader className="max-sm:px-4 max-sm:py-4">
+                <CardTitle className="flex items-center gap-2 max-sm:text-base">
+                  <Package className="h-5 w-5 max-sm:h-4 max-sm:w-4" />
                   Order Items ({products.length})
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-sm:px-4 max-sm:pb-4">
                 {loading ? (
                   <div className="space-y-4">
                     {[...Array(3)].map((_, i) => (
@@ -619,14 +623,14 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-sm:space-y-3">
                     {products.map((product, index) => {
                       const orderSku = order.skus?.find((s: any) => s.sku === product.sku)
                       const hasReturn = orderSku?.return_info?.return_id
                       
                       return (
-                        <div key={index} className={`flex items-center gap-4 p-4 border rounded-lg transition-colors ${hasReturn ? 'bg-orange-50 border-orange-200' : 'hover:bg-gray-50'}`}>
-                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <div key={index} className={`flex items-center gap-4 p-4 border rounded-lg transition-colors max-sm:gap-3 max-sm:p-3 ${hasReturn ? 'bg-orange-50 border-orange-200' : 'hover:bg-gray-50'}`}>
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 max-sm:w-12 max-sm:h-12">
                             <img 
                               src={buildImageUrl(product.images?.[0])} 
                               alt={product.product_name}
@@ -635,28 +639,28 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start gap-2">
-                              <h3 className="font-medium text-gray-900 truncate flex-1">
+                              <h3 className="font-medium text-gray-900 truncate flex-1 max-sm:text-sm">
                                 {product.product_name}
                               </h3>
                               {hasReturn && (
-                                <Badge className="bg-orange-100 text-orange-800 text-xs shrink-0">
+                                <Badge className="bg-orange-100 text-orange-800 text-xs shrink-0 max-sm:text-[10px]">
                                   Return Initiated
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-sm text-gray-600">SKU: {product.sku}</p>
-                            <p className="text-sm text-gray-600">Quantity: {product.quantity}</p>
+                            <p className="text-sm text-gray-600 max-sm:text-xs">SKU: {product.sku}</p>
+                            <p className="text-sm text-gray-600 max-sm:text-xs">Quantity: {product.quantity}</p>
                             {hasReturn && (
-                              <p className="text-xs text-orange-600 font-medium mt-1">
+                              <p className="text-xs text-orange-600 font-medium mt-1 max-sm:text-[10px]">
                                 Return ID: {orderSku.return_info.return_id}
                               </p>
                             )}
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-gray-900">
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-semibold text-gray-900 max-sm:text-sm">
                               ₹{product.totalPrice?.toLocaleString() || '0'}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-gray-600 max-sm:text-xs">
                               ₹{product.selling_price?.toLocaleString() || '0'} each
                             </p>
                           </div>
@@ -671,21 +675,21 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
             {/* Tracking Information */}
             {order.order_track_info && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Truck className="h-5 w-5" />
+                <CardHeader className="max-sm:px-4 max-sm:py-4">
+                  <CardTitle className="flex items-center gap-2 max-sm:text-base">
+                    <Truck className="h-5 w-5 max-sm:h-4 max-sm:w-4" />
                     Tracking Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="space-y-4 max-sm:px-4 max-sm:pb-4 max-sm:space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-sm:grid-cols-1 max-sm:gap-3">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Courier Status</p>
-                      <p className="font-medium">{order.order_track_info.borzo_order_status || '-'}</p>
+                      <p className="text-sm text-gray-600 mb-1 max-sm:text-xs">Courier Status</p>
+                      <p className="font-medium max-sm:text-sm">{order.order_track_info.borzo_order_status || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Last Updated</p>
-                      <p className="font-medium">
+                      <p className="text-sm text-gray-600 mb-1 max-sm:text-xs">Last Updated</p>
+                      <p className="font-medium max-sm:text-sm">
                         {order.order_track_info.borzo_last_updated ? 
                           formatDate(order.order_track_info.borzo_last_updated, { includeTime: true }) : '-'}
                       </p>
@@ -698,10 +702,10 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                         href={order.order_track_info.borzo_tracking_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium max-sm:text-sm"
                       >
                         Track Package
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
                       </a>
                     </div>
                   )}
@@ -711,27 +715,27 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
           </div>
 
           {/* Right Column - Order Summary */}
-          <div className="space-y-6">
+          <div className="space-y-6 max-sm:space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+              <CardHeader className="max-sm:px-4 max-sm:py-4">
+                <CardTitle className="max-sm:text-base">Order Summary</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
+              <CardContent className="space-y-4 max-sm:px-4 max-sm:pb-4 max-sm:space-y-3">
+                <div className="flex justify-between max-sm:text-sm">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">
                     ₹{ (order.order_Amount || 0) - (order.GST || 0) - (order.deliveryCharges || 0).toLocaleString() || '0'}
                   </span>
                 </div>
                 
-                <div className="flex justify-between">
+                <div className="flex justify-between max-sm:text-sm">
                   <span className="text-gray-600">GST</span>
                   <span className="font-medium">
                     ₹{order.GST?.toLocaleString() || '0'}
                   </span>
                 </div>
                 
-                <div className="flex justify-between">
+                <div className="flex justify-between max-sm:text-sm">
                   <span className="text-gray-600">Delivery Charges</span>
                   <span className="font-medium">
                     ₹{order.deliveryCharges?.toLocaleString() || '0'}
@@ -740,7 +744,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 
                 <Separator />
                 
-                <div className="flex justify-between text-lg font-semibold">
+                <div className="flex justify-between text-lg font-semibold max-sm:text-base">
                   <span>Total</span>
                   <span>₹{(order.order_Amount)?.toLocaleString() || '0'}</span>
                 </div>
@@ -749,27 +753,27 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
 
             {/* Order Timeline */}
             <Card>
-              <CardHeader>
-                <CardTitle>Order Timeline</CardTitle>
+              <CardHeader className="max-sm:px-4 max-sm:py-4">
+                <CardTitle className="max-sm:text-base">Order Timeline</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+              <CardContent className="max-sm:px-4 max-sm:pb-4">
+                <div className="space-y-4 max-sm:space-y-3">
+                  <div className="flex items-start gap-3 max-sm:gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 max-sm:mt-1.5"></div>
                     <div>
-                      <p className="font-medium text-sm">Order Confirmed</p>
-                      <p className="text-xs text-gray-600">
+                      <p className="font-medium text-sm max-sm:text-xs">Order Confirmed</p>
+                      <p className="text-xs text-gray-600 max-sm:text-[10px]">
                         {order.createdAt ? formatDate(order.createdAt, { includeTime: true }) : '-'}
                       </p>
                     </div>
                   </div>
                   
                   {order.timestamps?.assignedAt && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <div className="flex items-start gap-3 max-sm:gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 max-sm:mt-1.5"></div>
                       <div>
-                        <p className="font-medium text-sm">Order Assigned</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="font-medium text-sm max-sm:text-xs">Order Assigned</p>
+                        <p className="text-xs text-gray-600 max-sm:text-[10px]">
                           {formatDate(order.timestamps.assignedAt, { includeTime: true })}
                         </p>
                       </div>
@@ -777,11 +781,11 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   )}
                   
                   {order.timestamps?.packedAt && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                    <div className="flex items-start gap-3 max-sm:gap-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 max-sm:mt-1.5"></div>
                       <div>
-                        <p className="font-medium text-sm">Order Packed</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="font-medium text-sm max-sm:text-xs">Order Packed</p>
+                        <p className="text-xs text-gray-600 max-sm:text-[10px]">
                           {formatDate(order.timestamps.packedAt, { includeTime: true })}
                         </p>
                       </div>
@@ -789,11 +793,11 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   )}
                   
                   {order.timestamps?.shippedAt && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                    <div className="flex items-start gap-3 max-sm:gap-2">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 max-sm:mt-1.5"></div>
                       <div>
-                        <p className="font-medium text-sm">Order Shipped</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="font-medium text-sm max-sm:text-xs">Order Shipped</p>
+                        <p className="text-xs text-gray-600 max-sm:text-[10px]">
                           {formatDate(order.timestamps.shippedAt, { includeTime: true })}
                         </p>
                       </div>
@@ -801,11 +805,11 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   )}
                   
                   {order.timestamps?.deliveredAt && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <div className="flex items-start gap-3 max-sm:gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 max-sm:mt-1.5"></div>
                       <div>
-                        <p className="font-medium text-sm">Order Delivered</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="font-medium text-sm max-sm:text-xs">Order Delivered</p>
+                        <p className="text-xs text-gray-600 max-sm:text-[10px]">
                           {formatDate(order.timestamps.deliveredAt, { includeTime: true })}
                         </p>
                       </div>
@@ -818,53 +822,53 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
             {/* Order Review Section */}
             {isDelivered && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Star className="h-5 w-5" />
+                <CardHeader className="max-sm:px-4 max-sm:py-4">
+                  <CardTitle className="flex items-center gap-2 max-sm:text-base">
+                    <Star className="h-5 w-5 max-sm:h-4 max-sm:w-4" />
                     Order Review
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="max-sm:px-4 max-sm:pb-4">
                   {hasReview ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-sm:space-y-3">
                       <div className="flex items-center gap-2">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
-                            className={`h-5 w-5 ${
+                            className={`h-5 w-5 max-sm:h-4 max-sm:w-4 ${
                               star <= (localOrder.ratting || 0)
                                 ? 'fill-yellow-400 text-yellow-400'
                                 : 'fill-gray-200 text-gray-300'
                             }`}
                           />
                         ))}
-                        <span className="ml-2 text-sm text-gray-600">
+                        <span className="ml-2 text-sm text-gray-600 max-sm:text-xs">
                           {localOrder.ratting} {localOrder.ratting === 1 ? 'star' : 'stars'}
                         </span>
                       </div>
                       {localOrder.review && (
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        <div className="bg-gray-50 rounded-lg p-4 max-sm:p-3">
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap max-sm:text-xs">
                             {localOrder.review}
                           </p>
                         </div>
                       )}
                       {localOrder.review_Date && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 max-sm:text-[10px]">
                           Reviewed on {formatDate(localOrder.review_Date, { includeTime: true })}
                         </p>
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-gray-600 mb-4">
+                    <div className="text-center py-4 max-sm:py-3">
+                      <p className="text-sm text-gray-600 mb-4 max-sm:text-xs max-sm:mb-3">
                         Share your experience with this order
                       </p>
                       <Button
                         onClick={handleOpenReviewModal}
-                        className="bg-red-600 hover:bg-red-700 text-white"
+                        className="bg-red-600 hover:bg-red-700 text-white max-sm:w-full max-sm:text-sm"
                       >
-                        <Star className="h-4 w-4 mr-2" />
+                        <Star className="h-4 w-4 mr-2 max-sm:h-3 max-sm:w-3" />
                         Rate Order
                       </Button>
                     </div>

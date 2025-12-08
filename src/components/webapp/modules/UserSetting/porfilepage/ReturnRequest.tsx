@@ -250,21 +250,21 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
           <AccordionItem
             key={req._id}
             value={req._id}
-            className="border border-border bg-card rounded-lg px-4"
+            className="border border-border bg-card rounded-lg px-4 max-sm:px-3"
           >
             <AccordionTrigger className="hover:no-underline py-4">
-              <div className="flex justify-between items-start w-full mr-4">
+              <div className="flex justify-between items-start w-full mr-4 gap-3 max-sm:flex-col max-sm:items-start">
                 <div className="flex-1 text-left">
-                  <h3 className="text-lg font-semibold">
+                  <h3 className="text-lg font-semibold max-sm:text-base max-sm:line-clamp-2">
                     {req.productDetails?.productName || `Product ${req.sku}`}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-sm text-muted-foreground mt-1 max-sm:text-xs">
                     SKU: {req.sku} • Qty: {req.quantity}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0 max-sm:w-full max-sm:justify-start">
                   {getStatusIcon(req.returnStatus || "Requested")}
-                  <Badge variant={getStatusVariant(req.returnStatus || "Requested") as any}>
+                  <Badge variant={getStatusVariant(req.returnStatus || "Requested") as any} className="max-sm:text-xs">
                     {req.statusDisplay || req.returnStatus || "Unknown"}
                   </Badge>
                 </div>
@@ -274,7 +274,7 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
             <AccordionContent className="pb-4">
               <div className="space-y-6">
               {/* Status Timeline */}
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 max-sm:p-3">
                 <ReturnStatusTimeline returnRequest={req} />
               </div>
 
@@ -304,11 +304,11 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
 
               {/* Refund Information */}
               {req.refund && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="flex justify-between items-center mb-3">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4 rounded-lg border border-green-200 dark:border-green-800 max-sm:p-3">
+                  <div className="flex justify-between items-center mb-3 max-sm:flex-col max-sm:items-start max-sm:gap-2">
                     <div>
                       <span className="text-xs text-muted-foreground uppercase tracking-wide">Refund Amount</span>
-                      <div className="text-2xl font-bold text-green-700 dark:text-green-400 mt-1">
+                      <div className="text-2xl font-bold text-green-700 dark:text-green-400 mt-1 max-sm:text-xl">
                         ₹{req.refund.refundAmount?.toLocaleString() || '0'}
                       </div>
                     </div>
@@ -316,7 +316,7 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
                       req.refund.refundStatus === 'Processed' ? 'bg-green-600' :
                       req.refund.refundStatus === 'Pending' ? 'bg-yellow-500' :
                       'bg-gray-500'
-                    } text-white`}>
+                    } text-white flex-shrink-0`}>
                       {req.refund.refundStatus || 'Unknown'}
                     </Badge>
                   </div>
@@ -336,12 +336,12 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
 
               {/* Inspection Status */}
               {req.inspection && (
-                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800 max-sm:p-3">
                   <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
                     <Search className="h-4 w-4" />
                     Inspection Details
                   </h4>
-                  <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="grid grid-cols-2 gap-3 mb-3 max-sm:grid-cols-1 max-sm:gap-2">
                     <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 rounded-md">
                       <div className={`h-2 w-2 rounded-full ${req.inspection.skuMatch ? 'bg-green-500' : 'bg-red-500'}`} />
                       <div>
@@ -427,12 +427,12 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
 
                 {/* Pickup Information */}
                 {req.pickupRequest && (
-                  <div className="mt-3 bg-purple-50 dark:bg-purple-950 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <div className="mt-3 bg-purple-50 dark:bg-purple-950 p-4 rounded-lg border border-purple-200 dark:border-purple-800 max-sm:p-3">
                     <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
                       <Truck className="h-4 w-4" />
                       Pickup Details
                     </h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
                       <div className="p-2 bg-white dark:bg-gray-900 rounded-md">
                         <div className="text-xs text-muted-foreground mb-1">Pickup ID</div>
                         <div className="text-sm font-mono font-medium">{req.pickupRequest.pickupId}</div>
