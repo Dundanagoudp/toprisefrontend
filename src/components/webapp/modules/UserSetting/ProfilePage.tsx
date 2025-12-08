@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -115,6 +115,7 @@ interface Order {
 }
 
 export default function ProfilePage() {
+  const searchParams = useSearchParams();
   const [selectedTicket, setSelectedTicket] =
     useState<Partial<Ticket> | null>(null);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
@@ -220,6 +221,14 @@ export default function ProfilePage() {
     fetch();
     return () => { mounted = false; };
   }, [userId, purchaseOrderPage, purchaseOrderLimit]);
+  // Handle URL tab parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!userId) return;

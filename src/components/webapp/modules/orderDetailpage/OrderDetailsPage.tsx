@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Calendar,
   CreditCard,
@@ -30,6 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { getProductById } from '@/service/product-Service'
 import formatDate from '@/utils/formateDate'
 import { Header } from '../../layout/Header'
@@ -67,6 +69,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     verification: subtotal + gst + deliveryCharges === grandTotal
   })
   const { showToast } = useToast()
+  const router = useRouter()
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [returnModalOpen, setReturnModalOpen] = useState(false)
@@ -75,6 +78,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
   const [returnImages, setReturnImages] = useState<File[]>([])
   const [skuReturnQuantities, setSkuReturnQuantities] = useState<{[key: string]: number}>({})
   const [returnLoading, setReturnLoading] = useState(false)
+  const [selectedReturnSku, setSelectedReturnSku] = useState<string | null>(null)
   const [riseTicketModalOpen, setRiseTicketModalOpen] = useState(false)
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
@@ -290,39 +294,81 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
   
     setReturnLoading(true)
     try {
-      // Convert images to base64 URLs
+      // Compress and convert images to base64 URLs
       let imageUrls: string[] = []
       if (returnImages.length > 0) {
-        const convertToBase64 = (file: File): Promise<string> => {
+        const compressAndConvertImage = (file: File): Promise<string> => {
           return new Promise((resolve, reject) => {
             const reader = new FileReader()
             reader.readAsDataURL(file)
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = error => reject(error)
+            reader.onload = (e) => {
+              const img = new Image()
+              img.onload = () => {
+                const canvas = document.createElement('canvas')
+                let width = img.width
+                let height = img.height
+                
+                // Resize if too large (max 800px)
+                const maxSize = 800
+                if (width > maxSize || height > maxSize) {
+                  if (width > height) {
+                    height = (height / width) * maxSize
+                    width = maxSize
+                  } else {
+                    width = (width / height) * maxSize
+                    height = maxSize
+                  }
+                }
+                
+                canvas.width = width
+                canvas.height = height
+                const ctx = canvas.getContext('2d')
+                ctx?.drawImage(img, 0, 0, width, height)
+                
+                // Convert to base64 with compression (0.7 quality)
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+                resolve(compressedBase64)
+              }
+              img.onerror = reject
+              img.src = e.target?.result as string
+            }
+            reader.onerror = reject
           })
         }
   
         try {
-          // Convert all images to base64
-          const base64Promises = returnImages.map(file => convertToBase64(file))
+          // Compress and convert all images
+          const base64Promises = returnImages.map(file => compressAndConvertImage(file))
           imageUrls = await Promise.all(base64Promises)
+          console.log('Compressed and converted images, count:', imageUrls.length)
+          console.log('Average image size:', Math.round(imageUrls.reduce((sum, url) => sum + url.length, 0) / imageUrls.length), 'characters')
         } catch (conversionError) {
-          console.error('Failed to convert images to base64:', conversionError)
+          console.error('Failed to process images:', conversionError)
           showToast('Warning: Failed to process images, proceeding without them', 'warning')
+          imageUrls = [] // Clear on error
         }
       }
   
       // Create return requests for each SKU
       const returnPromises = skusToReturn.map(([sku, quantity]) => {
-        return createReturnRequest({
+        const returnData = {
           orderId: order._id,
           sku: sku,
           customerId: order.customerDetails.userId,
-          quantity: quantity,
-          returnReason: returnReason,
-          returnDescription: returnDescription,
-          returnImages: imageUrls // Send the base64 URLs directly
+          quantity: String(quantity), // Convert to string as API expects
+          returnReason: returnReason.trim(),
+          returnDescription: returnDescription.trim(),
+          returnImages: imageUrls // Send the compressed base64 URLs
+        }
+        const payloadSize = JSON.stringify(returnData).length
+        console.log('Submitting return request:', {
+          orderId: returnData.orderId,
+          sku: returnData.sku,
+          quantity: returnData.quantity,
+          imagesCount: imageUrls.length,
+          payloadSize: `${(payloadSize / 1024).toFixed(2)} KB`
         })
+        return createReturnRequest(returnData)
       })
   
       await Promise.all(returnPromises)
@@ -330,14 +376,24 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
       showToast(`Return request${skusToReturn.length > 1 ? 's' : ''} submitted successfully! Our team will contact you shortly.`, 'success')
   
       setReturnModalOpen(false)
+      setSelectedReturnSku(null)
       setReturnReason('')
       setReturnDescription('')
       setReturnImages([])
       setImagePreviewUrls([])
       setSkuReturnQuantities({})
-    } catch (error) {
+      
+      // Refresh the page to show updated return status
+      window.location.reload()
+    } catch (error: any) {
       console.error('Failed to submit return request:', error)
-      showToast('Failed to submit return request. Please try again.', 'error')
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to submit return request. Please try again.'
+      console.error('Error details:', {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        message: errorMessage
+      })
+      showToast(errorMessage, 'error')
     } finally {
       setReturnLoading(false)
     }
@@ -623,51 +679,249 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-4 max-sm:space-y-3">
+                  <Accordion type="multiple" className="w-full space-y-4">
                     {products.map((product, index) => {
                       const orderSku = order.skus?.find((s: any) => s.sku === product.sku)
                       const hasReturn = orderSku?.return_info?.return_id
+                      const trackingInfo = orderSku?.tracking_info
+                      // Use SKU timestamps if available, otherwise fall back to order timestamps
+                      const timestamps = orderSku?.timestamps || order.timestamps
+                      
+                      // Determine item status from tracking_info or main order status
+                      const itemStatus = trackingInfo?.status || order.status || 'Processing'
+                      const trackingStatus = trackingInfo?.borzo_tracking_status
+                      
+                      // Build timeline steps for this specific item - only include steps with timestamps
+                      const allTimelineSteps = [
+                        {
+                          label: 'Order Created',
+                          timestamp: timestamps?.createdAt,
+                          icon: <CheckCircle className="h-4 w-4" />,
+                        },
+                        {
+                          label: 'Assigned',
+                          timestamp: timestamps?.assignedAt,
+                          icon: <User className="h-4 w-4" />,
+                        },
+                        {
+                          label: 'Packed',
+                          timestamp: timestamps?.packedAt,
+                          icon: <Package className="h-4 w-4" />,
+                        },
+                        {
+                          label: 'Shipped',
+                          timestamp: timestamps?.shippedAt,
+                          icon: <Package className="h-4 w-4" />,
+                        },
+                        {
+                          label: 'On The Way',
+                          timestamp: timestamps?.onTheWayToNextDeliveryPointAt,
+                          icon: <Truck className="h-4 w-4" />,
+                        },
+                        {
+                          label: 'Out for Delivery',
+                          timestamp: timestamps?.outForDeliveryAt,
+                          icon: <Truck className="h-4 w-4" />,
+                        },
+                        {
+                          label: 'Delivered',
+                          timestamp: timestamps?.deliveredAt,
+                          icon: <CheckCircle className="h-4 w-4" />,
+                        }
+                      ]
+                      
+                      // Add Borzo tracking status to timeline if available
+                      if (trackingInfo?.borzo_tracking_status && trackingInfo?.borzo_last_updated) {
+                        const borzoStatusLabel = trackingInfo.borzo_tracking_status === 'finished' 
+                          ? 'Delivered' 
+                          : trackingInfo.borzo_tracking_status
+                        allTimelineSteps.push({
+                          label: borzoStatusLabel,
+                          timestamp: trackingInfo.borzo_last_updated,
+                          icon: trackingInfo.borzo_tracking_status === 'finished' 
+                            ? <CheckCircle className="h-4 w-4" />
+                            : <Truck className="h-4 w-4" />,
+                        })
+                      }
+                      
+                      // Filter to only show steps that have timestamps and sort by timestamp
+                      const timelineSteps = allTimelineSteps
+                        .filter(step => step.timestamp)
+                        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
                       
                       return (
-                        <div key={index} className={`flex items-center gap-4 p-4 border rounded-lg transition-colors max-sm:gap-3 max-sm:p-3 ${hasReturn ? 'bg-orange-50 border-orange-200' : 'hover:bg-gray-50'}`}>
-                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 max-sm:w-12 max-sm:h-12">
-                            <img 
-                              src={buildImageUrl(product.images?.[0])} 
-                              alt={product.product_name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-2">
-                              <h3 className="font-medium text-gray-900 truncate flex-1 max-sm:text-sm">
-                                {product.product_name}
-                              </h3>
-                              {hasReturn && (
-                                <Badge className="bg-orange-100 text-orange-800 text-xs shrink-0 max-sm:text-[10px]">
-                                  Return Initiated
+                        <AccordionItem
+                          key={index}
+                          value={`item-${index}`}
+                          className={`border rounded-lg ${hasReturn ? 'bg-orange-50 border-orange-200' : 'border-border bg-card'}`}
+                        >
+                          <AccordionTrigger className="hover:no-underline px-4 py-4 max-sm:px-3">
+                            <div className="flex justify-between items-start w-full mr-4 gap-3 max-sm:flex-col max-sm:items-start">
+                              <div className="flex gap-4 items-center flex-1 max-sm:gap-3">
+                                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 max-sm:w-12 max-sm:h-12">
+                                  <img 
+                                    src={buildImageUrl(product.images?.[0])} 
+                                    alt={product.product_name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                  <h3 className="font-medium text-gray-900 max-sm:text-sm max-sm:line-clamp-2">
+                                    {product.product_name}
+                                  </h3>
+                                  <p className="text-sm text-gray-600 max-sm:text-xs">SKU: {product.sku}</p>
+                                  <p className="text-sm text-gray-600 max-sm:text-xs">Quantity: {product.quantity}</p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-2 flex-shrink-0 max-sm:w-full max-sm:flex-row max-sm:justify-between max-sm:items-center">
+                                <Badge 
+                                  className={`${
+                                    itemStatus === 'Delivered' || trackingStatus === 'finished' ? 'bg-green-600' :
+                                    itemStatus === 'Shipped' ? 'bg-blue-600' :
+                                    hasReturn ? 'bg-orange-600' :
+                                    'bg-gray-600'
+                                  } text-white max-sm:text-xs`}
+                                >
+                                  {trackingStatus === 'finished' ? 'Delivered' : itemStatus}
                                 </Badge>
-                              )}
+                                <div className="text-right">
+                                  <p className="font-semibold text-gray-900 max-sm:text-sm">
+                                    ₹{product.totalPrice?.toLocaleString() || '0'}
+                                  </p>
+                                  <p className="text-sm text-gray-600 max-sm:text-xs">
+                                    ₹{product.selling_price?.toLocaleString() || '0'} each
+                                  </p>
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-sm text-gray-600 max-sm:text-xs">SKU: {product.sku}</p>
-                            <p className="text-sm text-gray-600 max-sm:text-xs">Quantity: {product.quantity}</p>
-                            {hasReturn && (
-                              <p className="text-xs text-orange-600 font-medium mt-1 max-sm:text-[10px]">
-                                Return ID: {orderSku.return_info.return_id}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-semibold text-gray-900 max-sm:text-sm">
-                              ₹{product.totalPrice?.toLocaleString() || '0'}
-                            </p>
-                            <p className="text-sm text-gray-600 max-sm:text-xs">
-                              ₹{product.selling_price?.toLocaleString() || '0'} each
-                            </p>
-                          </div>
-                        </div>
+                          </AccordionTrigger>
+
+                          <AccordionContent className="px-4 pb-4 max-sm:px-3">
+                            <div className="space-y-4">
+                              {/* Tracking Timeline - Only show if there are timestamps */}
+                              {timelineSteps.length > 0 ? (
+                                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 max-sm:p-3">
+                                  <div className="relative py-2">
+                                    {timelineSteps.map((step, stepIndex) => (
+                                      <div key={stepIndex} className="relative flex gap-4 pb-8 last:pb-0">
+                                        {/* Timeline line */}
+                                        {stepIndex !== timelineSteps.length - 1 && (
+                                          <div className="absolute left-[15px] top-[32px] h-full w-[2px] bg-green-500" />
+                                        )}
+                                        
+                                        {/* Icon */}
+                                        <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-green-500 bg-green-500 text-white">
+                                          {step.icon}
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="flex-1 pt-0.5">
+                                          <h4 className="text-sm font-medium text-green-700 mb-1">
+                                            {step.label}
+                                          </h4>
+                                          <p className="text-xs text-muted-foreground">
+                                            {new Date(step.timestamp).toLocaleString('en-US', {
+                                              month: 'short',
+                                              day: 'numeric',
+                                              year: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">No tracking information available</p>
+                              )}
+
+                              {/* Return Button - Show if item is returnable and delivery is finished */}
+                              {orderSku?.return_info?.is_returnable && 
+                               !orderSku?.return_info?.is_returned && 
+                               trackingInfo?.borzo_tracking_status === 'finished' && (
+                                <div className="flex justify-end">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 h-auto"
+                                    onClick={() => {
+                                      setSelectedReturnSku(product.sku)
+                                      setSkuReturnQuantities({ [product.sku]: product.quantity })
+                                      setReturnModalOpen(true)
+                                    }}
+                                  >
+                                    <RotateCcw className="h-3 w-3 mr-1.5" />
+                                    Return
+                                  </Button>
+                                </div>
+                              )}
+
+                              {/* Already Returned Info */}
+                              {orderSku?.return_info?.is_returned && orderSku?.return_info?.return_id && (() => {
+                                // Check if delivered within 7 days or if return window is still active
+                                // Try SKU timestamps first, then order timestamps
+                                const deliveredAt = timestamps?.deliveredAt || order.timestamps?.deliveredAt
+                                const returnWindowDays = orderSku?.return_info?.return_window_days || 7
+                                
+                                console.log('Return tracking check:', {
+                                  sku: product.sku,
+                                  deliveredAt,
+                                  returnWindowDays,
+                                  isReturned: orderSku?.return_info?.is_returned,
+                                  returnId: orderSku?.return_info?.return_id
+                                })
+                                
+                                // If deliveredAt exists, check if within return window
+                                let showTrackingButton = false
+                                
+                                if (deliveredAt) {
+                                  const daysSinceDelivery = (Date.now() - new Date(deliveredAt).getTime()) / (24 * 60 * 60 * 1000)
+                                  showTrackingButton = daysSinceDelivery <= returnWindowDays
+                                  console.log('Days since delivery:', daysSinceDelivery, 'Within window:', showTrackingButton)
+                                } else {
+                                  // If no deliveredAt, assume it's recent and show tracking button
+                                  showTrackingButton = true
+                                  console.log('No deliveredAt found, showing tracking button by default')
+                                }
+                                
+                                if (showTrackingButton) {
+                                  // Show Order Tracking button
+                                  return (
+                                    <div className="flex justify-end">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white text-xs px-3 py-1.5 h-auto"
+                                          onClick={() => router.push('/profile?tab=return%20requests')}
+                                      >
+                                        <Package className="h-3 w-3 mr-1.5" />
+                                        Order Tracking
+                                      </Button>
+                                    </div>
+                                  )
+                                }
+                                
+                                // Show return info card if return window expired
+                                return (
+                                  <div className="bg-orange-50 dark:bg-orange-950 p-4 rounded-lg border border-orange-200 dark:border-orange-800 max-sm:p-3">
+                                    <h4 className="text-sm font-semibold text-orange-900 dark:text-orange-100 mb-2 flex items-center gap-2">
+                                      <RotateCcw className="h-4 w-4" />
+                                      Return Initiated
+                                    </h4>
+                                    <p className="text-xs text-orange-600 font-medium">
+                                      Return ID: {orderSku.return_info.return_id}
+                                    </p>
+                                  </div>
+                                )
+                              })()}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
                       )
                     })}
-                  </div>
+                  </Accordion>
                 )}
               </CardContent>
             </Card>
@@ -883,19 +1137,34 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     <Footer/>
 
     {/* Return Product Modal */}
-    <Dialog open={returnModalOpen} onOpenChange={setReturnModalOpen}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={returnModalOpen} onOpenChange={(open) => {
+      setReturnModalOpen(open)
+      if (!open) {
+        setSelectedReturnSku(null)
+        setSkuReturnQuantities({})
+        setReturnReason('')
+        setReturnDescription('')
+        setReturnImages([])
+        imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
+        setImagePreviewUrls([])
+      }
+    }}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto max-sm:max-w-[95vw]">
         <DialogHeader>
-          <DialogTitle>Return Products</DialogTitle>
-          <p className="text-sm text-gray-600 mt-1">Select products and quantities you want to return</p>
+          <DialogTitle>{selectedReturnSku ? 'Return Item' : 'Return Products'}</DialogTitle>
+          <p className="text-sm text-gray-600 mt-1">
+            {selectedReturnSku ? 'Fill in the details for your return request' : 'Select products and quantities you want to return'}
+          </p>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Product Selection */}
           <div className="bg-gray-50 border rounded-lg p-4 space-y-4">
-            <Label className="text-sm font-semibold text-gray-900">Select Products to Return *</Label>
+            <Label className="text-sm font-semibold text-gray-900">
+              {selectedReturnSku ? 'Item to Return *' : 'Select Products to Return *'}
+            </Label>
             
-            {order.skus?.map((sku: any, index: number) => {
+            {order.skus?.filter((sku: any) => !selectedReturnSku || sku.sku === selectedReturnSku).map((sku: any, index: number) => {
               const product = products.find(p => p.sku === sku.sku)
               const currentQuantity = skuReturnQuantities[sku.sku] || 0
               
@@ -940,6 +1209,12 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                       <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
                         <p className="text-sm text-orange-800">
                           A return request has already been initiated for this product.
+                        </p>
+                      </div>
+                    ) : selectedReturnSku ? (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-sm text-blue-800 font-medium">
+                          Quantity: {currentQuantity}
                         </p>
                       </div>
                     ) : (
@@ -1052,14 +1327,27 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                     multiple
                     onChange={(e) => {
                       const files = Array.from(e.target.files || [])
+                      const maxFileSize = 5 * 1024 * 1024 // 5MB per file
+                      
+                      // Filter out files that are too large
+                      const validFiles = files.filter(file => {
+                        if (file.size > maxFileSize) {
+                          showToast(`${file.name} is too large. Maximum size is 5MB`, 'error')
+                          return false
+                        }
+                        return true
+                      })
+                      
                       const remainingSlots = 5 - returnImages.length
-                      const filesToAdd = files.slice(0, remainingSlots)
+                      const filesToAdd = validFiles.slice(0, remainingSlots)
                       
-                      // Create preview URLs
-                      const newPreviewUrls = filesToAdd.map(file => URL.createObjectURL(file))
-                      
-                      setReturnImages(prev => [...prev, ...filesToAdd])
-                      setImagePreviewUrls(prev => [...prev, ...newPreviewUrls])
+                      if (filesToAdd.length > 0) {
+                        // Create preview URLs
+                        const newPreviewUrls = filesToAdd.map(file => URL.createObjectURL(file))
+                        
+                        setReturnImages(prev => [...prev, ...filesToAdd])
+                        setImagePreviewUrls(prev => [...prev, ...newPreviewUrls])
+                      }
                       
                       // Reset input
                       e.target.value = ''
@@ -1068,7 +1356,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   />
                 </label>
               )}
-              <p className="text-xs text-gray-500">Upload up to 5 images (JPG, PNG). Images help us process your return faster.</p>
+              <p className="text-xs text-gray-500">Upload up to 5 images (JPG, PNG, max 5MB each). Images will be compressed automatically.</p>
             </div>
           </div>
 
@@ -1085,6 +1373,11 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 variant="outline" 
                 onClick={() => {
                   setReturnModalOpen(false)
+                  setSelectedReturnSku(null)
+                  setSkuReturnQuantities({})
+                  setReturnReason('')
+                  setReturnDescription('')
+                  setReturnImages([])
                   // Cleanup preview URLs
                   imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
                   setImagePreviewUrls([])
