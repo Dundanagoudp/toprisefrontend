@@ -238,7 +238,7 @@ export default function ProfilePage() {
         const response = await getUserProfile(userId);
         if (response.success && response.data) {
           setUserProfile(response.data);
-          console.log("User Profile:", response.data);
+          // console.log("User Profile:", response.data);
           setProfileData({
             email: response.data.email || "",
             username: response.data.username || "",
@@ -625,13 +625,13 @@ export default function ProfilePage() {
     });
   };
 
-  useEffect(() => {
-    console.log("Address states changed:", {
-      isAddingAddress,
-      editingAddressIndex,
-      activeTab,
-    });
-  }, [isAddingAddress, editingAddressIndex, activeTab]);
+  // useEffect(() => {
+  //   console.log("Address states changed:", {
+  //     isAddingAddress,
+  //     editingAddressIndex,
+  //     activeTab,
+  //   });
+  // }, [isAddingAddress, editingAddressIndex, activeTab]);
 
   const handleCancelAddAddress = () => {
     setIsAddingAddress(false);
@@ -847,7 +847,7 @@ export default function ProfilePage() {
       try {
         const res = await getUserById(userId || "");
         if (res.data) {
-          console.log("Fetched user data:", res.data);
+          // console.log("Fetched user data:", res.data);
         }
       } catch (err: any) {
       } finally {
@@ -1037,7 +1037,7 @@ export default function ProfilePage() {
   // Fetch vehicle details
   useEffect(() => {
     const fetchVehicleDetails = async () => {
-      console.log("Fetching vehicle details", userProfile?.vehicle_details);
+      // console.log("Fetching vehicle details", userProfile?.vehicle_details);
       if (
         !userProfile?.vehicle_details ||
         userProfile.vehicle_details.length === 0
@@ -1060,7 +1060,7 @@ export default function ProfilePage() {
 
           if (response?.data) {
             setVehicleDetails((prev: any[]) => [...prev, response.data]);
-            console.log("Vehicle Details: all:", response.data);
+            // console.log("Vehicle Details: all:", response.data);
           }
         }
       } catch (err) {
@@ -1074,12 +1074,12 @@ export default function ProfilePage() {
       fetchVehicleDetails();
     }
   }, [userProfile, activeTab]);
-  console.log(
-    "ProfilePage render - activeTab:",
-    activeTab,
-    "isEditing:",
-    isEditing
-  );
+  // console.log(
+  //   "ProfilePage render - activeTab:",
+  //   activeTab,
+  //   "isEditing:",
+  //   isEditing
+  // );
 
   return (
     <div className="min-h-screen bg-gradient-background">

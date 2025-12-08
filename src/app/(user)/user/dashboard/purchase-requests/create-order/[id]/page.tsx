@@ -131,7 +131,7 @@ export default function CreateOrderPage() {
 
     setSearchingProducts(true)
     try {
-      console.log("Searching for products with query:", searchQuery.trim())
+      // console.log("Searching for products with query:", searchQuery.trim())
       
       const response = await getProductsByPage(
         1,                      // page
@@ -142,17 +142,17 @@ export default function CreateOrderPage() {
         undefined               // subCategoryFilter
       )
 
-      console.log("Product search response:", response)
-      console.log("Response structure check:", {
-        hasResponse: !!response,
-        hasData: !!response?.data,
-        hasProducts: !!response?.data?.products,
-        isArray: Array.isArray(response?.data?.products),
-        productsLength: response?.data?.products?.length
-      })
+      // console.log("Product search response:", response)
+      // console.log("Response structure check:", {
+      //   hasResponse: !!response,
+      //   hasData: !!response?.data,
+      //   hasProducts: !!response?.data?.products,
+      //   isArray: Array.isArray(response?.data?.products),
+      //   productsLength: response?.data?.products?.length
+      // })
 
       if (response && response.data && response.data.products && Array.isArray(response.data.products)) {
-        console.log(`Found ${response.data.products.length} products`)
+        // console.log(`Found ${response.data.products.length} products`)
         setProducts(response.data.products)
         
         if (response.data.products.length === 0) {

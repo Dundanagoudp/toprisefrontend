@@ -42,7 +42,7 @@ export default function CategoriesListing() {
         console.log("Type ID:", typeId)
         // Fetch all categories for the selected vehicle type
         const res = await getCategoriesByType(typeId, false) // false to get all categories, not just main ones
-        console.log("Categories by type:", res)
+        // console.log("Categories by type:", res)
        
         const items = (res?.data ?? []) as ProductCategory[]
         setCategories(items)

@@ -114,7 +114,7 @@ export default function FeaturedProducts() {
         console.log("Fetching popular vehicles for type:", vehicle_type)
         const res = await getPopularVehicles(vehicle_type)
         const items = (res.data || [])
-        console.log("Fetched vehicles:", items)
+        // console.log("Fetched vehicles:", items)
         setVehicles(items)
       } catch (e) {
         console.error("Error fetching vehicles:", e)

@@ -59,8 +59,8 @@ interface ProductRequest {
   category?: {
     category_name: string;
   };
-  subCategory?: {
-    subCategory_name: string;
+  sub_category?: {
+    subcategory_name: string;
   };
   model?: {
     model_name: string;
@@ -115,12 +115,20 @@ export default function ViewRequestDetails() {
       
       if (response.success && response.data) {
         // Ensure dates are properly formatted
-        const productData = {
-          ...response.data,
-          createdAt: response.data.createdAt || new Date().toISOString(),
-          updatedAt: response.data.updatedAt || new Date().toISOString(),
-        };
-        setProduct(productData);
+        const productData = Array.isArray(response.data.products) && response.data.products.length > 0
+        ? response.data.products[0]
+        : Array.isArray(response.data)
+          ? response.data[0]
+          : response.data;
+      
+      // Ensure dates are properly formatted
+      const formattedProduct = {
+        ...productData,
+        createdAt: productData.createdAt || productData.created_at || new Date().toISOString(),
+        updatedAt: productData.updatedAt || productData.updated_at || new Date().toISOString(),
+      };
+      setProduct(formattedProduct);
+      console.log("formattedProduct",formattedProduct)
       } else {
         setError("Product not found");
       }
@@ -349,7 +357,7 @@ export default function ViewRequestDetails() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Sub Category</label>
-                  <p className="text-lg">{product.subCategory?.subCategory_name || 'N/A'}</p>
+                  <p className="text-lg">{product.sub_category?.subcategory_name || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Model</label>
@@ -384,7 +392,7 @@ export default function ViewRequestDetails() {
                 <div>
                   <label className="text-sm font-medium text-gray-500">Stock</label>
                   <p className={`text-xl font-bold ${product.out_of_stock ? 'text-red-600' : 'text-green-600'}`}>
-                    {product.out_of_stock ? 'Out of Stock' : product.no_of_stock}
+                    {product.out_of_stock ? 'Out of Stock' : 'In Stock'}
                   </p>
                 </div>
               </div>
@@ -422,7 +430,7 @@ export default function ViewRequestDetails() {
           )}
 
           {/* Notes */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <FileText className="h-5 w-5" />
@@ -443,7 +451,7 @@ export default function ViewRequestDetails() {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Sidebar */}

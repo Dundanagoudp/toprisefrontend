@@ -41,6 +41,7 @@ import DynamicButton from "@/components/common/button/button";
 import { dealerProductSchema } from "@/lib/schemas/product-schema";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { getDealerIdFromUserId } from "@/service/dealerServices";
+import { useRouter } from "next/navigation";
 
 type FormValues = z.infer<typeof dealerProductSchema>;
 
@@ -81,6 +82,8 @@ export default function DealerAddProducts() {
   const [formData, setFormData] = useState<FormValues | null>(null);
   const allowedRoles = ["Super-admin", "Inventory-admin", "Dealer"];
 
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
@@ -95,7 +98,7 @@ export default function DealerAddProducts() {
       is_consumable: false,
       active: "yes",
       is_returnable: false,
-      quantityPerDealer: "",
+      quantityPerDealer: "1",
       dealerMargin: "",
     },
   });
@@ -264,36 +267,29 @@ export default function DealerAddProducts() {
       const formDataObj = new FormData();
       if (dealerId) {
         // Parse quantity - handle string, number, or empty values
-        const quantityValue = formData.quantityPerDealer;
-        const quantity = quantityValue 
-          ? (typeof quantityValue === 'string' 
-              ? parseInt(quantityValue.trim()) || 0 
-              : typeof quantityValue === 'number' 
-                ? quantityValue 
-                : 0)
-          : 0;
+        const quantity = Number(formData.quantityPerDealer) || 0;
         
         // Parse margin - handle string, number, or empty values
-        const marginValue = formData.dealerMargin;
-        const margin = marginValue 
-          ? (typeof marginValue === 'string' 
-              ? parseFloat(marginValue.trim()) || 0 
-              : typeof marginValue === 'number' 
-                ? marginValue 
-                : 0)
-          : 0;
+        // const marginValue = formData.dealerMargin;
+        // const margin = marginValue 
+        //   ? (typeof marginValue === 'string' 
+        //       ? parseFloat(marginValue.trim()) || 0 
+        //       : typeof marginValue === 'number' 
+        //         ? marginValue 
+        //         : 0)
+        //   : 0;
 
-        console.log("Dealer assignment values:", { dealerId, quantity, margin });
+        // console.log("Dealer assignment values:", { dealerId, quantity, margin });
 
         formDataObj.append(`available_dealers[0][dealers_Ref]`, dealerId);
         formDataObj.append(
           `available_dealers[0][quantity_per_dealer]`,
           quantity.toString()
         );
-        formDataObj.append(
-          `available_dealers[0][dealer_margin]`,
-          margin.toString()
-        );
+        // formDataObj.append(
+        //   `available_dealers[0][dealer_margin]`,
+        //   margin.toString()
+        // );
         formDataObj.append(
           `available_dealers[0][inStock]`,
           (quantity > 0).toString()
@@ -330,12 +326,18 @@ export default function DealerAddProducts() {
         });
       }
 
-      await addProductByDealer(formDataObj);
+      const response = await addProductByDealer(formDataObj);
+   if(response.data){
+    showToast("Product created successfully ", "success");
+    setImageFiles([]);
+    setImagePreviews([]);
+    reset(); // Reset the form after successful submission
+    router.push("/dealer/dashboard/product");
+   }else{
+    showToast("Failed to create product", "error");
+   }
 
-      showToast("Product created successfully ", "success");
-      setImageFiles([]);
-      setImagePreviews([]);
-      reset(); // Reset the form after successful submission
+
     } catch (error) {
       console.error("Failed to submit product:", error);
       showToast("Failed to create product", "error");
@@ -435,6 +437,7 @@ export default function DealerAddProducts() {
                 id="manufacturerPartNumber"
                 placeholder="Part Number"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                type="string"
                 {...register("manufacturer_part_name")}
               />
               {errors.manufacturer_part_name && (
@@ -886,6 +889,26 @@ export default function DealerAddProducts() {
             {/* Key Specifications */}
             <div className="space-y-2">
               <Label
+                htmlFor="key_specifications"
+                className="text-base font-medium font-sans"
+              >
+                Key Specifications
+              </Label>
+              <Input
+                id="key_specifications"
+                placeholder="Enter Key Specifications"
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                {...register("key_specifications")}
+              />
+              {errors.key_specifications && (
+                <span className="text-red-500 text-sm">
+                  {errors.key_specifications.message}
+                </span>
+              )}
+            </div>
+            {/* keySpecifications */}
+            {/* <div className="space-y-2">
+              <Label
                 htmlFor="keySpecifications"
                 className="text-base font-medium font-sans"
               >
@@ -902,7 +925,7 @@ export default function DealerAddProducts() {
                   {errors.keySpecifications.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Dimensions */}
             <div className="space-y-2">
               <Label
@@ -969,14 +992,14 @@ export default function DealerAddProducts() {
                 htmlFor="warranty"
                 className="text-base font-medium font-sans"
               >
-                Warranty
+                Warranty (in months)
               </Label>
               <Input
                 id="warranty"
                 type="number"
                 step="1"
                 min="0"
-                placeholder="Enter Warranty"
+                placeholder="Enter Warranty in months"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 {...register("warranty", {
                   setValueAs: (v) => (v === "" ? undefined : Number(v)),
@@ -1222,7 +1245,7 @@ export default function DealerAddProducts() {
               )}
             </div>
             {/* Return Policy */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label
                 htmlFor="returnPolicy"
                 className="text-base font-medium font-sans"
@@ -1240,7 +1263,7 @@ export default function DealerAddProducts() {
                   {errors.return_policy.message}
                 </span>
               )}
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
@@ -1255,21 +1278,20 @@ export default function DealerAddProducts() {
             </p>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Dealer ID */}
+            {/* Dealer Reference */}
             <div className="space-y-2">
               <Label
                 htmlFor="addedByDealerId"
                 className="text-base font-medium font-sans"
               >
-                Dealer ID
+                Dealer Reference
               </Label>
               <Input
                 id="addedByDealerId"
-                placeholder="Enter Dealer ID"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("addedByDealerId")}
-                readOnly
+                className="bg-gray-50 border-gray-200 rounded-[8px] p-4 cursor-not-allowed"
+                disabled
                 value={selectedDealerId || ""}
+                {...register("addedByDealerId")}
               />
               {errors.addedByDealerId && (
                 <span className="text-red-500 text-sm">
@@ -1303,32 +1325,6 @@ export default function DealerAddProducts() {
                 </span>
               )}
             </div>
-            {/* Dealer Margin % */}
-            {/* <div className="space-y-2">
-              <Label
-                htmlFor="dealerMargin"
-                className="text-base font-medium font-sans"
-              >
-                Dealer Margin %
-              </Label>
-              <Input
-                id="dealerMargin"
-                type="number"
-                min="0"
-                step="0.1"
-                placeholder="Enter Margin"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                onKeyDown={handleNumericKeyDown}
-                {...register("dealerMargin", {
-                  setValueAs: (v) => (v === "" ? "" : parseFloat(v)),
-                })}
-              />
-              {errors.dealerMargin && (
-                <span className="text-red-500 text-sm">
-                  {errors.dealerMargin.message}
-                </span>
-              )}
-            </div> */}
           </CardContent>
         </Card>
 

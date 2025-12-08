@@ -2,14 +2,14 @@ import { z } from "zod";
 
 export const dealerProductSchema = z.object({
   // Core Product Identity
-  manufacturer_part_name: z.string().optional(),
+  manufacturer_part_name: z.string(),
   product_name: z.string().min(1, "Product Name is required"),
-  brand: z.string().optional(),
+  brand: z.string().min(1, "Brand is required"),
   hsn_code: z.number().optional(),
   category: z.string().min(1, "Category is required"),
   sub_category: z.string().min(1, "Sub-category is required"),
   product_type: z.string().min(1, "Product type is required"),
-  vehicle_type: z.string().optional(),
+  vehicle_type: z.string().min(1, "Vehicle type is required"),
   // Added fields
   // no_of_stock: z.coerce
   //   .number()
@@ -27,7 +27,7 @@ export const dealerProductSchema = z.object({
   is_universal: z.boolean().optional(),
   is_consumable: z.boolean().optional(),
   // Technical Specifications
-  keySpecifications: z.string().optional(),
+  key_specifications: z.string(),
   dimensions: z.string().optional(),
   weight: z.string().optional(),
   certifications: z.string().optional(),
@@ -42,7 +42,7 @@ export const dealerProductSchema = z.object({
 
   // Return & Availability
   is_returnable: z.boolean(),
-  return_policy: z.string().min(1, "Return Policy is required"),
+  // return_policy: z.string().min(1, "Return Policy is required"),
   // Dealer-Level Mapping & Routing
   availableDealers: z.string().optional(),
   quantityPerDealer: z.string().optional(),

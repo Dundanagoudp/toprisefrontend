@@ -37,10 +37,10 @@ export default function CategorySection() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        console.log("Type ID:", typeId)
+        // console.log("Type ID:", typeId)
         // Fetch only main categories for the selected vehicle type
         const res = await getCategoriesByType(typeId, true)
-        console.log("Categories by type:", res)
+        // console.log("Categories by type:", res)
        
         const items = (res?.data ?? []) as ProductCategory[]
         setCategories(items)
