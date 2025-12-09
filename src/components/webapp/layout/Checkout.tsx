@@ -48,7 +48,10 @@ import { useCart } from "@/hooks/use-cart";
 import BillingAddressForm, { AddressFormValues } from "./BillingAddressForm";
 import { StepProgressBar } from "@/components/common/StepProgressBar";
 import type { Step } from "@/components/common/StepProgressBar";
-import { prepareOrderBody, preparePaymentBody } from "../common/PaymentBodyType";
+import {
+  prepareOrderBody,
+  preparePaymentBody,
+} from "../common/PaymentBodyType";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -62,26 +65,32 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
 
   // Steps: Address (0) -> Delivery (1) -> Review (2) -> Pay (3)
-  const [currentStep, setCurrentStep] = useState(0); 
+  const [currentStep, setCurrentStep] = useState(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   // Delivery type state - express delivery has two options: fast and regular
-  const [deliveryType, setDeliveryType] = useState<'Standard' | 'express-fast' | 'express-regular'>('express-fast');
-  const [pincode, setPincode] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'COD' | 'Prepaid'>('COD');
+  const [deliveryType, setDeliveryType] = useState<
+    "Standard" | "express-fast" | "express-regular"
+  >("express-fast");
+  const [pincode, setPincode] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "COD" | "Prepaid"
+  >("COD");
   const [pincodeData, setPincodeData] = useState<any>(null);
   const [checkingPincode, setCheckingPincode] = useState(false);
   const [expressAvailable, setExpressAvailable] = useState(false);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
-  const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
+  const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(
+    new Set()
+  );
   const quantityUpdateTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ;
+  const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
   // Load Razorpay dynamically
   const loadRazorpay = () => {
     return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => {
         resolve(window.Razorpay);
       };
@@ -141,7 +150,10 @@ export default function CheckoutPage() {
       if (response.success && response.data.delivery_available) {
         setPincodeData(response.data);
         setExpressAvailable(true);
-        showToast(`express delivery available! Delivery charges: ₹${response.data.delivery_charges}`, "success");
+        showToast(
+          `express delivery available! Delivery charges: ₹${response.data.delivery_charges}`,
+          "success"
+        );
       } else {
         setExpressAvailable(false);
         setPincodeData(null);
@@ -157,11 +169,13 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleDeliveryTypeSelect = async (type: 'Standard' | 'express-fast' | 'express-regular') => {
+  const handleDeliveryTypeSelect = async (
+    type: "Standard" | "express-fast" | "express-regular"
+  ) => {
     setDeliveryType(type);
     setDeliveryError(null); // Clear any previous errors
 
-    if (type === 'Standard') {
+    if (type === "Standard") {
       // Standard delivery is disabled - error will be shown in UI
       return;
     }
@@ -172,10 +186,13 @@ export default function CheckoutPage() {
     if (cart?._id) {
       try {
         // Map the granular types to the API expected format
-        const apiDeliveryType = type.startsWith('express') ? 'express' : type;
+        const apiDeliveryType = type.startsWith("express") ? "express" : type;
         await updateDeliveryType(cart._id, apiDeliveryType);
         await fetchCart();
-        showToast(`Delivery type updated to ${type.replace('-', ' ')}`, "success");
+        showToast(
+          `Delivery type updated to ${type.replace("-", " ")}`,
+          "success"
+        );
       } catch (error) {
         console.error("Failed to update delivery type:", error);
         setDeliveryError("Failed to update delivery type. Please try again.");
@@ -190,16 +207,19 @@ export default function CheckoutPage() {
       console.log("No userId available, skipping data fetch");
       return;
     }
-    
+
     console.log("Fetching user and cart data for userId:", userId);
     setIsLoading(true);
     try {
-      const [userResponse] = await Promise.all([ getUserById(userId) ]);
+      const [userResponse] = await Promise.all([getUserById(userId)]);
       console.log("User response:", userResponse);
       setUser(userResponse.data);
       if (userResponse.data?.address && userResponse.data.address.length > 0) {
         setSelectedAddress(userResponse.data.address[0]);
-        console.log("Auto-selected first address:", userResponse.data.address[0]);
+        console.log(
+          "Auto-selected first address:",
+          userResponse.data.address[0]
+        );
       } else {
         console.log("No addresses found for user");
       }
@@ -213,99 +233,114 @@ export default function CheckoutPage() {
     }
   };
 
-  
-const handlePayment = async () => {
-   console.log("🔔 handlePayment called");
-  try {
-    if (!user || !cart || !selectedAddress) {
-      showToast("Missing required data for payment", "error");
-      return;
-    }
-
-    const paymentBody = preparePaymentBody(user, cart, deliveryType, selectedAddress, pincodeData);
-    
-    // Log the complete request body for Online Payment
-    console.log("=== ONLINE PAYMENT REQUEST BODY ===");
-    console.log("Payment Method: Online Payment (Prepaid)");
-    console.log("Full Request Body:", JSON.stringify(paymentBody, null, 2));
-    console.log("Request Body Details:");
-    console.log("- User ID:", paymentBody.userId);
-    console.log("- Amount:", paymentBody.amount);
-    console.log("- Order Type:", paymentBody.orderType);
-    console.log("- Order Source:", paymentBody.orderSource);
-    console.log("- Customer Details:", paymentBody.customerDetails);
-    console.log("- Delivery Type:", deliveryType);
-    console.log("- Selected Address:", selectedAddress);
-    console.log("- Pincode Data:", pincodeData);
-    console.log("=====================================");
-    
-    const responseData = await paymentCreation(paymentBody);
-    console.log("API raw response:", responseData);
-    // Handle API failure
-    if (!responseData.success) {
-      throw new Error( "Failed to create payment order" ,responseData.message || "Payment order creation failed");
-    }
-    if(responseData.success){
-      console.log("Payment order created successfully:", responseData.data);
-    }
-
-    const order = responseData.data;
-    console.log("Payment order response:", order);
-    
-    if (!order?.razorpayOrderId) {
-      throw new Error("Invalid response: Missing Razorpay order ID");
-    }
-
-    const options = {
-      key: RAZORPAY_KEY_ID || "", 
-      amount: order?.payment?.amount || Math.round((cart.grandTotal || 0) * 100), // Convert to paise
-      currency: "INR",
-      name: "Toprise",
-      description: `Payment for order - ₹${Math.round(cart.grandTotal || 0)}`,
-      order_id: order.razorpayOrderId,
-      
-      prefill: {
-        name: user.username || "",
-        email: user.email || "",
-        contact: user.phone_Number || "",
-      },
-      
-      notes: `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}`.trim(),
-      
-      theme: {
-        color: "#C72920",
-      },
-      
-      handler: function (response: any) {
-        console.log("Payment successful:", response);
-        showToast("Payment successful! Your order is being processed.", "success");
-        
-        // Order already created by backend, webhook will verify payment
-        finalizeOrder(order, "Payment completed successfully!");
-      },
-      
-      modal: {
-        ondismiss: function() {
-          console.log("Payment modal dismissed");
-          showToast("Payment cancelled. Your order was not placed.", "warning");
-        }
+  const handlePayment = async () => {
+    console.log("🔔 handlePayment called");
+    try {
+      if (!user || !cart || !selectedAddress) {
+        showToast("Missing required data for payment", "error");
+        return;
       }
-    };
 
-    // Load Razorpay dynamically and open payment modal
-    const Razorpay = await loadRazorpay() as any;
-    if (!Razorpay) {
-      throw new Error("Failed to load Razorpay");
+      const paymentBody = preparePaymentBody(
+        user,
+        cart,
+        deliveryType,
+        selectedAddress,
+        pincodeData
+      );
+
+      // Log the complete request body for Online Payment
+      console.log("=== ONLINE PAYMENT REQUEST BODY ===");
+      console.log("Payment Method: Online Payment (Prepaid)");
+      console.log("Full Request Body:", JSON.stringify(paymentBody, null, 2));
+      console.log("Request Body Details:");
+      console.log("- User ID:", paymentBody.userId);
+      console.log("- Amount:", paymentBody.amount);
+      console.log("- Order Type:", paymentBody.orderType);
+      console.log("- Order Source:", paymentBody.orderSource);
+      console.log("- Customer Details:", paymentBody.customerDetails);
+      console.log("- Delivery Type:", deliveryType);
+      console.log("- Selected Address:", selectedAddress);
+      console.log("- Pincode Data:", pincodeData);
+      console.log("=====================================");
+
+      const responseData = await paymentCreation(paymentBody);
+      console.log("API raw response:", responseData);
+      // Handle API failure
+      if (!responseData.success) {
+        throw new Error(
+          "Failed to create payment order",
+          responseData.message || "Payment order creation failed"
+        );
+      }
+      if (responseData.success) {
+        console.log("Payment order created successfully:", responseData.data);
+      }
+
+      const order = responseData.data;
+      console.log("Payment order response:", order);
+
+      if (!order?.razorpayOrderId) {
+        throw new Error("Invalid response: Missing Razorpay order ID");
+      }
+
+      const options = {
+        key: RAZORPAY_KEY_ID || "",
+        amount:
+          order?.payment?.amount || Math.round((cart.grandTotal || 0) * 100), // Convert to paise
+        currency: "INR",
+        name: "Toprise",
+        description: `Payment for order - ₹${Math.round(cart.grandTotal || 0)}`,
+        order_id: order.razorpayOrderId,
+
+        prefill: {
+          name: user.username || "",
+          email: user.email || "",
+          contact: user.phone_Number || "",
+        },
+
+        notes:
+          `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}`.trim(),
+
+        theme: {
+          color: "#C72920",
+        },
+
+        handler: function (response: any) {
+          console.log("Payment successful:", response);
+          showToast(
+            "Payment successful! Your order is being processed.",
+            "success"
+          );
+
+          // Order already created by backend, webhook will verify payment
+          finalizeOrder(order, "Payment completed successfully!");
+        },
+
+        modal: {
+          ondismiss: function () {
+            console.log("Payment modal dismissed");
+            showToast(
+              "Payment cancelled. Your order was not placed.",
+              "warning"
+            );
+          },
+        },
+      };
+
+      // Load Razorpay dynamically and open payment modal
+      const Razorpay = (await loadRazorpay()) as any;
+      if (!Razorpay) {
+        throw new Error("Failed to load Razorpay");
+      }
+
+      const rzpay = new Razorpay(options);
+      rzpay.open();
+    } catch (err: any) {
+      console.error("Payment error:", err);
+      showToast(`Payment failed: ${err.message}`, "error");
     }
-
-    const rzpay = new Razorpay(options);
-    rzpay.open();
-    
-  } catch (err: any) {
-    console.error("Payment error:", err);
-    showToast(`Payment failed: ${err.message}`, "error");
-  }
-};
+  };
 
   useEffect(() => {
     fetchData();
@@ -329,8 +364,6 @@ const handlePayment = async () => {
     }
   }, [selectedAddress]);
 
-
-
   const handleProceed = async () => {
     console.log("=== HANDLE PROCEED DEBUG ===");
     console.log("Current step:", currentStep);
@@ -338,30 +371,36 @@ const handlePayment = async () => {
     console.log("Cart:", cart);
     console.log("Selected address:", selectedAddress);
     console.log("Is placing order:", isPlacingOrder);
-    
-    if (currentStep === 0) { // Address step -> must have address selected before going to Delivery
+
+    if (currentStep === 0) {
+      // Address step -> must have address selected before going to Delivery
       if (!selectedAddress) {
         showToast("Please select an address for your order", "error");
         return;
       }
       goToNextStep();
-    } else if (currentStep === 1) { // Delivery step
+    } else if (currentStep === 1) {
+      // Delivery step
       // Block Standard delivery since it's coming soon
-        await fetchCart(); 
-      if (deliveryType === 'Standard') {
-        setDeliveryError("Standard delivery coming soon - not available at this time");
+      await fetchCart();
+      if (deliveryType === "Standard") {
+        setDeliveryError(
+          "Standard delivery coming soon - not available at this time"
+        );
         return;
       }
       // if express selected ensure PIN checked/available when applicable
-      if (deliveryType.startsWith('Express') && !expressAvailable) {
+      if (deliveryType.startsWith("Express") && !expressAvailable) {
         setDeliveryError("Express delivery not available for selected pincode");
         return;
       }
       setDeliveryError(null); // Clear any errors when proceeding
       goToNextStep();
-    } else if (currentStep === 2) { // Review step -> Payment
+    } else if (currentStep === 2) {
+      // Review step -> Payment
       goToNextStep();
-    } else if (currentStep === 3) { // Payment step -> Place order
+    } else if (currentStep === 3) {
+      // Payment step -> Place order
       await handlePlaceOrder();
     }
   };
@@ -389,7 +428,7 @@ const handlePayment = async () => {
     }
 
     // For online payments, redirect to payment processing
-    if (selectedPaymentMethod === 'Prepaid' && !isAfterPayment) {
+    if (selectedPaymentMethod === "Prepaid" && !isAfterPayment) {
       console.log("Online payment selected, redirecting to payment processing");
       await handlePayment();
       return;
@@ -399,7 +438,7 @@ const handlePayment = async () => {
     // if (selectedPaymentMethod === 'Prepaid' && isAfterPayment) {
     //   console.log("Prepaid payment completed, order already created");
     //   showToast("Order placed successfully! Payment completed.", "success");
-      
+
     //   // Navigate to shop page after successful order placement
     //   setTimeout(() => {
     //     router.push('/');
@@ -409,7 +448,14 @@ const handlePayment = async () => {
 
     // Only create order for COD payments
     setIsPlacingOrder(true);
-    const orderBody = prepareOrderBody(user, cart, deliveryType, selectedPaymentMethod, selectedAddress, pincodeData);
+    const orderBody = prepareOrderBody(
+      user,
+      cart,
+      deliveryType,
+      selectedPaymentMethod,
+      selectedAddress,
+      pincodeData
+    );
 
     try {
       console.log("=== MAKING API CALL (COD) ===");
@@ -428,22 +474,26 @@ const handlePayment = async () => {
 
         // Navigate to shop page after successful order placement
         setTimeout(() => {
-          router.push('/');
+          router.push("/");
         }, 2000);
       } else {
         throw new Error(response.message || "Order creation failed");
       }
     } catch (error: any) {
-     
-      
       if (error.response?.status === 403) {
         showToast("Access denied. Please check your login status.", "error");
       } else if (error.response?.status === 400) {
-        showToast("Invalid order data. Please check your cart and try again.", "error");
+        showToast(
+          "Invalid order data. Please check your cart and try again.",
+          "error"
+        );
       } else if (error.response?.status === 500) {
         showToast("Server error. Please try again later.", "error");
       } else {
-        showToast(`Failed to create order: ${error.message || "Unknown error"}`, "error");
+        showToast(
+          `Failed to create order: ${error.message || "Unknown error"}`,
+          "error"
+        );
       }
     } finally {
       setIsPlacingOrder(false);
@@ -458,7 +508,7 @@ const handlePayment = async () => {
   //     }
   //     const response = await removeProductFromCart(data);
   //     console.log("Item removed from cart", response);
-  
+
   //     await fetchCart();
   //     showToast("Item removed from cart", "success");
   //   } catch(error) {
@@ -467,42 +517,48 @@ const handlePayment = async () => {
   //   }
   // }
   const removeItem = async (productId: string) => {
-  try {
-    const data = {
-      userId: userId,
-      productId: productId,
-    }
-    const response = await removeProductFromCart(data);
-    console.log("Item removed from cart", response);
+    try {
+      const data = {
+        userId: userId,
+        productId: productId,
+      };
+      const response = await removeProductFromCart(data);
+      console.log("Item removed from cart", response);
 
-    await fetchCart(); // Refresh the cart data
-    showToast("Item removed from cart", "success");
+      await fetchCart(); // Refresh the cart data
+      showToast("Item removed from cart", "success");
 
-    const updatedCart = await getCart(userId); // Get the very latest cart
-    if (!updatedCart.data.items || updatedCart.data.items.length === 0) {
-      showToast("Your cart is empty. Redirecting you to the shop.", "warning");
-      router.push('/'); 
+      const updatedCart = await getCart(userId); // Get the very latest cart
+      if (!updatedCart.data.items || updatedCart.data.items.length === 0) {
+        showToast(
+          "Your cart is empty. Redirecting you to the shop.",
+          "warning"
+        );
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Failed to remove item:", error);
+      showToast("Failed to remove item from cart", "error");
     }
-  } catch(error) {
-    console.error("Failed to remove item:", error);
-    showToast("Failed to remove item from cart", "error");
-  }
-}
+  };
   const updateItemQuantity = async (productId: string, quantity: number) => {
     if (!userId) {
       showToast("Unable to update quantity: user not available", "error");
       return;
     }
-  
+
     try {
-  
       await fetchCart(); // optimistic refresh - replace with API call for production
     } catch (err) {
       console.error("Failed to update quantity:", err);
       showToast("Failed to update quantity", "error");
     }
   };
-  const changeItemQuantity = async (productId: string, newQty: number, setLocalLoading?: (v: boolean) => void) => {
+  const changeItemQuantity = async (
+    productId: string,
+    newQty: number,
+    setLocalLoading?: (v: boolean) => void
+  ) => {
     if (newQty < 1) return;
     if (setLocalLoading) setLocalLoading(true);
 
@@ -519,52 +575,59 @@ const handlePayment = async () => {
     }
   };
 
-const handleIncreaseQuantity = async (productId: string) => {
-  setUpdatingQuantities(prev => new Set(prev).add(productId));
-  try {
-    await increaseCartQuantity(userId!, productId);
-    await fetchCart();
-    
-    // Update delivery type after quantity change
-    if (cart?._id) {
-      const apiDeliveryType = deliveryType.startsWith('express') ? 'express' : deliveryType;
-      await updateDeliveryType(cart._id, apiDeliveryType);
+  const handleIncreaseQuantity = async (productId: string) => {
+    setUpdatingQuantities((prev) => new Set(prev).add(productId));
+    try {
+      await increaseCartQuantity(userId!, productId);
       await fetchCart();
-    }
-  } catch (error) {
-    console.error("Failed to increase quantity:", error);
-  } finally {
-    setUpdatingQuantities(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(productId);
-      return newSet;
-    });
-  }
-};
 
-const handleDecreaseQuantity = async (productId: string, currentQuantity: number) => {
-  if (currentQuantity <= 1) return;
-  setUpdatingQuantities(prev => new Set(prev).add(productId));
-  try {
-    await decreaseCartQuantity(userId!, productId);
-    await fetchCart();
-    
-    // Update delivery type after quantity change
-    if (cart?._id) {
-      const apiDeliveryType = deliveryType.startsWith('express') ? 'express' : deliveryType;
-      await updateDeliveryType(cart._id, apiDeliveryType);
-      await fetchCart();
+      // Update delivery type after quantity change
+      if (cart?._id) {
+        const apiDeliveryType = deliveryType.startsWith("express")
+          ? "express"
+          : deliveryType;
+        await updateDeliveryType(cart._id, apiDeliveryType);
+        await fetchCart();
+      }
+    } catch (error) {
+      console.error("Failed to increase quantity:", error);
+    } finally {
+      setUpdatingQuantities((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
     }
-  } catch (error) {
-    console.error("Failed to decrease quantity:", error);
-  } finally {
-    setUpdatingQuantities(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(productId);
-      return newSet;
-    });
-  }
-};
+  };
+
+  const handleDecreaseQuantity = async (
+    productId: string,
+    currentQuantity: number
+  ) => {
+    if (currentQuantity <= 1) return;
+    setUpdatingQuantities((prev) => new Set(prev).add(productId));
+    try {
+      await decreaseCartQuantity(userId!, productId);
+      await fetchCart();
+
+      // Update delivery type after quantity change
+      if (cart?._id) {
+        const apiDeliveryType = deliveryType.startsWith("express")
+          ? "express"
+          : deliveryType;
+        await updateDeliveryType(cart._id, apiDeliveryType);
+        await fetchCart();
+      }
+    } catch (error) {
+      console.error("Failed to decrease quantity:", error);
+    } finally {
+      setUpdatingQuantities((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
 
   // const handleDirectQuantityChange = async (productId: string, newQuantity: number) => {
   //   if (newQuantity < 1 || newQuantity > 99 || !userId) return;
@@ -660,13 +723,17 @@ const handleDecreaseQuantity = async (productId: string, currentQuantity: number
       const response = await addAddress(userId, addressData);
 
       showToast("Address added successfully", "success");
-      
+
       // Refresh user data and auto-select the new address
       try {
         const userResponse = await getUserById(userId);
         setUser(userResponse.data);
-        if (userResponse.data?.address && userResponse.data.address.length > 0) {
-          const newAddress = userResponse.data.address[userResponse.data.address.length - 1];
+        if (
+          userResponse.data?.address &&
+          userResponse.data.address.length > 0
+        ) {
+          const newAddress =
+            userResponse.data.address[userResponse.data.address.length - 1];
           setSelectedAddress(newAddress);
         }
       } catch (error) {
@@ -677,26 +744,24 @@ const handleDecreaseQuantity = async (productId: string, currentQuantity: number
     }
   };
 
-const finalizeOrder = (responseData: any, successMessage = "Order placed successfully!") => {
+  const finalizeOrder = (
+    responseData: any,
+    successMessage = "Order placed successfully!"
+  ) => {
+    dispatch(clearCart());
 
-  dispatch(clearCart());
+    try {
+      localStorage.removeItem("cart"); // adapt key if different
+    } catch (e) {}
 
+    showToast(successMessage, "success");
+    setOrderId(responseData.orderId || responseData._id);
+    setIsOrderConfirmed(true);
 
-  try {
-    localStorage.removeItem("cart"); // adapt key if different
-  } catch (e) {
-   
-  }
-
-  showToast(successMessage, "success");
-  setOrderId(responseData.orderId || responseData._id);
-  setIsOrderConfirmed(true);
-
-  setTimeout(() => {
-    router.push("/");
-  }, 1500);
-};
-
+    setTimeout(() => {
+      router.push("/");
+    }, 1500);
+  };
 
   return (
     <div className="bg-gray-50">
@@ -717,7 +782,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                   Delivery Address
                 </h2>
 
-                <BillingAddressForm 
+                <BillingAddressForm
                   onSubmit={onSubmit}
                   onAddressSelect={setSelectedAddress}
                   selectedAddressId={selectedAddress?._id}
@@ -728,7 +793,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                 <div className="flex justify-between mt-6">
                   <Button
                     variant="outline"
-                    onClick={() => router.push('/shop')}
+                    onClick={() => router.push("/shop")}
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     ← Back to Shop
@@ -744,9 +809,13 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                 {/* Quick preview of selected address while still on Address step */}
                 {selectedAddress && (
                   <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-800 font-medium">Selected Address Preview:</p>
+                    <p className="text-sm text-green-800 font-medium">
+                      Selected Address Preview:
+                    </p>
                     <p className="text-sm text-green-700">
-                      {selectedAddress.nick_name || "Address"} — {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+                      {selectedAddress.nick_name || "Address"} —{" "}
+                      {selectedAddress.street}, {selectedAddress.city},{" "}
+                      {selectedAddress.state} - {selectedAddress.pincode}
                     </p>
                   </div>
                 )}
@@ -759,36 +828,66 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Select Delivery Type
                 </h2>
-                
+
                 {/* Pincode status - auto-checked from selected address */}
                 {checkingPincode && (
                   <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                      <span className="text-sm text-blue-800">Checking delivery availability for pincode {pincode}...</span>
+                      <span className="text-sm text-blue-800">
+                        Checking delivery availability for pincode {pincode}...
+                      </span>
                     </div>
                   </div>
                 )}
 
                 {pincodeData && !checkingPincode && (
-                  <div className={`mb-4 p-4 rounded-lg border ${
-                    expressAvailable
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-red-50 border-red-200'
-                  }`}>
+                  <div
+                    className={`mb-4 p-4 rounded-lg border ${
+                      expressAvailable
+                        ? "bg-green-50 border-green-200"
+                        : "bg-red-50 border-red-200"
+                    }`}
+                  >
                     <div className="flex items-center gap-2 mb-2">
-                      <Package className={`w-5 h-5 ${expressAvailable ? 'text-green-600' : 'text-red-600'}`} />
-                      <span className={`font-medium ${expressAvailable ? 'text-green-800' : 'text-red-800'}`}>
-                        {expressAvailable ? 'Express Delivery Available!' : 'Express Delivery Not Available'}
+                      <Package
+                        className={`w-5 h-5 ${
+                          expressAvailable ? "text-green-600" : "text-red-600"
+                        }`}
+                      />
+                      <span
+                        className={`font-medium ${
+                          expressAvailable ? "text-green-800" : "text-red-800"
+                        }`}
+                      >
+                        {expressAvailable
+                          ? "Express Delivery Available!"
+                          : "Express Delivery Not Available"}
                       </span>
                     </div>
-                    <div className={`text-sm ${expressAvailable ? 'text-green-700' : 'text-red-700'} space-y-1`}>
-                      <p><strong>Location:</strong> {pincodeData.city}, {pincodeData.state}</p>
+                    <div
+                      className={`text-sm ${
+                        expressAvailable ? "text-green-700" : "text-red-700"
+                      } space-y-1`}
+                    >
+                      <p>
+                        <strong>Location:</strong> {pincodeData.city},{" "}
+                        {pincodeData.state}
+                      </p>
                       {expressAvailable && (
                         <>
-                          <p><strong>Delivery Charges:</strong> ₹{pincodeData.delivery_charges}</p>
-                          <p><strong>Estimated Delivery:</strong> {pincodeData.estimated_delivery_days} days</p>
-                          <p><strong>COD Available:</strong> {pincodeData.cod_available ? "Yes" : "No"}</p>
+                          <p>
+                            <strong>Delivery Charges:</strong> ₹
+                            {pincodeData.delivery_charges}
+                          </p>
+                          <p>
+                            <strong>Estimated Delivery:</strong>{" "}
+                            {pincodeData.estimated_delivery_days} days
+                          </p>
+                          <p>
+                            <strong>COD Available:</strong>{" "}
+                            {pincodeData.cod_available ? "Yes" : "No"}
+                          </p>
                         </>
                       )}
                     </div>
@@ -800,9 +899,13 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                   <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center">
-                        <span className="text-red-600 text-xs font-bold">!</span>
+                        <span className="text-red-600 text-xs font-bold">
+                          !
+                        </span>
                       </div>
-                      <p className="text-sm text-red-800 font-medium">{deliveryError}</p>
+                      <p className="text-sm text-red-800 font-medium">
+                        {deliveryError}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -816,19 +919,25 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                   <div className="border-2 rounded-lg p-4 transition-all border-gray-200">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded-full border-2 ${
-                          deliveryType.startsWith('express')
-                            ? 'border-[#C72920] bg-[#C72920]'
-                            : 'border-gray-300'
-                        }`}>
-                          {deliveryType.startsWith('express') && (
+                        <div
+                          className={`w-4 h-4 rounded-full border-2 ${
+                            deliveryType.startsWith("express")
+                              ? "border-[#C72920] bg-[#C72920]"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {deliveryType.startsWith("express") && (
                             <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
                           )}
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">Express Delivery</h4>
+                          <h4 className="font-medium text-gray-900">
+                            Express Delivery
+                          </h4>
                           <p className="text-sm text-gray-600">
-                            {expressAvailable ? "Fast delivery options" : "Express delivery not available in your selected pincode"}
+                            {expressAvailable
+                              ? "Fast delivery options"
+                              : "Express delivery not available in your selected pincode"}
                           </p>
                         </div>
                       </div>
@@ -839,40 +948,60 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                       <div className="ml-7 space-y-2">
                         <div
                           className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                            deliveryType === 'express-fast'
-                              ? 'border-[#C72920] bg-red-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                            deliveryType === "express-fast"
+                              ? "border-[#C72920] bg-red-50"
+                              : "border-gray-200 hover:border-gray-300"
                           }`}
-                          onClick={() => handleDeliveryTypeSelect('express-fast')}
+                          onClick={() =>
+                            handleDeliveryTypeSelect("express-fast")
+                          }
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <h5 className="font-medium text-gray-900">Fast Delivery</h5>
-                              <p className="text-sm text-gray-600">Super fast delivery</p>
+                              <h5 className="font-medium text-gray-900">
+                                Fast Delivery
+                              </h5>
+                              <p className="text-sm text-gray-600">
+                                Super fast delivery
+                              </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium text-gray-900">₹{pincodeData?.delivery_charges || 0}</p>
-                              <p className="text-sm text-gray-600">Arrival in 2-3 hours</p>
+                              <p className="font-medium text-gray-900">
+                                ₹{pincodeData?.delivery_charges || 0}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Arrival in 2-3 hours
+                              </p>
                             </div>
                           </div>
                         </div>
 
                         <div
                           className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                            deliveryType === 'express-regular'
-                              ? 'border-[#C72920] bg-red-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                            deliveryType === "express-regular"
+                              ? "border-[#C72920] bg-red-50"
+                              : "border-gray-200 hover:border-gray-300"
                           }`}
-                          onClick={() => handleDeliveryTypeSelect('express-regular')}
+                          onClick={() =>
+                            handleDeliveryTypeSelect("express-regular")
+                          }
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <h5 className="font-medium text-gray-900">Regular Delivery</h5>
-                              <p className="text-sm text-gray-600">Express regular delivery</p>
+                              <h5 className="font-medium text-gray-900">
+                                Regular Delivery
+                              </h5>
+                              <p className="text-sm text-gray-600">
+                                Express regular delivery
+                              </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium text-gray-900">₹{pincodeData?.delivery_charges || 0}</p>
-                              <p className="text-sm text-gray-600">{pincodeData?.estimated_delivery_days || 3} days</p>
+                              <p className="font-medium text-gray-900">
+                                ₹{pincodeData?.delivery_charges || 0}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {pincodeData?.estimated_delivery_days || 3} days
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -881,7 +1010,10 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 
                     {!expressAvailable && pincodeData && (
                       <div className="ml-7 mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-800">Express delivery is not available in your selected pincode</p>
+                        <p className="text-sm text-red-800">
+                          Express delivery is not available in your selected
+                          pincode
+                        </p>
                       </div>
                     )}
                   </div>
@@ -889,29 +1021,35 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                   {/* Standard Delivery Section */}
                   <div
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      deliveryType === 'Standard'
-                        ? 'border-[#C72920] bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      deliveryType === "Standard"
+                        ? "border-[#C72920] bg-red-50"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                     onClick={() => {
-                      handleDeliveryTypeSelect('Standard');
+                      handleDeliveryTypeSelect("Standard");
                       showToast("Standard delivery coming soon!", "warning");
                     }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded-full border-2 ${
-                          deliveryType === 'Standard'
-                            ? 'border-[#C72920] bg-[#C72920]'
-                            : 'border-gray-300'
-                        }`}>
-                          {deliveryType === 'Standard' && (
+                        <div
+                          className={`w-4 h-4 rounded-full border-2 ${
+                            deliveryType === "Standard"
+                              ? "border-[#C72920] bg-[#C72920]"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {deliveryType === "Standard" && (
                             <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
                           )}
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">Standard Delivery</h4>
-                          <p className="text-sm text-gray-600">Regular delivery service</p>
+                          <h4 className="font-medium text-gray-900">
+                            Standard Delivery
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Regular delivery service
+                          </p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -923,7 +1061,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                 </div>
 
                 <div className="flex justify-between items-end mt-8">
-                  {deliveryType === 'Standard' ? (
+                  {deliveryType === "Standard" ? (
                     <Button
                       variant="outline"
                       onClick={() => goToStep(0)}
@@ -943,16 +1081,19 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                     >
                       Continue to Review
                     </Button> */}
-                    {deliveryType === 'Standard' && (
+                    {deliveryType === "Standard" && (
                       <p className="text-xs text-red-600 text-right">
-                        Standard delivery coming soon - not available at this time
+                        Standard delivery coming soon - not available at this
+                        time
                       </p>
                     )}
-                    {deliveryType.startsWith('express') && !expressAvailable && (
-                      <p className="text-xs text-red-600 text-right">
-                        Express delivery not available for your selected pincode
-                      </p>
-                    )}
+                    {deliveryType.startsWith("express") &&
+                      !expressAvailable && (
+                        <p className="text-xs text-red-600 text-right">
+                          Express delivery not available for your selected
+                          pincode
+                        </p>
+                      )}
                   </div>
                 </div>
               </div>
@@ -964,7 +1105,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Review Your Order
                 </h2>
-                
+
                 <div className="space-y-6">
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
@@ -974,25 +1115,29 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900">
-                            {deliveryType === 'Standard' ? 'Standard Delivery' :
-                             deliveryType === 'express-fast' ? 'Express Fast Delivery' :
-                             deliveryType === 'express-regular' ? 'Express Regular Delivery' : deliveryType}
+                            {deliveryType === "Standard"
+                              ? "Standard Delivery"
+                              : deliveryType === "express-fast"
+                              ? "Express Fast Delivery"
+                              : deliveryType === "express-regular"
+                              ? "Express Regular Delivery"
+                              : deliveryType}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {deliveryType === 'Standard'
-                              ? 'Estimated delivery: 5-7 days'
-                              : deliveryType === 'express-fast'
-                              ? 'Estimated delivery: 1-2 days'
-                              : `Estimated delivery: ${pincodeData?.estimated_delivery_days || 3} days`
-                            }
+                            {deliveryType === "Standard"
+                              ? "Estimated delivery: 5-7 days"
+                              : deliveryType === "express-fast"
+                              ? "Estimated delivery: 1-2 days"
+                              : `Estimated delivery: ${
+                                  pincodeData?.estimated_delivery_days || 3
+                                } days`}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-gray-900">
-                            {deliveryType === 'Standard'
-                              ? '₹0'
-                              : `₹${pincodeData?.delivery_charges || 0}`
-                            }
+                            {deliveryType === "Standard"
+                              ? "₹0"
+                              : `₹${pincodeData?.delivery_charges || 0}`}
                           </p>
                         </div>
                       </div>
@@ -1020,7 +1165,8 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                           {selectedAddress.street}
                         </p>
                         <p className="text-gray-600">
-                          {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+                          {selectedAddress.city}, {selectedAddress.state} -{" "}
+                          {selectedAddress.pincode}
                         </p>
                         <Button
                           variant="outline"
@@ -1062,58 +1208,83 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                                 SKU: {item.sku}
                               </p>
                               <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
-  <span className="text-xs sm:text-sm text-gray-500 font-medium">Qty:</span>
-  <div className="flex items-center border border-gray-300 rounded-md bg-white h-7 sm:h-8">
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 rounded-l-md border-r border-gray-300"
-      onClick={() => handleDecreaseQuantity(item.productId, item.quantity)}
-      disabled={item.quantity <= 1 || updatingQuantities.has(item.productId)}
-    >
-      {updatingQuantities.has(item.productId) ? (
-        <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
-      ) : (
-        <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-      )}
-    </Button>
-    <span className="w-8 sm:w-10 h-7 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-medium">
-      {item.quantity}
-    </span>
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 rounded-r-md border-l border-gray-300"
-      onClick={() => handleIncreaseQuantity(item.productId)}
-      disabled={updatingQuantities.has(item.productId)}
-    >
-      {updatingQuantities.has(item.productId) ? (
-        <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
-      ) : (
-        <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-      )}
-    </Button>
-  </div>
-</div>
-
-
+                                <span className="text-xs sm:text-sm text-gray-500 font-medium">
+                                  Qty:
+                                </span>
+                                <div className="flex items-center border border-gray-300 rounded-md bg-white h-7 sm:h-8">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 rounded-l-md border-r border-gray-300"
+                                    onClick={() =>
+                                      handleDecreaseQuantity(
+                                        item.productId,
+                                        item.quantity
+                                      )
+                                    }
+                                    disabled={
+                                      item.quantity <= 1 ||
+                                      updatingQuantities.has(item.productId)
+                                    }
+                                  >
+                                    {updatingQuantities.has(item.productId) ? (
+                                      <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
+                                    ) : (
+                                      <Minus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    )}
+                                  </Button>
+                                  <span className="w-8 sm:w-10 h-7 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-medium">
+                                    {item.quantity}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 rounded-r-md border-l border-gray-300"
+                                    onClick={() =>
+                                      handleIncreaseQuantity(item.productId)
+                                    }
+                                    disabled={updatingQuantities.has(
+                                      item.productId
+                                    )}
+                                  >
+                                    {updatingQuantities.has(item.productId) ? (
+                                      <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
+                                    ) : (
+                                      <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-3 sm:flex-col sm:items-end sm:gap-1">
                               <div className="text-center sm:text-right flex-1 sm:flex-initial">
                                 {item.mrp && item.mrp > item.selling_price ? (
                                   <>
                                     <div className="flex items-center gap-1 justify-center sm:justify-end">
-                                      <span className="text-xs sm:text-sm text-gray-500 line-through">₹{(item.mrp * item.quantity).toFixed(2)}</span>
-                                      <span className="font-medium text-gray-900 text-sm sm:text-base">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                                      <span className="text-xs sm:text-sm text-gray-500 line-through">
+                                        ₹{(item.mrp * item.quantity).toFixed(2)}
+                                      </span>
+                                      <span className="font-medium text-gray-900 text-sm sm:text-base">
+                                        ₹
+                                        {(
+                                          item.selling_price * item.quantity
+                                        ).toFixed(2)}
+                                      </span>
                                     </div>
                                     <p className="text-xs text-gray-500">
-                                      <span className="line-through">₹{item.mrp}</span> ₹{item.selling_price} each
+                                      <span className="line-through">
+                                        ₹{item.mrp}
+                                      </span>{" "}
+                                      ₹{item.selling_price} each
                                     </p>
                                   </>
                                 ) : (
                                   <>
                                     <p className="font-medium text-gray-900 text-sm sm:text-base">
-                                      ₹{(item.selling_price * item.quantity).toFixed(2)}
+                                      ₹
+                                      {(
+                                        item.selling_price * item.quantity
+                                      ).toFixed(2)}
                                     </p>
                                     <p className="text-xs sm:text-sm text-gray-500">
                                       ₹{item.selling_price} each
@@ -1143,19 +1314,28 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <RadioGroup
                         value={selectedPaymentMethod}
-                        onValueChange={(value) => setSelectedPaymentMethod(value as 'COD' | 'Prepaid')}
+                        onValueChange={(value) =>
+                          setSelectedPaymentMethod(value as "COD" | "Prepaid")
+                        }
                         className="space-y-3"
                       >
                         <div className="flex items-center space-x-3">
                           <RadioGroupItem value="COD" id="COD" />
-                          <Label htmlFor="cod" className="flex-1 cursor-pointer">
+                          <Label
+                            htmlFor="cod"
+                            className="flex-1 cursor-pointer"
+                          >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                                 <Package className="w-5 h-5 text-green-600" />
                               </div>
                               <div>
-                                <p className="font-medium text-gray-900">Cash on Delivery (COD)</p>
-                                <p className="text-sm text-gray-600">Pay when your order is delivered</p>
+                                <p className="font-medium text-gray-900">
+                                  Cash on Delivery (COD)
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Pay when your order is delivered
+                                </p>
                               </div>
                             </div>
                           </Label>
@@ -1163,14 +1343,21 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 
                         <div className="flex items-center space-x-3">
                           <RadioGroupItem value="Prepaid" id="Prepaid" />
-                          <Label htmlFor="online" className="flex-1 cursor-pointer">
+                          <Label
+                            htmlFor="online"
+                            className="flex-1 cursor-pointer"
+                          >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                                 <CreditCard className="w-5 h-5 text-blue-600" />
                               </div>
                               <div>
-                                <p className="font-medium text-gray-900">Online Payment</p>
-                                <p className="text-sm text-gray-600">Pay securely with card, UPI, or net banking</p>
+                                <p className="font-medium text-gray-900">
+                                  Online Payment
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Pay securely with card, UPI, or net banking
+                                </p>
                               </div>
                             </div>
                           </Label>
@@ -1188,16 +1375,28 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                   Payment & Confirmation
                 </h2>
-                
+
                 <div className="space-y-6">
                   <div className="border-b pb-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">
                       Payment Method
                     </h3>
-                    <div className={`${selectedPaymentMethod === 'COD' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border p-4 rounded-lg`}>
+                    <div
+                      className={`${
+                        selectedPaymentMethod === "COD"
+                          ? "bg-green-50 border-green-200"
+                          : "bg-blue-50 border-blue-200"
+                      } border p-4 rounded-lg`}
+                    >
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 ${selectedPaymentMethod === 'COD' ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
-                          {selectedPaymentMethod === 'COD' ? (
+                        <div
+                          className={`w-12 h-12 ${
+                            selectedPaymentMethod === "COD"
+                              ? "bg-green-100"
+                              : "bg-blue-100"
+                          } rounded-full flex items-center justify-center`}
+                        >
+                          {selectedPaymentMethod === "COD" ? (
                             <Package className="w-6 h-6 text-green-600" />
                           ) : (
                             <CreditCard className="w-6 h-6 text-blue-600" />
@@ -1205,13 +1404,16 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">
-                            {selectedPaymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'Online Payment'}
+                            {selectedPaymentMethod === "COD"
+                              ? "Cash on Delivery (COD)"
+                              : "Online Payment"}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {selectedPaymentMethod === 'COD'
-                              ? `Pay ₹${Math.round(cart?.grandTotal || 0)} when your order is delivered`
-                              : 'Pay securely online with card, UPI, or net banking'
-                            }
+                            {selectedPaymentMethod === "COD"
+                              ? `Pay ₹${Math.round(
+                                  cart?.grandTotal || 0
+                                )} when your order is delivered`
+                              : "Pay securely online with card, UPI, or net banking"}
                           </p>
                         </div>
                       </div>
@@ -1224,21 +1426,33 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Item Total ({cart?.items?.length ?? 0} items):</span>
-                        <span className="font-medium">₹{Math.round(cart?.itemTotal || 0)}</span>
+                        <span className="text-gray-600">
+                          Item Total ({cart?.items?.length ?? 0} items):
+                        </span>
+                        <span className="font-medium">
+                          ₹{Math.round(cart?.itemTotal || 0)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">GST:</span>
-                        <span className="font-medium">₹{Math.round(cart?.gst_amount || 0)}</span>
+                        <span className="font-medium">
+                          ₹{Math.round(cart?.gst_amount || 0)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Delivery Charge ({cart?.delivery_type || 'Standard'}):</span>
-                        <span className="font-medium">₹{Math.round(cart?.deliveryCharge || 0)}</span>
+                        <span className="text-gray-600">
+                          Delivery Charge ({cart?.delivery_type || "Standard"}):
+                        </span>
+                        <span className="font-medium">
+                          ₹{Math.round(cart?.deliveryCharge || 0)}
+                        </span>
                       </div>
                       <hr className="border-gray-300" />
                       <div className="flex justify-between text-lg font-semibold">
                         <span className="text-gray-900">Total:</span>
-                        <span className="text-gray-900">₹{Math.round(cart?.grandTotal || 0)}</span>
+                        <span className="text-gray-900">
+                          ₹{Math.round(cart?.grandTotal || 0)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1256,7 +1470,8 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                           {selectedAddress.street}
                         </p>
                         <p className="text-gray-600">
-                          {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+                          {selectedAddress.city}, {selectedAddress.state} -{" "}
+                          {selectedAddress.pincode}
                         </p>
                       </div>
                     )}
@@ -1270,7 +1485,8 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                       </p>
                     </div>
                     <p className="text-xs text-yellow-700 mt-1">
-                      By clicking "Confirm & Place Order", you agree to our terms and conditions.
+                      By clicking "Confirm & Place Order", you agree to our
+                      terms and conditions.
                     </p>
                   </div>
                 </div>
@@ -1309,26 +1525,48 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                                 {item.product_name}
                               </h4>
                               <div className="text-xs text-gray-600">
-                                {item.mrp && item.mrp > item.selling_price ?  (
+                                {item.mrp && item.mrp > item.selling_price ? (
                                   <div className="flex items-center gap-1">
-                                    <span className="text-gray-500 line-through">₹{(item.mrp / item.quantity).toFixed(2)}</span>
-                                    <span className="font-medium text-gray-900">₹{(item.selling_price / item.quantity).toFixed(2)}</span>
+                                    <span className="text-gray-500 line-through">
+                                      ₹{(item.mrp / item.quantity).toFixed(2)}
+                                    </span>
+                                    <span className="font-medium text-gray-900">
+                                      ₹
+                                      {(
+                                        item.selling_price / item.quantity
+                                      ).toFixed(2)}
+                                    </span>
                                   </div>
                                 ) : (
-                                  <span className="font-medium text-gray-900">₹{(item.selling_price * item.quantity).toFixed(2)}</span>
+                                  <span className="font-medium text-gray-900">
+                                    ₹
+                                    {(
+                                      item.selling_price * item.quantity
+                                    ).toFixed(2)}
+                                  </span>
                                 )}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs text-gray-500 font-medium">Qty:</span>
+                            <span className="text-xs text-gray-500 font-medium">
+                              Qty:
+                            </span>
                             <div className="flex items-center border border-gray-300 rounded-md bg-white h-6">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 hover:bg-gray-50 rounded-l border-r border-gray-200"
-                                onClick={() => handleDecreaseQuantity(item.productId, item.quantity)}
-                                disabled={item.quantity <= 1 || updatingQuantities.has(item.productId)}
+                                onClick={() =>
+                                  handleDecreaseQuantity(
+                                    item.productId,
+                                    item.quantity
+                                  )
+                                }
+                                disabled={
+                                  item.quantity <= 1 ||
+                                  updatingQuantities.has(item.productId)
+                                }
                               >
                                 {updatingQuantities.has(item.productId) ? (
                                   <Loader2 className="h-2 w-2 animate-spin" />
@@ -1343,8 +1581,12 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 hover:bg-gray-50 rounded-r border-l border-gray-200"
-                                onClick={() => handleIncreaseQuantity(item.productId)}
-                                disabled={updatingQuantities.has(item.productId)}
+                                onClick={() =>
+                                  handleIncreaseQuantity(item.productId)
+                                }
+                                disabled={updatingQuantities.has(
+                                  item.productId
+                                )}
                               >
                                 {updatingQuantities.has(item.productId) ? (
                                   <Loader2 className="h-2 w-2 animate-spin" />
@@ -1362,34 +1604,63 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Item Total ({cart?.items?.length ?? 0} items):</span>
-                    <span className="font-medium">₹{Math.round(cart?.itemTotal || 0)}</span>
+                    <span className="text-gray-600">
+                      Item Total ({cart?.items?.length ?? 0} items):
+                    </span>
+                    <span className="font-medium">
+                      ₹{Math.round(cart?.itemTotal || 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">GST:</span>
-                    <span className="font-medium">₹{Math.round(cart?.gst_amount || 0)}</span>
+                    <span className="font-medium">
+                      ₹{Math.round(cart?.gst_amount || 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Delivery Charge ({cart?.delivery_type || 'Standard'}):</span>
-                    <span className="font-medium">₹{typeof cart?.deliveryCharge === 'number' ? Math.round(cart.deliveryCharge) : 0}</span>
+                    <span className="text-gray-600">
+                      Delivery Charge ({cart?.delivery_type || "Standard"}):
+                    </span>
+                    <span className="font-medium">
+                      ₹
+                      {typeof cart?.deliveryCharge === "number"
+                        ? Math.round(cart.deliveryCharge)
+                        : 0}
+                    </span>
                   </div>
                   <hr className="border-gray-300" />
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span className="text-gray-900">Total:</span>
-                    <span className="text-gray-900">₹{Math.round(cart?.grandTotal || 0)}</span>
+                    <span className="text-gray-900">
+                      ₹{Math.round(cart?.grandTotal || 0)}
+                    </span>
                   </div>
                 </div>
 
                 {/* Show selected address preview in right column at all times */}
                 <div className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Deliver to</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    Deliver to
+                  </h3>
                   {selectedAddress ? (
                     <div className="p-3 bg-green-50 border border-green-200 rounded">
-                      <p className="text-sm font-medium text-green-800">{selectedAddress.nick_name || "Address"}</p>
-                      <p className="text-xs text-green-700 truncate">{selectedAddress.street}</p>
-                      <p className="text-xs text-green-700">{selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}</p>
+                      <p className="text-sm font-medium text-green-800">
+                        {selectedAddress.nick_name || "Address"}
+                      </p>
+                      <p className="text-xs text-green-700 truncate">
+                        {selectedAddress.street}
+                      </p>
+                      <p className="text-xs text-green-700">
+                        {selectedAddress.city}, {selectedAddress.state} -{" "}
+                        {selectedAddress.pincode}
+                      </p>
                       <div className="mt-2">
-                        <Button variant="outline" size="sm" className="text-xs" onClick={() => goToStep(0)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => goToStep(0)}
+                        >
                           Change
                         </Button>
                       </div>
@@ -1402,7 +1673,9 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                 </div>
 
                 <div className="space-y-3">
-                  {(currentStep === 1 || currentStep === 2 || currentStep === 3) && (
+                  {(currentStep === 1 ||
+                    currentStep === 2 ||
+                    currentStep === 3) && (
                     <Button
                       variant="outline"
                       className="w-full"
@@ -1411,7 +1684,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                       {currentStep === 1 ? "Back to Address" : "Back"}
                     </Button>
                   )}
-                  
+
                   {/* {process.env.NODE_ENV === 'development' && (
                     <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
                       <div>Step: {currentStep}</div>
@@ -1428,50 +1701,78 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
                     disabled={
                       isPlacingOrder ||
                       (currentStep === 0 && !selectedAddress) ||
-                      (currentStep === 3 && (!user || !cart || !selectedAddress)) ||
-                      ((currentStep === 1 || currentStep === 2) && (deliveryType === 'Standard' || (deliveryType.startsWith('express') && !expressAvailable)))
+                      (currentStep === 3 &&
+                        (!user || !cart || !selectedAddress)) ||
+                      ((currentStep === 1 || currentStep === 2) &&
+                        (deliveryType === "Standard" ||
+                          (deliveryType.startsWith("express") &&
+                            !expressAvailable)))
                     }
                   >
-                    {(currentStep === 1 || currentStep === 2) && deliveryType === 'Standard' && (
-                      <span className="text-xs block mb-1">
-                        Standard delivery coming soon - not available at this time
-                      </span>
-                    )}
-                    {(currentStep === 1 || currentStep === 2) && deliveryType.startsWith('express') && !expressAvailable && (
-                      <span className="text-xs block mb-1">
-                        Express delivery not available for your selected pincode
-                      </span>
-                    )}
+                    {(currentStep === 1 || currentStep === 2) &&
+                      deliveryType === "Standard" && (
+                        <span className="text-xs block mb-1">
+                          Standard delivery coming soon - not available at this
+                          time
+                        </span>
+                      )}
+                    {(currentStep === 1 || currentStep === 2) &&
+                      deliveryType.startsWith("express") &&
+                      !expressAvailable && (
+                        <span className="text-xs block mb-1">
+                          Express delivery not available for your selected
+                          pincode
+                        </span>
+                      )}
                     {isPlacingOrder ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Placing Order...
                       </>
-                    ) : currentStep === 0 ? "Continue to Delivery" : 
-                       currentStep === 1 ? "Proceed To Review" : 
-                       currentStep === 2 ? "Proceed To Payment" :
-                       "Confirm & Place Order"}
+                    ) : currentStep === 0 ? (
+                      "Continue to Delivery"
+                    ) : currentStep === 1 ? (
+                      "Proceed To Review"
+                    ) : currentStep === 2 ? (
+                      "Proceed To Payment"
+                    ) : (
+                      "Confirm & Place Order"
+                    )}
                   </Button>
-                  
-                  {!isPlacingOrder && currentStep === 3 && (!user || !cart || !selectedAddress) && (
-                    <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
-                      {!user && <div>• User data not loaded</div>}
-                      {!cart && <div>• Cart data not loaded</div>}
-                      {!selectedAddress && <div>• No address selected</div>}
-                      <div className="mt-2 flex gap-2">
-                        <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                            if (userId) fetchData();
-                          }}>
-                          Retry
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-xs" onClick={() => window.location.reload()}>
-                          Refresh Page
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
+                  {!isPlacingOrder &&
+                    currentStep === 3 &&
+                    (!user || !cart || !selectedAddress !|| !user.username || !user.phone_Number || !user.email) && (
+                      <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                        {!user && <div>• User data not loaded</div>}
+                        {!cart && <div>• Cart data not loaded</div>}
+                        {!selectedAddress && <div>• No address selected</div>}
+                        {!user.username && <div>• Username not loaded</div>}
+                        {!user.phone_Number && <div>• Phone number not loaded</div>}
+                        {!user.email && <div>• Email not loaded</div>}
+                        <div className="mt-2 flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => {
+                              if (userId) fetchData();
+                            }}
+                          >
+                            Retry
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => window.location.reload()}
+                          >
+                            Refresh Page
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                </div>
               </div>
             </div>
           </div>
@@ -1486,14 +1787,6 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
     </div>
   );
 }
-
-
-
-
-
-
-
-
 
 // "use client";
 // import {
@@ -1552,7 +1845,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
 
 //   // Steps: Address (0) -> Delivery (1) -> Review (2) -> Pay (3)
-//   const [currentStep, setCurrentStep] = useState(0); 
+//   const [currentStep, setCurrentStep] = useState(0);
 //   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
 //   // Delivery type state - express delivery has two options: fast and regular
@@ -1666,7 +1959,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //       console.log("No userId available, skipping data fetch");
 //       return;
 //     }
-    
+
 //     console.log("Fetching user and cart data for userId:", userId);
 //     setIsLoading(true);
 //     try {
@@ -1778,8 +2071,6 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //     }
 //   }, [selectedAddress]);
 
-
-
 //   const handleProceed = async () => {
 //     console.log("=== HANDLE PROCEED DEBUG ===");
 //     console.log("Current step:", currentStep);
@@ -1787,7 +2078,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //     console.log("Cart:", cart);
 //     console.log("Selected address:", selectedAddress);
 //     console.log("Is placing order:", isPlacingOrder);
-    
+
 //     if (currentStep === 0) { // Address step -> must have address selected before going to Delivery
 //       if (!selectedAddress) {
 //         showToast("Please select an address for your order", "error");
@@ -1880,8 +2171,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //         throw new Error(response.message || "Order creation failed");
 //       }
 //     } catch (error: any) {
-     
-      
+
 //       if (error.response?.status === 403) {
 //         showToast("Access denied. Please check your login status.", "error");
 //       } else if (error.response?.status === 400) {
@@ -1904,7 +2194,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //       }
 //       const response = await removeProductFromCart(data);
 //       console.log("Item removed from cart", response);
-  
+
 //       await fetchCart();
 //       showToast("Item removed from cart", "success");
 //     } catch(error) {
@@ -1917,9 +2207,9 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //       showToast("Unable to update quantity: user not available", "error");
 //       return;
 //     }
-  
+
 //     try {
-  
+
 //       await fetchCart(); // optimistic refresh - replace with API call for production
 //     } catch (err) {
 //       console.error("Failed to update quantity:", err);
@@ -1967,10 +2257,10 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //     try {
 //       await decreaseCartQuantity(userId!, productId);
 //       await fetchCart();
-   
+
 //     } catch (error) {
 //       console.error("Failed to decrease quantity:", error);
-  
+
 //     } finally {
 //       setUpdatingQuantities(prev => {
 //         const newSet = new Set(prev);
@@ -2074,7 +2364,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //       const response = await addAddress(userId, addressData);
 
 //       showToast("Address added successfully", "success");
-      
+
 //       // Refresh user data and auto-select the new address
 //       try {
 //         const userResponse = await getUserById(userId);
@@ -2095,11 +2385,10 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 
 //   dispatch(clearCart());
 
-
 //   try {
 //     localStorage.removeItem("cart"); // adapt key if different
 //   } catch (e) {
-   
+
 //   }
 
 //   showToast(successMessage, "success");
@@ -2110,7 +2399,6 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //     router.push("/");
 //   }, 1500);
 // };
-
 
 //   return (
 //     <div className="bg-gray-50">
@@ -2131,7 +2419,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //                   Delivery Address
 //                 </h2>
 
-//                 <BillingAddressForm 
+//                 <BillingAddressForm
 //                   onSubmit={onSubmit}
 //                   onAddressSelect={setSelectedAddress}
 //                   selectedAddressId={selectedAddress?._id}
@@ -2173,7 +2461,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
 //                   Select Delivery Type
 //                 </h2>
-                
+
 //                 {/* Pincode status - auto-checked from selected address */}
 //                 {checkingPincode && (
 //                   <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -2378,7 +2666,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
 //                   Review Your Order
 //                 </h2>
-                
+
 //                 <div className="space-y-6">
 //                   <div className="border-b pb-6">
 //                     <h3 className="text-lg font-medium text-gray-900 mb-3">
@@ -2510,7 +2798,6 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //   </div>
 // </div>
 
-
 //                             </div>
 //                             <div className="flex items-center justify-between sm:justify-end gap-3 sm:flex-col sm:items-end sm:gap-1">
 //                               <div className="text-center sm:text-right flex-1 sm:flex-initial">
@@ -2602,7 +2889,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">
 //                   Payment & Confirmation
 //                 </h2>
-                
+
 //                 <div className="space-y-6">
 //                   <div className="border-b pb-6">
 //                     <h3 className="text-lg font-medium text-gray-900 mb-3">
@@ -2825,7 +3112,7 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //                       {currentStep === 1 ? "Back to Address" : "Back"}
 //                     </Button>
 //                   )}
-                  
+
 //                   {/* {process.env.NODE_ENV === 'development' && (
 //                     <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
 //                       <div>Step: {currentStep}</div>
@@ -2861,12 +3148,12 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
 //                         Placing Order...
 //                       </>
-//                     ) : currentStep === 0 ? "Continue to Delivery" : 
-//                        currentStep === 1 ? "Proceed To Review" : 
+//                     ) : currentStep === 0 ? "Continue to Delivery" :
+//                        currentStep === 1 ? "Proceed To Review" :
 //                        currentStep === 2 ? "Proceed To Payment" :
 //                        "Confirm & Place Order"}
 //                   </Button>
-                  
+
 //                   {!isPlacingOrder && currentStep === 3 && (!user || !cart || !selectedAddress) && (
 //                     <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
 //                       {!user && <div>• User data not loaded</div>}
@@ -2900,7 +3187,3 @@ const finalizeOrder = (responseData: any, successMessage = "Order placed success
 //     </div>
 //   );
 // }
-
-
-
-
