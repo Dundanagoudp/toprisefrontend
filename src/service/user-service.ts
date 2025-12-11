@@ -20,8 +20,13 @@ export async function getEmployeeById(id: string): Promise<any> {
 
 // get app user by id
 export async function getAppUserById(id: string): Promise<ApiListResponse<AppUser>> {
-	const response = await apiClient.get(`/users/api/users/${id}`);
-	return response.data;
+    try {
+        const response = await apiClient.get(`/users/api/users/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Failed to fetch app user with id ${id}:`, error);
+        throw error;
+    }
 }
 // // get all users
 // export async function getAllEmployees(): Promise<any> {

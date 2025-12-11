@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { selectProductById } from "@/store/slice/product/productSlice";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectCurrentProduct, selectProductLoading, selectProductError } from "@/store/slice/product/productByIdSlice";
+import { fetchProductByIdThunk } from "@/store/slice/product/productByIdThunks";
 import { DynamicBreadcrumb } from "@/components/user-dashboard/DynamicBreadcrumb";
 
 // @ts-ignore
@@ -36,9 +37,11 @@ import {
   getModelByBrand,
   getYearRange,
   getvarientByModel,
+  getVariantsByModelIds,
   editProduct,
   getProductById,
   getSubcategoriesByCategoryId,
+  getCategoriesByType,
 } from "@/service/product-Service";
 import { getDealersByCategory } from "@/service/dealerServices";
 import { useParams, useRouter } from "next/navigation";
@@ -65,10 +68,10 @@ const schema = z.object({
   // Vehicle Compatibility
   make: z.string().min(1, "Make is required"),
   make2: z.string().optional(),
-  model: z.string().min(1, "Model is required"),
+  model: z.array(z.string()).min(1, "At least one model is required"),
   year_range: z.array(z.string()).optional(),
 
-  variant: z.string().min(1, "Variant is required"),
+  variant: z.array(z.string()).min(1, "At least one variant is required"),
   fitment_notes: z.string().optional(),
   is_universal: z.string().optional(),
   is_consumable: z.string().optional(),
@@ -132,6 +135,8 @@ const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 
 export default function ProductEdit() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
   // State for dropdown options
   const auth = useAppSelector((state) => state.auth.user);
   const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
@@ -140,18 +145,22 @@ export default function ProductEdit() {
   const [modelOptions, setModelOptions] = useState<any[]>([]);
   const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
-  const [product, setProduct] = useState<Product | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [showDeleteWarning, setShowDeleteWarning] = useState(false);
   const [yearRangeSelected, setYearRangeSelected] = useState<string[]>([]);
 
   // State for dependent dropdowns
-  const [selectedProductTypeId, setSelectedProductTypeId] =
-    useState<string>("");
+  const [selectedProductTypeId, setSelectedProductTypeId] = useState<string>("");
   const [selectedbrandId, setSelectedBrandId] = useState<string>("");
-  const [modelId, setModelId] = useState<string>("");
+  const [modelId, setModelId] = useState<string[]>([]); // Changed to array
   const id = useParams();
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
   const [brandOptions, setBrandOptions] = useState<any[]>([]);
+
+  // Redux state
+  const product = useAppSelector(selectCurrentProduct);
+  const isLoadingProduct = useAppSelector(selectProductLoading);
+  const productError = useAppSelector(selectProductError);
 
   // State for image uploads and previews
   const [selectedImages, setSelectedImages] = useState<File[]>([]); // new uploads
@@ -162,9 +171,7 @@ export default function ProductEdit() {
   const [removedExistingIndexes, setRemovedExistingIndexes] = useState<
     number[]
   >([]); // indexes of removed existing images
-  const [apiError, setApiError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const [availableDealers, setAvailableDealers] = useState<any[]>([]);
   const [dealerAssignments, setDealerAssignments] = useState<
     Array<{
@@ -178,6 +185,10 @@ export default function ProductEdit() {
   const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
 
+  // Combine Redux error with local error
+  const apiError = productError;
+
+
   const {
     register,
     handleSubmit,
@@ -188,6 +199,112 @@ export default function ProductEdit() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
   });
+
+  // Refs to track previous values and prevent infinite loops
+  const prevVehicleTypeRef = useRef<string>("");
+  const prevCategoryRef = useRef<string>("");
+  const prevBrandRef = useRef<string>("");
+  const prevModelRef = useRef<string[]>([]);
+
+  // Helper function for form population
+  const populateFormWithProduct = useCallback((product: Product) => {
+    // Set dependent state first
+    const vehicleTypeId = product.brand?.type?._id || "";
+    const brandId = product.brand?._id || "";
+
+    // Handle multiple models
+    const modelIds = product.model?.map((m: { _id: string }) => m._id) || [];
+
+    // Handle multiple variants
+    const variantIds = product.variant?.map((v: { _id: string }) => v._id) || [];
+
+    setSelectedProductTypeId(vehicleTypeId);
+    setSelectedBrandId(brandId);
+    setModelId(modelIds);
+    setYearRangeSelected(product.year_range?.map(y => y._id) || []);
+
+    // Update refs to prevent effects from running
+    prevVehicleTypeRef.current = vehicleTypeId;
+    prevCategoryRef.current = product.category?._id || "";
+    prevBrandRef.current = brandId;
+    prevModelRef.current = modelIds;
+
+    // Populate form
+        reset({
+          manufacturer_part_name: product.manufacturer_part_name || "",
+          product_name: product.product_name || "",
+          brand: product.brand?._id || "",
+          hsn_code: product.hsn_code ? Number(product.hsn_code) : undefined,
+          category: product.category?._id || "",
+          sub_category: product.sub_category?._id || "",
+          product_type: product.product_type || "",
+          vehicle_type: product.brand?.type?._id || "",
+          no_of_stock: product.no_of_stock || 0,
+          selling_price: product.selling_price || 0,
+          updatedBy: product.updated_at || "",
+          admin_notes: product.admin_notes || "",
+          make: product.make && product.make.length > 0 ? product.make[0] : "",
+          make2: product.make && product.make.length > 1 ? product.make[1] : "",
+      model: modelIds,
+          year_range: product.year_range?.map((y) => y._id) || [],
+      variant: variantIds,
+          fitment_notes: product.fitment_notes || "",
+          key_specifications: product.key_specifications ?? "",
+          is_universal: product.is_universal ? "yes" : "no",
+          is_consumable: product.is_consumable ? "yes" : "no",
+          weight: product.weight || 0,
+          certifications: product.certifications || "",
+          warranty: product.warranty?.toString() || "",
+          images: product.images?.join(",") || "",
+      videoUrl: (product as any).video_url || (product as any).videoUrl || "",
+          mrp_with_gst: product.mrp_with_gst || 0,
+          gst_percentage: product.gst_percentage || 0,
+          is_returnable: product.is_returnable || false,
+          dealerAssignments: [],
+          LastinquiredAt: product.last_stock_inquired || "",
+          seo_title: product.seo_title || "",
+          searchTags: product.search_tags?.join(",") || "",
+          search_tags: product.search_tags || [],
+          seo_description: product.seo_description || "",
+        });
+
+      // Initialize image previews for existing images
+      if (product.images && Array.isArray(product.images)) {
+        setExistingImages(product.images);
+      } else {
+        setExistingImages([]);
+      }
+      setSelectedImages([]);
+      setSelectedImagePreviews([]);
+      setRemovedExistingIndexes([]);
+
+      // Populate dealer assignments from available_dealers
+      if (
+        product.available_dealers &&
+        Array.isArray(product.available_dealers) &&
+        product.available_dealers.length > 0
+      ) {
+        const assignments = product.available_dealers
+          .filter((dealer) => dealer.dealers_Ref)
+          .map((dealer) => ({
+            dealerId: dealer.dealers_Ref || "",
+            quantity: Number(dealer.quantity_per_dealer) || 0,
+            margin: Number(dealer.dealer_margin) || 0,
+            priority: Number(dealer.dealer_priority_override) || 0,
+          }));
+
+        setDealerAssignments(
+          assignments as {
+            dealerId: string;
+            quantity: number;
+            margin?: number;
+            priority?: number;
+          }[]
+        );
+      } else {
+        setDealerAssignments([]);
+      }
+  }, [reset]);
 
   // Function to fetch dealers by category
   const fetchDealersByCategory = async (categoryId: string) => {
@@ -229,33 +346,25 @@ export default function ProductEdit() {
       setValue("images", ""); // not used for validation here
     }
   };
-  // Parallel fetch for categories, subcategories, types, and year ranges
+  // Effect 1: Initial Data Fetch (Once on Mount)
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [categories, subCategories, types, yearRanges] =
-          await Promise.all([
-            getCategories(),
-            getSubCategories(),
-            getTypes(),
-            getYearRange(),
-          ]);
-        setCategoryOptions(
-          categories.data?.map((category: any) => category) || []
-        );
-        setSubCategoryOptions(
-          subCategories.data?.map((category: any) => category) || []
-        );
+        const [typesResponse, yearRangesResponse] = await Promise.all([
+          getTypes(),
+          getYearRange(),
+        ]);
+
         setTypeOptions(
-          Array.isArray(types.data)
-            ? types.data.map((type: any) => type)
-            : Array.isArray(types.data?.products)
-            ? types.data.products.map((type: any) => type)
+          Array.isArray(typesResponse.data)
+            ? typesResponse.data.map((type: any) => type)
+            : Array.isArray(typesResponse.data?.products)
+            ? typesResponse.data.products.map((type: any) => type)
             : []
         );
         setYearRangeOptions(
-          Array.isArray(yearRanges.data)
-            ? yearRanges.data.map((year: any) => year)
+          Array.isArray(yearRangesResponse.data)
+            ? yearRangesResponse.data.map((year: any) => year)
             : []
         );
         console.log("Fetched all initial data in parallel");
@@ -266,494 +375,162 @@ export default function ProductEdit() {
     fetchInitialData();
   }, []);
 
-  // Fetch brands when product type changes
+
+
+
+  // Effect 2: Fetch Product and All Dependencies (Once)
   useEffect(() => {
-    if (!selectedProductTypeId) {
-      setBrandOptions([]);
+    if (!id.id || typeof id.id !== "string") {
       return;
     }
 
-    let isMounted = true;
-    const fetchBrandsByType = async () => {
-      setIsLoadingBrands(true);
-      try {
-        const response = await getBrandByType(selectedProductTypeId);
-        console.log("Brand Options:", response.data);
-        if (isMounted) {
-          setBrandOptions(
-            Array.isArray(response.data)
-              ? response.data.map((brand: any) => brand)
-              : []
-          );
-        }
-      } catch (error) {
-        if (isMounted) setBrandOptions([]);
-        console.error("Failed to fetch brands by type:", error);
-      } finally {
-        if (isMounted) setIsLoadingBrands(false);
-      }
-    };
+    // Dispatch Redux action to fetch product
+    dispatch(fetchProductByIdThunk(id.id));
+  }, [id.id, dispatch]);
 
-    fetchBrandsByType();
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedProductTypeId]);
-
-  // Fetch models when brand changes
-  useEffect(() => {
-    if (!selectedbrandId) {
-      setModelOptions([]);
-      return;
-    }
-    const fetchModelsByBrand = async () => {
-      try {
-        const response = await getModelByBrand(selectedbrandId);
-        setModelOptions(
-          Array.isArray(response.data)
-            ? response.data.map((model: any) => model)
-            : []
-        );
-        console.log("Model Options:", response.data);
-      } catch (error) {
-        setModelOptions([]);
-        console.error("Failed to fetch models by brand:", error);
-      }
-    };
-    fetchModelsByBrand();
-  }, [selectedbrandId]);
-
-  // Fetch variants when model changes
-  useEffect(() => {
-    if (!modelId) {
-      setVarientOptions([]);
-      return;
-    }
-    const fetchVarientByModel = async () => {
-      try {
-        const response = await getvarientByModel(modelId);
-        setVarientOptions(
-          Array.isArray(response.data)
-            ? response.data.map((varient: any) => varient)
-            : []
-        );
-        console.log("Varient Options:", response.data);
-      } catch (error) {
-        console.error("Failed to fetch varient options:", error);
-      }
-    };
-    fetchVarientByModel();
-  }, [modelId]);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      if (!id.id || typeof id.id !== "string") {
-        setApiError("Product ID is missing or invalid.");
-        return;
-      }
-
-      setIsLoadingProduct(true);
-      setApiError("");
-
-      try {
-        const response = await getProductById(id.id);
-        console.log("getProducts API response:", response);
-        // response is ProductResponse, which has data: Product[]
-        const data = response.data;
-        if (Array.isArray(data) && data.length > 0) {
-          setProduct(data[0]);
-          if (typeof window !== "undefined") {
-            window.console.log("Products API response:", response.data);
-          }
-        } else if (
-          typeof data === "object" &&
-          data !== null &&
-          !Array.isArray(data)
-        ) {
-          setProduct(data as any);
-          // console.log("[ProductEdit] Product loaded (object):", {
-          //   _id: data._id,
-          //   brandType: data.brand?.type,
-          // });
-        } else {
-          setProduct(null);
-          setApiError("Product not found.");
-        }
-        console.log("getProducts API response:", response);
-      } catch (error: any) {
-        console.error("getProducts API error:", error);
-        setApiError(
-          error.response?.data?.message ||
-            error.message ||
-            "Failed to fetch product details."
-        );
-        setProduct(null);
-      } finally {
-        setIsLoadingProduct(false);
-      }
-    };
-
-    fetchProducts();
-  }, [id.id]);
-
-  // Watch for category changes and fetch dealers
-  useEffect(() => {
-    const categoryId = watch("category");
-    if (categoryId) {
-      fetchDealersByCategory(categoryId);
-    } else {
-      setAvailableDealers([]);
-    }
-  }, [watch("category")]);
-
-  // Watch for category changes and fetch subcategories
-  useEffect(() => {
-    const categoryId = watch("category");
-    if (categoryId) {
-      const fetchSubCategoriesByCategory = async () => {
-        try {
-          const response = await getSubcategoriesByCategoryId(categoryId);
-          if (response.success && Array.isArray(response.data)) {
-            setSubCategoryOptions(response.data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch subcategories:", error);
-        }
-      };
-      fetchSubCategoriesByCategory();
-    } else {
-      setSubCategoryOptions([]);
-    }
-  }, [watch("category")]);
-
-  // Also fetch dealers when product loads (in case category is already set)
-  useEffect(() => {
-    if (product && product.category?._id) {
-      fetchDealersByCategory(product.category._id);
-    }
-  }, [product]);
-
-  // Fetch subcategories when product loads (in case category is already set)
-  useEffect(() => {
-    if (product && product.category?._id) {
-      const fetchSubCategoriesByCategory = async () => {
-        try {
-          const response = await getSubCategories();
-          if (response.success && Array.isArray(response.data)) {
-            setSubCategoryOptions(response.data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch subcategories for product:", error);
-        }
-      };
-      fetchSubCategoriesByCategory();
-    }
-  }, [product]);
-
-  // Populate form with fetched product data
-  useEffect(() => {
-    if (product) {
-      console.log("Populating form with product data:", product);
-      // Use setTimeout to ensure dependent dropdowns are loaded first
-      const populateForm = () => {
-        reset({
-          manufacturer_part_name: product.manufacturer_part_name || "",
-          product_name: product.product_name || "",
-          brand: product.brand?._id || "",
-          hsn_code: product.hsn_code ? Number(product.hsn_code) : undefined,
-          category: product.category?._id || "",
-          sub_category: product.sub_category?._id || "",
-          product_type: product.product_type || "",
-          vehicle_type: product.brand?.type?._id || "",
-          no_of_stock: product.no_of_stock || 0,
-          selling_price: product.selling_price || 0,
-          updatedBy: product.updated_at || "",
-          admin_notes: product.admin_notes || "",
-          make: product.make && product.make.length > 0 ? product.make[0] : "",
-          make2: product.make && product.make.length > 1 ? product.make[1] : "",
-          model: product.model?._id || "",
-          year_range: product.year_range?.map((y) => y._id) || [],
-
-          variant:
-            product.variant && product.variant.length > 0
-              ? product.variant[0]._id
-              : "",
-          fitment_notes: product.fitment_notes || "",
-          key_specifications: product.key_specifications ?? "",
-
-          is_universal: product.is_universal ? "yes" : "no",
-          is_consumable: product.is_consumable ? "yes" : "no",
-          weight: product.weight || 0,
-          certifications: product.certifications || "",
-          warranty: product.warranty?.toString() || "",
-          images: product.images?.join(",") || "",
-          videoUrl:
-            (product as any).video_url || (product as any).videoUrl || "",
-          mrp_with_gst: product.mrp_with_gst || 0,
-          gst_percentage: product.gst_percentage || 0,
-          is_returnable: product.is_returnable || false,
-          // return_policy: product.return_policy || "",
-          dealerAssignments: [],
-          LastinquiredAt: product.last_stock_inquired || "",
-          seo_title: product.seo_title || "",
-          searchTags: product.search_tags?.join(",") || "",
-          search_tags: product.search_tags || [],
-          seo_description: product.seo_description || "",
-        });
-
-        setYearRangeSelected(product.year_range?.map((y) => y._id) || []);
-
-        // Set brand ID for model dependency
-        if (product.brand?._id) {
-          setSelectedBrandId(product.brand._id);
-        }
-
-        // Set model ID for variant dependency
-        if (product.model?._id) {
-          setModelId(product.model._id);
-        }
-      };
-
-      // Delay form population to allow dependent dropdowns to load
-      setTimeout(populateForm, 100);
-
-      // Initialize image previews for existing images
-      if (product.images && Array.isArray(product.images)) {
-        setExistingImages(product.images);
-      } else {
-        setExistingImages([]);
-      }
-      setSelectedImages([]);
-      setSelectedImagePreviews([]);
-      setRemovedExistingIndexes([]);
-
-      // Populate dealer assignments from available_dealers
-      if (
-        product.available_dealers &&
-        Array.isArray(product.available_dealers) &&
-        product.available_dealers.length > 0
-      ) {
-        const assignments = product.available_dealers
-          .filter((dealer) => dealer.dealers_Ref)
-          .map((dealer) => ({
-            dealerId: dealer.dealers_Ref || "",
-            quantity: Number(dealer.quantity_per_dealer) || 0,
-            // Ensure margin and priority are numeric (coerce strings to numbers)
-            margin: Number(dealer.dealer_margin) || 0,
-            priority: Number(dealer.dealer_priority_override) || 0,
-          }));
-
-        // Type-safe assignment: ensure priority/margin are numbers to satisfy state type
-        setDealerAssignments(
-          assignments as {
-            dealerId: string;
-            quantity: number;
-            margin?: number;
-            priority?: number;
-          }[]
-        );
-      } else {
-        setDealerAssignments([]);
-      }
-    }
-  }, [product, reset]);
-
-  // Initialize dependent state variables when product loads
+  // Effect 3: Parallel Fetch All Dependent Options
   useEffect(() => {
     if (!product) return;
 
-    // Set vehicle type ID for brand dependency using the brand's type
-    if (product.brand?.type?._id) {
-      setSelectedProductTypeId(product.brand.type._id);
-      setValue("vehicle_type", product.brand.type._id);
-    }
+    // Extract all IDs from product
+    const typeId = product.brand?.type?._id;
+    const categoryId = product.category?._id;
+    const brandId = product.brand?._id;
+    const modelIds = product.model?.map((m: { _id: string }) => m._id) || [];
 
-    // Set brand ID for model dependency
-    if (product.brand?._id) {
-      setSelectedBrandId(product.brand._id);
-    }
+    // Fetch ALL options in parallel
+    Promise.all([
+      getCategoriesByType(typeId),
+      getSubcategoriesByCategoryId(categoryId),
+      getBrandByType(typeId),
+      getModelByBrand(brandId),
+      getVariantsByModelIds(modelIds),
+      getDealersByCategory(categoryId)
+    ]).then(([cats, subCats, brands, models, variants, dealers]) => {
+      // Set all options
+      setCategoryOptions(Array.isArray(cats.data) ? cats.data : []);
+      setSubCategoryOptions(Array.isArray(subCats.data) ? subCats.data : []);
+      setBrandOptions(Array.isArray(brands.data) ? brands.data : []);
+      setModelOptions(Array.isArray(models.data) ? models.data : []);
+      setVarientOptions(Array.isArray(variants.data) ? variants.data : []);
+      setAvailableDealers(Array.isArray(dealers.data) ? dealers.data : []);
 
-    // Set model ID for variant dependency
-    if (product.model?._id) {
-      setModelId(product.model._id);
-    }
-  }, [product, setValue]);
+      // NOW populate form after all options loaded
+      populateFormWithProduct(product);
+    }).catch((error) => {
+      console.error("Failed to fetch dependent options:", error);
+      showToast("Failed to load product options", "error");
+    });
+  }, [product]);
 
-  // Fetch dependent dropdown options when product loads
-  // useEffect(() => {
-  //   if (!product) return;
+  // Interactive useEffects for user-triggered changes
 
-  //   const fetchDependentOptions = async () => {
-  //     try {
-  //       // Fetch brands if vehicle type is available
-  //       if (product.brand?.type) {
-  //         console.log(
-  //           "[ProductEdit] Fetching dependent brands, brand.type=",
-  //           product.brand?.type
-  //         );
-  //         const brandsResponse = await getBrandByType(product.brand.type);
-  //         console.log(
-  //           "[ProductEdit] Dependent brands response:",
-  //           brandsResponse
-  //         );
-  //         if (brandsResponse.success && Array.isArray(brandsResponse.data)) {
-  //           setBrandOptions(brandsResponse.data);
-  //           console.log(
-  //             "[ProductEdit] Set dependent brandOptions, count=",
-  //             brandsResponse.data.length
-  //           );
-  //         }
-  //       }
-
-  //       // Fetch models if brand is available
-  //       if (product.brand?._id) {
-  //         const modelsResponse = await getModelByBrand(product.brand._id);
-  //         if (modelsResponse.success && Array.isArray(modelsResponse.data)) {
-  //           setModelOptions(modelsResponse.data);
-  //         }
-  //       }
-
-  //       // Fetch variants if model is available
-  //       if (product.model?._id) {
-  //         const variantsResponse = await getvarientByModel(product.model._id);
-  //         if (
-  //           variantsResponse.success &&
-  //           Array.isArray(variantsResponse.data)
-  //         ) {
-  //           setVarientOptions(variantsResponse.data);
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to fetch dependent options:", error);
-  //     }
-  //   };
-
-  //   fetchDependentOptions();
-  // }, [product]);
-
-  // Additional useEffect to ensure brand options are loaded for edit mode
+  // When user changes vehicle type → fetch categories and brands
   useEffect(() => {
-    if (product && product.brand?.type && brandOptions.length === 0) {
-      const fetchBrandsForEdit = async () => {
-        try {
-          console.log(
-            "[ProductEdit] Fetching brands for edit, brand.type=",
-            product.brand?.type?._id
-          );
-          const response = await getBrandByType(product.brand.type._id);
-          console.log("[ProductEdit] getBrandByType response:", response);
-          if (response.success && Array.isArray(response.data)) {
-            setBrandOptions(response.data);
-            console.log(
-              "[ProductEdit] Set brandOptions, count=",
-              response.data.length
-            );
-          }
-        } catch (error) {
-          console.error(
-            "[ProductEdit] Failed to fetch brands for edit:",
-            error
-          );
-        }
-      };
-      fetchBrandsForEdit();
+    const vehicleType = watch("vehicle_type");
+    if (vehicleType && vehicleType !== prevVehicleTypeRef.current) {
+      prevVehicleTypeRef.current = vehicleType;
+      setSelectedProductTypeId(vehicleType);
+
+      // Fetch categories and brands for new type
+      Promise.all([
+        getCategoriesByType(vehicleType),
+        getBrandByType(vehicleType)
+      ]).then(([cats, brands]) => {
+        setCategoryOptions(Array.isArray(cats.data) ? cats.data : []);
+        setBrandOptions(Array.isArray(brands.data) ? brands.data : []);
+        // Clear dependent selections
+        setValue("category", "");
+        setValue("brand", "");
+        setValue("model", []);
+        setValue("variant", []);
+      }).catch((error) => {
+        console.error("Failed to fetch categories and brands:", error);
+        showToast("Failed to load options for selected vehicle type", "error");
+      });
     }
-  }, [product, brandOptions.length]);
+  }, [selectedProductTypeId, showToast]); // Removed watch and setValue from deps
 
-  // Prepopulate dependent dropdowns in correct order after product data loads
-
-  // Ensure vehicle_type is set when both product and typeOptions are available
+  // When user changes category → fetch subcategories and dealers
   useEffect(() => {
-    if (product && typeOptions.length > 0 && product.brand?.type) {
-      // Find the matching vehicle type in typeOptions
-      const selectedTypeObj = typeOptions.find(
-        (t) => t._id === product.brand?.type?._id
-      );
+    const category = watch("category");
+    if (category && category !== prevCategoryRef.current) {
+      prevCategoryRef.current = category;
+      setSelectedCategoryId(category);
 
-      if (selectedTypeObj) {
-        setValue("vehicle_type", selectedTypeObj._id);
-        setSelectedProductTypeId(selectedTypeObj._id);
+      Promise.all([
+        getSubcategoriesByCategoryId(category),
+        fetchDealersByCategory(category)
+      ]).then(([subCats, dealers]) => {
+        setSubCategoryOptions(Array.isArray(subCats.data) ? subCats.data : []);
+        // Dealers already handled by fetchDealersByCategory
+      }).catch((error) => {
+        console.error("Failed to fetch subcategories and dealers:", error);
+        showToast("Failed to load options for selected category", "error");
+      });
+    }
+  }, [selectedCategoryId, showToast]); // Removed watch and setValue from deps
+
+  // When user changes brand → fetch models
+  useEffect(() => {
+    const brand = watch("brand");
+    if (brand && brand !== prevBrandRef.current) {
+      prevBrandRef.current = brand;
+      setSelectedBrandId(brand);
+      setIsLoadingBrands(true);
+
+      getModelByBrand(brand)
+        .then((response) => {
+          setModelOptions(Array.isArray(response.data) ? response.data : []);
+          // Clear dependent selections
+          setValue("model", []);
+          setValue("variant", []);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch models:", error);
+          showToast("Failed to load models for selected brand", "error");
+        })
+        .finally(() => {
+          setIsLoadingBrands(false);
+        });
+    }
+  }, [selectedbrandId, showToast]); // Removed watch and setValue from deps
+
+  // When user changes models → fetch variants
+  useEffect(() => {
+    const models = watch("model");
+    if (Array.isArray(models) && models.length > 0) {
+      const modelIds = models.filter(id => id && id.trim() !== "");
+
+      if (modelIds.length > 0 && JSON.stringify(modelIds) !== JSON.stringify(prevModelRef.current)) {
+        prevModelRef.current = modelIds;
+        setModelId(modelIds);
+
+        getVariantsByModelIds(modelIds)
+          .then((response) => {
+            setVarientOptions(Array.isArray(response.data) ? response.data : []);
+            // Clear variant selection when models change
+            setValue("variant", []);
+          })
+          .catch((error) => {
+            console.error("Failed to fetch variants:", error);
+            showToast("Failed to load variants for selected models", "error");
+          });
+      }
+    } else if (models === undefined || models.length === 0) {
+      if (prevModelRef.current.length > 0) {
+        prevModelRef.current = [];
+        setVarientOptions([]);
+        setModelId([]);
       }
     }
-  }, [product, typeOptions, setValue]);
+  }, [modelId, showToast]); // Removed watch and setValue from deps
 
-  useEffect(() => {
-    // Brand - Set immediately when product loads, then update when options are available
-    if (product && product.brand) {
-      if (brandOptions.length > 0) {
-        // Options are loaded, find and set the correct brand
-        const selectedBrandObj = brandOptions.find(
-          (b) =>
-            b.brand_name === product.brand?.brand_name ||
-            b._id === product.brand?._id
-        );
-        if (selectedBrandObj) {
-          setSelectedBrandId(selectedBrandObj._id);
-          setValue("brand", selectedBrandObj._id);
-        }
-      } else {
-        // Options not loaded yet, set the brand ID directly
-        setSelectedBrandId(product.brand._id);
-        setValue("brand", product.brand._id);
-      }
-    }
-  }, [product, brandOptions, setValue]);
 
-  useEffect(() => {
-    // Model
-    if (product && modelOptions.length > 0 && product.model) {
-      const selectedModelObj = modelOptions.find(
-        (m) =>
-          m.model_name === product.model?.model_name ||
-          m._id === product.model?._id
-      );
-      if (selectedModelObj) {
-        setModelId(selectedModelObj._id);
-        setValue("model", selectedModelObj._id); // Set ID, not name
-      }
-    }
-  }, [product, modelOptions, setValue]);
 
-  useEffect(() => {
-    // Variant
-    if (
-      product &&
-      varientOptions.length > 0 &&
-      product.variant &&
-      product.variant.length > 0
-    ) {
-      const selectedVariantObj = varientOptions.find(
-        (v) =>
-          v.variant_name === product.variant?.[0]?.variant_name ||
-          v._id === product.variant?.[0]?._id
-      );
-      if (selectedVariantObj) {
-        setValue("variant", selectedVariantObj._id); // Set ID, not name
-      }
-    }
-  }, [product, varientOptions, setValue]);
 
-  useEffect(() => {
-    // Year Range
-    if (
-      product &&
-      yearRangeOptions.length > 0 &&
-      product.year_range &&
-      product.year_range.length > 0
-    ) {
-      const selectedYearObj = yearRangeOptions.find(
-        (y) =>
-          y.year_name === product.year_range?.[0]?.year_name ||
-          y._id === product.year_range?.[0]?._id
-      );
-      if (selectedYearObj) {
-        setValue("year_range", selectedYearObj._id); // Set ID for Select component
-      }
-    }
-  }, [product, yearRangeOptions, setValue]);
 
   const onSubmit = async (data: FormValues) => {
-    setApiError("");
     setIsSubmitting(true);
 
     if (typeof id.id === "string") {
@@ -792,7 +569,7 @@ export default function ProductEdit() {
         if (key !== "images" && key !== "dealerAssignments" && value != null) {
           if (key === "is_returnable") {
             formData.append(key, value ? "true" : "false");
-          }else if (Array.isArray(value)) {
+          } else if (Array.isArray(value)) {
             value.forEach((v) =>
               formData.append(
                 `${key}[]`,
@@ -827,24 +604,17 @@ export default function ProductEdit() {
       try {
         const response = await editProduct(id.id, formData);
         showToast("Product updated successfully", "success");
-        setApiError("");
         setTimeout(() => {
           router.push("/user/dashboard/product");
         }, 1500);
       } catch (error: any) {
         console.error("Failed to edit product:", error);
         showToast("Failed to update product", "error");
-        setApiError(
-          error.response?.data?.message ||
-            error.message ||
-            "Failed to update product"
-        );
       } finally {
         setIsSubmitting(false);
       }
     } else {
       showToast("Invalid product ID", "error");
-      setApiError("Product ID is missing or invalid.");
       setIsSubmitting(false);
     }
   };
@@ -923,26 +693,6 @@ export default function ProductEdit() {
                 </p>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* No. of Stock */}
-                {/* <div className="space-y-2">
-              <Label htmlFor="noOfStock" className="text-sm font-medium">
-                No. of Stock
-              </Label>
-              <Input
-                id="no_of_stock"
-                type="number"
-                step="1"
-                min="0"
-                placeholder="Enter No. of Stock"
-                className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                {...register("no_of_stock", { valueAsNumber: true })}
-              />
-              {errors.no_of_stock && (
-                <span className="text-red-500 text-sm">
-                  {errors.no_of_stock.message}
-                </span>
-              )}
-            </div> */}
                 {/* Product Name */}
                 <div className="space-y-2">
                   <Label htmlFor="productName" className="text-sm font-medium">
@@ -1002,6 +752,44 @@ export default function ProductEdit() {
                     </span>
                   )}
                 </div>
+                       {/* Vehicle Type */}
+                       <div className="space-y-2">
+                  <Label htmlFor="vehicle_type" className="text-sm font-medium">
+                    Vehicle Type
+                  </Label>
+                  <Select
+                    value={watch("vehicle_type") || ""}
+                    onValueChange={(value) => {
+                      setValue("vehicle_type", value);
+                      setSelectedProductTypeId(value);
+                    }}
+                  >
+                    <SelectTrigger
+                      id="vehicle_type"
+                      className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                    >
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {typeOptions.length === 0 ? (
+                        <SelectItem value="loading" disabled>
+                          Loading...
+                        </SelectItem>
+                      ) : (
+                        typeOptions.map((type) => (
+                          <SelectItem key={type._id} value={type._id}>
+                            {type.type_name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.vehicle_type && (
+                    <span className="text-red-500 text-sm">
+                      {errors.vehicle_type.message}
+                    </span>
+                  )}
+                </div>
                 {/* Category */}
                 <div className="space-y-2">
                   <Label htmlFor="category" className="text-sm font-medium">
@@ -1009,13 +797,22 @@ export default function ProductEdit() {
                   </Label>
                   <Select
                     value={watch("category") || ""}
-                    onValueChange={(value) => setValue("category", value)}
+                    onValueChange={(value) => {
+                      setValue("category", value);
+                      setSelectedCategoryId(value);
+                      setValue("sub_category", ""); // Reset subcategory when category changes
+                    } }
+                    disabled={!selectedProductTypeId}
                   >
                     <SelectTrigger
                       id="category"
                       className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                     >
-                      <SelectValue placeholder="Select" />
+                      <SelectValue placeholder={
+                        selectedProductTypeId
+                          ? "Select"
+                          : "Select vehicle type first"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {categoryOptions.length === 0 ? (
@@ -1088,7 +885,7 @@ export default function ProductEdit() {
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="OE">OE</SelectItem>
+                    
                       <SelectItem value="OEM">OEM</SelectItem>
                       <SelectItem value="AFTERMARKET">Aftermarket</SelectItem>
                     </SelectContent>
@@ -1099,44 +896,7 @@ export default function ProductEdit() {
                     </span>
                   )}
                 </div>
-                {/* Vehicle Type */}
-                <div className="space-y-2">
-                  <Label htmlFor="vehicle_type" className="text-sm font-medium">
-                    Vehicle Type
-                  </Label>
-                  <Select
-                    value={watch("vehicle_type") || ""}
-                    onValueChange={(value) => {
-                      setValue("vehicle_type", value);
-                      setSelectedProductTypeId(value);
-                    }}
-                  >
-                    <SelectTrigger
-                      id="vehicle_type"
-                      className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                    >
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {typeOptions.length === 0 ? (
-                        <SelectItem value="loading" disabled>
-                          Loading...
-                        </SelectItem>
-                      ) : (
-                        typeOptions.map((type) => (
-                          <SelectItem key={type._id} value={type._id}>
-                            {type.type_name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {errors.vehicle_type && (
-                    <span className="text-red-500 text-sm">
-                      {errors.vehicle_type.message}
-                    </span>
-                  )}
-                </div>
+         
               </CardContent>
             </Card>
             {/* Vehicle Compatibility */}
@@ -1217,38 +977,49 @@ export default function ProductEdit() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="model" className="text-sm font-medium">
-                    Model
+                    Model <span className="text-red-500">*</span>
                   </Label>
-                  <Select
-                    value={watch("model") || ""}
-                    onValueChange={(value) => {
-                      setValue("model", value);
 
-                      setModelId(value);
-                    }}
-                  >
-                    <SelectTrigger
-                      id="model"
-                      className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                    >
-                      <SelectValue placeholder="Select Brand first" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modelOptions.length === 0 ? (
-                        <SelectItem value="loading" disabled>
-                          {selectedbrandId
-                            ? "Loading..."
-                            : "Select Brand first"}
-                        </SelectItem>
-                      ) : (
-                        modelOptions.map((model) => (
-                          <SelectItem key={model._id} value={model._id}>
-                            {model.model_name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="border rounded-lg p-3 bg-gray-50 max-h-52 overflow-y-auto">
+                    {selectedbrandId && modelOptions.length === 0 ? (
+                      <p className="text-gray-500 text-sm">Loading models...</p>
+                    ) : modelOptions.length === 0 ? (
+                      <p className="text-gray-500 text-sm">
+                        Please select Brand first
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {modelOptions.map((option) => {
+                          const selected = Array.isArray(watch("model"))
+                            ? watch("model")
+                            : [];
+                          const isSelected = selected.includes(option._id);
+
+                          return (
+                            <button
+                              key={option._id}
+                              type="button"
+                              onClick={() => {
+                                const updated = isSelected
+                                  ? selected.filter((id) => id !== option._id)
+                                  : [...selected, option._id];
+                                setValue("model", updated);
+                                setModelId(updated);
+                              }}
+                              className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                                isSelected
+                                  ? "bg-red-500 text-white"
+                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                              }`}
+                            >
+                              {option.model_name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   {errors.model && (
                     <span className="text-red-500 text-sm">
                       {errors.model.message}
@@ -1258,32 +1029,48 @@ export default function ProductEdit() {
                 {/* Variant */}
                 <div className="space-y-2">
                   <Label htmlFor="variant" className="text-sm font-medium">
-                    Variant
+                    Variant <span className="text-red-500">*</span>
                   </Label>
-                  <Select
-                    value={watch("variant") || ""}
-                    onValueChange={(value) => setValue("variant", value)}
-                  >
-                    <SelectTrigger
-                      id="variant"
-                      className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                    >
-                      <SelectValue placeholder="Select Model first" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {varientOptions.length === 0 ? (
-                        <SelectItem value="loading" disabled>
-                          {modelId ? "Loading..." : "Select Model first"}
-                        </SelectItem>
-                      ) : (
-                        varientOptions.map((variant) => (
-                          <SelectItem key={variant._id} value={variant._id}>
-                            {variant.variant_name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+
+                  <div className="border rounded-lg p-3 bg-gray-50 max-h-52 overflow-y-auto">
+                    {varientOptions.length === 0 && modelId.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No variants found</p>
+                    ) : varientOptions.length === 0 ? (
+                      <p className="text-gray-500 text-sm">
+                        Please select model first
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {varientOptions.map((option) => {
+                          const selected = Array.isArray(watch("variant"))
+                            ? watch("variant")
+                            : [];
+                          const isSelected = selected.includes(option._id);
+
+                          return (
+                            <button
+                              key={option._id}
+                              type="button"
+                              onClick={() => {
+                                const updated = isSelected
+                                  ? selected.filter((id) => id !== option._id)
+                                  : [...selected, option._id];
+                                setValue("variant", updated);
+                              }}
+                              className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                                isSelected
+                                  ? "bg-red-500 text-white"
+                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                              }`}
+                            >
+                              {option.variant_name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   {errors.variant && (
                     <span className="text-red-500 text-sm">
                       {errors.variant.message}

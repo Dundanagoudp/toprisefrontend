@@ -283,7 +283,11 @@ export default function PendingProduct({
   const handleRejectSubmit = async (data: { reason: string }) => {
     if (!qcRejectTargetId) return;
     try {
-      await rejectSingleProduct(qcRejectTargetId, data.reason, auth?.user?._id);
+      await rejectSingleProduct({
+        productIds: [qcRejectTargetId],
+        reason: data.reason,
+        rejectedBy: auth?.user?._id || "",
+      });
       dispatch(updateProductQcStatus({ id: qcRejectTargetId, qcStatus: 'Rejected' }));
       showToast('Product rejected', 'success');
       await fetchProducts();

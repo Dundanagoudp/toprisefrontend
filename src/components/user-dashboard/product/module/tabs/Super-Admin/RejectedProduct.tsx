@@ -530,12 +530,12 @@ export default function RejectedProduct({
                         >
                           Approve
                         </DropdownMenuItem>
-                        <DropdownMenuItem
+                        {/* <DropdownMenuItem
                           onClick={() => handleLiveStatusChange(product._id, "Rejected")}
                           className="text-red-600 focus:text-red-600"
                         >
                           Reject
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
