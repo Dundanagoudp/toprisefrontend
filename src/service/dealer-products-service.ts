@@ -2,6 +2,7 @@ import apiClient from "@/apiClient";
 import { getDealerIdFromUserId } from "./dealerServices";
 import axios from "axios";
 import { getAuthToken } from "@/utils/auth";
+import { VehicleType } from "@/types/product-Types";
 export interface ProductPricing {
   mrp_with_gst: number;
   base_selling_price: number;
@@ -13,6 +14,7 @@ export interface ProductPricing {
 export interface ProductBrand {
   _id: string;
   brand_name: string;
+  type?: VehicleType;
 }
 
 export interface ProductCategory {
@@ -336,17 +338,40 @@ export function canViewField(
   if (!isEnabled) {
     return true;
   }
-  
+
   // If allowedFields is null or undefined, show all fields (no restrictions)
   if (!allowedFields) {
     return true;
   }
-  
+
   // If allowedFields is empty array, show all fields (no restrictions)
   if (allowedFields.length === 0) {
     return true;
   }
-  
+
   // Check if the field is in the allowed fields array
   return allowedFields.includes(fieldName);
+}
+
+// Update dealer product
+export async function updateDealerProduct(
+  productId: string,
+  data: FormData | any
+): Promise<DealerProduct> {
+  try {
+    const response = await apiClient.put(
+      `/category/products/v1/updateProduct/${productId}`,
+      data
+    );
+
+    if (response.data && response.data.success) {
+      console.log(`[updateDealerProduct] Successfully updated product: ${productId}`);
+      return response.data.data;
+    } else {
+      throw new Error("Invalid response from update product endpoint");
+    }
+  } catch (error) {
+    console.error("Error updating dealer product:", error);
+    throw error;
+  }
 }

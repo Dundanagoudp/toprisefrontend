@@ -7,6 +7,9 @@ interface ProductDetailsPageProps {
   };
 }
 
-export default function page({ params }: ProductDetailsPageProps) {
-  return <ProductDetailsWrapper productId={params.id} />
+export default async function page({ params }: ProductDetailsPageProps) {
+  const resolvedParams = await params;
+  const productId = typeof resolvedParams === 'string' ? JSON.parse(resolvedParams).id : resolvedParams.id;
+ 
+  return <ProductDetailsWrapper productId={productId} />
 }

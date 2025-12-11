@@ -1741,7 +1741,7 @@ export default function AddProducts() {
               )}
             </div> */}
             {/* Last Stock Update */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label
                 htmlFor="lastStockUpdate"
                 className="text-base font-medium font-sans"
@@ -1759,7 +1759,7 @@ export default function AddProducts() {
                   {errors.lastStockUpdate.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Admin Notes */}
             {/* <div className="space-y-2">
               <Label

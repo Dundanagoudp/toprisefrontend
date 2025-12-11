@@ -29,12 +29,14 @@ export const PRODUCT_FIELDS: ProductField[] = [
   { value: "sub_category", label: "Sub Category", category: PRODUCT_FIELD_CATEGORIES.BASIC_INFO },
   { value: "product_type", label: "Product Type", category: PRODUCT_FIELD_CATEGORIES.BASIC_INFO },
   { value: "is_consumable", label: "Is Consumable", category: PRODUCT_FIELD_CATEGORIES.BASIC_INFO },
+  { value: "vehicle_type", label: "Vehicle Type", category: PRODUCT_FIELD_CATEGORIES.BASIC_INFO },
   
   // Stock & Pricing
   { value: "mrp_with_gst", label: "MRP (with GST)", category: PRODUCT_FIELD_CATEGORIES.STOCK_PRICING },
   { value: "selling_price", label: "Selling Price", category: PRODUCT_FIELD_CATEGORIES.STOCK_PRICING },
   { value: "gst_percentage", label: "GST Percentage", category: PRODUCT_FIELD_CATEGORIES.STOCK_PRICING },
   { value: "hsn_code", label: "HSN Code", category: PRODUCT_FIELD_CATEGORIES.STOCK_PRICING },
+
   
   // Vehicle Compatibility
   { value: "is_universal", label: "Is Universal", category: PRODUCT_FIELD_CATEGORIES.VEHICLE_COMPATIBILITY },
