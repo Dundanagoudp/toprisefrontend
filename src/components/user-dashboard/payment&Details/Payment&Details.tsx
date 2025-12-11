@@ -512,24 +512,6 @@ export default function PaymentDetails() {
                   </TableHead>
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-              
-                  >
-                    <div className="flex items-center gap-1">
-                      Payment ID
-                 
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
-                   
-                  >
-                    <div className="flex items-center gap-1">
-                      Razorpay Order ID
-                    
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
                
                   >
                     <div className="flex items-center gap-1">
@@ -601,12 +583,6 @@ export default function PaymentDetails() {
                           <Skeleton className="h-4 w-1/2" />
                         </TableCell>
                         <TableCell className="px-6 py-4">
-                          <Skeleton className="h-4 w-3/4" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
-                          <Skeleton className="h-4 w-1/2" />
-                        </TableCell>
-                        <TableCell className="px-6 py-4">
                           <Skeleton className="h-6 w-16 rounded" />
                         </TableCell>
                         <TableCell className="px-6 py-4">
@@ -632,12 +608,6 @@ export default function PaymentDetails() {
                         >
                           <Checkbox />
                         </TableCell>
-                        <TableCell className="px-6 py-4 font-medium">
-                          {payment.payment_id || 'N/A'}
-                        </TableCell>
-                        <TableCell className="px-6 py-4 font-medium">
-                          {payment.razorpay_order_id}
-                        </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000] font-sans">
                           {new Date(payment.created_at).toLocaleDateString()}
                         </TableCell>
@@ -655,7 +625,16 @@ export default function PaymentDetails() {
                           </span>
                         </TableCell>
                         <TableCell className="px-6 py-4 font-medium">
-                          {payment.orderDetails?.orderId || payment.order_id?.orderId || 'N/A'}
+                          <div>
+                            {payment.orderDetails?.orderId || payment.order_id?.orderId || 'N/A'}
+                            {payment.payment_method?.toLowerCase() !== "cod" && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {payment.payment_id && `Payment ID: ${payment.payment_id}`}
+                                {payment.payment_id && payment.razorpay_order_id && " | "}
+                                {payment.razorpay_order_id && `Razorpay: ${payment.razorpay_order_id}`}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="px-6 py-4 font-semibold text-[#000000]">
                           ₹{payment.orderDetails?.order_Amount?.toLocaleString() || payment.order_id?.order_Amount?.toLocaleString() || 'N/A'}

@@ -401,7 +401,7 @@ export default function DealerProductEdit() {
       // Use setTimeout to ensure dependent dropdowns are loaded first
       const populateForm = () => {
         reset({
-        sku_code: product.sku_code || "",
+        // sku_code: product.sku_code || "",
         manufacturer_part_name: product.manufacturer_part_name || "",
         product_name: product.product_name || "",
         brand: product.brand?._id || "",
@@ -409,7 +409,7 @@ export default function DealerProductEdit() {
         category: product.category?._id || "",
         sub_category: product.sub_category?._id || "",
         product_type: product.product_type || "",
-        no_of_stock: product.no_of_stock,
+        // no_of_stock: product.no_of_stock,
         selling_price: product.selling_price,
         updatedBy: product.updated_at || "",
         admin_notes: product.admin_notes || "",
@@ -436,7 +436,7 @@ export default function DealerProductEdit() {
         mrp_with_gst: product.mrp_with_gst ? Number(product.mrp_with_gst) : undefined,
         gst_percentage: product.gst_percentage ? Number(product.gst_percentage) : undefined,
         is_returnable: typeof product.is_returnable === "boolean" ? product.is_returnable : product.is_returnable === "yes",
-        return_policy: product.return_policy || "",
+        // return_policy: product.return_policy || "",
         availableDealers: "",
         quantityPerDealer: "",
         dealerMargin: (product as any).dealer_margin?.toString() || 
@@ -1098,7 +1098,7 @@ export default function DealerProductEdit() {
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OE">OE</SelectItem>
+                 
                   <SelectItem value="OEM">OEM</SelectItem>
                   <SelectItem value="AfterMarket">Aftermarket</SelectItem>
                 </SelectContent>

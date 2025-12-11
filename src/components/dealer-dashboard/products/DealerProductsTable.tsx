@@ -121,9 +121,9 @@ const ProductTableRow = ({ product, onViewDetails, onUpdateStock }: ProductTable
       </TableCell>
       <TableCell>
         <div className="space-y-1">
-          <div className="text-sm font-medium">{product.model.model_name}</div>
+          <div className="text-sm font-medium">{product.brand.brand_name}</div>
           <div className="text-xs text-gray-600">
-            {product.variant.map(v => v.variant_name).join(', ')}
+            {product.model.model_name}
           </div>
         </div>
       </TableCell>

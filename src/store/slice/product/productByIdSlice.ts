@@ -1,13 +1,15 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { Product } from "@/types/product-Types";
+import { fetchProductByIdThunk } from "./productByIdThunks";
 
 interface ProductState {
-  products: any[];
+  product: Product | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: ProductState = {
-  products: [],
+  product: null,
   loading: false,
   error: null,
 };
@@ -16,27 +18,36 @@ const productByIdSlice = createSlice({
   name: "productById",
   initialState,
   reducers: {
-    fetchProductByIdRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-    },
-    fetchProductByIdSuccess: (state, action) => {
-      state.products = action.payload;
+    clearProduct: (state) => {
+      state.product = null;
       state.loading = false;
       state.error = null;
     },
-    fetchProductByIdFailure: (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchProductByIdThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchProductByIdThunk.fulfilled, (state, action) => {
+        state.product = action.payload;
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(fetchProductByIdThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch product";
+      });
   },
 });
 
-export const {
-  fetchProductByIdRequest,
-  fetchProductByIdSuccess,
-  fetchProductByIdFailure,
-} = productByIdSlice.actions;
+export const { clearProduct } = productByIdSlice.actions;
+
+// Selectors
+export const selectCurrentProduct = (state: any) => state.productById.product;
+export const selectProductLoading = (state: any) => state.productById.loading;
+export const selectProductError = (state: any) => state.productById.error;
 
 export default productByIdSlice.reducer;
 

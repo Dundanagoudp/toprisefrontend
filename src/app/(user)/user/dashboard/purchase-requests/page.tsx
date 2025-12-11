@@ -253,7 +253,7 @@ export default function PurchaseRequestsPage() {
         })
         
         setPurchaseRequests(sortedData)
-        console.log("Purchase requests:", sortedData)
+        // console.log("Purchase requests:", sortedData)
         setPagination(response.data.data.pagination)
       } else {
         showToast("Failed to fetch purchase requests", "error")
@@ -336,7 +336,7 @@ export default function PurchaseRequestsPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    console.log("Getting status badge for:", status)
+    // console.log("Getting status badge for:", status)
     const statusLower = status.toLowerCase()
     
     if (statusLower.includes("pending-review")) {

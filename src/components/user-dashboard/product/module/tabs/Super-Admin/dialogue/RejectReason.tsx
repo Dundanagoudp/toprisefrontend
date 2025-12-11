@@ -17,6 +17,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rejectBulkProducts, rejectProduct } from "@/service/product-Service";
 import { updateProductLiveStatus } from "@/store/slice/product/productLiveStatusSlice";
+import { RejectBulkProductsPayload } from "@/types/product-Types";
 
 const rejectReasonSchema = z.object({
   reason: z.string().min(1, "Reason is required"),
@@ -32,6 +33,7 @@ interface RejectReasonProps {
 export default function RejectReason({ isOpen, onClose, onSubmit }: RejectReasonProps) {
   const { showToast } = useGlobalToast();
   const auth = useAppSelector((state) => state.auth);
+  const userId = useAppSelector((state) => state.auth.user._id);
   const selectedProducts = useAppSelector(
     (state) => state.productIdForBulkAction.products
   );
@@ -61,11 +63,13 @@ export default function RejectReason({ isOpen, onClose, onSubmit }: RejectReason
         // Check if this is bulk rejection (from product list) or single product rejection (from details page)
         if (productIds.length > 0) {
           // Bulk rejection mode
-          const payload: any = {
-            reason: data.reason,
-            rejectedBy: auth.user._id,
-            productIds: Object.values(selectedProducts),
+          const payload: RejectBulkProductsPayload = {
+            productIds: productIds,
+            reason: typeof data.reason === 'string' ? data.reason : '',
+            rejectedBy: typeof userId === 'string' ? userId : '',
           };
+          console.log("Payload:", payload);
+          
           
           await rejectBulkProducts(payload);
           productIds.forEach((id) => {
