@@ -34,7 +34,7 @@ export interface Product {
   is_universal: boolean;
   is_consumable: boolean;
   make: string[];
-  model: Model;
+  model: Model[];
   year_range: YearRange[];
   variant: Variant[];
   fitment_notes: string;
@@ -180,5 +180,11 @@ export interface SubCategoryResponse {
   message: string;
   data: SubCategory[];
 }
+export interface RejectBulkProductsPayload {
+  productIds: string[];
+  reason: string;
+  rejectedBy: string;
+}
+
 
 export type AddProductPayload = Omit<Product, '_id' | 'created_at' | 'updated_at' | 'Qc_status' | 'available_dealers' | 'brand' | 'category' | 'sub_category' | 'model' | 'year_range' | 'variant' | 'created_by' | 'iteration_number' | 'last_stock_inquired' | 'rejection_state' | 'change_logs' | '__v'>;

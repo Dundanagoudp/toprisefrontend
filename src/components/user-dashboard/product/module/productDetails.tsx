@@ -22,11 +22,8 @@ import {
 import { getAppUserById } from "@/service/user-service";
 import DynamicButton from "../../../common/button/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  fetchProductByIdSuccess,
-  fetchProductByIdRequest,
-  fetchProductByIdFailure,
-} from "@/store/slice/product/productByIdSlice";
+import { selectCurrentProduct, selectProductLoading, selectProductError } from "@/store/slice/product/productByIdSlice";
+import { fetchProductByIdThunk } from "@/store/slice/product/productByIdThunks";
 import RejectReason from "./tabs/Super-Admin/dialogue/RejectReason";
 import { useToast as GlobalToast } from "@/components/ui/toast";
 import SuperAdminDealersModal from "./SuperAdminDealersModal";
@@ -41,8 +38,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function ViewProductDetails() {
   const { showToast } = GlobalToast();
   const [status, setStatus] = React.useState<string>("Created");
-  const [product, setProduct] = React.useState<Product | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
   const [isEditLoading, setIsEditLoading] = React.useState<boolean>(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [showDealersModal, setShowDealersModal] = React.useState(false);
@@ -55,6 +50,11 @@ export default function ViewProductDetails() {
   const id = useParams<{ id: string }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
+
+  // Redux state for product
+  const product = useAppSelector(selectCurrentProduct);
+  const loading = useAppSelector(selectProductLoading);
+  const productError = useAppSelector(selectProductError);
 
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
 
@@ -224,29 +224,16 @@ export default function ViewProductDetails() {
 
   // Function to refresh product data
   const fetchProductData = async () => {
-    dispatch(fetchProductByIdRequest());
     try {
-      const response = await getProductById(id.id);
-      console.log("Product data response:", response);
-      const data = response.data;
-      console.log("Product data:", data);
+      await dispatch(fetchProductByIdThunk(id.id as string)).unwrap();
 
-      // Cleaned up the array check
-      const prod: Product | null = Array.isArray(data)
-        ? data[0]
-        : (data as Product);
-
-      setProduct(prod);
-      console.log("Product data:", prod);
-      dispatch(fetchProductByIdSuccess(prod));
-
-      if (prod?.live_status) {
-        setStatus(prod.live_status);
+      if (product?.live_status) {
+        setStatus(product.live_status);
       }
-
+      console.log("Product data:", product);
       // Fetch user names for change logs
-      if (prod?.change_logs && Array.isArray(prod.change_logs)) {
-        const userIds = prod.change_logs
+      if (product?.change_logs && Array.isArray(product.change_logs)) {
+        const userIds = product.change_logs
           .map((log: any) => log.modified_by)
           .filter((id: string) => id && !userNamesMap[id]);
         if (userIds.length > 0) {
@@ -254,14 +241,23 @@ export default function ViewProductDetails() {
         }
       }
     } catch (error) {
-      console.error(error);
-      dispatch(fetchProductByIdFailure(error as string));
+      console.error("Failed to fetch product data:", error);
+      showToast("Failed to load product details", "error");
     }
   };
 
   React.useEffect(() => {
-    fetchProductData();
+    if (id.id) {
+      fetchProductData();
+    }
   }, [id.id]);
+
+  // Set status when product loads
+  React.useEffect(() => {
+    if (product?.live_status) {
+      setStatus(product.live_status);
+    }
+  }, [product]);
 
   // Function to handle product rejection
   const handleRejectProduct = async (data: { reason: string }) => {
@@ -405,7 +401,10 @@ export default function ViewProductDetails() {
                       ? product.make.join(", ")
                       : "-",
                   },
-                  { label: "Model", value: product.model?.model_name || "-" },
+                  { label: "Model", value: Array.isArray(product.model)
+                    ? product.model.map((m) => m.model_name).join(", ")
+                    : "-",
+                  },
                   {
                     label: "Year Range",
                     value: Array.isArray(product.year_range)

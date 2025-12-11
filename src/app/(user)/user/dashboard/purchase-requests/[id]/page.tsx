@@ -32,7 +32,7 @@ export default function PurchaseRequestDetailsPage() {
         setError(null)
         const res = await apiClient.get(`/orders/api/documents/${id}`)
         const data = res?.data?.data
-        console.log("Purchase request details:", data)
+        // console.log("Purchase request details:", data)
         setRequest(data || null)
       } catch (e: any) {
         setError(e?.response?.data?.message || "Failed to load purchase request")

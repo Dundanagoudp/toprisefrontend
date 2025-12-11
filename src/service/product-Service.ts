@@ -1,7 +1,7 @@
 import { ProductResponse, SubCategoryResponse } from "@/types/product-Types";
 import { ApiResponse } from "@/types/apiReponses-Types";
 import { BrandsApiResponse } from "@/types/catalogue-types";
-import type { Category as ProductCategory } from "@/types/product-Types";
+import type { Category as ProductCategory, RejectBulkProductsPayload } from "@/types/product-Types";
 import apiClient from "@/apiClient";
 
 
@@ -469,7 +469,7 @@ export async function deactivateBulkProducts(
   }
 }
 export async function rejectBulkProducts(
-  data: string | any
+  data: RejectBulkProductsPayload
 ): Promise<ProductResponse> {
   try {
     const response = await apiClient.patch(
@@ -543,7 +543,16 @@ export async function getCategories(): Promise<ApiResponse<ProductCategory[]>> {
     throw error;
   }
 }
-
+//Categories by Types
+export async function getCategoriesByType(typeId: string): Promise<ApiResponse<ProductCategory[]>> {
+  try {
+    const response = await apiClient.get(`/category/api/category/get/categories/by/type/${typeId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch categories by type:", error);
+    throw error;
+  }
+}
 
 export async function getBrand(): Promise<ProductResponse> {
   try {
@@ -555,27 +564,27 @@ export async function getBrand(): Promise<ProductResponse> {
   }
 }
 
-export async function getCategoriesByType(
-  typeId: string,
-  mainCategory?: boolean
-): Promise<ApiResponse<ProductCategory[]>> {
-  try {
-    const params: Record<string, string | boolean> = { type: typeId };
+// export async function getCategoriesByType(
+//   typeId: string,
+//   mainCategory?: boolean
+// ): Promise<ApiResponse<ProductCategory[]>> {
+//   try {
+//     const params: Record<string, string | boolean> = { type: typeId };
 
-    // only include main_category when caller supplies it
-    if (typeof mainCategory !== "undefined") {
-      params.main_category = mainCategory;
-    }
+//     // only include main_category when caller supplies it
+//     if (typeof mainCategory !== "undefined") {
+//       params.main_category = mainCategory;
+//     }
 
-    const response = await apiClient.get(`/category/api/category/application`, {
-      params,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Failed to fetch categories by type:", error);
-    throw error;
-  }
-}
+//     const response = await apiClient.get(`/category/api/category/application`, {
+//       params,
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error("Failed to fetch categories by type:", error);
+//     throw error;
+//   }
+// }
 
 export async function createCategory(data: FormData): Promise<any> {
   try {
@@ -810,6 +819,21 @@ export async function getvarientByModel(id: string): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch varients:", error);
+    throw error;
+  }
+}
+
+// get multiple varient by multiple model ids
+export async function getVariantsByModelIds(ids: string[]): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(`/category/variants/get/variants/byModelIds`, {
+      modelIds: ids
+    });
+    return response.data;
+  }
+
+catch(error) {
+    console.error("Failed to fetch varients by model ids:", error);
     throw error;
   }
 }

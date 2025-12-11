@@ -52,34 +52,42 @@ export default function DealerProdutView() {
   };
   React.useEffect(() => {
     const fetchProducts = async () => {
+        if (!id) return; // Add null check for id
+        
         dispatch(fetchProductByIdRequest());
-      try {
-        const response = await getProductById(id.id);
-        // response is ProductResponse, which has data: Product[]
-        const data = response.data;
-        let prod: Product | null = null;
-        if (Array.isArray(data) && data.length > 0) {
-          prod = data[0];
-        } else if (
-          typeof data === "object" &&
-          data !== null &&
-          !Array.isArray(data)
-        ) {
-          prod = data as Product ;
+        try {
+            const response = await getProductById(id.id as string); // Use id directly, not id.id
+            console.log("Product data response:", response);
+            
+            // response is ProductResponse, which has data: Product[]
+            const data = response.data;
+            let prod: Product | null = null;
+            
+            if (Array.isArray(data) && data.length > 0) {
+                prod = data[0];
+            } else if (
+                typeof data === "object" &&
+                data !== null &&
+                !Array.isArray(data)
+            ) {
+                prod = data as unknown as Product;
+            }
+            
+            setProduct(prod);
+            dispatch(fetchProductByIdSuccess(prod));
+            
+            // Add null check before accessing live_status
+            if (prod && prod.live_status) {
+                setStatus(prod.live_status);
+            }
+        } catch (error) {
+            console.error("getProducts API error:", error);
+            dispatch(fetchProductByIdFailure(error as string));
         }
-        setProduct(prod);
-        dispatch(fetchProductByIdSuccess(prod));
-        if (prod && prod.live_status) {
-          setStatus(prod.live_status);
-        }
-        console.log("getProducts API response:", response);
-      } catch (error) {
-        console.error("getProducts API error:", error);
-        dispatch(fetchProductByIdFailure(error as string));
-      }
     };
+    
     fetchProducts();
-  }, []);
+}, [id]); // Add id to dependency array
 
   // Update status if product changes
   React.useEffect(() => {
@@ -97,9 +105,9 @@ export default function DealerProdutView() {
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">
               Product Overview
             </h1>
-            <p className="text-base font-medium font-sans text-gray-500">
-              Add your product description
-            </p>
+            {/* <p className="text-base font-medium font-sans text-gray-500">
+                
+            </p> */}
           </div>
           <div className="flex items-center gap-3">
             <DynamicButton
@@ -171,7 +179,14 @@ export default function DealerProdutView() {
                         ? product.make.join(", ")
                         : "-",
                     },
-                    { label: "Model", value: product.model?.model_name || "-" },
+                    { label: "Model",
+                      value: (() => {
+                        console.log("Product model:", product.model);
+                        return Array.isArray(product.model)
+                          ? product.model.map((m) => m.model_name).join(", ")
+                          : "-";
+                      })(),
+                    },
                     {
                       label: "Year Range",
                       value: Array.isArray(product.year_range)

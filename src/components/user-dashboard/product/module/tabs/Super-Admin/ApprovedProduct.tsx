@@ -401,7 +401,11 @@ export default function ApprovedProduct({
   const handleRejectSubmit = async (data: { reason: string }) => {
     if (!qcRejectTargetId) return;
     try {
-      await rejectSingleProduct(qcRejectTargetId, data.reason, auth?.user?._id);
+      await rejectSingleProduct({
+        productIds: [qcRejectTargetId],
+        reason: data.reason,
+        rejectedBy: auth?.user?._id || "",
+      });
       dispatch(
         updateProductQcStatus({ id: qcRejectTargetId, qcStatus: "Rejected" })
       );
@@ -710,28 +714,13 @@ export default function ApprovedProduct({
                             <ChevronDown className="h-4 w-4 ml-2" />
                           </Button>
                         </DropdownMenuTrigger>
+
                         <DropdownMenuContent
                           align="start"
                           className="min-w-[120px]"
                         >
                           <DropdownMenuItem
-                            onClick={() =>
-                              handleQcStatusChange(product._id, "Approved")
-                            }
-                            className="text-green-600 focus:text-green-600"
-                          >
-                            Approve
-                          </DropdownMenuItem>
-                          {/* <DropdownMenuItem
-                            onClick={() => handleQcStatusChange(product._id, "Pending")}
-                            className="text-yellow-600 focus:text-yellow-600"
-                          >
-                            Pending
-                          </DropdownMenuItem> */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleQcStatusChange(product._id, "Rejected")
-                            }
+                            onClick={() => handleQcStatusChange(product._id, "Rejected")}
                             className="text-red-600 focus:text-red-600"
                           >
                             Reject
@@ -756,14 +745,14 @@ export default function ApprovedProduct({
                           align="start"
                           className="min-w-[120px]"
                         >
-                          <DropdownMenuItem
+                          {/* <DropdownMenuItem
                             onClick={() =>
                               handleLiveStatusChange(product._id, "Approved")
                             }
                             className="text-green-600 focus:text-green-600"
                           >
                             Approve
-                          </DropdownMenuItem>
+                          </DropdownMenuItem> */}
                           <DropdownMenuItem
                             onClick={() =>
                               handleLiveStatusChange(product._id, "Rejected")

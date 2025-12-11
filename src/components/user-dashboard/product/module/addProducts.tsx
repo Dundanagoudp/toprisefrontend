@@ -26,15 +26,17 @@ import {
   addProduct,
   getBrandByType,
   getCategories,
+  getCategoriesByType,
   getModelByBrand,
   getModels,
   getSubCategories,
   getSubcategoriesByCategoryId,
   getTypes,
+  getVariantsByModelIds,
   getvarientByModel,
   getYearRange,
 } from "@/service/product-Service";
-import { getAllDealers } from "@/service/dealerServices";
+import { getDealersByCategory } from "@/service/dealerServices";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
@@ -50,8 +52,17 @@ const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     e.key !== "Delete" &&
     e.key !== "ArrowLeft" &&
     e.key !== "ArrowRight" &&
-    e.key !== "Tab"
+    e.key !== "Tab" &&
+    e.key !== "," // Explicitly prevent comma
   ) {
+    e.preventDefault();
+  }
+};
+
+// Helper function to prevent comma in paste operations
+const handleNumericPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+  const paste = e.clipboardData.getData('text');
+  if (paste.includes(',')) {
     e.preventDefault();
   }
 };
@@ -76,12 +87,12 @@ const schema = z.object({
   updatedBy: z.string().optional(),
   admin_notes: z.string().optional(),
   // Vehicle Compatibility
-  // make: z.string().min(1, "Make is required"),
+  make: z.string().min(1, "Make is required"),
   // make2: z.string().optional(),
-  model: z.string().min(1, "Model is required"),
+  model: z.array(z.string()).min(1, "Model is required"),
   year_range: z.array(z.string()).optional(),
 
-  variant: z.string().min(1, "Variant is required"),
+  variant: z.array(z.string()).min(1, "At least one variant is required"),
   fitment_notes: z.string().optional(),
   is_universal: z.boolean().optional(),
   is_consumable: z.boolean().optional(),
@@ -95,7 +106,7 @@ const schema = z.object({
   warranty: z.number().optional(),
   // Media & Documentation
   images: z.string().optional(), // Assuming string for now, could be FileList later
-  videoUrl: z.string().optional(),
+  // videoUrl: z.string().optional(),
   // Pricing details
   mrp_with_gst: z.number().min(1, "MRP is required"),
   gst_percentage: z.number().min(1, "GST is required"),
@@ -117,8 +128,6 @@ const schema = z.object({
     .optional(),
   quantityPerDealer: z.string().optional(),
   dealerMargin: z.number().optional(),
-  dealerPriorityOverride: z.string().optional(),
-  stockExpiryRule: z.string().optional(),
   lastStockUpdate: z.string().optional(),
   LastinquiredAt: z.string().optional(),
   // Status, Audit & Metadata
@@ -152,7 +161,7 @@ export default function AddProducts() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
-  const [modelId, setModelId] = useState<string>("");
+  const [modelId, setModelId] = useState<string[]>([]);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -165,6 +174,7 @@ export default function AddProducts() {
       priority?: number;
     }>
   >([]);
+  const [loadingDealers, setLoadingDealers] = useState(false);
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
 
   const {
@@ -189,36 +199,25 @@ export default function AddProducts() {
     const fetchInitialData = async () => {
       try {
         // console.log("Starting to fetch initial data...");
-        const [categories, subCategories, types, yearRanges, dealers] =
-          await Promise.all([
-            getCategories(),
-            getSubCategories(),
-            getTypes(),
-            getYearRange(),
-            getAllDealers(),
-          ]);
+        const [types, yearRanges] = await Promise.all([
+          getTypes(),
+          getYearRange(),
+        ]);
 
         // Check if the response structure is correct and handle different structures
-        const categoryData = categories?.data || categories || [];
-        const subCategoryData =
-          subCategories?.data ||
-          subCategories ||
-          [];
+
         const typeData = types?.data?.products || types?.data || types || [];
         const yearRangeData =
           yearRanges?.data?.products || yearRanges?.data || yearRanges || [];
-        const dealerData = dealers?.data || dealers || [];
 
-        setCategoryOptions(Array.isArray(categoryData) ? categoryData : []);
         // setSubCategoryOptions(Array.isArray(subCategoryData) ? subCategoryData : []); // Don't set all subcategories initially
         setTypeOptions(Array.isArray(typeData) ? typeData : []);
         setYearRangeOptions(Array.isArray(yearRangeData) ? yearRangeData : []);
-        setDealerOptions(Array.isArray(dealerData) ? dealerData : []);
+        // Don't set dealerOptions here - will be fetched based on category
       } catch (error) {
         console.error("Failed to fetch initial data in parallel:", error);
         // Set empty arrays as fallback
-        setCategoryOptions([]);
-        setSubCategoryOptions([]);
+
         setTypeOptions([]);
         setYearRangeOptions([]);
         setDealerOptions([]);
@@ -230,7 +229,25 @@ export default function AddProducts() {
     };
     fetchInitialData();
   }, []);
-
+  // Fetch Categories by Types
+  useEffect(() => {
+    if (!selectedProductTypeId) {
+      setCategoryOptions([]); // Clear if no category selected
+      return;
+    }
+    const fetchCategoriesByType = async () => {
+      try {
+        const response = await getCategoriesByType(selectedProductTypeId);
+        const categoryData = response?.data || response || [];
+        setCategoryOptions(Array.isArray(categoryData) ? categoryData : []);
+      } catch (error) {
+        console.error("Failed to fetch categories by type:", error);
+        setCategoryOptions([]);
+        showToast("Failed to load categories for selected type", "error");
+      }
+    };
+    fetchCategoriesByType();
+  }, [selectedProductTypeId]);
   // Fetch subcategories when category changes
   useEffect(() => {
     if (!selectedCategoryId) {
@@ -239,23 +256,48 @@ export default function AddProducts() {
     }
     const fetchSubCategoriesByCategory = async () => {
       try {
-        console.log("Fetching subcategories for category ID:", selectedCategoryId);
         const response = await getSubcategoriesByCategoryId(selectedCategoryId);
-        console.log("Subcategories response:", response);
 
         // Handle different response structures
         const subCategoryData =
           response?.data?.products || response?.data || response || [];
-        console.log("Processed subcategory data:", subCategoryData);
 
-        setSubCategoryOptions(Array.isArray(subCategoryData) ? subCategoryData : []);
+        setSubCategoryOptions(
+          Array.isArray(subCategoryData) ? subCategoryData : []
+        );
       } catch (error) {
         console.error("Failed to fetch subcategories by category:", error);
         setSubCategoryOptions([]);
-        showToast("Failed to load subcategories for selected category", "error");
+        showToast(
+          "Failed to load subcategories for selected category",
+          "error"
+        );
       }
     };
     fetchSubCategoriesByCategory();
+  }, [selectedCategoryId]);
+
+  // Fetch dealers when category changes
+  useEffect(() => {
+    if (!selectedCategoryId) {
+      setDealerOptions([]);
+      return;
+    }
+    const fetchDealersByCategory = async () => {
+      try {
+        setLoadingDealers(true);
+        const response = await getDealersByCategory(selectedCategoryId);
+        const dealerData = response?.data || response || [];
+        setDealerOptions(Array.isArray(dealerData) ? dealerData : []);
+      } catch (error) {
+        console.error("Failed to fetch dealers by category:", error);
+        setDealerOptions([]);
+        showToast("Failed to load dealers for selected category", "error");
+      } finally {
+        setLoadingDealers(false);
+      }
+    };
+    fetchDealersByCategory();
   }, [selectedCategoryId]);
 
   // Model options (fetch brands by type)
@@ -266,9 +308,7 @@ export default function AddProducts() {
     }
     const fetchBrandsByType = async () => {
       try {
-        console.log("Fetching brands for type ID:", selectedProductTypeId);
         const response = await getBrandByType(selectedProductTypeId);
-        console.log("Brands response:", response);
 
         // Handle different response structures
         const brandData =
@@ -314,15 +354,15 @@ export default function AddProducts() {
 
   // Fetch variants by model
   useEffect(() => {
-    if (!modelId) {
+    if (!modelId || !Array.isArray(modelId)) {
       setVarientOptions([]);
       return;
     }
     const fetchVarientByModel = async () => {
       try {
-        console.log("Fetching variants for model ID:", modelId);
-        const response = await getvarientByModel(modelId);
-        console.log("Variants response:", response);
+        
+        const response = await getVariantsByModelIds(modelId);
+      
 
         // Handle different response structures
         const variantData =
@@ -333,7 +373,7 @@ export default function AddProducts() {
       } catch (error) {
         console.error("Failed to fetch variant options:", error);
         setVarientOptions([]);
-        showToast("Failed to load variants for selected model", "error");
+   
       }
     };
     fetchVarientByModel();
@@ -356,22 +396,47 @@ export default function AddProducts() {
         dealerAssignments: dealerAssignments,
       };
       const formData = new FormData();
+
+      // Filter out empty dealer assignments
+      const validDealerAssignments = dealerAssignments.filter(
+        (a) => a.dealerId && a.dealerId.trim() !== ""
+      );
+
+      // 1. Append dealer assignments FIRST (outside loop, matching edit product pattern)
+      validDealerAssignments.forEach((assignment, index) => {
+        formData.append(
+          `available_dealers[${index}][dealers_Ref]`,
+          assignment.dealerId
+        );
+        formData.append(
+          `available_dealers[${index}][quantity_per_dealer]`,
+          assignment.quantity.toString()
+        );
+        formData.append(
+          `available_dealers[${index}][dealer_margin]`,
+          (assignment.margin || 0).toString()
+        );
+        formData.append(
+          `available_dealers[${index}][dealer_priority_override]`,
+          (assignment.priority || 0).toString()
+        );
+        formData.append(
+          `available_dealers[${index}][inStock]`,
+          (assignment.quantity > 0).toString()
+        );
+      });
+
+      // 2. Then append other form fields (skip dealerAssignments)
       Object.entries(dataWithCreatedBy).forEach(([key, value]) => {
-        if (key !== "images" && key !== "searchTagsArray") {
-          if (key === "dealerAssignments" && Array.isArray(value)) {
-            // Special handling for dealerAssignments array
-             value.forEach((assignment, index) => {
-              formData.append(`available_dealers[${index}][dealers_Ref]`, assignment.dealerId);
-              formData.append(`available_dealers[${index}][quantity_per_dealer]`, assignment.quantity.toString());
-              formData.append(`available_dealers[${index}][dealer_margin]`, (assignment.margin || 0).toString());
-              formData.append(`available_dealers[${index}][dealer_priority_override]`, (assignment.priority || 0).toString());
-              formData.append(`available_dealers[${index}][inStock]`, (assignment.quantity > 0).toString());
-            });
+        if (key !== "images" && key !== "searchTagsArray" && key !== "dealerAssignments") {
+          if (key === "year_range" && Array.isArray(value)) {
+            value.forEach((id) => formData.append("year_range[]", id));
+          } else if (key === "variant" && Array.isArray(value)) {
+            value.forEach((id) => formData.append("variant[]", id));
+          } 
+          else if (key === "model" && Array.isArray(value)) {
+            value.forEach((id) => formData.append("model[]", id));
           }
-          else if (key === "year_range" && Array.isArray(value)) {
-      value.forEach((id) => formData.append("year_range[]", id));
-    }
-          
           else if (Array.isArray(value)) {
             // For arrays, append as comma-separated string (FormData does not support arrays natively)
             formData.append(key, value.join(","));
@@ -449,7 +514,12 @@ export default function AddProducts() {
       <form
         id="add-product-form"
         onSubmit={handleSubmit(onSubmit, (errors) => {
-          console.log("Form validation failed", errors);
+          const errorMessages = Object.values(errors).map(error => error.message).filter(Boolean);
+          if (errorMessages.length > 0) {
+            showToast(`Please fix the following errors: ${errorMessages.join(', ')}`, "error");
+          } else {
+            showToast("Please fill in all required fields", "error");
+          }
         })}
         onKeyDown={handleKeyDown}
         className="space-y-6"
@@ -545,6 +615,7 @@ export default function AddProducts() {
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 type="number"
                 onKeyDown={handleNumericKeyDown}
+                onPaste={handleNumericPaste}
                 {...register("hsn_code", {
                   valueAsNumber: true,
                   required: "HSN Code is required",
@@ -557,119 +628,6 @@ export default function AddProducts() {
               {errors.hsn_code && (
                 <span className="text-red-500 text-sm">
                   {errors.hsn_code.message}
-                </span>
-              )}
-            </div>
-            {/* Category */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="category"
-                className="text-base font-medium font-sans"
-              >
-                Category <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                onValueChange={(value) => {
-                  setValue("category", value);
-                  setSelectedCategoryId(value);
-                  setValue("sub_category", ""); // Reset subcategory when category changes
-                }}
-                value={undefined} // Let react-hook-form control value if needed
-              >
-                <SelectTrigger
-                  id="category"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoryOptions.length === 0 ? (
-                    <SelectItem value="loading" disabled>
-                      Loading...
-                    </SelectItem>
-                  ) : (
-                    categoryOptions.map((cat) => (
-                      <SelectItem key={cat._id} value={cat._id}>
-                        {cat.category_name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.category && (
-                <span className="text-red-500 text-sm">
-                  {errors.category.message}
-                </span>
-              )}
-            </div>
-            {/* Sub-category */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="subCategory"
-                className="text-base font-medium font-sans"
-              >
-                Sub-category <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("sub_category", value)}
-              >
-                <SelectTrigger
-                  id="subCategory"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {!selectedCategoryId ? (
-                    <SelectItem value="no-category" disabled>
-                      Please select category first
-                    </SelectItem>
-                  ) : subCategoryOptions.length === 0 ? (
-                    <SelectItem value="no-subcategories" disabled>
-                      No subcategories found
-                    </SelectItem>
-                  ) : (
-                    subCategoryOptions.map((cat) => (
-                      <SelectItem key={cat._id} value={cat._id}>
-                        {cat.subcategory_name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.sub_category && (
-                <span className="text-red-500 text-sm">
-                  {errors.sub_category.message}
-                </span>
-              )}
-            </div>
-            {/* Product Type (OE, OEM, Aftermarket) */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="productType"
-                className="text-base font-medium font-sans"
-              >
-                Product Type <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                onValueChange={(value) => setValue("product_type", value)}
-                defaultValue={watch("product_type")}
-              >
-                <SelectTrigger
-                  id="productType"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="OE">OE</SelectItem>
-                  <SelectItem value="OEM">OEM</SelectItem>
-                  <SelectItem value="AFTERMARKET">Aftermarket</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.product_type && (
-                <span className="text-red-500 text-sm">
-                  {errors.product_type.message}
                 </span>
               )}
             </div>
@@ -714,6 +672,129 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
+            {/* Category */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="category"
+                className="text-base font-medium font-sans"
+              >
+                Category <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                onValueChange={(value) => {
+                  setValue("category", value);
+                  setSelectedCategoryId(value);
+                  setValue("sub_category", ""); // Reset subcategory when category changes
+                }}
+                disabled={!selectedProductTypeId}
+              >
+                <SelectTrigger
+                  id="category"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue
+                    placeholder={
+                      selectedProductTypeId
+                        ? "Select"
+                        : "Select vehicle type first"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {!selectedProductTypeId ? (
+                    <SelectItem value="disabled" disabled>
+                      Please select vehicle type first
+                    </SelectItem>
+                  ) : categoryOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      Loading...
+                    </SelectItem>
+                  ) : (
+                    categoryOptions.map((cat) => (
+                      <SelectItem key={cat._id} value={cat._id}>
+                        {cat.category_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.category && (
+                <span className="text-red-500 text-sm">
+                  {errors.category.message}
+                </span>
+              )}
+            </div>
+            {/* Sub-category */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="subCategory"
+                className="text-base font-medium font-sans"
+              >
+                Sub-category <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                onValueChange={(value) => setValue("sub_category", value)}
+                disabled={!selectedCategoryId}
+              >
+                <SelectTrigger
+                  id="subCategory"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue
+                    placeholder={
+                      selectedCategoryId ? "Select" : "Select category first"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {subCategoryOptions.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      No subcategories found
+                    </SelectItem>
+                  ) : (
+                    subCategoryOptions.map((cat) => (
+                      <SelectItem key={cat._id} value={cat._id}>
+                        {cat.subcategory_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.sub_category && (
+                <span className="text-red-500 text-sm">
+                  {errors.sub_category.message}
+                </span>
+              )}
+            </div>
+            {/* Product Type (OE, OEM, Aftermarket) */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="productType"
+                className="text-base font-medium font-sans"
+              >
+                Product Type <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                onValueChange={(value) => setValue("product_type", value)}
+                defaultValue={watch("product_type")}
+              >
+                <SelectTrigger
+                  id="productType"
+                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                >
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OEM">OEM</SelectItem>
+                  <SelectItem value="AFTERMARKET">Aftermarket</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.product_type && (
+                <span className="text-red-500 text-sm">
+                  {errors.product_type.message}
+                </span>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -742,17 +823,28 @@ export default function AddProducts() {
                   setSelectedBrandId(value);
                   setValue("brand", value);
                 }}
+                disabled={!selectedProductTypeId}
               >
                 <SelectTrigger
                   id="brand"
                   className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
                 >
-                  <SelectValue placeholder="Select" />
+                  <SelectValue
+                    placeholder={
+                      selectedProductTypeId
+                        ? "Select"
+                        : "Select vehicle type first"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredBrandOptions.length === 0 ? (
+                  {!selectedProductTypeId ? (
+                    <SelectItem value="disabled" disabled>
+                      Please select vehicle type first
+                    </SelectItem>
+                  ) : filteredBrandOptions.length === 0 ? (
                     <SelectItem value="loading" disabled>
-                      Please select Product Type first
+                      Loading...
                     </SelectItem>
                   ) : (
                     filteredBrandOptions.map((option) => (
@@ -769,7 +861,7 @@ export default function AddProducts() {
                 </span>
               )}
             </div>
-            {/* <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="make" className="text-base font-medium font-sans">
                 Make <span className="text-red-500">*</span>
               </Label>
@@ -784,7 +876,7 @@ export default function AddProducts() {
                   {errors.make.message}
                 </span>
               )}
-            </div> */}
+            </div>
 
             {/* Model */}
             <div className="space-y-2">
@@ -794,36 +886,47 @@ export default function AddProducts() {
               >
                 Model <span className="text-red-500">*</span>
               </Label>
-              <Select
-                onValueChange={(value) => {
-                  setValue("model", value);
-                  setModelId(value);
-                }}
-              >
-                <SelectTrigger
-                  id="model"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
-                >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedbrandId && modelOptions.length === 0 ? (
-                    <SelectItem value="no-models" disabled>
-                      No models found
-                    </SelectItem>
-                  ) : modelOptions.length === 0 ? (
-                    <SelectItem value="loading" disabled>
-                      Please select Make first
-                    </SelectItem>
-                  ) : (
-                    modelOptions.map((option) => (
-                      <SelectItem key={option._id} value={option._id}>
-                        {option.model_name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+
+              <div className="border rounded-lg p-3 bg-gray-50 max-h-52 overflow-y-auto">
+                {selectedbrandId && modelOptions.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No models found</p>
+                ) : modelOptions.length === 0 ? (
+                  <p className="text-gray-500 text-sm">
+                    Please select Make first
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {modelOptions.map((option) => {
+                      const selected = Array.isArray(watch("model"))
+                        ? watch("model")
+                        : [];
+                      const isSelected = selected.includes(option._id);
+
+                      return (
+                        <button
+                          key={option._id}
+                          type="button"
+                          onClick={() => {
+                            const updated = isSelected
+                              ? selected.filter((id) => id !== option._id)
+                              : [...selected, option._id];
+                            setValue("model", updated);
+                            setModelId(updated);
+                          }}
+                          className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                            isSelected
+                              ? "bg-red-500 text-white"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
+                        >
+                          {option.model_name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {errors.model && (
                 <span className="text-red-500 text-sm">
                   {errors.model.message}
@@ -832,89 +935,108 @@ export default function AddProducts() {
             </div>
             {/* Year Range */}
             {/* Year Range (Multiple Select) */}
-<div className="space-y-2">
-  <Label
-    htmlFor="yearRange"
-    className="text-base font-medium font-sans"
-  >
-    Year Range (Multiple Allowed)
-  </Label>
+            <div className="space-y-2">
+              <Label
+                htmlFor="yearRange"
+                className="text-base font-medium font-sans"
+              >
+                Year Range (Multiple Allowed)
+              </Label>
 
-  <div className="border rounded-lg p-3 bg-gray-50 max-h-52 overflow-y-auto">
-    {yearRangeOptions.length === 0 ? (
-      <p className="text-gray-500 text-sm">Loading...</p>
-    ) : (
-      yearRangeOptions.map((option) => {
-        const selected = Array.isArray(watch("year_range"))
-          ? watch("year_range")
-          : [];
+              <div className="border rounded-lg p-3 bg-gray-50 max-h-52 overflow-y-auto">
+                {yearRangeOptions.length === 0 ? (
+                  <p className="text-gray-500 text-sm">Loading...</p>
+                ) : (
+                  yearRangeOptions.map((option) => {
+                    const selected = watch("year_range") || [];
 
-        const isChecked = selected.includes(option._id);
+                    const isChecked = selected.includes(option._id);
 
-        return (
-          <div key={option._id} className="flex items-center gap-2 py-1">
-            <input
-              type="checkbox"
-              checked={isChecked}
-              onChange={() => {
-                const updated = isChecked
-                  ? selected.filter((id) => id !== option._id)
-                  : [...selected, option._id];
+                    return (
+                      <div
+                        key={option._id}
+                        className="flex items-center gap-2 py-1"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const updated = isChecked
+                              ? selected.filter((id) => id !== option._id)
+                              : [...selected, option._id];
 
-                setValue("year_range", updated);
-              }}
-            />
-            <span className="text-sm">{option.year_name}</span>
-          </div>
-        );
-      })
-    )}
-  </div>
+                            setValue("year_range", updated);
+                          }}
+                        />
+                        <span className="text-sm">{option.year_name}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
 
-  {errors.year_range && (
-    <span className="text-red-500 text-sm">{errors.year_range.message}</span>
-  )}
-</div>
+              {errors.year_range && (
+                <span className="text-red-500 text-sm">
+                  {errors.year_range.message}
+                </span>
+              )}
+            </div>
 
             {/* Variant */}
             <div className="space-y-2">
-              <Label
-                htmlFor="variant"
-                className="text-base font-medium font-sans"
-              >
-                Variant <span className="text-red-500">*</span>
-              </Label>
-              <Select onValueChange={(value) => setValue("variant", value)}>
-                <SelectTrigger
-                  id="variant"
-                  className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+              <div className="space-y-2">
+                <Label
+                  htmlFor="variant"
+                  className="text-base font-medium font-sans"
                 >
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
+                  Variant <span className="text-red-500">*</span>
+                </Label>
+
+                <div className="border rounded-lg p-3 bg-gray-50 max-h-52 overflow-y-auto">
                   {varientOptions.length === 0 && modelId.length === 0 ? (
-                    <SelectItem value="no-varient" disabled>
-                      {" "}
-                      Vairent not found{" "}
-                    </SelectItem>
+                    <p className="text-gray-500 text-sm">Variant not found</p>
                   ) : varientOptions.length === 0 ? (
-                    <SelectItem value="loading" disabled>
-                      please select model first
-                    </SelectItem>
+                    <p className="text-gray-500 text-sm">
+                      Please select model first
+                    </p>
                   ) : (
-                    varientOptions.map((option) => (
-                      <SelectItem key={option._id} value={option._id}>
-                        {option.variant_name}
-                      </SelectItem>
-                    ))
+                    <div className="flex flex-wrap gap-2">
+                      {varientOptions.map((option) => {
+                        const selected = Array.isArray(watch("variant"))
+                          ? watch("variant")
+                          : [];
+                        const isSelected = selected.includes(option._id);
+
+                        return (
+                          <button
+                            key={option._id}
+                            type="button"
+                            onClick={() => {
+                              const updated = isSelected
+                                ? selected.filter((id) => id !== option._id)
+                                : [...selected, option._id];
+                              setValue("variant", updated);
+                            }}
+                            className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                              isSelected
+                                ? "bg-red-500 text-white"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                          >
+                            {option.variant_name}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                </SelectContent>
-              </Select>
-              {errors.variant && (
-                <span className="text-red-500 text-sm">
-                  {errors.variant.message}
-                </span>
-              )}
+                </div>
+
+                {errors.variant && (
+                  <span className="text-red-500 text-sm">
+                    {errors.variant.message}
+                  </span>
+                )}
+              </div>
             </div>
             {/* Fitment Notes */}
             <div className="space-y-2">
@@ -1018,6 +1140,7 @@ export default function AddProducts() {
                 placeholder="Enter Weight in kg"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 onKeyDown={handleNumericKeyDown}
+                onPaste={handleNumericPaste}
                 {...register("weight")}
               />
               {errors.weight && (
@@ -1062,6 +1185,7 @@ export default function AddProducts() {
                 placeholder="Enter Warranty"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 onKeyDown={handleNumericKeyDown}
+                onPaste={handleNumericPaste}
                 {...register("warranty", {
                   setValueAs: (v) => (v === "" ? undefined : Number(v)),
                 })}
@@ -1238,6 +1362,7 @@ export default function AddProducts() {
                 placeholder="Enter MRP"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 onKeyDown={handleNumericKeyDown}
+                onPaste={handleNumericPaste}
                 {...register("mrp_with_gst", { valueAsNumber: true })}
               />
               {errors.mrp_with_gst && (
@@ -1272,11 +1397,13 @@ export default function AddProducts() {
                     e.key !== "Delete" &&
                     e.key !== "ArrowLeft" &&
                     e.key !== "ArrowRight" &&
-                    e.key !== "Tab"
+                    e.key !== "Tab" &&
+                    e.key !== ","
                   ) {
                     e.preventDefault();
                   }
                 }}
+                onPaste={handleNumericPaste}
               />
               {errors.selling_price && (
                 <span className="text-red-500 text-sm">
@@ -1295,6 +1422,7 @@ export default function AddProducts() {
                 placeholder="Enter GST"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 onKeyDown={handleNumericKeyDown}
+                onPaste={handleNumericPaste}
                 {...register("gst_percentage", {
                   valueAsNumber: true,
                 })}
@@ -1427,27 +1555,37 @@ export default function AddProducts() {
                               <SelectValue placeholder="Select dealer" />
                             </SelectTrigger>
                             <SelectContent>
-                              {dealerOptions
-                                .filter(
-                                  (dealer) =>
-                                    !dealerAssignments.some(
-                                      (a, i) =>
-                                        i !== index && a.dealerId === dealer._id
-                                    )
-                                )
-                                .map((dealer) => (
-                                  <SelectItem
-                                    key={dealer._id}
-                                    value={dealer._id}
-                                  >
-                                    {dealer.legal_name ||
-                                      dealer.dealerName ||
-                                      dealer.firstName +
-                                        " " +
-                                        dealer.lastName ||
-                                      dealer._id}
-                                  </SelectItem>
-                                ))}
+                              {loadingDealers ? (
+                                <SelectItem value="loading" disabled>
+                                  Loading dealers...
+                                </SelectItem>
+                              ) : dealerOptions.length === 0 ? (
+                                <SelectItem value="no-dealers" disabled>
+                                  {selectedCategoryId ? "No dealers found" : "Select category first"}
+                                </SelectItem>
+                              ) : (
+                                dealerOptions
+                                  .filter(
+                                    (dealer) =>
+                                      !dealerAssignments.some(
+                                        (a, i) =>
+                                          i !== index && a.dealerId === dealer._id
+                                      )
+                                  )
+                                  .map((dealer) => (
+                                    <SelectItem
+                                      key={dealer._id}
+                                      value={dealer._id}
+                                    >
+                                      {dealer.legal_name ||
+                                        dealer.dealerName ||
+                                        dealer.firstName +
+                                          " " +
+                                          dealer.lastName ||
+                                        dealer._id}
+                                    </SelectItem>
+                                  ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
@@ -1468,6 +1606,7 @@ export default function AddProducts() {
                               setDealerAssignments(updated);
                             }}
                             onKeyDown={handleNumericKeyDown}
+                            onPaste={handleNumericPaste}
                             className="bg-white border-gray-200 rounded-[6px] p-2 text-xs"
                             placeholder="Qty"
                           />
@@ -1490,6 +1629,7 @@ export default function AddProducts() {
                               setDealerAssignments(updated);
                             }}
                             onKeyDown={handleNumericKeyDown}
+                            onPaste={handleNumericPaste}
                             className="bg-white border-gray-200 rounded-[6px] p-2 text-xs"
                             placeholder="Margin"
                           />
@@ -1512,6 +1652,7 @@ export default function AddProducts() {
                                 setDealerAssignments(updated);
                               }}
                               onKeyDown={handleNumericKeyDown}
+                              onPaste={handleNumericPaste}
                               className="bg-white border-gray-200 rounded-[6px] p-2 text-xs flex-1"
                               placeholder="Priority"
                             />
@@ -1580,7 +1721,7 @@ export default function AddProducts() {
               )}
             </div> */}
             {/* Stock Expiry Rule */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label
                 htmlFor="stockExpiryRule"
                 className="text-base font-medium font-sans"
@@ -1598,7 +1739,7 @@ export default function AddProducts() {
                   {errors.stockExpiryRule.message}
                 </span>
               )}
-            </div>
+            </div> */}
             {/* Last Stock Update */}
             <div className="space-y-2">
               <Label
