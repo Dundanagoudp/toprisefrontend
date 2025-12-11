@@ -288,6 +288,10 @@ export default function ShowContent() {
         return 'Model';
       case 'Variant':
         return 'Variant';
+      case 'Banner':
+        return 'Banner';
+      case 'year':
+        return 'Year';
       default:
         return 'Product';
     }
