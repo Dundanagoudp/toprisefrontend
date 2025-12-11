@@ -35,6 +35,14 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
   const { showToast } = useGlobalToast();
   const itemPerPage = 10;
 
+  // Function to get vehicle type name by ID
+  const getVehicleTypeName = (typeId: string) => {
+    if (!typeId || !vehicleTypes || !Array.isArray(vehicleTypes))
+      return "No Vehicle Type";
+    const vehicleType = vehicleTypes.find((type) => type._id === typeId);
+    return vehicleType?.type_name || "Unknown Type";
+  };
+
   // Filter and sort categories
   const filteredCategories = React.useMemo(() => {
     if (!Categories || !Array.isArray(Categories)) return [];
@@ -72,8 +80,8 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
             bValue = getVehicleTypeName(b?.type || b?.vehicleType_id);
             break;
           case "status":
-            aValue = a?.category_Status || "";
-            bValue = b?.category_Status || "";
+            aValue = (a?.category_Status || "").toLowerCase();
+            bValue = (b?.category_Status || "").toLowerCase();
             break;
           default:
             return 0;
@@ -95,14 +103,6 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
     (currentPage - 1) * itemPerPage,
     currentPage * itemPerPage
   );
-
-  // Function to get vehicle type name by ID
-  const getVehicleTypeName = (typeId: string) => {
-    if (!typeId || !vehicleTypes || !Array.isArray(vehicleTypes))
-      return "No Vehicle Type";
-    const vehicleType = vehicleTypes.find((type) => type._id === typeId);
-    return vehicleType?.type_name || "Unknown Type";
-  };
 
   // Fetch data function (defined outside useEffect so it can be reused)
   const fetchData = async () => {
@@ -287,15 +287,25 @@ export default function ShowCategory({ searchQuery }: { searchQuery: string }) {
                   {getVehicleTypeName(item?.type || item?.vehicleType_id)}
                 </TableCell>
                 <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      item?.category_Status === "Created"
-                        ? "bg-orange-100 text-orange-800"
-                        : "bg-green-100  text-green-800 "
-                    }`}
-                  >
-                    {item?.category_Status || "Draft"}
-                  </span>
+                  {(() => {
+                    const status = (item?.category_Status || "Draft").toLowerCase();
+                    const isActive = status === "active";
+                    const isCreated = status === "created";
+                    
+                    return (
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          isActive
+                            ? "bg-green-100 text-green-800"
+                            : isCreated
+                            ? "bg-orange-100 text-orange-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {item?.category_Status || "Draft"}
+                      </span>
+                    );
+                  })()}
                 </TableCell>
 
                 <TableCell>

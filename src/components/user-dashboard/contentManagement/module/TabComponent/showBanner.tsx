@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, Eye, EyeOff, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -31,6 +31,8 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [previewBanner, setPreviewBanner] = useState<Banner | null>(null);
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { showToast } = useGlobalToast();
 
   // Ensure banners is always an array
@@ -95,13 +97,67 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
     }
   };
 
-  const filteredBanners = safeBanners.filter((banner) =>
-    searchQuery
-      ? banner.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        banner.vehicle_type?.type_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        banner.brand_id?.brand_name?.toLowerCase().includes(searchQuery.toLowerCase())
-      : true
-  );
+  // Function to handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Function to get sort icon
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  };
+
+  // Filter and sort banners
+  const filteredBanners = (() => {
+    let filtered = safeBanners.filter((banner) =>
+      searchQuery
+        ? banner.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          banner.vehicle_type?.type_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          banner.brand_id?.brand_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        : true
+    );
+
+    // Apply sorting
+    if (sortField) {
+      filtered = [...filtered].sort((a, b) => {
+        let aValue = "";
+        let bValue = "";
+
+        switch (sortField) {
+          case "title":
+            aValue = a?.title || "";
+            bValue = b?.title || "";
+            break;
+          case "vehicleType":
+            aValue = a?.vehicle_type?.type_name || "";
+            bValue = b?.vehicle_type?.type_name || "";
+            break;
+          case "status":
+            aValue = a?.is_active ? "active" : "inactive";
+            bValue = b?.is_active ? "active" : "inactive";
+            break;
+          default:
+            return 0;
+        }
+
+        if (sortDirection === "asc") {
+          return aValue.localeCompare(bValue);
+        } else {
+          return bValue.localeCompare(aValue);
+        }
+      });
+    }
+
+    return filtered;
+  })();
 
   if (loading) {
     return (
@@ -130,10 +186,37 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("title")}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Title
+                    {getSortIcon("title")}
+                  </Button>
+                </TableHead>
                 {/* <TableHead>Brand</TableHead> */}
-                <TableHead>Vehicle Type</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("vehicleType")}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Vehicle Type
+                    {getSortIcon("vehicleType")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("status")}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Status
+                    {getSortIcon("status")}
+                  </Button>
+                </TableHead>
                 <TableHead>Images</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -155,7 +238,7 @@ export default function ShowBanner({ searchQuery }: ShowBannerProps) {
                         Active
                       </Badge>
                     ) : (
-                      <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+                      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
                         <EyeOff className="h-3 w-3 mr-1" />
                         Inactive
                       </Badge>

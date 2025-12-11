@@ -56,8 +56,8 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
                         bValue = b?.brand_name || "";
                         break;
                     case "status":
-                        aValue = a?.status || "";
-                        bValue = b?.status || "";
+                        aValue = (a?.status || "").toLowerCase();
+                        bValue = (b?.status || "").toLowerCase();
                         break;
                     case "type":
                         aValue = a?.type?.type_name || "";
@@ -255,17 +255,25 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
                             <TableRow key={item?._id || Math.random()}>
                                 <TableCell>{item?.brand_name || "No Name"}</TableCell>
                                 <TableCell>
-                                    <span
-                                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                            item?.status === "active"
-                                                ? "bg-green-100 text-green-800"
-                                                : item?.status === "inactive"
-                                                    ? "bg-orange-100 text-orange-800"
-                                                    : "bg-gray-200 text-gray-700"
-                                        }`}
-                                    >
-                                        {item?.status || "No Status"}
-                                    </span>
+                                    {(() => {
+                                        const status = (item?.status || "").toLowerCase();
+                                        const isActive = status === "active";
+                                        const isCreated = status === "created";
+                                        
+                                        return (
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs ${
+                                                    isActive
+                                                        ? "bg-green-100 text-green-800"
+                                                        : isCreated
+                                                        ? "bg-orange-100 text-orange-800"
+                                                        : "bg-red-100 text-red-800"
+                                                }`}
+                                            >
+                                                {item?.status || "No Status"}
+                                            </span>
+                                        );
+                                    })()}
                                 </TableCell>
                                 <TableCell>{item?.type?.type_name || "No Type"}</TableCell>
                                 <TableCell>
