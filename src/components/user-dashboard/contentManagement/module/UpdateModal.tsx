@@ -86,9 +86,9 @@ export default function UpdateModal({
         }
       }else if(type === 'brand' ){
          if (status === 'Created' || status === 'active') {
-          status = 'active';
+          status = 'Active';
         } else if (status === 'Draft' || status === 'inactive') {
-          status = 'inactive';
+          status = 'Inactive';
         }
         
       }else if(type === 'model' ){
@@ -100,9 +100,9 @@ export default function UpdateModal({
         
       }else if(type === 'variant' ){
         if (status === 'Created' || status === 'active') {
-          status = 'active';
+          status = 'Active';
         } else if (status === 'Draft' || status === 'inactive') {
-          status = 'inactive';
+          status = 'Inactive';
         }
       }
        console.log("type: ", type, "  status:", status);
@@ -241,9 +241,7 @@ export default function UpdateModal({
         submitFormData.append('variant_name', formData.name);
         if (formData.code) submitFormData.append('variant_code', formData.code);
         if (formData.model) submitFormData.append('model', formData.model);
-        if (formData.years && formData.years.length > 0) {
-          submitFormData.append('Year', formData.years.join(','));
-        }
+        // Years field removed from update modal
         submitFormData.append('variant_status', formData.status);
       }
       
@@ -418,47 +416,6 @@ export default function UpdateModal({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          )}
-
-          {/* Years Field (for variants) */}
-          {type === 'variant' && years.length > 0 && (
-            <div className="grid gap-2">
-              <Label>Years *</Label>
-              <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                {years.map((year) => (
-                  <div key={year._id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`year-${year._id}`}
-                      checked={formData.years.includes(year._id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setFormData(prev => ({
-                            ...prev,
-                            years: [...prev.years, year._id]
-                          }));
-                        } else {
-                          setFormData(prev => ({
-                            ...prev,
-                            years: prev.years.filter(id => id !== year._id)
-                          }));
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor={`year-${year._id}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {year.year_name}
-                    </label>
-                  </div>
-                ))}
-              </div>
-              {formData.years.length > 0 && (
-                <p className="text-xs text-gray-500">
-                  {formData.years.length} year(s) selected
-                </p>
-              )}
             </div>
           )}
 

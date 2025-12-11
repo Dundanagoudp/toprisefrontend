@@ -8,7 +8,9 @@ import {
   uploadBulkSubCategories,
   uploadBulkBrands,
   uploadBulkModels,
-  uploadBulkVariants
+  uploadBulkVariants,
+  uploadBulkBanners,
+  uploadBulkYears
 } from "@/service/product-Service";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import {
@@ -16,6 +18,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogFooter,
   } from "@/components/ui/dialog";
 import { useAppSelector } from "@/store/hooks";
@@ -27,7 +30,7 @@ interface UploadBulkCardProps {
   isOpen: boolean;
   onClose: () => void;
   mode?: 'upload' | 'edit'|'uploadDealer';
-  contentType?: 'Category' | 'Subcategory' | 'Brand' | 'Model' | 'Variant' | 'Product';
+  contentType?: 'Category' | 'Subcategory' | 'Brand' | 'Model' | 'Variant' | 'Banner' | 'Year' | 'Product';
 }
 
 
@@ -58,9 +61,27 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
     const files = event.target.files;
     const file = files && files[0];
     if (file) {
+      // File size validation
+      const maxZipSize = 50 * 1024 * 1024; // 50MB for ZIP files
+      const maxCsvSize = 5 * 1024 * 1024; // 5MB for CSV files
+      
       if (fileType === 'image') {
+        if (file.size > maxZipSize) {
+          showToast(`Image ZIP file is too large. Maximum size is 50MB. Current size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`, "error");
+          if (imageInputRef.current) {
+            imageInputRef.current.value = '';
+          }
+          return;
+        }
         setImageZipFile(file);
       } else {
+        if (file.size > maxCsvSize) {
+          showToast(`CSV file is too large. Maximum size is 5MB. Current size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`, "error");
+          if (csvInputRef.current) {
+            csvInputRef.current.value = '';
+          }
+          return;
+        }
         setCsvFile(file);
       }
     }
@@ -92,7 +113,12 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
         setUploadMessage('Please select the CSV file for editing.');
         return;
       }
-      if (mode === 'upload' && (!imageZipFile || !csvFile)) {
+      // Year upload only requires CSV file (no ZIP)
+      if (contentType === 'Year' && !csvFile) {
+        setUploadMessage('Please select the CSV file for upload.');
+        return;
+      }
+      if (mode === 'upload' && contentType !== 'Year' && (!imageZipFile || !csvFile)) {
         setUploadMessage('Please select the Image.zip file and CSV file for upload.');
         return;
       }
@@ -160,6 +186,12 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
             case 'Variant':
               response = await uploadBulkVariants(formData);
               break;
+            case 'Banner':
+              response = await uploadBulkBanners(formData);
+              break;
+            case 'Year':
+              response = await uploadBulkYears(formData);
+              break;
             case 'Product':
             default:
               // TODO: Implement upload bulk products API call
@@ -190,9 +222,25 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
         }
       } catch (error: any) {
         console.error('Error uploading files:', error);
-        showToast( 'An error occurred during upload. Please check the console.', "error");
-        const message = error.response?.data?.message || error.message || 'An error occurred during upload. Please check the console.';
-        setUploadMessage(message);
+        
+        // Handle specific error types
+        let errorMessage = 'An error occurred during upload. Please try again.';
+        
+        if (error.response?.status === 413 || error.message?.includes('413') || error.code === 'ERR_NETWORK' && error.message?.includes('413')) {
+          errorMessage = 'File size is too large. Please reduce the file size (max 50MB for ZIP, 5MB for CSV) or compress your images before uploading.';
+          showToast('File size too large. Please compress your files and try again.', "error");
+        } else if (error.code === 'ERR_NETWORK' && error.message?.includes('CORS')) {
+          errorMessage = 'CORS error: Unable to connect to the server. Please check your network connection or contact support.';
+          showToast('Network error. Please check your connection and try again.', "error");
+        } else if (error.code === 'ERR_NETWORK') {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+          showToast('Network error. Please check your connection.', "error");
+        } else {
+          errorMessage = error.response?.data?.message || error.message || errorMessage;
+          showToast(errorMessage, "error");
+        }
+        
+        setUploadMessage(errorMessage);
       } finally {
         setIsUploading(false);
       }
@@ -210,9 +258,16 @@ export default function ContentMangementBulk ({ isOpen, onClose, mode = 'upload'
     return (
        <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[600px]">
-        <div className="text-xl text-red-600 font-bold">
-          You do not have permission to access.
-        </div></DialogContent>
+          <DialogHeader>
+            <DialogTitle>Access Denied</DialogTitle>
+            <DialogDescription>
+              You do not have permission to access this feature.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-xl text-red-600 font-bold">
+            You do not have permission to access.
+          </div>
+        </DialogContent>
       </Dialog>
     );
   }
@@ -222,12 +277,15 @@ return (
     <DialogContent className="sm:max-w-[600px]">
       <DialogHeader>
         <DialogTitle className="text-2xl font-semibold text-gray-800">Upload {contentType} File</DialogTitle>
+        <DialogDescription>
+          Upload CSV file with {contentType.toLowerCase()} data{mode !== 'uploadDealer' && contentType !== 'Year' && ' and ZIP file with images'}. Maximum file sizes: CSV (5MB){mode !== 'uploadDealer' && contentType !== 'Year' && ', ZIP (50MB)'}.
+        </DialogDescription>
       </DialogHeader>
       <div className="space-y-6 py-4">
         <p className="text-gray-500">Drag and drop the files as per the requirement</p>
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Only show image upload if not uploadDealer mode */}
-          {mode !== 'uploadDealer' && (
+          {/* Only show image upload if not uploadDealer mode and not Year contentType */}
+          {mode !== 'uploadDealer' && contentType !== 'Year' && (
             <div 
               className={`flex-1 flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed transition-colors duration-200 ${
                   imageZipFile ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50 text-red-600 hover:bg-red-100'
@@ -299,7 +357,7 @@ return (
         <Button
           className="bg-red-600 text-white hover:bg-red-700"
           disabled={
-            (mode === 'edit' || mode === 'uploadDealer'
+            (mode === 'edit' || mode === 'uploadDealer' || contentType === 'Year'
               ? !csvFile
               : !imageZipFile || !csvFile
             ) || isUploading

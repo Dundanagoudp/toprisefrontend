@@ -1044,12 +1044,46 @@ export async function uploadBulkVariants(
 ): Promise<ProductResponse> {
   try {
     const response = await apiClient.post(
-      `/category/variants/bulk-upload/varients`,
+      `/category/variants/bulk-upload/variants`,
       formData
     );
     return response.data;
   } catch (error) {
     console.error("Failed to upload bulk variants:", error);
+    throw error;
+  }
+}
+
+export async function uploadBulkBanners(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(
+      `/category/api/banner/bulk-upload-banners`,
+      formData,
+      {
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk banners:", error);
+    throw error;
+  }
+}
+
+export async function uploadBulkYears(
+  formData: FormData
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.post(
+      `/category/api/year/bulk-upload`,
+      formData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to upload bulk years:", error);
     throw error;
   }
 }

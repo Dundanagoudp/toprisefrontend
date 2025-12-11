@@ -27,23 +27,11 @@ function CreateYearModal({ open, onClose, onSuccess }: CreateYearModalProps) {
     }
   }, [open]);
 
-  const validateYear = (year: string): boolean => {
-    // Check if it's a valid year (between 1900 and 2100)
-    const yearNum = parseInt(year);
-    const currentYear = new Date().getFullYear();
-    return !isNaN(yearNum) && yearNum >= 1900 && yearNum <= currentYear + 10;
-  };
-
   const handleSubmit = async () => {
     const yearNameTrimmed = yearName.trim();
     
     if (!yearNameTrimmed) {
       showToast("Year name is required", "error");
-      return;
-    }
-
-    if (!validateYear(yearNameTrimmed)) {
-      showToast("Please enter a valid year", "error");
       return;
     }
 
@@ -91,8 +79,6 @@ function CreateYearModal({ open, onClose, onSuccess }: CreateYearModalProps) {
             placeholder="Enter year (e.g., 2024)"
             disabled={submitting}
             type="number"
-            min="1900"
-            max={new Date().getFullYear() + 10}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !submitting) {
                 handleSubmit();

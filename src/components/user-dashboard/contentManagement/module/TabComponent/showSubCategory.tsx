@@ -56,8 +56,8 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
             bValue = b?.subcategory_name || "";
             break;
           case "status":
-            aValue = a?.subcategory_status || "";
-            bValue = b?.subcategory_status || "";
+            aValue = (a?.subcategory_status || "").toLowerCase();
+            bValue = (b?.subcategory_status || "").toLowerCase();
             break;
           case "category":
             aValue = a?.category_ref?.category_name || "";
@@ -244,15 +244,25 @@ export default function SubCategory({ searchQuery }: { searchQuery: string }) {
               <TableRow key={item?._id || Math.random()}>
                 <TableCell>{item?.subcategory_name || "No Title"}</TableCell>
                 <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      item?.subcategory_status === "Created"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-orange-100 text-orange-800"
-                    }`}
-                  >
-                    {item?.subcategory_status || "Draft"}
-                  </span>
+                  {(() => {
+                    const status = (item?.subcategory_status || "Draft").toLowerCase();
+                    const isActive = status === "active";
+                    const isCreated = status === "created";
+                    
+                    return (
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          isActive
+                            ? "bg-green-100 text-green-800"
+                            : isCreated
+                            ? "bg-orange-100 text-orange-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {item?.subcategory_status || "Draft"}
+                      </span>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   {item?.category_ref?.category_name || "No Category"}

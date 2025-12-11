@@ -61,8 +61,8 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
                   bValue = b?.brand_ref?.brand_name || "";
                   break;
                 case "status":
-                  aValue = a?.model_Status || "";
-                  bValue = b?.model_Status || "";
+                  aValue = (a?.model_Status || a?.status || "").toLowerCase();
+                  bValue = (b?.model_Status || b?.status || "").toLowerCase();
                   break;
                 default:
                   return 0;
@@ -253,15 +253,25 @@ export default function ShowModel({ searchQuery }: { searchQuery: string }) {
                   {item?.brand_ref?.brand_name || "No Brand"}
                 </TableCell>
                 <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      item?.model_Status === "Created"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-orange-100 text-orange-800"
-                    }`}
-                  >
-                    {item.status|| "Draft"}
-                  </span>
+                  {(() => {
+                    const status = (item?.model_Status || item?.status || "Draft").toLowerCase();
+                    const isActive = status === "active";
+                    const isCreated = status === "created";
+                    
+                    return (
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          isActive
+                            ? "bg-green-100 text-green-800"
+                            : isCreated
+                            ? "bg-orange-100 text-orange-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {item?.model_Status || item?.status || "Draft"}
+                      </span>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
