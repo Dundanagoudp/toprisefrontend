@@ -204,7 +204,7 @@ const SuperAdminDealersModal: React.FC<SuperAdminDealersModalProps> = ({ open, o
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        <span className="text-gray-500">{formatDate(dealer.last_stock_update)}</span>
+                      <span className="text-gray-500">{dealer.last_stock_updated ? formatDate(dealer.last_stock_updated) : "-"}</span>
                       </td>
                     </tr>
                   ))}

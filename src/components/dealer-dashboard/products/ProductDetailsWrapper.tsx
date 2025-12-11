@@ -1,25 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DealerProductView from "./DealerProductView";
-import { getDealerProductById, DealerProduct } from "@/service/dealer-products-service";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { selectDealerProduct, selectDealerProductLoading, selectDealerProductError } from "@/store/slice/dealer-product/dealerProductByIdSlice";
+import { fetchDealerProductByIdThunk } from "@/store/slice/dealer-product/dealerProductByIdThunks";
+import DealerProductViewRedux from "./DealerProductViewRedux";
+import { DealerProduct } from "@/service/dealer-products-service";
 import { getDealerById, getDealerIdFromUserId } from "@/service/dealerServices";
 import type { Dealer } from "@/types/dealer-types";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import Link from "next/link";
 
 interface ProductDetailsWrapperProps {
   productId: string;
 }
 
 export default function ProductDetailsWrapper({ productId }: ProductDetailsWrapperProps) {
-  const breadcrumbItems = [
-    { label: "Home", href: "/" },
-    { label: "Product", href: "/dealer/dashboard/product" },
-    { label: "Product Details", href: `/dealer/dashboard/product/productdetails/${productId}` }
-  ];
-  const [product, setProduct] = useState<DealerProduct | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+
+  // Redux state
+  const product = useAppSelector(selectDealerProduct);
+  console.log("product", product);
+  const loading = useAppSelector(selectDealerProductLoading);
+  const error = useAppSelector(selectDealerProductError);
+
+  // Permission states
   const [dealerId, setDealerId] = useState<string | null>(null);
   const [allowedFields, setAllowedFields] = useState<string[] | null>(null);
   const [readPermissionsEnabled, setReadPermissionsEnabled] = useState<boolean>(true);
@@ -67,8 +72,7 @@ export default function ProductDetailsWrapper({ productId }: ProductDetailsWrapp
         
         // If read permissions are disabled, block access
         if (!isEnabled) {
-          setError("You don't have permission to view product details");
-          setLoading(false);
+          // Permission denied - this will be handled in the component render
           return;
         }
         
@@ -85,46 +89,35 @@ export default function ProductDetailsWrapper({ productId }: ProductDetailsWrapp
     fetchDealerPermissions();
   }, [dealerId]);
 
-  // Fetch product data
+  // Fetch product data using Redux
   useEffect(() => {
-    let isMounted = true;
-
-    const loadProduct = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Always fetch from API
-        const productData = await getDealerProductById(productId);
-        console.log("Fetched product data:", productData);
-        
-        if (isMounted) {
-          setProduct(productData);
-        }
-        console.log("Product Permission Matrix:", productData?.permission_matrix?.canView);
-      } catch (err) {
-        console.error("Failed to load product:", err);
-        if (isMounted) {
-          setError("Failed to load product details");
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadProduct();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [productId]);
+    if (productId) {
+      dispatch(fetchDealerProductByIdThunk(productId));
+    }
+  }, [productId, dispatch]);
 
   if (loading) {
     return (
       <div className="p-6">
-        <Breadcrumb items={breadcrumbItems as any} />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dealer/dashboard/product">Product</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Product Details</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -138,7 +131,25 @@ export default function ProductDetailsWrapper({ productId }: ProductDetailsWrapp
   if (error || !product) {
     return (
       <div className="p-6">
-        <Breadcrumb items={breadcrumbItems as any} />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dealer/dashboard/product">Product</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Product Details</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -151,5 +162,5 @@ export default function ProductDetailsWrapper({ productId }: ProductDetailsWrapp
     );
   }
 
-  return <DealerProductView product={product} allowedFields={allowedFields} readPermissionsEnabled={readPermissionsEnabled} canEditProductDetails={canEditProductDetails} showPermissionsCard={showPermissionsCard} dealerPermissions={dealerPermissions} />;
+  return <DealerProductViewRedux product={product} allowedFields={allowedFields} readPermissionsEnabled={readPermissionsEnabled} canEditProductDetails={canEditProductDetails} showPermissionsCard={showPermissionsCard} dealerPermissions={dealerPermissions} />;
 }
