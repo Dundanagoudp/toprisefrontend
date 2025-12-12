@@ -19,6 +19,7 @@ import type { User, Category } from "@/types/dealer-types"
 import { useRouter } from "next/navigation"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { useAppSelector } from "@/store/hooks"
+import { getBrand } from "@/service/product-Service"
 
 export default function AddDealer() {
   const { showToast } = useGlobalToast();
@@ -26,7 +27,7 @@ export default function AddDealer() {
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
-  const [allCategories, setAllCategories] = useState<Category[]>([])
+  const [allBrands, setAllBrands] = useState<any[]>([])
   const [submitLoading, setSubmitLoading] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [formData, setFormData] = useState<DealerFormValues | null>(null)
@@ -54,7 +55,7 @@ export default function AddDealer() {
         email: "",
         phone_number: "",
       },
-      categories_allowed: [],
+      brands_allowed: [],
       upload_access_enabled: true,
       default_margin: 15,
       last_fulfillment_date: new Date().toISOString(),
@@ -67,7 +68,7 @@ export default function AddDealer() {
 
   useEffect(() => {
     fetchUsers()
-    fetchCategories()
+    fetchBrands()
   }, [])
 
   // Ensure form is properly reset when component mounts
@@ -91,7 +92,7 @@ export default function AddDealer() {
         email: "",
         phone_number: "",
       },
-      categories_allowed: [],
+      brands_allowed: [],
       upload_access_enabled: true,
       default_margin: 15,
       last_fulfillment_date: new Date().toISOString(),
@@ -129,14 +130,14 @@ export default function AddDealer() {
     }
   }
 
-  const fetchCategories = async () => {
+  const fetchBrands = async () => {
     try {
-      const categoriesResponse = await getAllCategories()
-      if (categoriesResponse.success) {
-        setAllCategories(categoriesResponse.data)
+      const brandsResponse = await getBrand()
+      if (brandsResponse.success) {
+        setAllBrands(brandsResponse.data)
       }
     } catch (error) {
-      showToast("Failed to load categories. Please refresh the page.", "error");
+      showToast("Failed to load brands. Please refresh the page.", "error");
     }
   }
 
@@ -503,20 +504,20 @@ export default function AddDealer() {
           {/* Brands & Access */}
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">Categories & Access</CardTitle>
-              <p className="text-sm text-gray-500">Product Categories and access permissions.</p>
+              <CardTitle className="text-red-600 font-semibold text-lg">Brands & Access</CardTitle>
+              <p className="text-sm text-gray-500">Product Brands and access permissions.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Categories Allowed *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Brands Allowed *</label>
                 {/* Multi-select Dropdown */}
                 <MultiSelectDropdown
-                  options={allCategories}
-                  selected={form.watch("categories_allowed")}
-                  onChange={(selected) => form.setValue("categories_allowed", selected)}
+                  options={allBrands}
+                  selected={form.watch("brands_allowed")}
+                  onChange={(selected) => form.setValue("brands_allowed", selected)}
                 />
-                {form.formState.errors.categories_allowed && (
-                  <p className="text-red-500 text-xs mt-1">{form.formState.errors.categories_allowed.message}</p>
+                {form.formState.errors.brands_allowed && (
+                  <p className="text-red-500 text-xs mt-1">{form.formState.errors.brands_allowed.message}</p>
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -720,7 +721,7 @@ export default function AddDealer() {
 }
 
 function MultiSelectDropdown({ options, selected, onChange }: {
-  options: Category[];
+  options: any[];
   selected: string[];
   onChange: (selected: string[]) => void;
 }) {
@@ -737,7 +738,7 @@ function MultiSelectDropdown({ options, selected, onChange }: {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [open])
 
-  const filtered = options.filter(cat => cat.category_name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = options.filter(brand => brand.brand_name.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div className="relative" ref={ref}>
@@ -745,12 +746,12 @@ function MultiSelectDropdown({ options, selected, onChange }: {
         className="flex flex-wrap gap-2 border border-gray-200 rounded px-2 py-1 bg-white min-h-[42px] cursor-pointer"
         onClick={() => setOpen(v => !v)}
       >
-        {selected.length === 0 && <span className="text-gray-400">Select categories...</span>}
+        {selected.length === 0 && <span className="text-gray-400">Select brands...</span>}
         {selected.map(id => {
-          const cat = options.find(c => c._id === id)
-          return cat ? (
+          const brand = options.find(b => b._id === id)
+          return brand ? (
             <span key={id} className="flex items-center bg-red-600 text-white rounded px-2 py-0.5 text-xs">
-              {cat.category_name}
+              {brand.brand_name}
               <button
                 type="button"
                 className="ml-1 text-white hover:text-gray-200"
@@ -769,32 +770,32 @@ function MultiSelectDropdown({ options, selected, onChange }: {
         <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-60 overflow-auto">
           <input
             className="w-full px-2 py-1 border-b border-gray-100 focus:outline-none"
-            placeholder="Search categories..."
+            placeholder="Search brands..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             autoFocus
           />
-          {filtered.length === 0 && <div className="p-2 text-gray-400">No categories found</div>}
-          {filtered.map(cat => (
+          {filtered.length === 0 && <div className="p-2 text-gray-400">No brands found</div>}
+          {filtered.map(brand => (
             <div
-              key={cat._id}
-              className={`px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center ${selected.includes(cat._id) ? "bg-gray-100" : ""}`}
+              key={brand._id}
+              className={`px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center ${selected.includes(brand._id) ? "bg-gray-100" : ""}`}
               onClick={e => {
                 e.stopPropagation()
-                if (selected.includes(cat._id)) {
-                  onChange(selected.filter(id => id !== cat._id))
+                if (selected.includes(brand._id)) {
+                  onChange(selected.filter(id => id !== brand._id))
                 } else {
-                  onChange([...selected, cat._id])
+                  onChange([...selected, brand._id])
                 }
               }}
             >
               <input
                 type="checkbox"
-                checked={selected.includes(cat._id)}
+                checked={selected.includes(brand._id)}
                 readOnly
                 className="mr-2"
               />
-              {cat.category_name}
+              {brand.brand_name}
             </div>
           ))}
         </div>

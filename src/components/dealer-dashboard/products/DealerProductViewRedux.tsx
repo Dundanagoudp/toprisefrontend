@@ -89,7 +89,7 @@ export default function DealerProductViewRedux({
   // Permission-based field visibility with null checks
   const fieldPermissions: Record<string, boolean> = PRODUCT_FIELDS.reduce(
     (acc: Record<string, boolean>, field: any) => {
-      acc[`canView${field.label.replace(/\s+/g, "")}`] = canViewField(
+      acc[field.value] = canViewField(
         allowedFields,
         field.value,
         readPermissionsEnabled
@@ -99,53 +99,21 @@ export default function DealerProductViewRedux({
     {}
   );
 
-  // Extract individual permissions for easier access
-  const {
-    canViewSkuCode,
-    canViewManufacturerPartName,
-    canViewProductName,
-    canViewBrand,
-    canViewCategory,
-    canViewSubCategory,
-    canViewProductType,
-    canViewVehicleType,
-    canViewModel,
-    canViewVariant,
-    canViewMake,
-    canViewYearRange,
-    canViewIsUniversal,
-    canViewImagesField,
-    canViewWeight,
-    canViewVideoUrl,
-    canViewSeoTitle,
-    canViewSeoDescription,
-    canViewSearchTags,
-    canViewReturnPolicy,
-    canViewFulfillmentPriority,
-    canViewMrpWithGst,
-    canViewSellingPrice,
-    canViewGstPercentage,
-    canViewHsnCode,
-    canViewFitmentNotes,
-    canViewWarranty,
-  } = fieldPermissions;
+  // Helper function for consistent permission checking
+  const hasPermission = (fieldName: string): boolean => {
+    return fieldPermissions[fieldName] || false;
+  };
 
-  // Pricing and stock visibility checks - using field values from PRODUCT_FIELDS
-  const canViewPricing =
-    canViewField(allowedFields, "mrp_with_gst", readPermissionsEnabled) ||
-    canViewField(allowedFields, "selling_price", readPermissionsEnabled) ||
-    canViewField(allowedFields, "gst_percentage", readPermissionsEnabled) ||
-    canViewField(allowedFields, "hsn_code", readPermissionsEnabled);
+  // Composite permission checks for grouped fields
+  const canViewPricing = hasPermission("mrp_with_gst") ||
+                        hasPermission("selling_price") ||
+                        hasPermission("gst_percentage") ||
+                        hasPermission("hsn_code");
 
-  const canViewStock =
-    canViewField(allowedFields, "in_stock", readPermissionsEnabled) ||
-    canViewField(allowedFields, "quantity_available", readPermissionsEnabled);
+  const canViewStock = hasPermission("in_stock") ||
+                      hasPermission("quantity_available");
 
-  const canViewDealerInfo = canViewField(
-    allowedFields,
-    "dealer_info",
-    readPermissionsEnabled
-  );
+  const canViewDealerInfo = hasPermission("dealer_info");
 
   // Helper component for permission-denied state
   const PermissionDeniedCard = ({ title }: { title: string }) => (
@@ -168,13 +136,25 @@ export default function DealerProductViewRedux({
     return (
       <div className="min-h-screen bg-neutral-50">
         <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <Breadcrumb
-            items={[
-              { label: "Home", href: "/" },
-              { label: "Product", href: "/dealer/dashboard/product" },
-              { label: "Product Details", href: "#" },
-            ]}
-          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/dealer/dashboard/product">Product</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Product Details</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -286,12 +266,12 @@ export default function DealerProductViewRedux({
       {/* Content */}
       <div className="p-4 sm:p-6 space-y-8">
         {/* Core Product Identity */}
-        {canViewSkuCode ||
-        canViewProductName ||
-        canViewBrand ||
-        canViewCategory ||
-        canViewSubCategory ||
-        canViewProductType ? (
+        {hasPermission("sku_code") ||
+        hasPermission("product_name") ||
+        hasPermission("brand") ||
+        hasPermission("category") ||
+        hasPermission("sub_category") ||
+        hasPermission("product_type") ? (
           <Card className="border-gray-200 shadow-sm">
             <CardHeader>
               <CardTitle className="text-red-600 font-semibold text-lg">
@@ -303,7 +283,7 @@ export default function DealerProductViewRedux({
               </p>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {canViewSkuCode && (
+              {hasPermission("sku_code") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     SKU Code
@@ -313,7 +293,7 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              {canViewProductName && (
+              {hasPermission("product_name") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Product Name
@@ -323,7 +303,7 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              {canViewManufacturerPartName && (
+              {hasPermission("manufacturer_part_name") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Manufacturer Part Number
@@ -333,8 +313,8 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              
-              {canViewBrand && (
+
+              {hasPermission("brand") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Brand
@@ -344,7 +324,7 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              {canViewCategory && (
+              {hasPermission("category") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Category
@@ -354,7 +334,7 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              {canViewSubCategory && (
+              {hasPermission("sub_category") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Sub-category
@@ -364,7 +344,7 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              {canViewProductType && (
+              {hasPermission("product_type") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Product Type
@@ -374,7 +354,7 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              {canViewVehicleType && (
+              {hasPermission("vehicle_type") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Vehicle Type
@@ -384,7 +364,7 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              {canViewMake && (
+              {hasPermission("make") && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Make
@@ -394,14 +374,16 @@ export default function DealerProductViewRedux({
                   </p>
                 </div>
               )}
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  HSN Code
-                </label>
-                <p className="text-sm text-gray-900 mt-1">
-                  {(product as unknown as Product).hsn_code || "-"}
-                </p>
-              </div>
+              {hasPermission("hsn_code") && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    HSN Code
+                  </label>
+                  <p className="text-sm text-gray-900 mt-1">
+                    {(product as unknown as Product).hsn_code || "-"}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -411,11 +393,11 @@ export default function DealerProductViewRedux({
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Vehicle Compatibility */}
-          {canViewVehicleType ||
-          canViewModel ||
-          canViewVariant ||
-          canViewYearRange ||
-          canViewIsUniversal ? (
+          {hasPermission("vehicle_type") ||
+          hasPermission("model") ||
+          hasPermission("variant") ||
+          hasPermission("year_range") ||
+          hasPermission("is_universal") ? (
             <Card className="border-gray-200 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-red-600 font-semibold text-lg">
@@ -427,7 +409,7 @@ export default function DealerProductViewRedux({
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {canViewMake && (
+                {hasPermission("make") && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Make
@@ -435,7 +417,7 @@ export default function DealerProductViewRedux({
                     <p className="text-sm text-gray-900 mt-1">{(product as unknown as Product).make ? (Array.isArray((product as unknown as Product).make) ? (product as unknown as Product).make.join(", ") : (product as unknown as Product).make) : "-"}</p>
                   </div>
                 )}
-                {canViewModel && (
+                {hasPermission("model") && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Model
@@ -461,7 +443,7 @@ export default function DealerProductViewRedux({
                     </div>
                   </div>
                 )}
-                {canViewVariant && (
+                {hasPermission("variant") && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Variant
@@ -479,24 +461,22 @@ export default function DealerProductViewRedux({
                     </div>
                   </div>
                 )}
-                {canViewYearRange && (
+                {hasPermission("year_range") && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Year Range
                     </label>
-                    <p className="text-sm text-gray-900 mt-1">{(product as unknown as Product).year_range ? (
-                      Array.isArray((product as unknown as Product).year_range) ? 
-                        (product as unknown as Product).year_range.map((yr: any, index: number) => (
-                          <Badge key={index} variant="secondary" className="bg-red-200 text-gray-900">{yr.year_name}</Badge>
-                        )) : 
-                        <Badge variant="secondary" className="bg-red-200 text-gray-900">{(product as unknown as Product).year_range.year_name}</Badge>
-                      ) : (
-                        <span className="text-sm text-gray-500">-</span>
-                      )}
+                    <p className="text-sm text-gray-900 mt-1">{(product as unknown as Product).year_range && (product as unknown as Product).year_range.length > 0 ? (
+                      (product as unknown as Product).year_range.map((yr: any, index: number) => (
+                        <Badge key={index} variant="secondary" className="bg-red-200 text-gray-900">{yr.year_name}</Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-gray-500">-</span>
+                    )}
                     </p>
                   </div>
                 )}
-                {canViewIsUniversal && (
+                {hasPermission("is_universal") && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Is Universal
@@ -513,70 +493,80 @@ export default function DealerProductViewRedux({
           )}
 
           {/* Technical Specifications */}
-          <Card className="border-gray-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-red-600 font-semibold text-lg">
-                Technical Specifications
-              </CardTitle>
-              <p className="text-sm text-gray-500">
-                Relevant technical details to help users understand the product
-                quality and features.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Key Specifications
-                </label>
-                <p className="text-sm text-gray-900 mt-1">
-                  {(product as any).key_specifications || "-"}
+          {hasPermission("weight") ||
+          hasPermission("warranty") ||
+          hasPermission("is_consumable") ? (
+            <Card className="border-gray-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-red-600 font-semibold text-lg">
+                  Technical Specifications
+                </CardTitle>
+                <p className="text-sm text-gray-500">
+                  Relevant technical details to help users understand the product
+                  quality and features.
                 </p>
-              </div>
-              {canViewWeight && (
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Weight
+                    Key Specifications
                   </label>
                   <p className="text-sm text-gray-900 mt-1">
-                    {(product as unknown as Product).weight
-                      ? `${(product as unknown as Product).weight} kg`
-                      : "-"}
+                    {(product as any).key_specifications || "-"}
                   </p>
                 </div>
-              )}
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Certifications
-                </label>
-                <p className="text-sm text-gray-900 mt-1">
-                  {(product as any).certifications || "-"}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Warranty
-                </label>
-                <p className="text-sm text-gray-900 mt-1">
-                  {(product as unknown as Product).warranty
-                    ? `${(product as unknown as Product).warranty} months`
-                    : "-"}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Is Consumable
-                </label>
-                <p className="text-sm text-gray-900 mt-1">
-                  {(product as unknown as Product).is_consumable ? "Yes" : "No"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                {hasPermission("weight") && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Weight
+                    </label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {(product as unknown as Product).weight
+                        ? `${(product as unknown as Product).weight} kg`
+                        : "-"}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Certifications
+                  </label>
+                  <p className="text-sm text-gray-900 mt-1">
+                    {(product as any).certifications || "-"}
+                  </p>
+                </div>
+                {hasPermission("warranty") && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Warranty
+                    </label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {(product as unknown as Product).warranty
+                        ? `${(product as unknown as Product).warranty} months`
+                        : "-"}
+                    </p>
+                  </div>
+                )}
+                {hasPermission("is_consumable") && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Is Consumable
+                    </label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {(product as unknown as Product).is_consumable ? "Yes" : "No"}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <PermissionDeniedCard title="Technical Specifications" />
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Media & Assets */}
-          {canViewImagesField ? (
+          {hasPermission("images") ? (
             <Card className="border-gray-200 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-red-600 font-semibold text-lg">
@@ -631,58 +621,74 @@ export default function DealerProductViewRedux({
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {canViewPricing && (
-                  <>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">
-                        MRP
-                      </label>
-                      <p className="text-sm text-gray-900 mt-1">
-                        {(product as unknown as Product).mrp_with_gst
-                          ? formatCurrency((product as unknown as Product).mrp_with_gst)
-                          : "-"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">
-                        Selling Price
-                      </label>
-                      <p className="text-sm text-gray-900 mt-1">
-                        {(product as unknown as Product).selling_price
-                          ? formatCurrency((product as unknown as Product).selling_price)
-                          : "-"}
-                      </p>
-                    </div>
-                  </>
+                {hasPermission("mrp_with_gst") && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      MRP
+                    </label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {(product as unknown as Product).mrp_with_gst
+                        ? formatCurrency((product as unknown as Product).mrp_with_gst)
+                        : "-"}
+                    </p>
+                  </div>
                 )}
-                {canViewStock && (
+                {hasPermission("selling_price") && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Selling Price
+                    </label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {(product as unknown as Product).selling_price
+                        ? formatCurrency((product as unknown as Product).selling_price)
+                        : "-"}
+                    </p>
+                  </div>
+                )}
+                {hasPermission("gst_percentage") && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      GST Percentage
+                    </label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {(product as unknown as Product).gst_percentage
+                        ? `${(product as unknown as Product).gst_percentage}%`
+                        : "-"}
+                    </p>
+                  </div>
+                )}
+                {(hasPermission("in_stock") || hasPermission("quantity_available")) && (
                   <>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">
-                        Stock Status
-                      </label>
-                      <div className="mt-1">
-                        <Badge
-                          className={getStockStatusColor(
-                            product.dealer_info?.in_stock || false,
-                            product.dealer_info?.quantity_available || 0
-                          )}
-                        >
-                          {getStockStatusText(
-                            product.dealer_info?.in_stock || false,
-                            product.dealer_info?.quantity_available || 0
-                          )}
-                        </Badge>
+                    {hasPermission("in_stock") && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          Stock Status
+                        </label>
+                        <div className="mt-1">
+                          <Badge
+                            className={getStockStatusColor(
+                              product.dealer_info?.in_stock || false,
+                              product.dealer_info?.quantity_available || 0
+                            )}
+                          >
+                            {getStockStatusText(
+                              product.dealer_info?.in_stock || false,
+                              product.dealer_info?.quantity_available || 0
+                            )}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">
-                        Quantity Available
-                      </label>
-                      <p className="text-sm text-gray-900 mt-1">
-                        {product.dealer_info?.quantity_available || 0}
-                      </p>
-                    </div>
+                    )}
+                    {hasPermission("quantity_available") && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          Quantity Available
+                        </label>
+                        <p className="text-sm text-gray-900 mt-1">
+                          {product.dealer_info?.quantity_available || 0}
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
                 {canViewDealerInfo && (
@@ -705,39 +711,43 @@ export default function DealerProductViewRedux({
         </div>
 
         {/* Product History */}
-        <Card className="border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-red-600 font-semibold text-lg">
-              Product History
-            </CardTitle>
-            <p className="text-sm text-gray-500">
-              Track the history of changes and modifications made to this
-              product.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Created At
-              </label>
-              <p className="text-sm text-gray-900 mt-1">
-                {product.created_at
-                  ? formatProductDate(product.created_at)
-                  : "-"}
+        {readPermissionsEnabled ? (
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-red-600 font-semibold text-lg">
+                Product History
+              </CardTitle>
+              <p className="text-sm text-gray-500">
+                Track the history of changes and modifications made to this
+                product.
               </p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Last Updated
-              </label>
-              <p className="text-sm text-gray-900 mt-1">
-                {product.updated_at
-                  ? formatProductDate(product.updated_at)
-                  : "-"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Created At
+                </label>
+                <p className="text-sm text-gray-900 mt-1">
+                  {product.created_at
+                    ? formatProductDate(product.created_at)
+                    : "-"}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Last Updated
+                </label>
+                <p className="text-sm text-gray-900 mt-1">
+                  {product.updated_at
+                    ? formatProductDate(product.updated_at)
+                    : "-"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <PermissionDeniedCard title="Product History" />
+        )}
       </div>
     </div>
   );

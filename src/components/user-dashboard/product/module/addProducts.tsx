@@ -36,7 +36,7 @@ import {
   getvarientByModel,
   getYearRange,
 } from "@/service/product-Service";
-import { getDealersByCategory } from "@/service/dealerServices";
+import { getDealersByBrand, getDealersByCategory } from "@/service/dealerServices";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
@@ -277,28 +277,48 @@ export default function AddProducts() {
     fetchSubCategoriesByCategory();
   }, [selectedCategoryId]);
 
-  // Fetch dealers when category changes
+  // Fetch dealers when brand changes
   useEffect(() => {
-    if (!selectedCategoryId) {
+
+    if (!selectedbrandId) {
       setDealerOptions([]);
       return;
     }
-    const fetchDealersByCategory = async () => {
+
+ 
+    const fetchDealersByBrand = async () => {
       try {
         setLoadingDealers(true);
-        const response = await getDealersByCategory(selectedCategoryId);
-        const dealerData = response?.data || response || [];
-        setDealerOptions(Array.isArray(dealerData) ? dealerData : []);
+
+        const response = await getDealersByBrand(selectedbrandId);
+
+
+        // The response should now be properly structured from the updated service
+        const dealerData = response.data || response || [];
+
+
+        const processedDealers = Array.isArray(dealerData) ? dealerData : [];
+
+        setDealerOptions(processedDealers);
       } catch (error) {
-        console.error("Failed to fetch dealers by category:", error);
+      
+        console.error("[addProducts] Error details:", {
+          message: error?.message,
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          brandId: selectedbrandId
+        });
         setDealerOptions([]);
-        showToast("Failed to load dealers for selected category", "error");
+        const errorMessage = error?.response?.data?.message || error?.message || "Unknown error";
+        showToast(`Failed to load dealers for selected brand: ${errorMessage}`, "error");
       } finally {
         setLoadingDealers(false);
+        console.log("[addProducts] Finished fetching dealers, loadingDealers set to false");
       }
     };
-    fetchDealersByCategory();
-  }, [selectedCategoryId]);
+    fetchDealersByBrand();
+  }, [selectedbrandId]);
 
   // Model options (fetch brands by type)
   useEffect(() => {
@@ -1561,7 +1581,7 @@ export default function AddProducts() {
                                 </SelectItem>
                               ) : dealerOptions.length === 0 ? (
                                 <SelectItem value="no-dealers" disabled>
-                                  {selectedCategoryId ? "No dealers found" : "Select category first"}
+                                  {selectedbrandId ? "No dealers found" : "Select    first"}
                                 </SelectItem>
                               ) : (
                                 dealerOptions

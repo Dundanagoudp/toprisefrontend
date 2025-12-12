@@ -13,6 +13,7 @@ import DynamicPagination from "@/components/common/pagination/DynamicPagination"
 import AssignSLAForm from "../../dealer-management/module/popups/assignSLA"
 import { useAppSelector } from "@/store/hooks"
 import ExportButton from "./ExportButton"
+import { getBrand } from "@/service/product-Service"
 
 interface DealertableProps {
   search?: string
@@ -74,9 +75,9 @@ export default function Dealertable({
         aValue = a.is_active ? "active" : "inactive"
         bValue = b.is_active ? "active" : "inactive"
         break
-      case "category":
-        aValue = a.categories_allowed?.join(", ")?.toLowerCase() || ""
-        bValue = b.categories_allowed?.join(", ")?.toLowerCase() || ""
+      case "brand":
+        aValue = a.brands_allowed?.join(", ")?.toLowerCase() || ""
+        bValue = b.brands_allowed?.join(", ")?.toLowerCase() || ""
         break
       default:
         return 0
@@ -109,7 +110,7 @@ export default function Dealertable({
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const paginatedData = filteredDealers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const router = useRouter()
-  const [categories, setCategories] = useState<Category[]>([])
+  const [brands, setBrands] = useState<any[]>([])
   const [slaFormOpen, setSlaFormOpen] = useState(false)
   const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null)
   const [viewDealerLoading, setViewDealerLoading] = useState(false)
@@ -120,7 +121,7 @@ export default function Dealertable({
 
   useEffect(() => {
     fetchDealers()
-    fetchCategories()
+    fetchBrands()
   }, [])
 
   const handleSLAFormSubmit = (data: any) => {
@@ -146,14 +147,14 @@ export default function Dealertable({
     }
   }
 
-  const fetchCategories = async () => {
+  const fetchBrands = async () => {
     try {
-      const response = await getAllCategories()
+      const response = await getBrand()
       if (response.success) {
-        setCategories(response.data)
+        setBrands(response.data)
       }
     } catch (error) {
-      showToast("Failed to fetch categories", "error")
+      showToast("Failed to fetch brands", "error")
     }
   }
 
@@ -372,10 +373,10 @@ export default function Dealertable({
             </th>
             <th
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-32"
-              onClick={() => handleSort("category")}
+              onClick={() => handleSort("brand")}
             >
               <div className="flex items-center gap-1">
-                Category
+                Brand
               </div>
             </th>
             <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">Actions</th>
@@ -423,15 +424,15 @@ export default function Dealertable({
               <td className="p-3 md:p-4">{getStatusBadge(dealer.is_active)}</td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">
                 <div className="flex flex-wrap gap-1 max-w-[120px]">
-                  {dealer.categories_allowed.map((categoryId, idx) => {
-                    const category = categories.find((cat) => cat._id === categoryId)
+                  {dealer.brands_allowed.map((brandId: string, idx: number) => {
+                    const brand = brands.find((brand: any) => brand._id === brandId)
                     return (
                       <span
                         key={idx}
                         className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded truncate max-w-[100px]"
-                        title={category ? category.category_name : categoryId}
+                        title={brand ? brand.brand_name : brandId}
                       >
-                        {category ? category.category_name : categoryId}
+                        {brand ? brand.brand_name : brandId}
                       </span>
                     )
                   })}

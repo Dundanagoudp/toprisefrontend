@@ -44,6 +44,7 @@ import {
   getVariantsByModelIds,
   getTypes,
   getYearRange,
+  getBrandsByTypeAndDealerId,
 } from "@/service/product-Service";
 
 const schema: any = z.object({
@@ -324,12 +325,16 @@ export default function DealerProductEditRedux() {
     const categoryId = product.category?._id;
     const brandId = product.brand?._id;
     const modelIds = product.model?.map((m: { _id: string }) => m._id) || [];
-
+    
+    if (!dealerId) {
+      showToast("Dealer not found", "error");
+      return;
+    }
     // Fetch ALL options in parallel
     Promise.all([
       getCategoriesByType(typeId),
       getSubcategoriesByCategoryId(categoryId),
-      getBrandByType(typeId),
+      getBrandsByTypeAndDealerId(dealerId, typeId),
       getModelByBrand(brandId),
       getVariantsByModelIds(modelIds),
     ]).then(([cats, subCats, brands, models, variants]) => {
@@ -346,7 +351,7 @@ export default function DealerProductEditRedux() {
       console.error("Failed to fetch dependent options:", error);
       showToast("Failed to load product options", "error");
     });
-  }, [product, populateFormWithProduct, showToast]);
+  }, [product, populateFormWithProduct, showToast, dealerId]);
 
   // When vehicle type changes → fetch categories and brands
   const vehicleType = watch("vehicle_type");
@@ -797,13 +802,22 @@ export default function DealerProductEditRedux() {
                   <Label htmlFor="product_type" className="text-sm font-medium">
                     Product Type <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="product_type"
-                    placeholder="Enter Product Type"
-                    className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                    {...register("product_type")}
-                    disabled={!canEditField("product_type")}
-                  />
+                  <Select
+                    value={watch("product_type") || ""}
+                    onValueChange={(value) => setValue("product_type", value)}
+                  >
+                    <SelectTrigger
+                      id="product_type"
+                      className="bg-gray-50 border-gray-200 rounded-[8px] p-4 w-full"
+                      disabled={!canEditField("product_type")}
+                    >
+                      <SelectValue placeholder="Select Product Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OEM">OEM</SelectItem>
+                      <SelectItem value="Aftermarket">Aftermarket</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {errors.product_type && (
                     <span className="text-red-500 text-sm">
                       {errors.product_type?.message as string}

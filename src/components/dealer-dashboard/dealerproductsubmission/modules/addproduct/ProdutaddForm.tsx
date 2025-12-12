@@ -34,6 +34,7 @@ import {
   getVariantsByModelIds,
   getvarientByModel,
   getYearRange,
+  getBrandsByTypeAndDealerId,
 } from "@/service/product-Service";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store/hooks";
@@ -181,7 +182,7 @@ export default function DealerAddProducts() {
     }
     const fetchBrandsByType = async () => {
       try {
-        const response = await getBrandByType(selectedProductTypeId);
+        const response = await getBrandsByTypeAndDealerId( selectedDealerId,selectedProductTypeId);
         setFilteredBrandOptions((response.data as any) || []);
       } catch (error) {
         setFilteredBrandOptions([]);
@@ -189,7 +190,7 @@ export default function DealerAddProducts() {
       }
     };
     fetchBrandsByType();
-  }, [selectedProductTypeId]);
+  }, [selectedProductTypeId, selectedDealerId]);
   useEffect(() => {
     if (!selectedCategoryId) {
       setSubCategoryOptions([]); // Clear if no category selected
