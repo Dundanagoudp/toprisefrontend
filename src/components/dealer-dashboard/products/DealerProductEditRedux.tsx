@@ -50,7 +50,7 @@ const schema: any = z.object({
   manufacturer_part_name: z.string().optional(),
   product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().min(1, "Brand is required"),
-  hsn_code: z.number().optional(),
+  hsn_code: z.union([z.string(), z.number(), z.coerce.number()]).optional(),
   category: z.string().min(1, "Category is required"),
   sub_category: z.string().min(1, "Sub-category is required"),
   product_type: z.string().min(1, "Product type is required"),
@@ -442,29 +442,82 @@ export default function DealerProductEditRedux() {
 
     setIsSubmitting(true);
     try {
+      // Create FormData object
       const formData = new FormData();
 
-      // Add basic fields
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (Array.isArray(value)) {
-            value.forEach((item) => formData.append(key, item));
-          } else {
-            formData.append(key, String(value));
-          }
-        }
-      });
+      // Add fields to FormData
+      if (data.manufacturer_part_name) formData.append("manufacturer_part_name", data.manufacturer_part_name);
+      if (data.product_name) formData.append("product_name", data.product_name);
+      if (data.brand) formData.append("brand", data.brand);
+      if (data.hsn_code) formData.append("hsn_code", String(data.hsn_code));
+      if (data.category) formData.append("category", data.category);
+      if (data.sub_category) formData.append("sub_category", data.sub_category);
+      if (data.product_type) formData.append("product_type", data.product_type);
+      
+      // Add make as array
+      if (data.make) {
+        formData.append("make", data.make);
+      }
 
-     const response = await updateDealerProduct(productId, formData);
-     console.log(response);
-     if(response){
-      console.log("Product updated successfully");
-     }
+      // Add model array
+      if (data.model && Array.isArray(data.model)) {
+        data.model.forEach((modelId: string) => {
+          formData.append("model", modelId);
+        });
+      }
+
+      // Add year_range array
+      if (data.year_range && Array.isArray(data.year_range)) {
+        data.year_range.forEach((yearId: string) => {
+          formData.append("year_range", yearId);
+        });
+      }
+
+      // Add variant array
+      if (data.variant && Array.isArray(data.variant)) {
+        data.variant.forEach((variantId: string) => {
+          formData.append("variant", variantId);
+        });
+      }
+
+      if (data.fitment_notes) formData.append("fitment_notes", data.fitment_notes);
+      
+      // Boolean fields - convert from yes/no to boolean
+      formData.append("is_universal", String(data.is_universal === "yes"));
+      formData.append("is_consumable", String(data.is_consumable === "yes"));
+      
+      if (data.key_specifications) formData.append("key_specifications", data.key_specifications);
+      if (data.weight) formData.append("weight", String(data.weight));
+      if (data.certifications) formData.append("certifications", data.certifications);
+      if (data.warranty) formData.append("warranty", String(data.warranty));
+      
+      // Pricing fields
+      if (data.mrp_with_gst) formData.append("mrp_with_gst", String(data.mrp_with_gst));
+      if (data.gst_percentage) formData.append("gst_percentage", String(data.gst_percentage));
+      if (data.dealer_selling_price) formData.append("selling_price", String(data.dealer_selling_price));
+      
+      formData.append("is_returnable", String(data.is_returnable));
+      
+      // SEO fields
+      if (data.seo_title) formData.append("seo_title", data.seo_title);
+      if (data.seo_description) formData.append("seo_description", data.seo_description);
+      
+      // Search tags array
+      if (data.search_tags && Array.isArray(data.search_tags)) {
+        data.search_tags.forEach((tag: string) => {
+          formData.append("search_tags", tag);
+        });
+      }
+
+      const response = await updateDealerProduct(productId, formData);
 
       showToast("Product updated successfully", "success");
 
+      // Small delay to ensure backend has processed
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Refresh the product data
-      dispatch(fetchDealerProductByIdThunk(productId));
+      await dispatch(fetchDealerProductByIdThunk(productId));
 
       // Navigate back to product details
       router.push(`/dealer/dashboard/product/productdetails/${productId}`);
@@ -1336,19 +1389,54 @@ export default function DealerProductEditRedux() {
                   <Label htmlFor="search_tags" className="text-sm font-medium">
                     Search Tags
                   </Label>
-                  <Input
-                    id="search_tags"
-                    placeholder="Enter Search Tags (comma separated)"
-                    className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
-                    onChange={(e) => {
-                      const tags = e.target.value
-                        .split(",")
-                        .map((tag) => tag.trim())
-                        .filter((tag) => tag);
-                      setValue("search_tags", tags);
-                    }}
-                    disabled={!canEditField("search_tags")}
-                  />
+                  <div className="border rounded-lg p-3 bg-gray-50 min-h-[56px] flex flex-wrap gap-2 items-center">
+                    {/* Display existing tags */}
+                    {watch("search_tags")?.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                      >
+                        {tag}
+                        {canEditField("search_tags") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentTags = watch("search_tags") || [];
+                              const updatedTags = currentTags.filter(
+                                (_: string, i: number) => i !== index
+                              );
+                              setValue("search_tags", updatedTags);
+                            }}
+                            className="ml-1 text-blue-700 hover:text-blue-900 focus:outline-none"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                    
+                    {/* Input to add new tag */}
+                    {canEditField("search_tags") && (
+                      <Input
+                        placeholder="Add tag and press Enter"
+                        className="flex-1 min-w-[200px] border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-8"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const newTag = input.value.trim();
+                            if (newTag) {
+                              const currentTags = watch("search_tags") || [];
+                              if (!currentTags.includes(newTag)) {
+                                setValue("search_tags", [...currentTags, newTag]);
+                              }
+                              input.value = "";
+                            }
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
                   {errors.search_tags && (
                     <span className="text-red-500 text-sm">
                       {errors.search_tags?.message as string}
@@ -1359,22 +1447,25 @@ export default function DealerProductEditRedux() {
             </CardContent>
           </Card>
         )}
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() =>
+              router.push(
+                `/dealer/dashboard/product/productdetails/${productId}`
+              )
+            }
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
       </form>
-      <div className="flex justify-end gap-3 pt-4">
-        <Button
-          variant="outline"
-          onClick={() =>
-            router.push(
-              `/dealer/dashboard/product/productdetails/${productId}`
-            )
-          }
-        >
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
     </div>
   );
 }
