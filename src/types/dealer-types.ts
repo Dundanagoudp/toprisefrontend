@@ -84,7 +84,7 @@ export interface Dealer {
   Address: Address
   contact_person: ContactPerson
   is_active: boolean
-  categories_allowed: string[]
+  brands_allowed: string[]
   upload_access_enabled: boolean
   default_margin: number
   last_fulfillment_date: string
@@ -109,7 +109,7 @@ export interface CreateDealerRequest {
   Pan: string
   Address: Address
   contact_person: ContactPerson
-  categories_allowed: string[]
+  brands_allowed: string[]
   upload_access_enabled: boolean
   default_margin: number
   last_fulfillment_date: string

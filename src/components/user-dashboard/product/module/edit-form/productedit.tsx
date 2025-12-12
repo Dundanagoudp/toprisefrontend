@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectCurrentProduct, selectProductLoading, selectProductError } from "@/store/slice/product/productByIdSlice";
+import { getDealersByBrand } from "@/service/dealerServices";
 import { fetchProductByIdThunk } from "@/store/slice/product/productByIdThunks";
 import { DynamicBreadcrumb } from "@/components/user-dashboard/DynamicBreadcrumb";
 
@@ -43,7 +44,6 @@ import {
   getSubcategoriesByCategoryId,
   getCategoriesByType,
 } from "@/service/product-Service";
-import { getDealersByCategory } from "@/service/dealerServices";
 import { useParams, useRouter } from "next/navigation";
 import { Product } from "@/types/product-Types";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
@@ -306,28 +306,29 @@ export default function ProductEdit() {
       }
   }, [reset]);
 
-  // Function to fetch dealers by category
-  const fetchDealersByCategory = async (categoryId: string) => {
-    if (!categoryId) {
-      setAvailableDealers([]);
-      return;
-    }
 
-    try {
-      setLoadingDealers(true);
-      const response = await getDealersByCategory(categoryId);
-      console.log("Dealers response:", response);
+// Function to fetch dealers by brand (NEW: Changed from category to brand)
+const fetchDealersByBrand = async (brandId: string) => {
+  if (!brandId) {
+    setAvailableDealers([]);
+    return;
+  }
 
-      const dealers = Array.isArray(response.data) ? response.data : [];
-      console.log("Setting dealers:", dealers);
-      setAvailableDealers(dealers);
-    } catch (error) {
-      console.error("Failed to fetch dealers:", error);
-      setAvailableDealers([]);
-    } finally {
-      setLoadingDealers(false);
-    }
-  };
+  try {
+    setLoadingDealers(true);
+    const response = await getDealersByBrand(brandId); // Changed function name
+    console.log("Dealers by brand response:", response);
+
+    const dealers = Array.isArray(response.data) ? response.data : [];
+    console.log("Setting dealers:", dealers);
+    setAvailableDealers(dealers);
+  } catch (error) {
+    console.error("Failed to fetch dealers by brand:", error);
+    setAvailableDealers([]);
+  } finally {
+    setLoadingDealers(false);
+  }
+};
   // Handle image file input change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -398,22 +399,23 @@ export default function ProductEdit() {
     const brandId = product.brand?._id;
     const modelIds = product.model?.map((m: { _id: string }) => m._id) || [];
 
-    // Fetch ALL options in parallel
+    // Fetch ALL options in parallel (except dealers which are fetched separately)
     Promise.all([
       getCategoriesByType(typeId),
       getSubcategoriesByCategoryId(categoryId),
       getBrandByType(typeId),
       getModelByBrand(brandId),
-      getVariantsByModelIds(modelIds),
-      getDealersByCategory(categoryId)
-    ]).then(([cats, subCats, brands, models, variants, dealers]) => {
+      getVariantsByModelIds(modelIds)
+    ]).then(([cats, subCats, brands, models, variants]) => {
       // Set all options
       setCategoryOptions(Array.isArray(cats.data) ? cats.data : []);
       setSubCategoryOptions(Array.isArray(subCats.data) ? subCats.data : []);
       setBrandOptions(Array.isArray(brands.data) ? brands.data : []);
       setModelOptions(Array.isArray(models.data) ? models.data : []);
       setVarientOptions(Array.isArray(variants.data) ? variants.data : []);
-      setAvailableDealers(Array.isArray(dealers.data) ? dealers.data : []);
+
+      // Fetch dealers by brand separately
+      fetchDealersByBrand(brandId);
 
       // NOW populate form after all options loaded
       populateFormWithProduct(product);
@@ -451,27 +453,24 @@ export default function ProductEdit() {
     }
   }, [selectedProductTypeId, showToast]); // Removed watch and setValue from deps
 
-  // When user changes category → fetch subcategories and dealers
+  // When user changes category → fetch subcategories
   useEffect(() => {
     const category = watch("category");
     if (category && category !== prevCategoryRef.current) {
       prevCategoryRef.current = category;
       setSelectedCategoryId(category);
 
-      Promise.all([
-        getSubcategoriesByCategoryId(category),
-        fetchDealersByCategory(category)
-      ]).then(([subCats, dealers]) => {
-        setSubCategoryOptions(Array.isArray(subCats.data) ? subCats.data : []);
-        // Dealers already handled by fetchDealersByCategory
-      }).catch((error) => {
-        console.error("Failed to fetch subcategories and dealers:", error);
-        showToast("Failed to load options for selected category", "error");
-      });
+      getSubcategoriesByCategoryId(category)
+        .then((subCats) => {
+          setSubCategoryOptions(Array.isArray(subCats.data) ? subCats.data : []);
+        }).catch((error) => {
+          console.error("Failed to fetch subcategories:", error);
+          showToast("Failed to load options for selected category", "error");
+        });
     }
   }, [selectedCategoryId, showToast]); // Removed watch and setValue from deps
 
-  // When user changes brand → fetch models
+  // When user changes brand → fetch models and dealers
   useEffect(() => {
     const brand = watch("brand");
     if (brand && brand !== prevBrandRef.current) {
@@ -479,20 +478,21 @@ export default function ProductEdit() {
       setSelectedBrandId(brand);
       setIsLoadingBrands(true);
 
-      getModelByBrand(brand)
-        .then((response) => {
-          setModelOptions(Array.isArray(response.data) ? response.data : []);
-          // Clear dependent selections
-          setValue("model", []);
-          setValue("variant", []);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch models:", error);
-          showToast("Failed to load models for selected brand", "error");
-        })
-        .finally(() => {
-          setIsLoadingBrands(false);
-        });
+      // Fetch models and dealers in parallel
+      Promise.all([
+        getModelByBrand(brand),
+        fetchDealersByBrand(brand)
+      ]).then(([modelsResponse, dealersResponse]) => {
+        setModelOptions(Array.isArray(modelsResponse.data) ? modelsResponse.data : []);
+        setValue("model", []);
+        setValue("variant", []);
+      }).catch((error) => {
+        console.error("Failed to fetch models and dealers:", error);
+        showToast("Failed to load models and dealers for selected brand", "error");
+      })
+      .finally(() => {
+        setIsLoadingBrands(false);
+      });
     }
   }, [selectedbrandId, showToast]); // Removed watch and setValue from deps
 

@@ -49,17 +49,21 @@ export const PRODUCT_FIELDS: ProductField[] = [
   // Technical Specifications
   { value: "weight", label: "Weight", category: PRODUCT_FIELD_CATEGORIES.TECHNICAL_SPECS },
   { value: "warranty", label: "Warranty", category: PRODUCT_FIELD_CATEGORIES.TECHNICAL_SPECS },
+  { value: "key_specifications", label: "Key Specifications", category: PRODUCT_FIELD_CATEGORIES.TECHNICAL_SPECS },
+
   
   // Media & SEO
   { value: "images", label: "Images", category: PRODUCT_FIELD_CATEGORIES.MEDIA },
-  { value: "video_url", label: "Video URL", category: PRODUCT_FIELD_CATEGORIES.MEDIA },
+
   { value: "seo_title", label: "SEO Title", category: PRODUCT_FIELD_CATEGORIES.MEDIA },
   { value: "seo_description", label: "SEO Description", category: PRODUCT_FIELD_CATEGORIES.MEDIA },
   { value: "search_tags", label: "Search Tags", category: PRODUCT_FIELD_CATEGORIES.MEDIA },
+  { value: "certifications", label: "Certifications", category: PRODUCT_FIELD_CATEGORIES.MEDIA },
+
   
   // Policies & Status
   { value: "return_policy", label: "Return Policy", category: PRODUCT_FIELD_CATEGORIES.POLICIES },
-  { value: "fulfillment_priority", label: "Fulfillment Priority", category: PRODUCT_FIELD_CATEGORIES.POLICIES },
+
 ]
 
 /**

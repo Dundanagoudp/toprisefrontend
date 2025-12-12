@@ -554,7 +554,7 @@ export async function getCategoriesByType(typeId: string): Promise<ApiResponse<P
   }
 }
 
-export async function getBrand(): Promise<ProductResponse> {
+export async function getBrand(): Promise<BrandsApiResponse> {
   try {
     const response = await apiClient.get(`/category/api/brands`);
     return response.data;
@@ -787,6 +787,18 @@ export async function getBrandByType(id: string): Promise<ProductResponse> {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch brands for type:", error);
+    throw error;
+  }
+}
+
+
+// get brands by type and dealer id
+export async function getBrandsByTypeAndDealerId(dealerId: string, typeId: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/brands/get/brands/by/delaer/${dealerId}/${typeId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch brands by type and dealer id:", error);
     throw error;
   }
 }

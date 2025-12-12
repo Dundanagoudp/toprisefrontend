@@ -102,10 +102,9 @@ export async function getAllCSlaTypes(): Promise<SlaTypesResponse> {
 // Get dealers by category ID
 export async function getDealersByCategory(categoryId: string): Promise<ApiResponse<Dealer[]>> {
   try {
-    console.log("Fetching dealers for category:", categoryId);
+ 
     const response = await apiClient.get(`/users/api/users/get/dealerByCategoryName/${categoryId}`)
-    console.log("[getDealersByCategory] Full response:", response);
-    console.log("[getDealersByCategory] Response data:", response.data);
+
 
     // Handle the actual API response structure
     const responseData = response.data;
@@ -119,6 +118,7 @@ export async function getDealersByCategory(categoryId: string): Promise<ApiRespo
         data: responseData.data.dealers
       };
     }
+
     
     // Fallback: if response.data is the array directly
     if (Array.isArray(responseData)) {
@@ -153,6 +153,62 @@ export async function getDealersByCategory(categoryId: string): Promise<ApiRespo
     throw error
   }
 }
+
+//get Dealers by Brand
+export async function getDealersByBrand(brandId: string): Promise<ApiResponse<Dealer[]>> {
+  try {
+  
+    const response = await apiClient.get(`/users/api/users/get/dealerBy/brand/${brandId}`)
+
+
+    // Handle the actual API response structure
+    const responseData = response.data;
+
+
+    // The API returns: { success: true, message: "...", data: { dealers: [...], ... } }
+    if (responseData && responseData.success && responseData.data && Array.isArray(responseData.data.dealers)) {
+      
+      return {
+        success: responseData.success,
+        message: responseData.message,
+        data: responseData.data.dealers
+      };
+    }
+
+    // Fallback: if response.data is the array directly
+    if (Array.isArray(responseData)) {
+      
+      return {
+        success: true,
+        message: "Dealers fetched successfully",
+        data: responseData
+      };
+    }
+
+    // If response.data has a data property that's an array
+    if (responseData && responseData.data && Array.isArray(responseData.data)) {
+      
+      return {
+        success: responseData.success || true,
+        message: responseData.message || "Dealers fetched successfully",
+        data: responseData.data
+      };
+    }
+
+    // If no dealers found or unexpected structure
+    
+    return {
+      success: responseData?.success || false,
+      message: responseData?.message || "No dealers found",
+      data: []
+    };
+
+  } catch (error) {
+    console.error("Failed to fetch dealers by brand:", error)
+    throw error
+  }
+}
+
 
 export async function setSlaType(dealerId: string, data: any): Promise<SlaTypesResponse> {
   try {

@@ -28,7 +28,6 @@ export const dealerSchema = z.object({
   Pan: z.string().min(10, "PAN must be 10 characters").max(10, "PAN must be 10 characters"),
   Address: addressSchema,
   contact_person: contactPersonSchema,
-  categories_allowed: z.array(z.string()).min(1, "At least one category must be selected"),
   upload_access_enabled: z.boolean().default(true),
   default_margin: z.number().min(0, "Margin must be positive").max(100, "Margin cannot exceed 100%"),
   last_fulfillment_date: z.string(),
@@ -36,6 +35,7 @@ export const dealerSchema = z.object({
   SLA_type: z.string().min(1, "SLA type is required"),
   onboarding_date: z.string(),
   remarks: z.string().optional(),
+  brands_allowed: z.array(z.string()).min(1, "At least one brand must be selected"),
 })
 
 export type DealerFormValues = z.infer<typeof dealerSchema>

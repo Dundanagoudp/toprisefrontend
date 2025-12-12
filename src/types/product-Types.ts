@@ -18,7 +18,6 @@ export interface AvailableDealers {
 }
 
 export interface Product {
-  available_dealers: AvailableDealers[];
   Qc_status: string;
   _id: string;
   sku_code: string;
@@ -57,6 +56,7 @@ export interface Product {
   is_returnable: boolean;
   return_policy: string;
   live_status: string;
+  available_dealers: AvailableDealers[];
   created_by: string;
   iteration_number: number;
   last_stock_inquired: string;
@@ -185,6 +185,18 @@ export interface RejectBulkProductsPayload {
   reason: string;
   rejectedBy: string;
 }
-
+export interface DealerDetails {
+  dealers_Ref: string;
+  quantity_per_dealer?: number;
+  dealer_margin?: number;
+  dealer_priority_override?: number;
+  last_stock_update?: string;
+  inStock?: boolean;
+}
+export interface DealerDetailsResponse {
+  success: boolean;
+  message: string;
+  data: DealerDetails[];
+}
 
 export type AddProductPayload = Omit<Product, '_id' | 'created_at' | 'updated_at' | 'Qc_status' | 'available_dealers' | 'brand' | 'category' | 'sub_category' | 'model' | 'year_range' | 'variant' | 'created_by' | 'iteration_number' | 'last_stock_inquired' | 'rejection_state' | 'change_logs' | '__v'>;
