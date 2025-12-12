@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/store/hooks";
@@ -169,15 +169,25 @@ export default function BannerSection() {
       return;
     }
 
-    // Prepare params similar to SearchModal
-    const params = new URLSearchParams();
-    params.set("brand", selectedBrand);
-    params.set("model", selectedModel);
-    if (selectedVariant) params.set("variant", selectedVariant);
-    if (typeId) params.set("vehicleTypeId", typeId);
+    // Get selected item names instead of IDs
+    const selectedBrandName = brands.find(brand => brand._id === selectedBrand)?.brand_name;
+    const selectedModelName = models.find(model => model._id === selectedModel)?.model_name;
+    const selectedVariantName = selectedVariant
+      ? variants.find(variant => variant._id === selectedVariant)?.variant_name
+      : null;
 
-    // You can also add a category field later if you want to match full modal flow:
-    // params.set("category", selectedCategoryId);
+    if (!selectedBrandName || !selectedModelName) {
+      showToast("Invalid selection. Please try again.", "error");
+      return;
+    }
+
+    // Build search query by combining names
+    const searchQuery = `${selectedBrandName} ${selectedModelName} ${selectedVariantName || ""}`.trim();
+
+    // Prepare params with query parameter instead of separate brand/model/variant
+    const params = new URLSearchParams();
+    params.set("query", searchQuery.replace(/\s+/g, "+"));
+    if (typeId) params.set("vehicleTypeId", typeId);
 
     router.push(`/shop/search-results?${params.toString()}`);
   };
