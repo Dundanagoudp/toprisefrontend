@@ -43,6 +43,7 @@ import {
   getModelByBrand,
   getVariantsByModelIds,
   getTypes,
+  getYearRange,
 } from "@/service/product-Service";
 
 const schema: any = z.object({
@@ -143,6 +144,9 @@ export default function DealerProductEditRedux() {
   const [yearRangeOptions, setYearRangeOptions] = useState<any[]>([]);
   const [varientOptions, setVarientOptions] = useState<any[]>([]);
   const [brandOptions, setBrandOptions] = useState<any[]>([]);
+
+  // Selected state for year ranges
+  const [yearRangeSelected, setYearRangeSelected] = useState<string[]>([]);
 
   // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -263,6 +267,8 @@ export default function DealerProductEditRedux() {
     setValue("vehicle_type", vehicleTypeId);
     setValue("make", product.make && product.make.length > 0 ? product.make[0] : "");
     setValue("model", modelIds);
+    setYearRangeSelected(product.year_range?.map((y: { _id: string }) => y._id) || []);
+    setValue("year_range", product.year_range?.map((y: { _id: string }) => y._id) || []);
     setValue("variant", variantIds);
     setValue("fitment_notes", product.fitment_notes);
     setValue("is_universal", product.is_universal ? "yes" : "no");
@@ -284,12 +290,21 @@ export default function DealerProductEditRedux() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const typesResponse = await getTypes();
+        const [typesResponse, yearRangesResponse] = await Promise.all([
+          getTypes(),
+          getYearRange(),
+        ]);
+
         setTypeOptions(
           Array.isArray(typesResponse.data)
             ? typesResponse.data
             : Array.isArray(typesResponse.data?.products)
             ? typesResponse.data.products
+            : []
+        );
+        setYearRangeOptions(
+          Array.isArray(yearRangesResponse.data)
+            ? yearRangesResponse.data
             : []
         );
       } catch (error) {
@@ -440,7 +455,11 @@ export default function DealerProductEditRedux() {
         }
       });
 
-      await updateDealerProduct(productId, formData);
+     const response = await updateDealerProduct(productId, formData);
+     console.log(response);
+     if(response){
+      console.log("Product updated successfully");
+     }
 
       showToast("Product updated successfully", "success");
 
@@ -464,27 +483,6 @@ export default function DealerProductEditRedux() {
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50">
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/">Home</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/dealer/dashboard/product">Product</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Edit Product</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading product data...</p>
@@ -496,27 +494,6 @@ export default function DealerProductEditRedux() {
   if (productError || !product) {
     return (
       <div className="min-h-screen bg-neutral-50">
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/">Home</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/dealer/dashboard/product">Product</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Edit Product</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -568,21 +545,6 @@ export default function DealerProductEditRedux() {
             <p className="text-base font-medium font-sans text-gray-500">
               Update product information and specifications
             </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() =>
-                router.push(
-                  `/dealer/dashboard/product/productdetails/${productId}`
-                )
-              }
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save Changes"}
-            </Button>
           </div>
         </div>
       </div>
@@ -884,6 +846,47 @@ export default function DealerProductEditRedux() {
                   {errors.model && (
                     <span className="text-red-500 text-sm">
                       {errors.model?.message as string}
+                    </span>
+                  )}
+                </div>
+              )}
+              {canViewField("year_range") && (
+                <div className="space-y-2">
+                  <Label htmlFor="yearRange" className="text-sm font-medium">
+                    Year Range
+                  </Label>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded bg-gray-50">
+                    {yearRangeOptions.map((year: any) => (
+                      <label
+                        key={year._id}
+                        className="flex items-center gap-2 bg-white p-2 rounded border cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={yearRangeSelected.includes(year._id)}
+                          onChange={() => {
+                            let updated;
+                            if (yearRangeSelected.includes(year._id)) {
+                              updated = yearRangeSelected.filter(
+                                (id) => id !== year._id
+                              );
+                            } else {
+                              updated = [...yearRangeSelected, year._id];
+                            }
+                            setYearRangeSelected(updated);
+                            setValue("year_range", updated);
+                          }}
+                          disabled={!canEditField("year_range")}
+                        />
+                        <span className="text-sm">{year.year_name}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {errors.year_range && (
+                    <span className="text-red-500 text-sm">
+                      {errors.year_range?.message as string}
                     </span>
                   )}
                 </div>
@@ -1357,6 +1360,21 @@ export default function DealerProductEditRedux() {
           </Card>
         )}
       </form>
+      <div className="flex justify-end gap-3 pt-4">
+        <Button
+          variant="outline"
+          onClick={() =>
+            router.push(
+              `/dealer/dashboard/product/productdetails/${productId}`
+            )
+          }
+        >
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
     </div>
   );
 }

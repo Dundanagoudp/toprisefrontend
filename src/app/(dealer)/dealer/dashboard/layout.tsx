@@ -5,11 +5,14 @@ import { UnauthorizedScreen, WithProtectionRoute } from "@/components/protection
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dealer-sidebar";
 import { DynamicBreadcrumb } from "@/components/dealer-dashboard/DynamicBreadcrumbdealer";
+import { usePathname } from "next/navigation";
 
 const DEALER_ONLY_ROLES = ["Dealer"];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
- 
+  const pathname = usePathname();
+  const shouldHideBreadcrumb = pathname?.includes("/product/") || false;
+
   return (
     <WithProtectionRoute
       redirectTo="/admin/login"
@@ -35,7 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 orientation="vertical"
                 className="mr-2 data-[orientation=vertical]:h-4"
               />
-              <DynamicBreadcrumb />
+              {!shouldHideBreadcrumb && <DynamicBreadcrumb />}
             </div>
           </header>
           {children}
