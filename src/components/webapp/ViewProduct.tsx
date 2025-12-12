@@ -528,11 +528,11 @@ export default function ProductPage() {
                       </span>
                     </div>
                   )}
-                  {product.model?.model_name && (
+                  {product.model && product.model.length > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Model:</span>
                       <span className="font-medium">
-                        {product.model.model_name}
+                        {product.model.map((m) => m.model_name).join(", ")}
                       </span>
                     </div>
                   )}
@@ -681,7 +681,7 @@ export default function ProductPage() {
               <Button
                 variant="secondary"
                 size="lg"
-                className="flex-1 text-white"
+                className="flex-1 text-black"
                 disabled={
                   product.out_of_stock ||
                   (Array.isArray(product.available_dealers) &&
@@ -910,7 +910,7 @@ export default function ProductPage() {
             <h2 className="text-2xl font-bold mb-2">Recommended Products</h2>
             <p className="text-muted-foreground">
               Products for {product.brand?.brand_name || ""}{" "}
-              {product.model?.model_name || ""}{" "}
+              {product.model && product.model.length > 0 && product.model.map((m) => m.model_name).join(", ") || ""}{" "}
               {product.variant && product.variant.length > 0
                 ? product.variant.map((v) => v.variant_name).join(", ")
                 : ""}
