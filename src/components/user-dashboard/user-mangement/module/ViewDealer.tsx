@@ -3,12 +3,15 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { getDealerById, getAllCategories, getAllUsers, getAllCSlaTypes } from "@/service/dealerServices"
 import { User, Mail, Phone, Calendar, MapPin, Building, Clock, Clock3 } from "lucide-react"
-import type { Dealer, Category, User as UserType } from "@/types/dealer-types"
+import type { Dealer, User as UserType } from "@/types/dealer-types"
 import type { SlaType } from "@/types/sla-types"
+import { getBrand } from "@/service/product-Service"
+import { Brand } from "@/types/product-Types"
 
 // Utility function to format role for display
 // Maps "Fulfillment-Admin" -> "Fullfillment-Admin" and "Fulfillment-Staff" -> "Fullfillment-Staff"
@@ -23,11 +26,12 @@ export default function ViewDealer() {
   const params = useParams()
   const dealerId = params?.id as string
   const [dealer, setDealer] = useState<any | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
+  const [brands, setBrands] = useState<Brand[]>([])
   const [users, setUsers] = useState<UserType[]>([])
   const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showBrandModal, setShowBrandModal] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -38,16 +42,16 @@ export default function ViewDealer() {
     setLoading(true)
     setError(null)
     try {
-      const [dealerRes, catRes, userRes, slaRes] = await Promise.all([
+      const [dealerRes, brandRes, userRes, slaRes] = await Promise.all([
         getDealerById(dealerId),
-        getAllCategories(),
+        getBrand(),
         getAllUsers(),
         getAllCSlaTypes(),
       ])
-      if (dealerRes.success && catRes.success && userRes.success) {
+      if (dealerRes.success && brandRes.success && userRes.success) {
         setDealer(dealerRes.data)
         console.log("🔍 Dealer data:", dealerRes.data)
-        setCategories(catRes.data)
+        setBrands(brandRes.data as unknown as Brand[])
         setUsers(userRes.data)
         // Handle SLA types response
         if (slaRes.success && slaRes.data) {
@@ -61,6 +65,14 @@ export default function ViewDealer() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const openBrandModal = () => {
+    setShowBrandModal(true)
+  }
+
+  const closeBrandModal = () => {
+    setShowBrandModal(false)
   }
 
   if (loading) {
@@ -82,9 +94,9 @@ export default function ViewDealer() {
   }
 
   // Helper: get category names
-  const categoryNames = dealer.categories_allowed?.map(cid => {
-    const cat = categories.find(c => c._id === cid)
-    return cat ? cat.category_name : cid
+  const brandNames = dealer.brands_allowed?.map(bid => {
+    const brand = brands.find(b => b._id === bid)
+    return brand ? brand.brand_name : bid
   }) || []
 
   // Helper: get SLA type information
@@ -252,8 +264,35 @@ export default function ViewDealer() {
               <span className="text-gray-900">{dealer.is_active ? "Active" : "Inactive"}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-gray-700">Product Categories Allowed</span>
-              <span className="text-gray-900">{categoryNames.join(", ")}</span>
+              <span className="text-sm font-medium text-gray-700">Product Brands Allowed</span>
+              <div className="flex flex-wrap gap-1 mt-1 max-w-full">
+                {brandNames.length === 0 ? (
+                  <span className="text-gray-500 text-sm">No brands assigned</span>
+                ) : (
+                  <>
+                    {brandNames.slice(0, 3).map((brandName: string, idx: number) => (
+                      <Badge
+                        key={idx}
+                        variant="secondary"
+                        className="bg-red-100 text-red-800 hover:bg-red-200 text-xs px-2 py-1"
+                        title={brandName}
+                      >
+                        {brandName}
+                      </Badge>
+                    ))}
+                    {brandNames.length > 3 && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-gray-100 text-gray-600 hover:bg-gray-200 hover:cursor-pointer text-xs px-2 py-1"
+                        title={`Click to view all ${brandNames.length} brands`}
+                        onClick={openBrandModal}
+                      >
+                        +{brandNames.length}
+                      </Badge>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-medium text-gray-700">Upload Access Enabled</span>
@@ -437,6 +476,31 @@ export default function ViewDealer() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Brand Details Modal */}
+      <Dialog open={showBrandModal} onOpenChange={setShowBrandModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Product Brands Allowed</DialogTitle>
+            <DialogDescription>
+              All brands that this dealer is authorized to sell ({brandNames.length} total)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
+              {brandNames.map((brandName: string, idx: number) => (
+                <Badge
+                  key={idx}
+                  variant="secondary"
+                  className="bg-red-100 text-red-800 hover:bg-red-200 text-xs px-3 py-1"
+                >
+                  {brandName}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

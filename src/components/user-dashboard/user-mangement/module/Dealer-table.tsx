@@ -424,7 +424,7 @@ export default function Dealertable({
               <td className="p-3 md:p-4">{getStatusBadge(dealer.is_active)}</td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">
                 <div className="flex flex-wrap gap-1 max-w-[120px]">
-                  {dealer.brands_allowed.map((brandId: string, idx: number) => {
+                  {dealer.brands_allowed.slice(0, 3).map((brandId: string, idx: number) => {
                     const brand = brands.find((brand: any) => brand._id === brandId)
                     return (
                       <span
@@ -436,6 +436,14 @@ export default function Dealertable({
                       </span>
                     )
                   })}
+                  {dealer.brands_allowed.length > 3 && (
+                    <span
+                      className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded truncate max-w-[100px]"
+                      title={`${dealer.brands_allowed.length - 3} more brand${dealer.brands_allowed.length - 3 > 1 ? 's' : ''}`}
+                    >
+                      ...
+                    </span>
+                  )}
                 </div>
               </td>
               <td className="p-3 md:p-4">
