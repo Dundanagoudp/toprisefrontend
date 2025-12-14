@@ -32,7 +32,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useCart } from "@/hooks/use-cart";
 import { CartItem } from "@/types/User/cart-Types";
 import { useToast } from "@/components/ui/toast";
-import LogoNoname from "../../../../public/assets/logo.png";
+import TOPRISELOGOHQ from "../../../../public/assets/TOPRISELOGOHQ.svg";
 import Image from "next/image";
 import { LogOut } from "@/store/slice/auth/authSlice";
 import SearchInputWithVehicles from "@/components/common/search/SearchInputWithVehicles";
@@ -175,7 +175,7 @@ export const Header = () => {
           <div className="flex-shrink-0">
             <a href="/" className="flex items-center group">
               <Image
-                src={LogoNoname}
+                src={TOPRISELOGOHQ}
                 alt="Toprise logo"
                 className="h-12 lg:h-16 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
               />

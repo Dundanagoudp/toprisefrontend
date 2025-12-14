@@ -206,7 +206,6 @@ export default function BannerSection() {
       const vehicleInfo = await getVehicleInfo(numberPlate.trim());
 
       if (vehicleInfo.data) {
-        console.log(vehicleInfo.data);
         const { apiData, dbMatches } = vehicleInfo.data;
 
         // Check if model exists in database
@@ -267,7 +266,7 @@ export default function BannerSection() {
       </div>
 
       {/* Content Grid */}
-      <div className="relative z-10 container mx-auto px-4 pt-8 pb-8 h-screen">
+      <div className="relative z-10 container mx-auto px-4 pt-4 sm:pt-8 pb-8 h-screen">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full items-center">
           {/* Left Side - Text Content */}
           <div className="text-white space-y-6">
@@ -283,14 +282,14 @@ export default function BannerSection() {
 
           {/* Right Side - Search Form */}
           <div className="flex justify-center lg:justify-end">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 w-full max-w-md space-y-6 shadow-2xl">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 w-full max-w-md space-y-6 shadow-2xl">
               {/* Vehicle Search Form */}
               <div className="space-y-4">
                 <h3 className="text-white font-semibold text-lg mb-4">
                   Search by vehicle
                 </h3>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <select
                     value={selectedBrand}
                     onChange={(e) => setSelectedBrand(e.target.value)}
@@ -369,7 +368,7 @@ export default function BannerSection() {
                 <h3 className="text-white font-semibold">
                   Search by number plate
                 </h3>
-                <div className="flex flex-col gap-2 md:flex-row">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
                     placeholder="e.g., ABC123"
@@ -396,15 +395,6 @@ export default function BannerSection() {
                 </div>
               </div>
 
-              {/* Advanced Search Button */}
-              {/* <div className="pt-4 border-t border-white/20">
-                <button
-                  onClick={() => setIsSearchModalOpen(true)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl mb-4"
-                >
-                  Advanced Product Search
-                </button>
-              </div> */}
 
               {/* App Download CTA */}
               <div className="pt-4 border-t border-white/20">
@@ -429,12 +419,6 @@ export default function BannerSection() {
         </div>
       </div>
 
-      {/* Chat/Help Button
-      <div className="fixed bottom-6 right-6 z-20">
-        <button className="w-12 h-12 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-xl transition-colors shadow-lg">
-          N
-        </button>
-      </div> */}
 
       {/* Search Modal */}
       {typeId && (
