@@ -87,12 +87,12 @@ export default function RiseTicket({ open, onClose, orderId, showOrderSelection 
         onClose()
        }
        else{
-        showToast('Failed to rise ticket. Please try again.', 'error')
+        showToast('Failed to RAISE A TICKET. Please try again.', 'error')
        }
        }
        catch(error){
         console.log(error);
-        showToast('Failed to rise ticket. Please try again.', 'error')
+        showToast('Failed to RAISE A TICKET. Please try again.', 'error')
         onClose()
        }
         setLoading(false);

@@ -611,7 +611,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 className="max-sm:flex-1 max-sm:text-xs"
               >
                 <Ticket className="w-4 h-4 mr-2 max-sm:w-3 max-sm:h-3 max-sm:mr-1" />
-                Rise Ticket
+                RAISE A TICKET
               </DynamicButton>
               <Button
                 variant="outline"

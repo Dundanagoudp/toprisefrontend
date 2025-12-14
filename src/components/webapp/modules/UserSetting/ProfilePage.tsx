@@ -2096,7 +2096,7 @@ export default function ProfilePage() {
               description=" Raise a ticket and we'll get back to you as soon as possible."
             >
               <DynamicButton
-                text="Rice Ticket"
+                text="RAISE A TICKET"
                 className="bg-red-600 hover:bg-red-700 text-white mb-4 max-sm:w-full max-sm:text-sm"
                 onClick={() => setIsRiseTicketOpen(true)}
               />
