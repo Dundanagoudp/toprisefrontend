@@ -179,9 +179,9 @@ export const Header = () => {
                 alt="Toprise logo"
                 className="h-12 lg:h-16 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
               />
-              <span className="ml-0 text-xl  lg:text-3xl font-extrabold text-[#1C1C1C] select-none leading-none tracking-tight bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-gray-700 group-hover:to-gray-900">
+              {/* <span className="ml-0 text-xl  lg:text-3xl font-extrabold text-[#1C1C1C] select-none leading-none tracking-tight bg-clip-text bg-gradient-to-r from-gray-900 to-gray-700 group-hover:from-gray-700 group-hover:to-gray-900">
                 Toprise
-              </span>
+              </span> */}
             </a>
           </div>
 

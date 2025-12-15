@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, Search, Grid, List, ShoppingCart, Eye, Loader2 
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SearchInput from '@/components/common/search/SearchInput';
-import { getCategories, getProducts, getProductsByCategory, getSubCategories } from '@/service/product-Service';
+import { getCategories, getProducts, getProductsByCategory, getProductsByPage, getSubCategoriesByCategory, getTypes, getBrandsByType } from '@/service/product-Service';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/components/ui/toast';
 import type { SubCategory } from '@/types/product-Types';
@@ -19,7 +19,9 @@ const ProductListing = () => {
   const categoryId = params?.categoryId as string
   const [products, setProducts] = useState<any[]>([])
   const [searchValue, setSearchValue] = useState<string>('')
-  const [displayLimit, setDisplayLimit] = useState<number>(10)
+  const [page, setPage] = useState<number>(1)
+  const [hasMore, setHasMore] = useState<boolean>(true)
+  const [loading, setLoading] = useState<boolean>(false)
   const [categoryName, setCategoryName] = useState<string>('Products')
   const [addingToCart, setAddingToCart] = useState<string | null>(null)
   const router = useRouter()
@@ -33,33 +35,20 @@ const ProductListing = () => {
   });
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
   const [loadingSubCategories, setLoadingSubCategories] = useState<boolean>(false)
+  const [vehicleTypes, setVehicleTypes] = useState<any[]>([])
+  const [availableBrands, setAvailableBrands] = useState<any[]>([])
   
   useEffect(()=>{
-    const fetchProducts = async()=>{
-        try {
-          let response;
-          if (categoryId) {
-            console.log('Fetching products by category:', categoryId)
-            response = await getProductsByCategory(categoryId)
-            console.log('Products by category response:', response)
-          } else {
-            response = await getProducts()
-            console.log('All products response:', response)
-          }
-          setProducts(response.data.products)
-          setDisplayLimit(10) // Reset display limit when new products are loaded
-        } catch (error) {
-          console.error('Failed to fetch products:', error)
-          setProducts([])
-        }
-    }
-    fetchProducts()
-  },[categoryId])
-  useEffect(()=>{
     const fetchSubCategories = async()=>{
+        if (!categoryId) {
+          setSubCategories([])
+          setLoadingSubCategories(false)
+          return
+        }
+
         setLoadingSubCategories(true)
         try {
-          const response = await getSubCategories()
+          const response = await getSubCategoriesByCategory(categoryId)
           setSubCategories(response.data)
         } catch (error) {
           console.error('Failed to fetch subcategories:', error)
@@ -69,7 +58,7 @@ const ProductListing = () => {
         }
     }
     fetchSubCategories()
-  },[])
+  },[categoryId])
 
   useEffect(()=>{
     const fetchCategoryName = async()=>{
@@ -89,11 +78,67 @@ const ProductListing = () => {
     fetchCategoryName()
   },[categoryId])
 
+  // Fetch vehicle types on mount
+  useEffect(() => {
+    const fetchVehicleTypes = async () => {
+      try {
+        const response = await getTypes()
+        const typesData = response?.data?.products || response?.data || []
+        setVehicleTypes(Array.isArray(typesData) ? typesData : [])
+      } catch (error) {
+        console.error('Failed to fetch vehicle types:', error)
+        setVehicleTypes([])
+      }
+    }
+    fetchVehicleTypes()
+  }, [])
+
   const [selectedFilters, setSelectedFilters] = useState({
     priceRange: '',
     sortBy: '',
-    subCategories: [] as string[],
+    subCategoryId: '',
+    vehicleType: '',
+    brandId: '',
   });
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPage(1)
+    setProducts([])
+    setHasMore(true)
+  }, [selectedFilters.subCategoryId, selectedFilters.vehicleType, selectedFilters.brandId])
+
+  // Fetch products with pagination and filters
+  useEffect(()=>{
+    const fetchProducts = async()=>{
+        try {
+          setLoading(true)
+          const limit = 12; // Fixed limit for pagination
+          const subCategoryIds = selectedFilters.subCategoryId ? [selectedFilters.subCategoryId] : undefined
+          const response = await getProductsByPage(page, limit, undefined, undefined, categoryId, subCategoryIds, selectedFilters.priceRange || undefined, selectedFilters.brandId || undefined)
+
+          console.log('Products by page response:', response)
+
+          if (page === 1) {
+            // Replace products array for first page
+            setProducts(response.data.products)
+          } else {
+            // Append new results to existing products for subsequent pages
+            setProducts(prev => [...prev, ...response.data.products])
+          }
+
+          // Update hasMore based on whether we got fewer results than requested limit
+          setHasMore(response.data.products.length === limit)
+        } catch (error) {
+          console.error('Failed to fetch products:', error)
+          setProducts([])
+          setHasMore(false)
+        } finally {
+          setLoading(false)
+        }
+    }
+    fetchProducts()
+  },[categoryId, page, selectedFilters.subCategoryId, selectedFilters.priceRange, selectedFilters.brandId])
 
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || ""
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase])
@@ -105,7 +150,7 @@ const ProductListing = () => {
   }, [filesOrigin])
 
   const handleLoadMore = () => {
-    setDisplayLimit(prev => prev + 10)
+    setPage(prev => prev + 1)
   }
 
   const handleAddToCart = async (productId: string, productName: string) => {
@@ -134,24 +179,24 @@ const ProductListing = () => {
     setSelectedFilters({
       priceRange: '',
       sortBy: '',
-      subCategories: [],
+      subCategoryId: '',
+      vehicleType: '',
+      brandId: '',
     });
+    setAvailableBrands([]);
     setSearchValue('');
-    setDisplayLimit(10);
+    setPage(1);
+    setProducts([]);
+    setHasMore(true);
   }
 
-  // Filter products based on selected filters
+  // Filter products based on selected filters (server-side filtering for subcategories, client-side for others)
   const filteredProducts = React.useMemo(() => {
     let filtered = products;
-    
-    // Filter by subcategories
-    if (selectedFilters.subCategories.length > 0) {
-      filtered = filtered.filter(product => 
-        selectedFilters.subCategories.includes(product.sub_category._id)
-      );
-    }
-    
-    // Filter by search value
+
+    // Note: Subcategory filtering is now done server-side
+
+    // Filter by search value (client-side search)
     if (searchValue.trim()) {
       filtered = filtered.filter(product =>
         product.product_name.toLowerCase().includes(searchValue.toLowerCase()) ||
@@ -159,24 +204,14 @@ const ProductListing = () => {
         product.sub_category.subcategory_name.toLowerCase().includes(searchValue.toLowerCase())
       );
     }
-    
-    // Apply price sorting
-    if (selectedFilters.priceRange) {
-      filtered = [...filtered].sort((a, b) => {
-        if (selectedFilters.priceRange === 'high-to-low') {
-          return b.selling_price - a.selling_price;
-        } else if (selectedFilters.priceRange === 'low-to-high') {
-          return a.selling_price - b.selling_price;
-        }
-        return 0;
-      });
-    }
-    
-    return filtered;
-  }, [products, selectedFilters, searchValue]);
 
-  const displayedProducts = filteredProducts.slice(0, displayLimit)
-  const hasMoreProducts = displayLimit < filteredProducts.length
+    // Note: Price sorting is now handled server-side
+
+    return filtered;
+  }, [products, searchValue]);
+
+  const displayedProducts = filteredProducts
+  const hasMoreProducts = hasMore
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({
@@ -187,39 +222,48 @@ const ProductListing = () => {
 
 
 
-  // const subCategories = [
-  //   'Air Conditioning',
-  //   'Belt & Chain Drive', 
-  //   'Body Parts',
-  //   'Brake System',
-  //   'Bike Accessories',
-  //   'Bike Care',
-  //   'Clutch System',
-  //   'Cooling System',
-  //   'Electrical',
-  //   'Exhaust System',
-  //   'Fasteners',
-  //   'Filters',
-  //   'Fuel System',
-  //   'Gasket & Seals',
-  //   'Hybrid & Electric Drive',
-  //   'Interiors Comfort & Safety',
-  //   'Lighting',
-  //   'Oils & Fluids',
-  //   'Service Kit',
-  //   'Suspension',
-  //   'Transmission',
-  //   'Wheels & Tyre',
-  //   'Windscreen Cleaning System'
-  // ];
-
-  const handleSubCategoryToggle = (categoryId: string) => {
+  const handleSubCategoryToggle = (subCategoryId: string) => {
     setSelectedFilters(prev => ({
       ...prev,
-      subCategories: prev.subCategories.includes(categoryId)
-        ? prev.subCategories.filter(c => c !== categoryId)
-        : [...prev.subCategories, categoryId]
+      subCategoryId: prev.subCategoryId === subCategoryId ? '' : subCategoryId
     }));
+    // Reset pagination immediately when subcategory changes
+    setPage(1);
+    setProducts([]);
+    setHasMore(true);
+  };
+
+  const handleVehicleTypeChange = async (id: string) => {
+    setSelectedFilters(prev => ({
+      ...prev,
+      vehicleType: id,
+      brandId: '',
+    }));
+    setAvailableBrands([]);
+    setPage(1);
+    setProducts([]);
+    setHasMore(true);
+
+    if (id) {
+      try {
+        const response = await getBrandsByType(id);
+        const brandsData = response?.data || [];
+        setAvailableBrands(Array.isArray(brandsData) ? brandsData : []);
+      } catch (error) {
+        console.error('Failed to fetch brands by type:', error);
+        setAvailableBrands([]);
+      }
+    }
+  };
+
+  const handleBrandChange = (id: string) => {
+    setSelectedFilters(prev => ({
+      ...prev,
+      brandId: id,
+    }));
+    setPage(1);
+    setProducts([]);
+    setHasMore(true);
   };
 
   return (
@@ -236,7 +280,7 @@ const ProductListing = () => {
             </Link>
             <span>/</span>
             <Link 
-              href="/shop" 
+              href="/" 
               className="hover:text-primary cursor-pointer transition-colors"
             >
               Shop
@@ -278,11 +322,32 @@ const ProductListing = () => {
                 </button>
                 {openSections.vehicle && (
                   <div className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Choose Brand Model"
+                    <select
+                      value={selectedFilters.vehicleType}
+                      onChange={(e) => handleVehicleTypeChange(e.target.value)}
                       className="w-full px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
-                    />
+                    >
+                      <option value="">Select Vehicle Type</option>
+                      {vehicleTypes.map((type) => (
+                        <option key={type._id} value={type._id}>
+                          {type.type_name || type.name}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedFilters.vehicleType && (
+                      <select
+                        value={selectedFilters.brandId}
+                        onChange={(e) => handleBrandChange(e.target.value)}
+                        className="w-full px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                      >
+                        <option value="">Select Brand</option>
+                        {availableBrands.map((brand) => (
+                          <option key={brand._id} value={brand._id}>
+                            {brand.brand_name || brand.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 )}
               </div>
@@ -307,8 +372,13 @@ const ProductListing = () => {
                         type="radio"
                         name="priceRange"
                         className="rounded border-input"
-                        checked={selectedFilters.priceRange === 'high-to-low'}
-                        onChange={() => setSelectedFilters(prev => ({ ...prev, priceRange: 'high-to-low' }))}
+                        checked={selectedFilters.priceRange === 'H-L'}
+                        onChange={() => {
+                          setSelectedFilters(prev => ({ ...prev, priceRange: 'H-L' }));
+                          setPage(1);
+                          setProducts([]);
+                          setHasMore(true);
+                        }}
                       />
                       High to Low Price
                     </label>
@@ -317,8 +387,13 @@ const ProductListing = () => {
                         type="radio"
                         name="priceRange"
                         className="rounded border-input"
-                        checked={selectedFilters.priceRange === 'low-to-high'}
-                        onChange={() => setSelectedFilters(prev => ({ ...prev, priceRange: 'low-to-high' }))}
+                        checked={selectedFilters.priceRange === 'L-H'}
+                        onChange={() => {
+                          setSelectedFilters(prev => ({ ...prev, priceRange: 'L-H' }));
+                          setPage(1);
+                          setProducts([]);
+                          setHasMore(true);
+                        }}
                       />
                       Low to High Price
                     </label>
@@ -386,9 +461,10 @@ const ProductListing = () => {
                           className="flex items-center gap-2 text-sm text-foreground cursor-pointer py-1 hover:bg-muted px-2 rounded transition-colors"
                         >
                           <input
-                            type="checkbox"
+                            type="radio"
+                            name="subcategory"
                             className="rounded border-input"
-                            checked={selectedFilters.subCategories.includes(category._id)}
+                            checked={selectedFilters.subCategoryId === category._id}
                             onChange={() => handleSubCategoryToggle(category._id)}
                           />
                           {category.subcategory_name}
@@ -423,15 +499,15 @@ const ProductListing = () => {
               {/* Results Count and Active Filters */}
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>
-                  Showing {displayedProducts.length} of {filteredProducts.length} products
-                  {selectedFilters.subCategories.length > 0 && (
+                  Showing {displayedProducts.length} products
+                  {selectedFilters.subCategoryId && (
                     <span className="ml-2">
-                      • {selectedFilters.subCategories.length} subcategory filter(s) active
+                      • 1 subcategory filter active
                     </span>
                   )}
                 </span>
                 
-                {(selectedFilters.subCategories.length > 0 || searchValue.trim()) && (
+                {(selectedFilters.subCategoryId || searchValue.trim()) && (
                   <button
                     onClick={handleResetFilters}
                     className="text-destructive hover:underline"
@@ -452,11 +528,11 @@ const ProductListing = () => {
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">No products found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {selectedFilters.subCategories.length > 0 || searchValue.trim()
+                  {selectedFilters.subCategoryId || searchValue.trim()
                     ? "Try adjusting your filters or search terms."
                     : "No products are available at the moment."}
                 </p>
-                {(selectedFilters.subCategories.length > 0 || searchValue.trim()) && (
+                {(selectedFilters.subCategoryId || searchValue.trim()) && (
                   <button
                     onClick={handleResetFilters}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
@@ -467,18 +543,28 @@ const ProductListing = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {displayedProducts.map((product) => (
+                {displayedProducts.map((product) => {
+                  const isOutOfStock = product.out_of_stock ?? false;
+
+                  return (
                   <div
                     key={product._id}
                     className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all"
                   >
                     <div className="flex flex-col gap-3">
-                      <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                      <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden relative">
                         <img
                           src={buildImageUrl(product.images?.[0])}
                           alt={product.product_name || "Product"}
                           className="w-full h-full object-cover"
                         />
+                        {isOutOfStock && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+                              Out of Stock
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="text-center">
                         <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight mb-2">
@@ -504,32 +590,38 @@ const ProductListing = () => {
                           </button>
                           <button
                             onClick={() => handleAddToCart(product._id, product.product_name)}
-                            disabled={addingToCart === product._id}
-                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={addingToCart === product._id || isOutOfStock}
+                            className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs rounded-md transition-colors ${
+                              isOutOfStock
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed'
+                            }`}
                           >
                             {addingToCart === product._id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
                               <ShoppingCart className="w-3 h-3" />
                             )}
-                            {addingToCart === product._id ? 'Adding...' : 'Add to Cart'}
+                            {addingToCart === product._id ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                           </button>
                         </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             )}
 
             {/* Load More */}
             {hasMoreProducts && (
               <div className="flex justify-center mt-8">
-                                  <button 
+                                  <button
                   onClick={handleLoadMore}
-                  className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+                  disabled={loading}
+                  className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Load More Products ({filteredProducts.length - displayLimit} remaining)
+                  {loading ? 'Loading...' : 'Load More Products'}
                 </button>
               </div>
             )}

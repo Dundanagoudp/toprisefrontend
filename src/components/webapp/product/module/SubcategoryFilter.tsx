@@ -301,6 +301,7 @@ export default function SubcategoryFilter() {
   const handleShowProducts = () => {
     if (loading) return;
     const params = new URLSearchParams({
+      category: categoryId,
       subcategory: selectedSubcategory?._id || "",
       brand: selectedBrand || "",
       model: selectedModel || "",

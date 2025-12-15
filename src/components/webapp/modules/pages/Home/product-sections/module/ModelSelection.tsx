@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Search } from "lucide-react";
 import { getModelsByBrand } from "@/service/product-Service";
+import { useAppSelector } from "@/store/hooks";
+import { selectVehicleTypeId } from "@/store/slice/vehicle/vehicleSlice";
 
 interface Model {
   _id: string;
@@ -26,7 +28,11 @@ interface ModelSelectionProps {
 const ModelSelection: React.FC<ModelSelectionProps> = ({ brandId }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const vehicleTypeId = searchParams.get("vehicleTypeId");
+  // Get vehicleTypeId from Redux store, with fallback for refresh edge case
+  const reduxVehicleTypeId = useAppSelector(selectVehicleTypeId);
+  const searchParamsVehicleTypeId = searchParams.get("vehicleTypeId");
+  // Use Redux value first, fallback to searchParams, then to default "car" typeId
+  const vehicleTypeId = reduxVehicleTypeId || searchParamsVehicleTypeId || "68677819b4b3125a84f2b85c";
   const brandName = searchParams.get("brandName");
   
   const [models, setModels] = useState<Model[]>([]);

@@ -203,9 +203,9 @@ export default function FeaturedProducts() {
                     handleVehicleClick(vehicle)
                   } : undefined}
                 />
-                <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
+                {/* <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-sm font-medium">
                   {type}
-                </div>
+                </div> */}
               </div>
 
               <div className="p-4">
@@ -229,7 +229,7 @@ export default function FeaturedProducts() {
                 )}
 
                 <DynamicButton
-                  className="w-full bg-red-600 text-white py-2 px-4 rounded font-medium transition-colors hover:bg-red-700"
+                  className="w-full bg-red-600 text-white py-2 px-4 rounded font-medium transition-colors cursor-pointer hover:bg-red-700"
                   text="View Details"
                   onClick={(e) => {
                     e.stopPropagation()
@@ -253,7 +253,7 @@ export default function FeaturedProducts() {
                     Math.floor(currentSlide / cardsPerView) === index
                       ? 'bg-red-600'
                       : 'bg-gray-300 hover:bg-gray-400'
-                  }`}
+                  } cursor-pointer`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}

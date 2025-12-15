@@ -58,7 +58,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAllDealers } from "@/service/dealerServices";
+import { getDealersByBrand } from "@/service/dealerServices";
 import { assignDealersToProduct } from "@/service/product-Service";
 import { useProductSelection } from "@/contexts/ProductSelectionContext";
 import { DynamicPagination } from "@/components/common/pagination";
@@ -284,9 +284,23 @@ export default function ApprovedProduct({
     setLoadingDealers(true);
 
     try {
-      const response = await getAllDealers();
+      // Extract brand ID from product
+      const brandId = product?.brand?._id || product?.brand;
+      
+      if (!brandId) {
+        showToast("Product brand information is missing. Cannot fetch dealers.", "error");
+        setIsDealerModalOpen(false);
+        setLoadingDealers(false);
+        return;
+      }
+
+      // Fetch dealers by brand ID instead of all dealers
+      const response = await getDealersByBrand(brandId);
       if (response.success && response.data) {
         setDealers(response.data);
+      } else {
+        showToast(response.message || "No dealers found for this brand", "warning");
+        setDealers([]);
       }
 
       // Pre-populate dealer assignments if product has available_dealers
@@ -306,8 +320,9 @@ export default function ApprovedProduct({
         setDealerAssignments(existingAssignments);
       }
     } catch (error) {
-      console.error("Failed to fetch dealers:", error);
-      showToast("Failed to fetch dealers", "error");
+      console.error("Failed to fetch dealers by brand:", error);
+      showToast("Failed to fetch dealers for this brand", "error");
+      setDealers([]);
     } finally {
       setLoadingDealers(false);
     }
