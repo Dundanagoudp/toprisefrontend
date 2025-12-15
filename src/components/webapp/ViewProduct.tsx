@@ -456,13 +456,13 @@ export default function ProductPage() {
                 <BreadcrumbLink href="/">Home</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
-              {product?.category && (
+              {product?.brand && (
                 <>
                   <BreadcrumbItem>
                     <BreadcrumbLink
-                      href={`/shop/category/${product.category._id}`}
+                      href={`/shop/model/${product.brand?._id}`}
                     >
-                      {product.category.category_name}
+                      {product.brand?.brand_name}
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />

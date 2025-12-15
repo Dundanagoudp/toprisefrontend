@@ -83,11 +83,12 @@ export async function getProductsByPage(
   status?: string,
   searchQuery?: string,
   category?: string,
-  sub_category?: string,
-  sort_by?: string
+  subCategoryIds?: string[],
+  sort_by?: string,
+  brand?: string
 ): Promise<ProductResponse> {
   try {
-    console.log("🔎 getProductsByPage called with:", { page, limit, status, searchQuery, category, sub_category });
+    // console.log("🔎 getProductsByPage called with:", { page, limit, status, searchQuery, category, sub_category });
     // Validate input parameters
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
@@ -116,18 +117,20 @@ export async function getProductsByPage(
       }
     }
 
-    if (sub_category && sub_category.trim() !== "") {
-      // Check if it's an ID (24 character hex string) or a name
-      const isId = /^[0-9a-fA-F]{24}$/.test(sub_category.trim());
-      if (isId) {
-        url += `&sub_category=${encodeURIComponent(sub_category.trim())}`;
-      } else {
-        url += `&sub_category=${encodeURIComponent(sub_category.trim())}`;
-      }
+    if (subCategoryIds && subCategoryIds.length > 0) {
+      subCategoryIds.forEach(subCategoryId => {
+        if (subCategoryId && subCategoryId.trim() !== "") {
+          url += `&sub_category=${encodeURIComponent(subCategoryId.trim())}`;
+        }
+      });
     }
 
     if (sort_by && sort_by.trim() !== "") {
       url += `&sort_by=${encodeURIComponent(sort_by.trim())}`;
+    }
+
+    if (brand && brand.trim() !== "") {
+      url += `&brand=${encodeURIComponent(brand.trim())}`;
     }
 
     // Log constructed URL for debugging (helps verify that status/category/sub_category are present)
@@ -1310,8 +1313,8 @@ export async function getProductsByFilter(
   sort_by: string,
   min_price: number,
   max_price: number,
-  page: number = 1,
-  limit: number = 10
+  page: number ,
+  limit: number 
 ): Promise<ProductResponse> {
   try {
     // Validate input parameters

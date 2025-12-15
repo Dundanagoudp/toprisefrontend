@@ -23,7 +23,7 @@ const BrandSelection: React.FC<BrandSelectionProps> = ({ vehicleTypeId }) => {
       try {
         setLoading(true);
         const response = await getBrandsByType(vehicleTypeId);
-        
+        console.log("response brands by type", response);
         if (response && response.data && Array.isArray(response.data)) {
           setBrands(response.data as unknown as Brand[]);
         } else {
@@ -43,7 +43,7 @@ const BrandSelection: React.FC<BrandSelectionProps> = ({ vehicleTypeId }) => {
   }, [vehicleTypeId]);
 
   const handleBrandClick = (brandId: string, brandName: string) => {
-    router.push(`/shop/vehicle-products?vehicleTypeId=${vehicleTypeId}&brand=${brandId}`);
+    router.push(`/shop/model/${brandId}`);
     console.log(brandId, brandName);
 
   };

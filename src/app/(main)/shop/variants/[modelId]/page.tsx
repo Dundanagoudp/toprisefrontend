@@ -9,12 +9,13 @@ interface VariantSelectionPageProps {
   }
 }
 
-export default function VariantSelectionPage({ params }: VariantSelectionPageProps) {
+export default async function VariantSelectionPage({ params }: VariantSelectionPageProps) {
+  const { modelId } = await params;
   return (
     <>
       <Header/>
-      <VariantSelection modelId={params.modelId} />
-      <Footer/>
-    </>
-  )
-}
+        <VariantSelection modelId={modelId as string} />
+        <Footer/>
+      </>
+    )
+  }

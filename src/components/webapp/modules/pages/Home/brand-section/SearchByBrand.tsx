@@ -59,7 +59,7 @@ const SearchByBrand: React.FC<SearchByBrandProps> = ({ className = "" }) => {
     params.set("brand", brandId);
     if (typeId) params.set("vehicleTypeId", typeId);
   
-    router.push(`/shop/vehicle-products?${params.toString()}`);
+    router.push(`/shop/model/${brandId}`);
   };
 
   const buildImageUrl = (path?: string) => {

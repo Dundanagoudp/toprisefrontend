@@ -4,8 +4,10 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getProductsByFilter } from "@/service/product-Service"
 import type { Product } from "@/types/product-Types"
-import { Filter, X } from 'lucide-react';
-import { cn } from "@/lib/utils"
+import { Filter } from 'lucide-react';
+import FilterSidebar from "./FilterSidebar"
+import { useAppSelector } from "@/store/hooks"
+import { selectVehicleTypeId } from "@/store/slice/vehicle/vehicleSlice"
 
 // Simple alias for compatibility with existing code
 
@@ -25,6 +27,17 @@ const VehicleProductsPage: React.FC = () => {
   const id = searchParams.get("id")?.trim() || ""
   const vehicleName = searchParams.get("vehicleName")?.trim() || ""
   const vehicleType = searchParams.get("vehicleType")?.trim() || ""
+  const vehicleTypeId = searchParams.get("vehicleTypeId")?.trim() || ""
+  
+  // Get typeId from Redux store with fallback to URL param
+  const reduxTypeId = useAppSelector(selectVehicleTypeId)
+  const typeId = reduxTypeId || vehicleTypeId || ""
+  
+  // Get filter values from URL params
+  const urlCategory = searchParams.get("category")?.trim() || ""
+  const urlSubCategory = searchParams.get("subcategory")?.trim() || ""
+  const urlYear = searchParams.get("year")?.trim() || ""
+  
   const [products, setProducts] = React.useState<Product[]>([])
   const [loading, setLoading] = React.useState<boolean>(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -32,19 +45,29 @@ const VehicleProductsPage: React.FC = () => {
   const [minPrice, setMinPrice] = React.useState<number>(DEFAULT_MIN_PRICE);
   const [maxPrice, setMaxPrice] = React.useState<number>(DEFAULT_MAX_PRICE);
   const [isFilterOpen, setIsFilterOpen] = React.useState<boolean>(false);
+  const [category, setCategory] = React.useState<string>(urlCategory);
+  const [subCategory, setSubCategory] = React.useState<string>(urlSubCategory);
+  const [year, setYear] = React.useState<string>(urlYear);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || ""
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase])
 
+  // Sync state with URL params when they change
+  React.useEffect(() => {
+    setCategory(urlCategory)
+    setSubCategory(urlSubCategory)
+    setYear(urlYear)
+  }, [urlCategory, urlSubCategory, urlYear])
+
   // Log URL parameters when component mounts
-  console.log("VehicleProduct component mounted with URL parameters:", {
-    productType,
-    brand,
-    model,
-    variant,
-    id,
-    vehicleName,
-    vehicleType
-  })
+  // console.log("VehicleProduct component mounted with URL parameters:", {
+  //   productType,
+  //   brand,
+  //   model,
+  //   variant,
+  //   id,
+  //   vehicleName,
+  //   vehicleType
+  // })
 
   const buildImageUrl = React.useCallback(
     (path?: string) => {
@@ -66,6 +89,8 @@ const VehicleProductsPage: React.FC = () => {
     sortBy?: string;
     minPrice?: number;
     maxPrice?: number;
+    category?: string;
+    year?: string;
   }) => {
     setLoading(true);
     setError(null);
@@ -74,25 +99,32 @@ const VehicleProductsPage: React.FC = () => {
       brand: b = brand,
       model: m = model,
       variant: v = variant,
-      subcategory: sc = subcategory,
+      subcategory: sc = subCategory || subcategory,
       id: pid = id,
       sortBy: s = sortBy,
       minPrice: min = minPrice,
       maxPrice: max = maxPrice,
+      category: cat = category,
+      year: yr = year,
     } = opts || {};
 
     let ignore = false;
     try {
+      // Use subCategory from state if available, otherwise fallback to subcategory from URL
+      const subCatToUse = subCategory || sc;
+      
       const response = await getProductsByFilter(
         "", // product_type - no longer used
         b,
         m,
         v,
-        sc,
+        subCatToUse,
         pid,
         s,
         min,
-        max
+        max,
+        1,
+        DEFAULT_LIMIT
       );
       if (ignore) return;
       const items = response?.data?.products ?? [];
@@ -110,12 +142,47 @@ const VehicleProductsPage: React.FC = () => {
       ignore = true;
     };
   },
-  [productType, brand, model, variant, subcategory, id, sortBy, minPrice, maxPrice]
+  [productType, brand, model, variant, subcategory, subCategory, id, sortBy, minPrice, maxPrice, category, year]
 );
 React.useEffect(() => {
   fetchProducts();
-
 }, [fetchProducts]);
+
+// Update URL when filters change (but not on initial mount to avoid conflicts)
+React.useEffect(() => {
+  const currentCategory = searchParams.get("category")?.trim() || ""
+  const currentSubCategory = searchParams.get("subcategory")?.trim() || ""
+  const currentYear = searchParams.get("year")?.trim() || ""
+  
+  // Only update URL if values have actually changed
+  if (category === currentCategory && subCategory === currentSubCategory && year === currentYear) {
+    return
+  }
+  
+  const params = new URLSearchParams(searchParams.toString())
+  
+  if (category) {
+    params.set("category", category)
+  } else {
+    params.delete("category")
+  }
+  
+  if (subCategory) {
+    params.set("subcategory", subCategory)
+  } else {
+    params.delete("subcategory")
+  }
+  
+  if (year) {
+    params.set("year", year)
+  } else {
+    params.delete("year")
+  }
+  
+  // Update URL without causing a page reload
+  const newUrl = `${window.location.pathname}?${params.toString()}`
+  router.replace(newUrl, { scroll: false })
+}, [category, subCategory, year, router, searchParams])
   const handleViewProduct = React.useCallback(
     (productId: string) => {
       router.push(`/shop/product/${productId}`)
@@ -133,175 +200,6 @@ React.useEffect(() => {
     return parts.join(" • ")
   }, [vehicleType, vehicleName, brand, model, variant])
 
- const FilterSidebar = () => {
-  // local copies so user can tweak without immediately triggering fetch
-  const [localSortBy, setLocalSortBy] = React.useState<string>(sortBy);
-  const [localMin, setLocalMin] = React.useState<number>(minPrice);
-  const [localMax, setLocalMax] = React.useState<number>(maxPrice);
-
-  // keep local in sync if parent changes (e.g. due to deep-link)
-  React.useEffect(() => {
-    setLocalSortBy(sortBy);
-    setLocalMin(minPrice);
-    setLocalMax(maxPrice);
-  }, [sortBy, minPrice, maxPrice]);
-
-  const isDirty =
-    localSortBy !== sortBy || localMin !== minPrice || localMax !== maxPrice;
-
-  const handleApply = () => {
-    // update parent state -> triggers fetch effect
-    setSortBy(localSortBy);
-    setMinPrice(localMin);
-    setMaxPrice(localMax);
-    setIsFilterOpen(false); // close sidebar on apply (optional)
-    // you could also preserve open state if you prefer
-  };
-
-  const handleReset = () => {
-    // reset to defaults
-    setLocalSortBy('A-Z');
-    setLocalMin(DEFAULT_MIN_PRICE);
-    setLocalMax(DEFAULT_MAX_PRICE);
-
-    // immediately reset parent too so results update
-    setSortBy('A-Z');
-    setMinPrice(DEFAULT_MIN_PRICE);
-    setMaxPrice(DEFAULT_MAX_PRICE);
-  };
-
-  return (
-    <div className="w-80 bg-card border-r border-border p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Filter className="w-5 h-5" />
-          Filters
-        </h3>
-        <button
-          onClick={() => setIsFilterOpen(false)}
-          className="lg:hidden p-1 hover:bg-muted rounded-md"
-          aria-label="Close filters"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Sort By */}
-      <div className="space-y-3">
-        <h4 className="font-medium text-foreground">Sort By</h4>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sort"
-              value="A-Z"
-              checked={localSortBy === 'A-Z'}
-              onChange={(e) => setLocalSortBy(e.target.value)}
-            />
-            <span className="text-sm">Name (A-Z)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sort"
-              value="Z-A"
-              checked={localSortBy === 'Z-A'}
-              onChange={(e) => setLocalSortBy(e.target.value)}
-            />
-            <span className="text-sm">Name (Z-A)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sort"
-              value="L-H"
-              checked={localSortBy === 'L-H'}
-              onChange={(e) => setLocalSortBy(e.target.value)}
-            />
-            <span className="text-sm">Price (Low to High)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sort"
-              value="H-L"
-              checked={localSortBy === 'H-L'}
-              onChange={(e) => setLocalSortBy(e.target.value)}
-            />
-            <span className="text-sm">Price (High to Low)</span>
-          </label>
-        </div>
-      </div>
-
-      {/* Price Range */}
-      <div className="space-y-3">
-        <h4 className="font-medium text-foreground">Price Range</h4>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-muted-foreground mb-2">Min Price</label>
-            <input
-              type="range"
-              min="0"
-              max="100000"
-              step="1000"
-              value={localMin}
-              onChange={(e) => setLocalMin(Number(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="text-sm text-foreground mt-1">Rs {localMin.toLocaleString()}</div>
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-2">Max Price</label>
-            <input
-              type="range"
-              min="0"
-              max="100000"
-              step="1000"
-              value={localMax}
-              onChange={(e) => setLocalMax(Number(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="text-sm text-foreground mt-1">Rs {localMax.toLocaleString()}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Row: only visible when dirty */}
-      <div className="pt-4 border-t border-border">
-        <p className="text-sm text-muted-foreground mb-3">
-          Showing {products.length} products
-        </p>
-
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleReset}
-            className={cn(
-              "flex-1 rounded-md px-3 py-2 text-sm font-medium border",
-              isDirty ? "border-border bg-white text-foreground hover:shadow-sm" : "border-muted text-muted-foreground opacity-60 cursor-not-allowed"
-            )}
-            disabled={!isDirty}
-          >
-            Reset
-          </button>
-
-          <button
-            type="button"
-            onClick={handleApply}
-            className={cn(
-              "flex-1 rounded-md px-3 py-2 text-sm font-medium",
-              isDirty ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-primary/50 text-primary-foreground opacity-70 cursor-not-allowed"
-            )}
-            disabled={!isDirty}
-          >
-            Apply
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
   return (
     <div className="min-h-screen bg-background">
@@ -361,13 +259,49 @@ React.useEffect(() => {
           </button>
           {/* Desktop Sidebar */}
           <div className="hidden lg:block">
-            <FilterSidebar />
+            <FilterSidebar
+              products={products}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              minPrice={minPrice}
+              setMinPrice={setMinPrice}
+              maxPrice={maxPrice}
+              setMaxPrice={setMaxPrice}
+              isFilterOpen={isFilterOpen}
+              setIsFilterOpen={setIsFilterOpen}
+              category={category}
+              setCategory={setCategory}
+              subCategory={subCategory}
+              setSubCategory={setSubCategory}
+              year={year}
+              setYear={setYear}
+              categoryId={category}
+              typeId={typeId}
+            />
           </div>
           {/* Mobile Sidebar Overlay */}
           {isFilterOpen && (
             <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsFilterOpen(false)}>
               <div className="absolute left-0 top-0 h-full" onClick={(e) => e.stopPropagation()}>
-                <FilterSidebar />
+                <FilterSidebar
+                  products={products}
+                  sortBy={sortBy}
+                  setSortBy={setSortBy}
+                  minPrice={minPrice}
+                  setMinPrice={setMinPrice}
+                  maxPrice={maxPrice}
+                  setMaxPrice={setMaxPrice}
+                  isFilterOpen={isFilterOpen}
+                  setIsFilterOpen={setIsFilterOpen}
+                  category={category}
+                  setCategory={setCategory}
+                  subCategory={subCategory}
+                  setSubCategory={setSubCategory}
+                  year={year}
+                  setYear={setYear}
+                  categoryId={category}
+                  typeId={typeId}
+                />
               </div>
             </div>
           )}

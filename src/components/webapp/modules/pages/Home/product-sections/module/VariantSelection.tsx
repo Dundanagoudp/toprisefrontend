@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search, Package } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { getVariantsByModel } from "@/service/product-Service";
 
 interface Variant {
@@ -64,12 +64,12 @@ const VariantSelection: React.FC<VariantSelectionProps> = ({ modelId }) => {
   const handleVariantClick = (variantId: string, variantName: string) => {
     // Navigate to products page with variant filter
     const params = new URLSearchParams();
+    params.set("model", modelId);
+    params.set("variant", variantId);
     if (vehicleTypeId) params.set("vehicleTypeId", vehicleTypeId);
-    if (brandName) params.set("brandName", brandName);
-    if (modelName) params.set("modelName", modelName);
-    params.set("variantName", encodeURIComponent(variantName));
-    
-    router.push(`/shop/search-results?query=${encodeURIComponent(variantName)}&${params.toString()}`);
+    if (brandName) params.set("brand", brandName);
+
+    router.push(`/shop/vehicle-products?${params.toString()}`);
   };
 
   const handleBackToModels = () => {
@@ -215,8 +215,12 @@ const VariantSelection: React.FC<VariantSelectionProps> = ({ modelId }) => {
                   onClick={() => handleVariantClick(variant._id, variant.variant_name)}
                 >
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 flex items-center justify-center bg-muted rounded-lg">
-                      <Package className="w-8 h-8 text-muted-foreground" />
+                    <div className="w-16 h-16 flex items-center justify-center">
+                      <img
+                        src={buildImageUrl(variant.variant_image)}
+                        alt={variant.variant_name}
+                        className="w-full h-full object-contain rounded-lg"
+                      />
                     </div>
                     <div className="text-center">
                       <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight mb-1">

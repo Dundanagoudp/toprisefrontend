@@ -8,7 +8,6 @@ import {
   Filter,
   ChevronDown,
   ChevronUp,
-  X,
 } from "lucide-react";
 import {
   smartSearch,
@@ -16,6 +15,7 @@ import {
 } from "@/service/user/smartSearchService";
 import { getVariantsByModel } from "@/service/product-Service";
 import { Product, Brand } from "@/types/User/Search-Types";
+import { Product as ProductFilterType } from "@/types/product-Types";
 import { useAppSelector } from "@/store/hooks";
 import { selectVehicleType } from "@/store/slice/vehicle/vehicleSlice";
 
@@ -38,6 +38,7 @@ interface Model {
 import ModelListing from "@/components/webapp/modules/pages/Home/category/module/ModelListing";
 import VariantListing from "@/components/webapp/modules/pages/Home/category/module/VariantListing";
 import ProductListing from "@/components/webapp/modules/pages/Home/category/module/ProductListing";
+import FilterSidebar from "@/components/webapp/product/FilterSidebar";
 
 // Variant interface for API response
 interface Variant {
@@ -88,6 +89,9 @@ const SearchResults = () => {
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(100000);
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [filterSubCategory, setFilterSubCategory] = useState<string>("");
+  const [filterYear, setFilterYear] = useState<string>("");
 
   const noVehicleResults =
     Boolean(vehicleTypeId) &&
@@ -605,199 +609,8 @@ const SearchResults = () => {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
-  // Filter Sidebar Component
-  const FilterSidebar = () => (
-    <div className="w-80 bg-card border-r border-border p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Filter className="w-5 h-5" />
-          Filters
-        </h3>
-        <button
-          onClick={() => setIsFilterOpen(false)}
-          className="lg:hidden p-1 hover:bg-muted rounded-md"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Sort By */}
-      <div className="space-y-3">
-        <h4 className="font-medium text-foreground">Sort By</h4>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sort"
-              value="A-Z"
-              checked={sortBy === "A-Z"}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-primary"
-            />
-            <span className="text-sm">Name (A-Z)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sort"
-              value="Z-A"
-              checked={sortBy === "Z-A"}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-primary"
-            />
-            <span className="text-sm">Name (Z-A)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sort"
-              value="L-H"
-              checked={sortBy === "L-H"}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-primary"
-            />
-            <span className="text-sm">Price (Low to High)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="sort"
-              value="H-L"
-              checked={sortBy === "H-L"}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-primary"
-            />
-            <span className="text-sm">Price (High to Low)</span>
-          </label>
-        </div>
-      </div>
-
-      {/* Price Range */}
-      <div className="space-y-3">
-        <h4 className="font-medium text-foreground">Price Range</h4>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-muted-foreground mb-2">
-              Min Price
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="100000"
-              step="1000"
-              value={minPrice}
-              onChange={(e) => setMinPrice(Number(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="text-sm text-foreground mt-1">
-              Rs {minPrice.toLocaleString()}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-2">
-              Max Price
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="100000"
-              step="1000"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="text-sm text-foreground mt-1">
-              Rs {maxPrice.toLocaleString()}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Results Count */}
-      <div className="pt-4 border-t border-border">
-        <p className="text-sm text-muted-foreground">
-          Showing {displayedProducts.length} of{" "}
-          {filteredAndSortedProducts.length} products
-        </p>
-      </div>
-    </div>
-  );
-
   return (
     <>
-      <style jsx>{`
-        .slider {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 100%;
-          height: 6px;
-          border-radius: 3px;
-          background: linear-gradient(
-            to right,
-            #3b82f6 0%,
-            #3b82f6 ${minPrice / 1000}%,
-            #e5e7eb ${minPrice / 1000}%,
-            #e5e7eb 100%
-          );
-          outline: none;
-        }
-
-        .slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #3b82f6;
-          border: 3px solid white;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-          cursor: grab;
-          transition: transform 0.1s ease;
-        }
-
-        .slider::-webkit-slider-thumb:hover {
-          transform: scale(1.15);
-        }
-
-        .slider::-webkit-slider-thumb:active {
-          cursor: grabbing;
-          transform: scale(1.1);
-        }
-
-        .slider::-moz-range-thumb {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #3b82f6;
-          border: 3px solid white;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-          cursor: grab;
-          transition: transform 0.1s ease;
-        }
-
-        .slider::-moz-range-thumb:hover {
-          transform: scale(1.15);
-        }
-
-        .slider::-moz-range-thumb:active {
-          cursor: grabbing;
-          transform: scale(1.1);
-        }
-
-        .slider::-webkit-slider-runnable-track {
-          width: 100%;
-          height: 6px;
-          border-radius: 3px;
-        }
-
-        .slider::-moz-range-track {
-          width: 100%;
-          height: 6px;
-          border-radius: 3px;
-          background: #e5e7eb;
-        }
-      `}</style>
       <div className="min-h-screen bg-background">
         {/* Header */}
         <div className="border-b border-border bg-card">
@@ -839,7 +652,25 @@ const SearchResults = () => {
 
             {/* Desktop Sidebar */}
             <div className="hidden lg:block">
-              <FilterSidebar />
+              <FilterSidebar
+                products={filteredAndSortedProducts as unknown as ProductFilterType[]}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                minPrice={minPrice}
+                setMinPrice={setMinPrice}
+                maxPrice={maxPrice}
+                setMaxPrice={setMaxPrice}
+                isFilterOpen={isFilterOpen}
+                setIsFilterOpen={setIsFilterOpen}
+                category={filterCategory}
+                setCategory={setFilterCategory}
+                subCategory={filterSubCategory}
+                setSubCategory={setFilterSubCategory}
+                year={filterYear}
+                setYear={setFilterYear}
+                categoryId={category || undefined}
+                typeId={vehicleTypeId || undefined}
+              />
             </div>
 
             {/* Mobile Sidebar Overlay */}
@@ -852,7 +683,25 @@ const SearchResults = () => {
                   className="absolute left-0 top-0 h-full"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <FilterSidebar />
+                  <FilterSidebar
+                    products={filteredAndSortedProducts as unknown as ProductFilterType[]}
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    minPrice={minPrice}
+                    setMinPrice={setMinPrice}
+                    maxPrice={maxPrice}
+                    setMaxPrice={setMaxPrice}
+                    isFilterOpen={isFilterOpen}
+                    setIsFilterOpen={setIsFilterOpen}
+                    category={filterCategory}
+                    setCategory={setFilterCategory}
+                    subCategory={filterSubCategory}
+                    setSubCategory={setFilterSubCategory}
+                    year={filterYear}
+                    setYear={setFilterYear}
+                    categoryId={category || undefined}
+                    typeId={vehicleTypeId || undefined}
+                  />
                 </div>
               </div>
             )}

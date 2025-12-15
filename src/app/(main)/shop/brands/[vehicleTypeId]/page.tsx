@@ -9,11 +9,12 @@ interface BrandSelectionPageProps {
   }
 }
 
-export default function BrandSelectionPage({ params }: BrandSelectionPageProps) {
+export default async function BrandSelectionPage({ params }: BrandSelectionPageProps) {
+  const { vehicleTypeId } = await params;
   return (
     <>
       <Header/>
-      <BrandSelection vehicleTypeId={params.vehicleTypeId} />
+      <BrandSelection vehicleTypeId={vehicleTypeId as string} />
       <Footer/>
     </>
   )
