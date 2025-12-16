@@ -1308,7 +1308,9 @@ export async function getProductsByFilter(
   brand: string,
   model: string,
   variant: string,
-  sub_category: string,
+  category: string,
+  subcategory: string,
+  year: string,
   query: string,
   sort_by: string,
   min_price: number,
@@ -1333,8 +1335,14 @@ export async function getProductsByFilter(
     if (variant && variant.trim() !== "") {
       url += `${url.includes('=') ? '&' : ''}variant=${encodeURIComponent(variant.trim())}`;
     }
-    if (sub_category && sub_category.trim() !== "") {
-      url += `${url.includes('=') ? '&' : ''}sub_category=${encodeURIComponent(sub_category.trim())}`;
+    if (category && category.trim() !== "") {
+      url += `${url.includes('=') ? '&' : ''}category=${encodeURIComponent(category.trim())}`;
+    }
+    if (subcategory && subcategory.trim() !== "") {
+      url += `${url.includes('=') ? '&' : ''}sub_category=${encodeURIComponent(subcategory.trim())}`;
+    }
+    if (year && year.trim() !== "") {
+      url += `${url.includes('=') ? '&' : ''}year_range=${encodeURIComponent(year.trim())}`;
     }
     if (query && query.trim() !== "") {
       const sanitizedQuery = query.trim().replace(/[<>]/g, "");

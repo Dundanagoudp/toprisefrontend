@@ -39,7 +39,7 @@ export default function CategorySection() {
       try {
         // console.log("Type ID:", typeId)
         // Fetch only main categories for the selected vehicle type
-        const res = await getCategoriesByType(typeId, true)
+        const res = await getCategoriesByType(typeId)
         // console.log("Categories by type:", res)
        
         const items = (res?.data ?? []) as ProductCategory[]

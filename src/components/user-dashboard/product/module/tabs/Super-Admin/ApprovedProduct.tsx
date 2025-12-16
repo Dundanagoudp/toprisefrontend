@@ -14,7 +14,6 @@ import {
   approveSingleProduct,
   updateProductStatus,
   rejectSingleProduct,
-  updateQcStatus,
   getProductsByFilterWithIds,
 } from "@/service/product-Service";
 
@@ -179,7 +178,7 @@ export default function ApprovedProduct({
           status,
           searchQuery,
           categoryFilter,
-          subCategoryFilter,
+          subCategoryFilter ? [subCategoryFilter] : undefined,
           sortByValue
         );
       }
