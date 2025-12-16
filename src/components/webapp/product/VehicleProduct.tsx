@@ -99,7 +99,7 @@ const VehicleProductsPage: React.FC = () => {
       brand: b = brand,
       model: m = model,
       variant: v = variant,
-      subcategory: sc = subCategory || subcategory,
+      subcategory: sc = subCategory,
       id: pid = id,
       sortBy: s = sortBy,
       minPrice: min = minPrice,
@@ -111,14 +111,16 @@ const VehicleProductsPage: React.FC = () => {
     let ignore = false;
     try {
       // Use subCategory from state if available, otherwise fallback to subcategory from URL
-      const subCatToUse = subCategory || sc;
+      
       
       const response = await getProductsByFilter(
         "", // product_type - no longer used
         b,
         m,
         v,
-        subCatToUse,
+        cat,
+        sc,
+        yr,
         pid,
         s,
         min,
@@ -142,7 +144,7 @@ const VehicleProductsPage: React.FC = () => {
       ignore = true;
     };
   },
-  [productType, brand, model, variant, subcategory, subCategory, id, sortBy, minPrice, maxPrice, category, year]
+  [productType, brand, model, variant, subCategory, id, sortBy, minPrice, maxPrice, category, year]
 );
 React.useEffect(() => {
   fetchProducts();
