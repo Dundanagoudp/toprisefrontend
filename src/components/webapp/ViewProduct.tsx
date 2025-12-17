@@ -679,7 +679,7 @@ export default function ProductPage() {
                 {addingToCart ? "Adding..." : "Add to Cart"}
               </Button>
               <Button
-                variant="secondary"
+                variant="outline"
                 size="lg"
                 className="flex-1 text-black"
                 disabled={

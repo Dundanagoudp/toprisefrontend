@@ -312,7 +312,7 @@ export default function EmployeeTable({
           // Preserve the first nicely trimmed label for display with formatting.
           const displayRole = formatRoleForDisplay(rawRole?.trim() || normalizedKey);
           roleMap.set(normalizedKey, displayRole);
-          console.log("Role Map:", roleMap);
+          // console.log("Role Map:", roleMap);
         }
       });
 

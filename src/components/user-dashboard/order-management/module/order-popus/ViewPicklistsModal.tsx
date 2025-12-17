@@ -3,10 +3,15 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
 import { useToast as GlobalToast } from "@/components/ui/toast"
 import { getDealerPickList } from "@/service/dealerOrder-services"
 import type { DealerPickList } from "@/types/dealerOrder-types"
-import { fetchPicklistByOrderId } from "@/service/order-service"
+import { fetchPicklistByOrderId, getOrderById } from "@/service/order-service"
+import { markPicklistAsPacked } from "@/service/picklist-service"
+import { DynamicButton } from "@/components/common/button"
+import { Package } from "lucide-react"
+import MarkPackedForPicklistId from "./MarkPackedForPicklistId"
 
 interface ViewPicklistsModalProps {
   open: boolean
@@ -19,32 +24,64 @@ const ViewPicklistsModal: React.FC<ViewPicklistsModalProps> = ({ open, onOpenCha
   const { showToast } = GlobalToast()
   const [picklists, setPicklists] = useState<DealerPickList[]>([])
   const [loading, setLoading] = useState(false)
+  const [markPackedModal, setMarkPackedModal] = useState<{ open: boolean; picklistId?: string }>({ open: false })
 
 // API service function
 const fetchPicklists = async (orderId: string): Promise<DealerPickList[]> => {
   try {
-    const response = await fetchPicklistByOrderId(orderId);
-    const data = response?.data || []
+    const [picklistResponse, orderResponse] = await Promise.all([
+      fetchPicklistByOrderId(orderId),
+      getOrderById(orderId)
+    ]);
+    
+    const data = picklistResponse?.data || []
+    
+    // Handle orderData - it could be an array or single object
+    const orderDataArray = Array.isArray(orderResponse?.data) 
+      ? orderResponse.data 
+      : orderResponse?.data ? [orderResponse.data] : [];
+    const orderData = orderDataArray[0]; // Get first order
+    
+    // Create a map of SKU to product information from order details
+    const skuProductMap = new Map();
+    if (orderData?.skus && Array.isArray(orderData.skus)) {
+      orderData.skus.forEach((sku: any) => {
+        skuProductMap.set(sku.sku, {
+          productName: sku.productName || "",
+          markAsPacked: sku.markAsPacked || false,
+          // Add other fields if available in order data
+        });
+      });
+    }
 
     // Normalize incoming API shape (Picklist) to our DealerPickList type
     const mapped: DealerPickList[] = (data as any[]).map((p, pIndex) => {
       const picklistId = String(p._id ?? p.id ?? `picklist-${orderId}-${pIndex}`)
 
-      const skuList = (p.skuList || []).map((s: any, sIndex: number) => ({
-        _id: String(s._id ?? s.id ?? `${picklistId}-sku-${sIndex}`),
-        sku: s.sku ?? s.skuCode ?? "",
-        quantity: Number(s.quantity ?? 0),
-        // copy other fields if needed
-      }))
+      const skuList = (p.skuList || []).map((s: any, sIndex: number) => {
+        // Get product info from order data by matching SKU
+        const productInfo = skuProductMap.get(s.sku ?? s.skuCode ?? "");
+        
+        return {
+          _id: String(s._id ?? s.id ?? `${picklistId}-sku-${sIndex}`),
+          sku: s.sku ?? s.skuCode ?? "",
+          quantity: Number(s.quantity ?? 0),
+          productName: s.productName || productInfo?.productName || "",
+          barcode: s.barcode || "",
+          manufacturer_part_name: s.manufacturer_part_name || "",
+          markAsPacked: productInfo?.markAsPacked ?? s.markAsPacked ?? false,
+          // copy other fields if needed
+        }
+      })
 
       return {
-        // ensure required string fields are present
+        // include other properties from the API response first (including dealerId)
+        ...(p || {}),
+        // then override with normalized required fields
         _id: picklistId,
         scanStatus: p.scanStatus ?? p.status ?? "unknown",
         invoiceGenerated: Boolean(p.invoiceGenerated),
         skuList,
-        // include other properties from the API response if any (kept as-is)
-        ...(p || {}),
       } as DealerPickList
     })
 
@@ -75,7 +112,7 @@ useEffect(() => {
     try {
       const picklists = await fetchPicklists(orderId);
       //log picklists
-      
+      console.log("picklists", picklists);
       setPicklists(picklists);
     } catch (error) {
       setPicklists([]);
@@ -87,6 +124,22 @@ useEffect(() => {
   
   loadPicklists();
 }, [open, dealerId, orderId]);
+
+  const handleMarkAsPacked = (picklistId: string) => {
+    console.log("picklistId", picklistId);
+    setMarkPackedModal({ open: true, picklistId });
+  };
+
+  const handleMarkPackedSuccess = () => {
+    // Update the picklist status locally for immediate UI feedback
+    setPicklists(prev => prev.map(pl =>
+      pl._id === markPackedModal.picklistId
+        ? { ...pl, scanStatus: "packed" }
+        : pl
+    ));
+    setMarkPackedModal({ open: false });
+  };
+
   const StatusBadge = ({ status }: { status: string }) => {
     const getStatusColor = (status: string) => {
       switch (status.toLowerCase()) {
@@ -173,54 +226,77 @@ useEffect(() => {
                       <TableHead className="font-semibold text-gray-900">Status</TableHead>
                       {/* <TableHead className="font-semibold text-gray-900">Invoice</TableHead> */}
                       <TableHead className="font-semibold text-gray-900">SKUs</TableHead>
+                      <TableHead className="font-semibold text-gray-900">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {picklists.map((pl, index) => (
-                      <TableRow key={pl._id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                        <TableCell className="font-mono text-sm bg-gray-100 rounded px-2 py-1 max-w-[200px]">
-                          <div className="truncate" title={pl._id}>
-                            {pl._id}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={pl.scanStatus} />
-                        </TableCell>
-                        {/* <TableCell>
-                          <div className="flex items-center gap-2">
-                            {pl.invoiceGenerated ? (
-                              <>
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-green-700 font-medium">Generated</span>
-                              </>
+                    {picklists.map((pl, index) => {
+                      // Step 2: Create derived constant for the row based on SKU flags
+                      const isAllPacked = pl.skuList?.every((s: any) => s.markAsPacked) ?? false;
+                      
+                      return (
+                        <TableRow key={pl._id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                          <TableCell className="font-mono text-sm bg-gray-100 rounded px-2 py-1 max-w-[200px]">
+                            <div className="truncate" title={pl._id}>
+                              {pl._id}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={pl.scanStatus} />
+                          </TableCell>
+                          {/* <TableCell>
+                            <div className="flex items-center gap-2">
+                              {pl.invoiceGenerated ? (
+                                <>
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span className="text-green-700 font-medium">Generated</span>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                  <span className="text-gray-600">Pending</span>
+                                </>
+                              )}
+                            </div>
+                          </TableCell> */}
+                          <TableCell>
+                            <div className="space-y-1 max-w-[250px]">
+                              {(pl.skuList || []).map((s) => (
+                                <div
+                                  key={s._id}
+                                  className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-xs"
+                                >
+                                  <span className="font-mono text-gray-800">{s.sku}</span>
+                                  <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-medium">
+                                    ×{s.quantity}
+                                  </span>
+                                </div>
+                              ))}
+                              {(pl.skuList || []).length === 0 && (
+                                <span className="text-gray-400 text-xs italic">No SKUs</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {isAllPacked ? (
+                              // Render Packed Badge (Green, static) if all SKUs are packed
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-green-100 text-green-800 border-green-200">
+                                Packed
+                              </span>
                             ) : (
-                              <>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                <span className="text-gray-600">Pending</span>
-                              </>
-                            )}
-                          </div>
-                        </TableCell> */}
-                        <TableCell>
-                          <div className="space-y-1 max-w-[250px]">
-                            {(pl.skuList || []).map((s) => (
-                              <div
-                                key={s._id}
-                                className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-xs"
+                              // Render Mark as Packed Button (Blue, clickable) if not all SKUs are packed
+                              <Button
+                                onClick={() => handleMarkAsPacked(pl._id)}
+                                size="sm"
+                                className="text-xs px-2 py-1 h-7 bg-blue-600 text-white hover:bg-blue-700"
                               >
-                                <span className="font-mono text-gray-800">{s.sku}</span>
-                                <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-medium">
-                                  ×{s.quantity}
-                                </span>
-                              </div>
-                            ))}
-                            {(pl.skuList || []).length === 0 && (
-                              <span className="text-gray-400 text-xs italic">No SKUs</span>
+                                Mark as Packed
+                              </Button>
                             )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -228,6 +304,17 @@ useEffect(() => {
           )}
         </div>
       </DialogContent>
+
+      <MarkPackedForPicklistId
+        open={markPackedModal.open}
+        onOpenChange={(open) => setMarkPackedModal({ open, picklistId: open ? markPackedModal.picklistId : undefined })}
+        orderId={orderId}
+        dealerId={picklists.find(p => p._id === markPackedModal.picklistId)?.dealerId || dealerId}
+        productName={picklists.find(pl => pl._id === markPackedModal.picklistId)?.skuList?.[0]?.productName || ""}
+        picklistId={markPackedModal.picklistId}
+        items={picklists.find(pl => pl._id === markPackedModal.picklistId)?.skuList || []}
+        onSuccess={handleMarkPackedSuccess}
+      />
     </Dialog>
   )
 }

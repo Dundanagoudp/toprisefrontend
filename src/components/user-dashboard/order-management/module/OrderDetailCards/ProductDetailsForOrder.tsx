@@ -63,6 +63,10 @@ interface ProductItem {
   mrp_gst_amount?: number;
   gst_amount?: number;
   product_total?: number;
+  piclistGenerated?: boolean;
+  markAsPacked?: boolean;
+  inspectionStarted?: boolean;
+  inspectionCompleted?: boolean;
 }
 
 interface ProductDetailsForOrderProps {
@@ -93,6 +97,16 @@ const safeDealerId = (dealer: any): string => {
   return id ? String(id) : "";
 };
 
+// Helper to resolve the actual dealer ID from dealerMapped or dealerId
+const getResolvedDealerId = (item: ProductItem): string => {
+  // First check dealerMapped array for the actual assigned dealer
+  const mappedDealerId = item.dealerMapped?.[0]?.dealerId;
+  if (mappedDealerId) return safeDealerId(mappedDealerId);
+  
+  // Fallback to item.dealerId
+  return safeDealerId(item.dealerId);
+};
+
 const getDealerCount = (dealer: any): number => {
   if (!dealer) return 0;
   if (Array.isArray(dealer))
@@ -109,13 +123,48 @@ const getStatusBadge = (status: string) => {
     delivered: "bg-green-100 text-green-800 border-green-200",
     cancelled: "bg-red-100 text-red-800 border-red-200",
     returned: "bg-orange-100 text-orange-800 border-orange-200",
+    "inspection in progress": "bg-blue-100 text-blue-800 border-blue-200",
+    "inspection completed": "bg-purple-100 text-purple-800 border-purple-200",
+    "picklist generated": "bg-orange-100 text-orange-800 border-orange-200",
+    packed: "bg-green-100 text-green-800 border-green-200",
   };
   return styles[s] || styles.pending;
+};
+
+const getSkuStatus = (item: ProductItem): string => {
+
+
+  // Packed: If picklist generated and marked as packed (admins don't need inspection)
+  if (item.piclistGenerated && item.markAsPacked) {
+
+    return "Packed";
+  }
+  // Inspection Completed: Three flags must be true
+  else if (item.piclistGenerated && item.inspectionStarted && item.inspectionCompleted) {
+ 
+    return "Inspection Completed";
+  }
+  // Inspection In Progress: Two flags must be true
+  else if (item.piclistGenerated && item.inspectionStarted) {
+
+    return "Inspection In Progress";
+  }
+  // Picklist Generated: Only piclistGenerated must be true
+  else if (item.piclistGenerated) {
+
+    return "Picklist Generated";
+  }
+  // Fallback to tracking_info status or "Pending"
+      else {
+      
+    return  "Pending";
+  }
 };
 
 // Unified Product Row Component
 const ProductRow = ({
   item,
+  resolvedDealerId,
   actions,
   isAuth,
   isStaff,
@@ -126,12 +175,15 @@ const ProductRow = ({
   totalProducts,
 }: any) => {
   const [expanded, setExpanded] = useState(false);
-  // hide isInspectionInProgress flag when scanStatus is "In Progress" and "Completed"
-  const isInspectionInProgress =
-    scanStatus === "In Progress" || scanStatus === "Completed";
-  //hide isStopInspection flag when scanStatus is "In Progress" and "Completed"
-  const isStopInspection =
-    scanStatus === "In Progress" || scanStatus === "Completed";
+  
+  // Step 1: Isolate conditional logic into clear boolean constants
+  const hasDealer = !!resolvedDealerId;
+  const showAssignDealers = isAuth && !hasDealer;
+  const showCreatePicklist = (isAuth || isStaff) && hasDealer && !item.piclistGenerated;
+  const showMarkPacked = (isAuth || isStaff) && item.piclistGenerated && !item.markAsPacked;
+  const showInspect = isStaff && item.piclistGenerated && !item.inspectionStarted && !item.inspectionCompleted;
+  const showStopInspect = isStaff && item.inspectionStarted && !item.inspectionCompleted;
+  
   // Prefer item-level tracking status; fallback to overall orderStatus
 
 
@@ -193,7 +245,7 @@ const ProductRow = ({
         <div className="flex items-center gap-2">
           <span className="text-sm">{getDealerCount(item.dealerId)}</span>
           <button
-            onClick={() => actions.viewDealer(safeDealerId(item.dealerId))}
+            onClick={() => actions.viewDealer(resolvedDealerId)}
             className="text-gray-400 hover:text-blue-600"
           >
             <Eye className="w-4 h-4" />
@@ -209,10 +261,10 @@ const ProductRow = ({
           </span>
           <Badge
             className={`text-xs px-2 py-0.5 ${getStatusBadge(
-              item.tracking_info?.status
+              getSkuStatus(item)
             )}`}
           >
-            {item.tracking_info?.status || "Pending"}
+            {getSkuStatus(item)}
           </Badge>
         </div>
       </div>
@@ -273,46 +325,39 @@ const ProductRow = ({
                 </DynamicButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                {isAuth && !safeDealerId(item.dealerId) && (
+                {showAssignDealers && (
                   <DropdownMenuItem
                     onClick={() => actions.trigger("assignDealers", item)}
                   >
                     <UserCheck className="h-4 w-4 mr-2" /> Assign Dealers
                   </DropdownMenuItem>
                 )}
-                {isAuth && safeDealerId(item.dealerId) && !hasPicklist && (
+                {showCreatePicklist && (
                   <DropdownMenuItem
                     onClick={() => actions.trigger("createPicklist", item)}
                   >
                     <Edit className="h-4 w-4 mr-2" /> Create Picklist
                   </DropdownMenuItem>
                 )}
-                {isAuth && scanStatus !== "Completed" && (
+                {showMarkPacked && (
                   <DropdownMenuItem
                     onClick={() => actions.trigger("markPacked", item)}
                   >
                     <Package className="h-4 w-4 mr-2" /> Mark Packed
                   </DropdownMenuItem>
                 )}
-                {isStaff && !isInspectionInProgress && (
+                {showInspect && (
                   <DropdownMenuItem
                     onClick={() => actions.trigger("inspect", item)}
                   >
                     <ClipboardCheck className="h-4 w-4 mr-2" /> Inspect Picklist
                   </DropdownMenuItem>
                 )}
-                {isStaff && isStopInspection && scanStatus !== "Completed" && (
+                {showStopInspect && (
                   <DropdownMenuItem
                     onClick={() => actions.trigger("stopInspect", item)}
                   >
                     <CircleX className="h-4 w-4 mr-2" /> Stop Inspection
-                  </DropdownMenuItem>
-                )}
-                {isStaff && (
-                  <DropdownMenuItem
-                    onClick={() => actions.trigger("markPacked", item)}
-                  >
-                    <Package className="h-4 w-4 mr-2" /> Mark Packed
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -368,7 +413,7 @@ export default function ProductDetailsForOrder({
   > = React.useMemo(() => {
     const map: Record<string, Array<{ sku: string; quantity: number }>> = {};
     (products || []).forEach((p) => {
-      const dId = safeDealerId(p.dealerId);
+      const dId = getResolvedDealerId(p);
       if (!dId || !p.sku) return;
       if (!map[dId]) map[dId] = [];
       map[dId].push({ sku: p.sku, quantity: p.quantity || 1 });
@@ -424,7 +469,10 @@ export default function ProductDetailsForOrder({
       console.error("Failed to fetch picklists:", error);
     }
   };
-
+//log the products
+  useEffect(() => {
+    console.log("products", products);
+  }, [products]);
   useEffect(() => {
     fetchEmployeeDetails();
     fetchPicklists();
@@ -514,7 +562,7 @@ export default function ProductDetailsForOrder({
           return;
         }
   
-        let dealerIdResolved = safeDealerId(item.dealerId);
+        let dealerIdResolved = getResolvedDealerId(item);
         if (!dealerIdResolved) {
           dealerIdResolved = getCookie("dealerId") || "";
           if (!dealerIdResolved) {
@@ -632,6 +680,11 @@ export default function ProductDetailsForOrder({
       )
     : false;
 
+  // Check if at least one item has piclistGenerated === false (for bulk Create Picklist)
+  const hasItemsWithoutPicklist = products?.some(
+    (item) => item.piclistGenerated === false
+  ) ?? false;
+
   return (
     <>
       <Card className="border border-gray-200 shadow-sm">
@@ -666,6 +719,7 @@ export default function ProductDetailsForOrder({
               <ProductRow
                 key={item._id || i}
                 item={item}
+                resolvedDealerId={getResolvedDealerId(item)}
                 actions={actionHandlers}
                 isAuth={isAuthorized}
                 isStaff={isFulfillmentStaff}
@@ -684,48 +738,47 @@ export default function ProductDetailsForOrder({
           </div>
 
           {/* Footer Action */}
-      
           {isAuthorized && products && products.length > 0 && (
-  <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
-    <DynamicButton
-      text="View All Picklists"
-      variant="outline"
-      onClick={() => {
-        const firstDealer = products[0]?.dealerId;
-        const dId = safeDealerId(firstDealer);
-        if (!dId) {
-          showToast("No dealer found for this order", "error");
-          return;
-        }
-        setSelectedItem(products[0]);
-        setModalsOpen((p) => ({ ...p, viewPick: true }));
-      }}
-    />
-    {/* Admin button - only show if dealer doesn't have picklist */}
-    {!dealerHasPicklist(safeDealerId(products[0]?.dealerId)) && (
-      <DynamicButton
-        text="Create Picklist"
-        onClick={() => {
-          setSelectedItem(null);
-          setModalsOpen((p) => ({ ...p, createPick: true }));
-        }}
-      />
-    )}
-  </div>
-)}
+            <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
+              <DynamicButton
+                text="View All Picklists"
+                variant="outline"
+                onClick={() => {
+                  const firstDealer = products[0]?.dealerId;
+                  const dId = safeDealerId(firstDealer);
+                  if (!dId) {
+                    showToast("No dealer found for this order", "error");
+                    return;
+                  }
+                  setSelectedItem(products[0]);
+                  setModalsOpen((p) => ({ ...p, viewPick: true }));
+                }}
+              />
+              {/* Bulk Create Picklist - only show if at least one item has piclistGenerated === false */}
+              {hasItemsWithoutPicklist && (
+                <DynamicButton
+                  text="Create Picklist"
+                  onClick={() => {
+                    setSelectedItem(null);
+                    setModalsOpen((p) => ({ ...p, createPick: true }));
+                  }}
+                />
+              )}
+            </div>
+          )}
 
-{/* Staff button - only visible when scans aren't completed and dealer doesn't have picklist */}
-{isFulfillmentStaff && products && products.length > 0 && !allScanCompleted && !dealerHasPicklist(safeDealerId(products[0]?.dealerId)) && (
-  <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
-    <DynamicButton
-      text="Create Picklist"
-      onClick={() => {
-        setSelectedItem(null);
-        setModalsOpen((p) => ({ ...p, createPick: true }));
-      }}
-    />
-  </div>
-)}
+          {/* Staff button - only visible when scans aren't completed and at least one item needs picklist */}
+          {isFulfillmentStaff && products && products.length > 0 && !allScanCompleted && hasItemsWithoutPicklist && (
+            <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
+              <DynamicButton
+                text="Create Picklist"
+                onClick={() => {
+                  setSelectedItem(null);
+                  setModalsOpen((p) => ({ ...p, createPick: true }));
+                }}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -744,7 +797,7 @@ export default function ProductDetailsForOrder({
             orderId={orderId}
             products={(products || []).map((p) => ({
               sku: p.sku,
-              dealerId: p.dealerId,
+              dealerId: getResolvedDealerId(p),
               productId: p.productId,
             }))}
             onSuccess={() => refreshAllData()}
@@ -759,7 +812,7 @@ export default function ProductDetailsForOrder({
               }
             }}
             orderId={orderId}
-            dealerId={safeDealerId(selectedItem?.dealerId)}
+            dealerId={selectedItem ? getResolvedDealerId(selectedItem) : ""}
             sku={selectedItem?.sku || ""}
             productName={selectedItem?.productName || ""}
             mpn={selectedItem?.manufacturer_part_name || ""}

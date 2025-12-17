@@ -211,7 +211,7 @@ export default function OrderDetailsView() {
     try {
       const response = await getOrderById(orderId);
       const item = response.data;
-      console.log("🔍 Order data:", item);
+      console.log("Order data:", item);
       dispatch(fetchOrderByIdSuccess(item));
       setLoading(false);
     } catch (error: any) {
@@ -449,6 +449,11 @@ export default function OrderDetailsView() {
       mrp_gst_amount: sku.mrp_gst_amount || 0,
       gst_amount: sku.gst_amount || 0,
       product_total: sku.product_total || 0,
+      // Add status boolean flags
+      piclistGenerated: sku.piclistGenerated || false,
+      markAsPacked: sku.markAsPacked || false,
+      inspectionStarted: sku.inspectionStarted || false,
+      inspectionCompleted: sku.inspectionCompleted || false,
     }));
   };
 
