@@ -112,7 +112,10 @@ export interface DealerPickListItem {
   sku: string;
   quantity: number;
   barcode: string;
+  productName: string;
+  manufacturer_part_name: string;
   _id: string;
+  markAsPacked?: boolean;
 }
 
 // Dealer Pick List Interface

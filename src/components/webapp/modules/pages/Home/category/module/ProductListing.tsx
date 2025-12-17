@@ -63,7 +63,7 @@ const ProductListing = ({
     try {
       setAddingToCart(productId);
       await addItemToCart(productId, 1);
-      showToast(`${productName} has been added to your cart.`, "success");
+      // showToast(`${productName} has been added to your cart.`, "success");
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error");
