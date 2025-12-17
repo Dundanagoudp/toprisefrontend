@@ -35,11 +35,13 @@ import {
   Edit, 
   Trash2, 
   MapPin, 
-  Truck, 
-  Clock,
-  DollarSign,
-  CheckCircle,
-  XCircle
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Filter,
+  X,
+  Upload,
+  Eye
 } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 import { 
@@ -47,32 +49,87 @@ import {
   getPincodes, 
   updatePincode, 
   deletePincode,
+  bulkDeletePincodes,
+  getPincodeById,
   type Pincode,
-  type PincodeListResponse 
+  type PincodeListResponse,
+  type PincodeFilters
 } from "@/service/pincodeServices"
 import { PincodeModal } from "./popups/pincode-modal"
+import { BulkUploadModal } from "./popups/pincodebulkupload"
+import { PincodeViewModal } from "./popups/pincodeviewmodal"
 
 export function PincodeManagement() {
   const { showToast } = useToast()
   const [pincodes, setPincodes] = useState<Pincode[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPincode, setEditingPincode] = useState<Pincode | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(true)
+  const [selectedPincodes, setSelectedPincodes] = useState<string[]>([])
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
+  const [deletingPincode, setDeletingPincode] = useState<Pincode | null>(null)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [viewingPincode, setViewingPincode] = useState<Pincode | null>(null)
+  const [loadingView, setLoadingView] = useState(false)
   
-  const itemsPerPage = 10
+  const itemsPerPage = 20
 
-  const fetchPincodes = async (page: number = 1, search: string = "") => {
+  // Comprehensive filter state
+  const [filters, setFilters] = useState<PincodeFilters>({
+    search: "",
+    city: "",
+    state: "",
+    district: "",
+    area: "",
+    shipRocket_availability: "",
+    borzo_standard: "",
+    borzo_endOfDay: "",
+    delivery_available: "",
+    cod_available: "",
+    status: "",
+    estimated_delivery_days: "",
+    sortBy: "created_at",
+    sortOrder: "desc",
+    page: 1,
+    limit: 20
+  })
+
+  // Extract unique values for filter dropdowns
+  const [uniqueCities, setUniqueCities] = useState<string[]>([])
+  const [uniqueStates, setUniqueStates] = useState<string[]>([])
+  const [uniqueDistricts, setUniqueDistricts] = useState<string[]>([])
+  const [uniqueAreas, setUniqueAreas] = useState<string[]>([])
+
+  const fetchPincodes = async () => {
     setLoading(true)
     try {
-      const response: PincodeListResponse = await getPincodes(page, itemsPerPage, search)
-      setPincodes(response.data.pincodes || [])
-      setTotalCount(response.data.pagination.totalPincodes || 0)
+      const response: PincodeListResponse = await getPincodes(filters)
+      const fetchedPincodes = response.data.pincodes || []
+      setPincodes(fetchedPincodes)
+      setTotalCount(response.data.pagination.totalItems || 0)
       setTotalPages(response.data.pagination.totalPages || 1)
+      
+      // Extract unique values for dropdowns
+      const cities = [...new Set(fetchedPincodes.map(p => p.city))].filter(Boolean).sort()
+      const states = [...new Set(fetchedPincodes.map(p => p.state))].filter(Boolean).sort()
+      const districts = [...new Set(fetchedPincodes.map(p => p.district))].filter(Boolean).sort()
+      const areas = [...new Set(fetchedPincodes.map(p => p.area))].filter(Boolean).sort()
+      
+      setUniqueCities(cities)
+      setUniqueStates(states)
+      setUniqueDistricts(districts)
+      setUniqueAreas(areas)
+      
+      // Clear selection after fetch
+      setSelectedPincodes([])
     } catch (error) {
       console.error("Error fetching pincodes:", error)
       showToast("Failed to load pincodes. Please refresh the page.", "error")
@@ -82,13 +139,126 @@ export function PincodeManagement() {
   }
 
   useEffect(() => {
-    fetchPincodes(currentPage, searchQuery)
-  }, [currentPage])
+    fetchPincodes()
+  }, [filters])
+
+  const handleFilterChange = (key: keyof PincodeFilters, value: string) => {
+    // Convert "all" or empty values to empty string for the filter state
+    const filterValue = value === "all" ? "" : value
+    setFilters(prev => ({
+      ...prev,
+      [key]: filterValue,
+      page: 1 // Reset to first page on filter change
+    }))
+    setCurrentPage(1)
+  }
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query)
+    handleFilterChange('search', query)
+  }
+
+  const handleClearFilters = () => {
+    setFilters({
+      search: "",
+      city: "",
+      state: "",
+      district: "",
+      area: "",
+      shipRocket_availability: "",
+      borzo_standard: "",
+      borzo_endOfDay: "",
+      delivery_available: "",
+      cod_available: "",
+      status: "",
+      estimated_delivery_days: "",
+      sortBy: "created_at",
+      sortOrder: "desc",
+      page: 1,
+      limit: 20
+    })
     setCurrentPage(1)
-    fetchPincodes(1, query)
+  }
+
+  const handleSort = (column: string) => {
+    setFilters(prev => {
+      if (prev.sortBy === column) {
+        // Toggle sort order
+        const newOrder = prev.sortOrder === "asc" ? "desc" : "asc"
+        return { ...prev, sortOrder: newOrder }
+      } else {
+        // New column, default to ascending
+        return { ...prev, sortBy: column, sortOrder: "asc" }
+      }
+    })
+  }
+
+  const getSortIcon = (column: string) => {
+    if (filters.sortBy !== column) {
+      return <ArrowUpDown className="w-3 h-3 ml-1 text-gray-400" />
+    }
+    return filters.sortOrder === "asc" ? (
+      <ArrowUp className="w-3 h-3 ml-1 text-[#C72920]" />
+    ) : (
+      <ArrowDown className="w-3 h-3 ml-1 text-[#C72920]" />
+    )
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedPincodes(pincodes.map(p => p._id!))
+    } else {
+      setSelectedPincodes([])
+    }
+  }
+
+  const handleSelectPincode = (pincodeId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedPincodes(prev => [...prev, pincodeId])
+    } else {
+      setSelectedPincodes(prev => prev.filter(id => id !== pincodeId))
+    }
+  }
+
+  const handleBulkDeleteClick = () => {
+    if (selectedPincodes.length === 0) return
+    setBulkDeleteConfirmOpen(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    if (selectedPincodes.length === 0) return
+
+    setBulkDeleting(true)
+    try {
+      await bulkDeletePincodes(selectedPincodes)
+      showToast(`Successfully deleted ${selectedPincodes.length} pincode(s)`, "success")
+      setSelectedPincodes([])
+      setBulkDeleteConfirmOpen(false)
+      fetchPincodes()
+    } catch (error) {
+      console.error("Error bulk deleting pincodes:", error)
+      showToast("Failed to delete pincodes. Please try again.", "error")
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  const handleViewClick = async (pincodeId: string) => {
+    setLoadingView(true)
+    setIsViewModalOpen(true)
+    setViewingPincode(null)
+    
+    try {
+      const response = await getPincodeById(pincodeId)
+      // Ensure we're setting a single Pincode object
+      const pincodeData: Pincode = Array.isArray(response.data) ? response.data[0] : response.data
+      setViewingPincode(pincodeData)
+    } catch (error) {
+      console.error("Error fetching pincode:", error)
+      showToast("Failed to fetch pincode details. Please try again.", "error")
+      setIsViewModalOpen(false)
+    } finally {
+      setLoadingView(false)
+    }
   }
 
   const handleCreatePincode = async (pincodeData: Omit<Pincode, '_id' | 'created_at' | 'updated_at'>) => {
@@ -96,7 +266,7 @@ export function PincodeManagement() {
       await createPincode(pincodeData)
       showToast("Pincode created successfully!", "success")
       setIsModalOpen(false)
-      fetchPincodes(currentPage, searchQuery)
+      fetchPincodes()
     } catch (error) {
       console.error("Error creating pincode:", error)
       showToast("Failed to create pincode. Please try again.", "error")
@@ -109,7 +279,7 @@ export function PincodeManagement() {
       showToast("Pincode updated successfully!", "success")
       setIsModalOpen(false)
       setEditingPincode(null)
-      fetchPincodes(currentPage, searchQuery)
+      fetchPincodes()
     } catch (error) {
       console.error("Error updating pincode:", error)
       showToast("Failed to update pincode. Please try again.", "error")
@@ -121,13 +291,26 @@ export function PincodeManagement() {
     try {
       await deletePincode(pincodeId)
       showToast("Pincode deleted successfully!", "success")
-      fetchPincodes(currentPage, searchQuery)
+      fetchPincodes()
     } catch (error) {
       console.error("Error deleting pincode:", error)
       showToast("Failed to delete pincode. Please try again.", "error")
     } finally {
       setDeletingId(null)
     }
+  }
+
+  const handleDeleteClick = (pincode: Pincode) => {
+    setDeletingPincode(pincode)
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDeletePincode = async () => {
+    if (!deletingPincode?._id) return
+
+    await handleDeletePincode(deletingPincode._id)
+    setDeleteConfirmOpen(false)
+    setDeletingPincode(null)
   }
 
   const handleEditClick = (pincode: Pincode) => {
@@ -140,48 +323,6 @@ export function PincodeManagement() {
     setEditingPincode(null)
   }
 
-  const getStatusBadge = (status: string) => {
-    return status === "active" ? (
-      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-        <CheckCircle className="w-3 h-3 mr-1" />
-        Active
-      </Badge>
-    ) : (
-      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-        <XCircle className="w-3 h-3 mr-1" />
-        Inactive
-      </Badge>
-    )
-  }
-
-  const getDeliveryBadge = (available: boolean) => {
-    return available ? (
-      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-        <Truck className="w-3 h-3 mr-1" />
-        Available
-      </Badge>
-    ) : (
-      <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
-        <XCircle className="w-3 h-3 mr-1" />
-        Not Available
-      </Badge>
-    )
-  }
-
-  const getCODBadge = (available: boolean) => {
-    return available ? (
-      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-        <CheckCircle className="w-3 h-3 mr-1" />
-        Available
-      </Badge>
-    ) : (
-      <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
-        <XCircle className="w-3 h-3 mr-1" />
-        Not Available
-      </Badge>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -191,29 +332,173 @@ export function PincodeManagement() {
           <p className="text-gray-600">Manage delivery areas and pincode settings</p>
         </div>
         
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#C72920] hover:bg-[#C72920]/90 text-white">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Pincode
+        <div className="flex items-center gap-2">
+          {selectedPincodes.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDeleteClick}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Selected ({selectedPincodes.length})
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingPincode ? "Edit Pincode" : "Add New Pincode"}
-              </DialogTitle>
-            </DialogHeader>
-            <PincodeModal
-              pincode={editingPincode}
-              onSubmit={editingPincode ? 
-                (data) => handleUpdatePincode(editingPincode._id!, data) : 
-                handleCreatePincode
-              }
-              onCancel={handleModalClose}
-            />
-          </DialogContent>
-        </Dialog>
+          )}
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsBulkUploadOpen(true)}
+            className="border-[#C72920] text-[#C72920] hover:bg-[#C72920] hover:text-white"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Bulk Upload
+          </Button>
+          
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-[#C72920] hover:bg-[#C72920]/90 text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Pincode
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingPincode ? "Edit Pincode" : "Add New Pincode"}
+                </DialogTitle>
+              </DialogHeader>
+              <PincodeModal
+                pincode={editingPincode}
+                onSubmit={editingPincode ? 
+                  (data) => handleUpdatePincode(editingPincode._id!, data) : 
+                  handleCreatePincode
+                }
+                onCancel={handleModalClose}
+              />
+            </DialogContent>
+          </Dialog>
+
+          {/* Single Delete Confirmation */}
+          <Dialog
+            open={deleteConfirmOpen}
+            onOpenChange={(open) => {
+              setDeleteConfirmOpen(open)
+              if (!open) setDeletingPincode(null)
+            }}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <Trash2 className="w-5 h-5" />
+                  Delete Pincode
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">Are you sure you want to delete this pincode?</p>
+
+                {deletingPincode && (
+                  <div className="bg-gray-50 p-3 rounded-md space-y-1">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="font-semibold">{deletingPincode.pincode}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {deletingPincode.city}, {deletingPincode.state}
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDeleteConfirmOpen(false)
+                    setDeletingPincode(null)
+                  }}
+                  disabled={deletingId !== null}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmDeletePincode}
+                  disabled={deletingId !== null || !deletingPincode?._id}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {deletingId === deletingPincode?._id ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Deleting...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </div>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Bulk Delete Confirmation */}
+          <Dialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <Trash2 className="w-5 h-5" />
+                  Bulk Delete Pincodes
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold">{selectedPincodes.length}</span> pincode(s)?
+                </p>
+                <div className="bg-red-50 border border-red-200 p-3 rounded-md">
+                  <p className="text-sm text-red-800 font-medium">
+                    Warning: This will permanently delete {selectedPincodes.length} pincode(s).
+                  </p>
+                </div>
+                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setBulkDeleteConfirmOpen(false)}
+                  disabled={bulkDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmBulkDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                  disabled={bulkDeleting || selectedPincodes.length === 0}
+                >
+                  {bulkDeleting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Deleting...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="w-4 h-4" />
+                      Delete {selectedPincodes.length}
+                    </div>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Search and Stats */}
@@ -222,17 +507,255 @@ export function PincodeManagement() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Search by pincode, city, state, or area..."
-            value={searchQuery}
+            value={filters.search}
             onChange={(e) => handleSearch(e.target.value)}
             className="pl-10"
           />
         </div>
         
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <MapPin className="w-4 h-4" />
-          <span>{totalCount} pincodes</span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
+          >
+            <Filter className="w-4 h-4" />
+            {showFilters ? "Hide Filters" : "Show Filters"}
+          </Button>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <MapPin className="w-4 h-4" />
+            <span>{totalCount} pincodes</span>
+          </div>
         </div>
       </div>
+
+      {/* Filters Section */}
+      {showFilters && (
+        <Card className="border-gray-200 shadow-sm">
+          <CardContent className="p-5">
+            <div className="space-y-5">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-gray-700" />
+                  <h3 className="text-sm font-semibold text-gray-900">Filter Pincodes</h3>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="h-8 text-xs border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Clear All Filters
+                </Button>
+              </div>
+
+              {/* Location Section */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Location</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-city" className="text-sm font-medium text-gray-700 block">
+                      City
+                    </label>
+                    <Select
+                      value={filters.city || "all"}
+                      onValueChange={(value) => handleFilterChange('city', value)}
+                    >
+                      <SelectTrigger id="filter-city" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
+                        <SelectValue placeholder="Select City" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Cities</SelectItem>
+                        {uniqueCities.map((city) => (
+                          <SelectItem key={city} value={city}>{city}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-state" className="text-sm font-medium text-gray-700 block">
+                      State
+                    </label>
+                    <Select
+                      value={filters.state || "all"}
+                      onValueChange={(value) => handleFilterChange('state', value)}
+                    >
+                      <SelectTrigger id="filter-state" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
+                        <SelectValue placeholder="Select State" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All States</SelectItem>
+                        {uniqueStates.map((state) => (
+                          <SelectItem key={state} value={state}>{state}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-district" className="text-sm font-medium text-gray-700 block">
+                      District
+                    </label>
+                    <Select
+                      value={filters.district || "all"}
+                      onValueChange={(value) => handleFilterChange('district', value)}
+                      disabled={!filters.state}
+                    >
+                      <SelectTrigger 
+                        id="filter-district" 
+                        className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <SelectValue placeholder={filters.state ? "Select District" : "Select State first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Districts</SelectItem>
+                        {uniqueDistricts.map((district) => (
+                          <SelectItem key={district} value={district}>{district}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-area" className="text-sm font-medium text-gray-700 block">
+                      Area
+                    </label>
+                    <Select
+                      value={filters.area || "all"}
+                      onValueChange={(value) => handleFilterChange('area', value)}
+                      disabled={!filters.district}
+                    >
+                      <SelectTrigger 
+                        id="filter-area" 
+                        className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <SelectValue placeholder={filters.district ? "Select Area" : "Select District first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Areas</SelectItem>
+                        {uniqueAreas.map((area) => (
+                          <SelectItem key={area} value={area}>{area}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Options Section */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Delivery Options</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-delivery" className="text-sm font-medium text-gray-700 block">
+                      Delivery Available
+                    </label>
+                    <Select
+                      value={filters.delivery_available || "all"}
+                      onValueChange={(value) => handleFilterChange('delivery_available', value)}
+                    >
+                      <SelectTrigger id="filter-delivery" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
+                        <SelectValue placeholder="Select Option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="true">Available</SelectItem>
+                        <SelectItem value="false">Not Available</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-cod" className="text-sm font-medium text-gray-700 block">
+                      COD Available
+                    </label>
+                    <Select
+                      value={filters.cod_available || "all"}
+                      onValueChange={(value) => handleFilterChange('cod_available', value)}
+                    >
+                      <SelectTrigger id="filter-cod" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
+                        <SelectValue placeholder="Select Option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="true">Available</SelectItem>
+                        <SelectItem value="false">Not Available</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-shiprocket" className="text-sm font-medium text-gray-700 block">
+                      ShipRocket
+                    </label>
+                    <Select
+                      value={filters.shipRocket_availability || "all"}
+                      onValueChange={(value) => handleFilterChange('shipRocket_availability', value)}
+                    >
+                      <SelectTrigger id="filter-shiprocket" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
+                        <SelectValue placeholder="Select Option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="true">Available</SelectItem>
+                        <SelectItem value="false">Not Available</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Settings Section */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Order Settings</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-borzo-standard" className="text-sm font-medium text-gray-700 block">
+                      Borzo Standard
+                    </label>
+                    <Select
+                      value={filters.borzo_standard || "all"}
+                      onValueChange={(value) => handleFilterChange('borzo_standard', value)}
+                    >
+                      <SelectTrigger id="filter-borzo-standard" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
+                        <SelectValue placeholder="Select Option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="true">Available</SelectItem>
+                        <SelectItem value="false">Not Available</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-borzo-eod" className="text-sm font-medium text-gray-700 block">
+                      Borzo End of Day
+                    </label>
+                    <Select
+                      value={filters.borzo_endOfDay || "all"}
+                      onValueChange={(value) => handleFilterChange('borzo_endOfDay', value)}
+                    >
+                      <SelectTrigger id="filter-borzo-eod" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
+                        <SelectValue placeholder="Select Option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="true">Available</SelectItem>
+                        <SelectItem value="false">Not Available</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pincodes Table */}
       <Card>
@@ -260,9 +783,9 @@ export function PincodeManagement() {
               <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No pincodes found</h3>
               <p className="text-gray-600 mb-4">
-                {searchQuery ? "Try adjusting your search criteria." : "Get started by adding your first pincode."}
+                {filters.search || filters.city || filters.state ? "Try adjusting your search or filter criteria." : "Get started by adding your first pincode."}
               </p>
-              {!searchQuery && (
+              {!filters.search && !filters.city && (
                 <Button onClick={() => setIsModalOpen(true)} className="bg-[#C72920] hover:bg-[#C72920]/90">
                   <Plus className="w-4 h-4 mr-2" />
                   Add First Pincode
@@ -274,70 +797,108 @@ export function PincodeManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Pincode</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Delivery</TableHead>
-                    <TableHead>Charges</TableHead>
-                    <TableHead>Days</TableHead>
-                    <TableHead>COD</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedPincodes.length === pincodes.length && pincodes.length > 0}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('pincode')}
+                    >
+                      <div className="flex items-center">
+                        Pincode
+                        {getSortIcon('pincode')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('city')}
+                    >
+                      <div className="flex items-center">
+                        City
+                        {getSortIcon('city')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('state')}
+                    >
+                      <div className="flex items-center">
+                        State
+                        {getSortIcon('state')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('district')}
+                    >
+                      <div className="flex items-center">
+                        District
+                        {getSortIcon('district')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort('area')}
+                    >
+                      <div className="flex items-center">
+                        Area
+                        {getSortIcon('area')}
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pincodes.map((pincode) => (
                     <TableRow key={pincode._id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedPincodes.includes(pincode._id!)}
+                          onCheckedChange={(checked) => handleSelectPincode(pincode._id!, checked as boolean)}
+                          aria-label={`Select pincode ${pincode.pincode}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-gray-400" />
                           {pincode.pincode}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{pincode.city}</div>
-                          <div className="text-sm text-gray-500">
-                            {pincode.area}, {pincode.district}, {pincode.state}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getDeliveryBadge(pincode.delivery_available)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3 text-gray-400" />
-                          ₹{pincode.delivery_charges}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-gray-400" />
-                          {pincode.estimated_delivery_days} days
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getCODBadge(pincode.cod_available)}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(pincode.status)}
-                      </TableCell>
+                      <TableCell>{pincode.city}</TableCell>
+                      <TableCell>{pincode.state}</TableCell>
+                      <TableCell>{pincode.district}</TableCell>
+                      <TableCell>{pincode.area}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleViewClick(pincode._id!)}
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleEditClick(pincode)}
                             className="h-8 w-8 p-0"
+                            title="Edit"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeletePincode(pincode._id!)}
+                            onClick={() => handleDeleteClick(pincode)}
                             disabled={deletingId === pincode._id}
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Delete"
                           >
                             {deletingId === pincode._id ? (
                               <div className="w-4 h-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
@@ -366,7 +927,11 @@ export function PincodeManagement() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              onClick={() => {
+                const newPage = Math.max(1, currentPage - 1)
+                setCurrentPage(newPage)
+                setFilters(prev => ({ ...prev, page: newPage }))
+              }}
               disabled={currentPage === 1}
             >
               Previous
@@ -377,7 +942,11 @@ export function PincodeManagement() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              onClick={() => {
+                const newPage = Math.min(totalPages, currentPage + 1)
+                setCurrentPage(newPage)
+                setFilters(prev => ({ ...prev, page: newPage }))
+              }}
               disabled={currentPage === totalPages}
             >
               Next
@@ -385,6 +954,159 @@ export function PincodeManagement() {
           </div>
         </div>
       )}
+
+      {/* Single Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Delete Pincode
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete this pincode?
+            </p>
+            {deletingPincode && (
+              <div className="bg-gray-50 p-3 rounded-md space-y-1">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-gray-500" />
+                  <span className="font-semibold">{deletingPincode.pincode}</span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  {deletingPincode.city}, {deletingPincode.state}
+                </p>
+              </div>
+            )}
+            <p className="text-sm text-gray-500">
+              This action cannot be undone.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteConfirmOpen(false)
+                setDeletingPincode(null)
+              }}
+              disabled={deletingId !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeletePincode}
+              disabled={deletingId !== null}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletingId === deletingPincode?._id ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Deleting...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Delete Pincode
+                </div>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Bulk Delete Pincodes
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete <span className="font-semibold">{selectedPincodes.length}</span> pincode(s)?
+            </p>
+            <div className="bg-red-50 border border-red-200 p-3 rounded-md">
+              <p className="text-sm text-red-800 font-medium">
+                ⚠️ Warning: This will permanently delete {selectedPincodes.length} pincode(s)
+              </p>
+            </div>
+            <p className="text-sm text-gray-500">
+              This action cannot be undone.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteConfirmOpen(false)}
+              disabled={bulkDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {bulkDeleting ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Deleting...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Delete {selectedPincodes.length} Pincode(s)
+                </div>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Upload Dialog */}
+      <Dialog open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-[#C72920]" />
+              Bulk Upload Pincodes
+            </DialogTitle>
+          </DialogHeader>
+          <BulkUploadModal
+            onSuccess={() => {
+              setIsBulkUploadOpen(false)
+              fetchPincodes()
+              showToast("Pincodes uploaded successfully!", "success")
+            }}
+            onCancel={() => setIsBulkUploadOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* View Pincode Dialog */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-[#C72920]" />
+              Pincode Details
+            </DialogTitle>
+          </DialogHeader>
+          <PincodeViewModal
+            pincode={viewingPincode}
+            loading={loadingView}
+            onClose={() => {
+              setIsViewModalOpen(false)
+              setViewingPincode(null)
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

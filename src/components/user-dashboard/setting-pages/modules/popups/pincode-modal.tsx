@@ -36,13 +36,14 @@ const pincodeSchema = z.object({
   state: z.string().min(1, "State is required"),
   district: z.string().min(1, "District is required"),
   area: z.string().min(1, "Area is required"),
+  borzo_availability: z.object({
+    standard: z.boolean(),
+    endOfDay: z.boolean(),
+  }),
+  shipRocket_availability: z.boolean(),
   delivery_available: z.boolean(),
-  delivery_charges: z.number()
-    .min(0, "Delivery charges must be non-negative")
-    .max(10000, "Delivery charges cannot exceed ₹10,000"),
-  estimated_delivery_days: z.number()
-    .min(1, "Delivery days must be at least 1")
-    .max(30, "Delivery days cannot exceed 30"),
+  delivery_charges: z.number(),
+  estimated_delivery_days: z.number(),
   cod_available: z.boolean(),
   status: z.enum(["active", "inactive"]),
   created_by: z.string().optional(),
@@ -75,9 +76,14 @@ export function PincodeModal({ pincode, onSubmit, onCancel }: PincodeModalProps)
       state: "",
       district: "",
       area: "",
+      borzo_availability: {
+        standard: false,
+        endOfDay: false,
+      },
+      shipRocket_availability: false,
       delivery_available: true,
       delivery_charges: 0,
-      estimated_delivery_days: 1,
+      estimated_delivery_days: 3,
       cod_available: true,
       status: "active",
       created_by: "Super Admin",
@@ -85,8 +91,6 @@ export function PincodeModal({ pincode, onSubmit, onCancel }: PincodeModalProps)
     }
   })
 
-  const watchedDeliveryAvailable = watch("delivery_available")
-  const watchedCodAvailable = watch("cod_available")
 
   // Populate form when editing
   useEffect(() => {
@@ -97,6 +101,11 @@ export function PincodeModal({ pincode, onSubmit, onCancel }: PincodeModalProps)
         state: pincode.state,
         district: pincode.district,
         area: pincode.area,
+        borzo_availability: pincode.borzo_availability || {
+          standard: false,
+          endOfDay: false,
+        },
+        shipRocket_availability: pincode.shipRocket_availability || false,
         delivery_available: pincode.delivery_available,
         delivery_charges: pincode.delivery_charges,
         estimated_delivery_days: pincode.estimated_delivery_days,
@@ -200,121 +209,59 @@ export function PincodeModal({ pincode, onSubmit, onCancel }: PincodeModalProps)
         </CardContent>
       </Card>
 
-      {/* Delivery Settings */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Truck className="w-5 h-5 text-[#C72920]" />
-            Delivery Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="delivery_available"
-              checked={watchedDeliveryAvailable}
-              onCheckedChange={(checked) => setValue("delivery_available", checked as boolean)}
-            />
-            <Label htmlFor="delivery_available" className="flex items-center gap-2">
-              <Truck className="w-4 h-4" />
-              Delivery Available
-            </Label>
-          </div>
-
-          {watchedDeliveryAvailable && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="delivery_charges" className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  Delivery Charges (₹) *
-                </Label>
-                <Input
-                  id="delivery_charges"
-                  type="number"
-                  min="0"
-                  max="10000"
-                  step="1"
-                  placeholder="Enter delivery charges"
-                  {...register("delivery_charges", { valueAsNumber: true })}
-                  className={errors.delivery_charges ? "border-red-500" : ""}
-                />
-                {errors.delivery_charges && (
-                  <p className="text-sm text-red-500">{errors.delivery_charges.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="estimated_delivery_days" className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Estimated Delivery Days *
-                </Label>
-                <Input
-                  id="estimated_delivery_days"
-                  type="number"
-                  min="1"
-                  max="30"
-                  step="1"
-                  placeholder="Enter delivery days"
-                  {...register("estimated_delivery_days", { valueAsNumber: true })}
-                  className={errors.estimated_delivery_days ? "border-red-500" : ""}
-                />
-                {errors.estimated_delivery_days && (
-                  <p className="text-sm text-red-500">{errors.estimated_delivery_days.message}</p>
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card> */}
-
-      {/* Payment & Status */}
+      {/* Delivery Partners */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <CheckCircle className="w-5 h-5 text-[#C72920]" />
-            Payment & Status
+            <Truck className="w-5 h-5 text-[#C72920]" />
+            Delivery Partners
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="cod_available"
-              checked={watchedCodAvailable}
-              onCheckedChange={(checked) => setValue("cod_available", checked as boolean)}
-            />
-            <Label htmlFor="cod_available" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Cash on Delivery (COD) Available
-            </Label>
+          {/* ShipRocket Section */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">ShipRocket</Label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="shipRocket_availability"
+                checked={watch("shipRocket_availability")}
+                onCheckedChange={(checked) => setValue("shipRocket_availability", checked as boolean)}
+              />
+              <Label htmlFor="shipRocket_availability">
+                ShipRocket Available
+              </Label>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status *</Label>
-            <Select
-              value={watch("status")}
-              onValueChange={(value) => setValue("status", value as "active" | "inactive")}
-            >
-              <SelectTrigger className={errors.status ? "border-red-500" : ""}>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    Active
-                  </div>
-                </SelectItem>
-                <SelectItem value="inactive">
-                  <div className="flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-red-600" />
-                    Inactive
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.status && (
-              <p className="text-sm text-red-500">{errors.status.message}</p>
-            )}
+          {/* Borzo Delivery Section */}
+          <div className="space-y-3 pt-3 border-t">
+            <Label className="text-sm font-semibold">Borzo Delivery</Label>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="borzo_standard"
+                checked={watch("borzo_availability.standard")}
+                onCheckedChange={(checked) => 
+                  setValue("borzo_availability.standard", checked as boolean)
+                }
+              />
+              <Label htmlFor="borzo_standard">
+                Borzo Standard
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="borzo_endOfDay"
+                checked={watch("borzo_availability.endOfDay")}
+                onCheckedChange={(checked) => 
+                  setValue("borzo_availability.endOfDay", checked as boolean)
+                }
+              />
+              <Label htmlFor="borzo_endOfDay">
+                Borzo End of Day
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>
