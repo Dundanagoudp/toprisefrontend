@@ -18,7 +18,7 @@ export interface SingleReturnResponse extends BaseApiResponse<ReturnRequest> {}
 // Core Return Request Type
 export interface ReturnRequest {
   _id: string;
-  orderId: string | null;
+  orderId: OrderInfo | null;
   customerId: string;
   sku: string;
   quantity: number;
@@ -55,7 +55,7 @@ export interface ReturnRequest {
 // Order and Customer Types
 export interface OrderInfo {
   _id: string;
-  orderId: string;
+  orderId: string | null;
   orderDate: string;
   customerDetails: CustomerDetails;
 }

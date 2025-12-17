@@ -82,18 +82,17 @@ export const rejectReturnRequest = async (
 
 
 //initiate borzo pickup
-export const initiateBorzoPickup = async (returnId: string) : Promise<ReturnRequestsResponse> => {
+export const initiateBorzoPickup = async (returnId: string , data: any) : Promise<ReturnRequestsResponse> => {
   try {
     const response = await apiClient.put(
-      `/orders/api/returns/Intiate-Borzo-Return/${returnId}`
+      `/orders/api/returns/Intiate-Borzo-Return/${returnId}`,data
     );
     return response.data;
-  } catch (error) {
-    console.error("Error initiating borzo pickup:", error);
-    throw error;
-  }
-}
-
+    } catch (error) {
+      console.error("Error initiating borzo pickup:", error);
+      throw error;
+    }
+  };
 
 //start inspection
 export const startInspection = async (

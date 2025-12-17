@@ -57,10 +57,10 @@ export const prepareOrderBody = (
       email: user.email || "",
     },
     paymentType: selectedPaymentMethod === "COD" ? "COD" : "Prepaid",
-    deliveryCharges: deliveryType.startsWith("express")
-      ? pincodeData?.delivery_charges ?? cart.deliveryCharge ?? 0
-      : cart.deliveryCharge ?? 0,
-    GST: cart.total_mrp_gst_amount ?? 0,
+    delivery_charges: deliveryType.startsWith("express")
+    ? pincodeData?.delivery_charges ?? cart.deliveryCharge ?? 0
+    : cart.deliveryCharge ?? 0,
+    GST: cart.gst_amount ?? 0,
     type_of_delivery: isOnline
       ? "Express"
       : deliveryType === "Standard"

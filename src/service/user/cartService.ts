@@ -97,6 +97,9 @@ export async function checkPincode(pincode: string): Promise<{
     area: string;
     delivery_available: boolean;
     delivery_charges: number;
+    borzo_standard: boolean;
+    borzo_endOfDay: boolean;
+    shipRocket_availability: boolean;
     estimated_delivery_days: number;
     cod_available: boolean;
     status: string;

@@ -1215,7 +1215,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium">
                       ₹
-                      {(order.order_Amount || 0) -
+                      {(order.total_amount || 0) -
                         (order.GST || 0) -
                         (order.deliveryCharges || 0).toLocaleString() || "0"}
                     </span>
