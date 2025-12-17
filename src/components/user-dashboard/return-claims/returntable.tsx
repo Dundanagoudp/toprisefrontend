@@ -150,7 +150,8 @@ export default function ReturnClaims() {
   const [borzoConfirmDialog, setBorzoConfirmDialog] = useState<{
     open: boolean;
     returnId: string | null;
-  }>({ open: false, returnId: null });
+    securePackageAmount: string;
+  }>({ open: false, returnId: null, securePackageAmount: "" });
   const [borzoLoading, setBorzoLoading] = useState(false);
 
   // Fetch return requests from API
@@ -407,19 +408,21 @@ export default function ReturnClaims() {
 
   // Handle Borzo confirmation dialog open
   const handleOpenBorzoConfirm = (returnId: string) => {
-    setBorzoConfirmDialog({ open: true, returnId });
+    setBorzoConfirmDialog({ open: true, returnId, securePackageAmount: "" });
   };
 
   // Handle Borzo confirmation
   const handleConfirmBorzo = async () => {
     if (!borzoConfirmDialog.returnId) return;
-    
+
     setBorzoLoading(true);
     try {
-      const response = await initiateBorzoPickup(borzoConfirmDialog.returnId);
+      const response = await initiateBorzoPickup(borzoConfirmDialog.returnId, {
+        securePackageAmount: parseFloat(borzoConfirmDialog.securePackageAmount) || 0
+      });
       if (response.success) {
         await fetchReturnRequests();
-        setBorzoConfirmDialog({ open: false, returnId: null });
+        setBorzoConfirmDialog({ open: false, returnId: null, securePackageAmount: "" });
       }
     } catch (error) {
       console.error("Failed to initiate Borzo pickup:", error);
@@ -1017,26 +1020,49 @@ const formatStatusName = (status: string) => {
           onSubmit={() => handleInitiateRefundComplete(true)}
         />
 
-        <Dialog 
-          open={borzoConfirmDialog.open} 
+        <Dialog
+          open={borzoConfirmDialog.open}
           onOpenChange={(open) => !borzoLoading && setBorzoConfirmDialog({ ...borzoConfirmDialog, open })}
         >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Initiate Borzo Pickup</DialogTitle>
               <DialogDescription>
-                Are you sure you want to initiate Borzo pickup for this return request?
+                Enter the secure package amount and confirm to initiate Borzo pickup for this return request.
               </DialogDescription>
             </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-2">
+                <label htmlFor="securePackageAmount" className="text-sm font-medium text-gray-700">
+                  Secure Package Amount (₹)
+                </label>
+                <Input
+                  id="securePackageAmount"
+                  type="number"
+                  placeholder="Enter amount"
+                  value={borzoConfirmDialog.securePackageAmount}
+                  onChange={(e) => setBorzoConfirmDialog({
+                    ...borzoConfirmDialog,
+                    securePackageAmount: e.target.value
+                  })}
+                  disabled={borzoLoading}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setBorzoConfirmDialog({ open: false, returnId: null })}
+                onClick={() => setBorzoConfirmDialog({ open: false, returnId: null, securePackageAmount: "" })}
                 disabled={borzoLoading}
               >
                 Cancel
               </Button>
-              <Button onClick={handleConfirmBorzo} disabled={borzoLoading}>
+              <Button
+                onClick={handleConfirmBorzo}
+                disabled={borzoLoading || !borzoConfirmDialog.securePackageAmount}
+              >
                 {borzoLoading ? "Processing..." : "Confirm"}
               </Button>
             </DialogFooter>
