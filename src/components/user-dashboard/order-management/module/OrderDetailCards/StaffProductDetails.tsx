@@ -423,7 +423,7 @@ export default function StaffProductDetails({
           const status = res?.data?.[0]?.status || "";
           setOrderStatus(status);
         })
-        
+
         .catch(() => {
           setOrderStatus("");
         });
