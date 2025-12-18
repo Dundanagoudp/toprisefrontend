@@ -39,14 +39,12 @@ export default function AdminOrdersTable() {
   const [Orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [stats, setStats] = useState<any>(null);
-  const [filters, setFilters] = useState<any>({ 
-    status: "all", 
+  const [filters, setFilters] = useState<any>({
+    status: "all",
     search: "",
     paymentMethod: "all",
     orderSource: "all",
     dealerId: "all",
-    sortBy: "order_Amount",
-    order: "desc",
     dateRange: {
       from: undefined,
       to: undefined,
@@ -265,19 +263,32 @@ export default function AdminOrdersTable() {
 
   const handleSort = (field: string) => {
     setFilters((prev: any) => {
-      const currentSortBy = prev.sortBy || "order_Amount";
-      const currentOrder = prev.order || "asc";
-      
+      const currentSortBy = prev.sortBy;
+      const currentOrder = prev.order;
+
       if (field === "Amount") {
-        // Toggle between asc and desc for Amount
-        const newOrder = currentSortBy === "order_Amount" && currentOrder === "asc" ? "dec" : "asc";
-        return {
-          ...prev,
-          sortBy: "order_Amount",
-          order: newOrder
-        };
+        // Handle Amount column sorting: no sort -> asc -> desc -> no sort
+        if (!currentSortBy || currentSortBy !== "order_Amount") {
+          // No sort or different field - start with ascending
+          return {
+            ...prev,
+            sortBy: "order_Amount",
+            order: "asc"
+          };
+        } else if (currentOrder === "asc") {
+          // Currently ascending - switch to descending
+          return {
+            ...prev,
+            sortBy: "order_Amount",
+            order: "desc"
+          };
+        } else {
+          // Currently descending - remove sorting (no sort)
+          const { sortBy, order, ...rest } = prev;
+          return rest;
+        }
       }
-      
+
       return { ...prev, sortBy: field };
     });
   };
@@ -314,7 +325,7 @@ export default function AdminOrdersTable() {
                 <TableHead>Order ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Customer</TableHead>
-                <TableHead 
+                <TableHead
                   className="cursor-pointer hover:bg-gray-100 select-none"
                   onClick={() => handleSort("Amount")}
                 >

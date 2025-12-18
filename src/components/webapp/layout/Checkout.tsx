@@ -351,6 +351,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     fetchData();
+    console.log(" response of cart", cart);
   }, [userId, fetchCart]);
 
   // Cleanup timeouts on unmount
@@ -368,9 +369,17 @@ export default function CheckoutPage() {
     if (selectedAddress?.pincode && selectedAddress.pincode !== pincode) {
       setPincode(selectedAddress.pincode);
       handlePincodeCheck(selectedAddress.pincode);
-      
+
     }
   }, [selectedAddress]);
+
+  // Auto-select default delivery type when pincode data is available
+  useEffect(() => {
+    if (pincodeData && selectedAddress) {
+      // Automatically select express-fast delivery type when pincode data is available
+      handleDeliveryTypeSelect("express-fast");
+    }
+  }, [pincodeData, selectedAddress]);
 
   const handleProceed = async () => {
     console.log("=== HANDLE PROCEED DEBUG ===");
@@ -885,8 +894,8 @@ export default function CheckoutPage() {
                       {expressAvailable && (
                         <>
                           <p>
-                            <strong>Delivery Charges:</strong> ₹
-                            {pincodeData.delivery_charges}
+                            <strong>Delivery Charges:</strong>{" "}
+                            {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${cart.deliveryCharge}`}
                           </p>
                           <p>
                             <strong>Estimated Delivery:</strong>{" "}
@@ -975,7 +984,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className="text-right">
                               <p className="font-medium text-gray-900">
-                                ₹{pincodeData?.delivery_charges || 0}
+                                {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${cart.deliveryCharge}`}
                               </p>
                               <p className="text-sm text-gray-600">
                                 Arrival in 2-3 hours
@@ -1005,7 +1014,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className="text-right">
                               <p className="font-medium text-gray-900">
-                                ₹{pincodeData?.delivery_charges || 0}
+                                {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${cart.deliveryCharge}`}
                               </p>
                               <p className="text-sm text-gray-600">
                                 {pincodeData?.estimated_delivery_days || 3} days
@@ -1143,9 +1152,9 @@ export default function CheckoutPage() {
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-gray-900">
-                            {deliveryType === "Standard"
-                              ? "₹0"
-                              : `₹${pincodeData?.delivery_charges || 0}`}
+                            {deliveryType === "Standard" || cart?.deliveryCharge === 0 || !cart?.deliveryCharge
+                              ? "Free Delivery"
+                              : `₹${cart.deliveryCharge}`}
                           </p>
                         </div>
                       </div>
@@ -1269,21 +1278,21 @@ export default function CheckoutPage() {
                                 {item.mrp && item.mrp > item.selling_price ? (
                                   <>
                                     <div className="flex items-center gap-1 justify-center sm:justify-end">
-                                      <span className="text-xs sm:text-sm text-gray-500 line-through">
-                                        ₹{(item.mrp * item.quantity).toFixed(2)}
-                                      </span>
+                                      {/* <span className="text-xs sm:text-sm text-gray-500 line-through">
+                                        ₹{(item.mrp / item.quantity).toFixed(2)}
+                                      </span> */}
                                       <span className="font-medium text-gray-900 text-sm sm:text-base">
                                         ₹
                                         {(
-                                          item.selling_price * item.quantity
+                                          Math.round(item.totalPrice  || 0)
                                         ).toFixed(2)}
                                       </span>
                                     </div>
                                     <p className="text-xs text-gray-500">
                                       <span className="line-through">
-                                        ₹{item.mrp}
+                                        ₹{(item.mrp / item.quantity).toFixed(2)}
                                       </span>{" "}
-                                      ₹{item.selling_price} each
+                                      ₹{(item.selling_price / item.quantity).toFixed(2)} each
                                     </p>
                                   </>
                                 ) : (
@@ -1438,7 +1447,7 @@ export default function CheckoutPage() {
                           Item Total ({cart?.items?.length ?? 0} items):
                         </span>
                         <span className="font-medium">
-                          ₹{Math.round(cart?.itemTotal  || 0)-(cart?.gst_amount || 0)-(cart?.deliveryCharge || 0)}
+                          ₹{Math.round(cart?.itemTotal  || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1452,12 +1461,12 @@ export default function CheckoutPage() {
                           Delivery Charge ({cart?.delivery_type || "Standard"}):
                         </span>
                         <span className="font-medium">
-                          ₹{Math.round(cart?.deliveryCharge || 0)}
+                          {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${Math.round(cart.deliveryCharge)}`}
                         </span>
                       </div>
                       <hr className="border-gray-300" />
                       <div className="flex justify-between text-lg font-semibold">
-                        <span className="text-gray-900">Total:</span>
+                        <span className="text-gray-900">Total (Inclusive of GST):</span>
                         <span className="text-gray-900">
                           ₹{Math.round(cart?.grandTotal || 0)}
                         </span>
@@ -1616,7 +1625,7 @@ export default function CheckoutPage() {
                       Item Total ({cart?.items?.length ?? 0} items):
                     </span>
                     <span className="font-medium">
-                      ₹{Math.round(cart?.itemTotal || 0)-(cart?.gst_amount || 0)-(cart?.deliveryCharge || 0)}
+                      ₹{Math.round(cart?.itemTotal || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -1630,15 +1639,12 @@ export default function CheckoutPage() {
                       Delivery Charge ({cart?.delivery_type || "Standard"}):
                     </span>
                     <span className="font-medium">
-                      ₹
-                      {typeof cart?.deliveryCharge === "number"
-                        ? Math.round(cart.deliveryCharge)
-                        : 0}
+                      {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${Math.round(cart.deliveryCharge)}`}
                     </span>
                   </div>
                   <hr className="border-gray-300" />
                   <div className="flex justify-between items-center text-lg font-semibold">
-                    <span className="text-gray-900">Total:</span>
+                    <span className="text-gray-900">Total (Inclusive of GST):</span>
                     <span className="text-gray-900">
                       ₹{Math.round(cart?.grandTotal || 0)}
                     </span>
