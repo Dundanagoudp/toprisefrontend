@@ -31,7 +31,7 @@ import {
 import {
   fetchEmployeeByUserId,
   fetchPicklistsByEmployee,
-  getOrderByPiclistId,
+  getOrderById,
 } from "@/service/order-service";
 
 interface ProductItem {
@@ -61,7 +61,7 @@ interface AdminProductDetailsProps {
   products: ProductItem[] | null | undefined;
   onProductEyeClick: (product: ProductItem) => void;
   onDealerEyeClick: (dealerId: string) => void;
-  picklistId?: string;
+  orderId?: string;
   onRefresh?: () => void;
   deliveryCharges?: number;
 }
@@ -327,7 +327,7 @@ export default function AdminProductDetails({
   products,
   onProductEyeClick,
   onDealerEyeClick,
-  picklistId = "",
+  orderId = "",
   onRefresh,
   deliveryCharges = 0,
 }: AdminProductDetailsProps) {
@@ -349,7 +349,6 @@ export default function AdminProductDetails({
   });
   const [picklistSkus, setPicklistSkus] = useState<Set<string>>(new Set());
   const [orderStatus, setOrderStatus] = useState<string>("");
-  const [orderId, setOrderId] = useState<string>("");
   const [dealerInfoMap, setDealerInfoMap] = useState<
     Record<string, { trade_name: string; legal_name: string }>
   >({});
@@ -371,17 +370,20 @@ export default function AdminProductDetails({
   }, [products]);
 
   const fetchPicklists = async () => {
-    if (!picklistId) return;
+    if (!orderId) return;
     try {
-      const response = await getOrderByPiclistId(picklistId);
-      if (response.success && response.data?.picklist) {
+      const response = await getPicklistById(orderId);
+      if (response.success && response.data) {
         const skus = new Set<string>();
-        const picklist = response.data.picklist;
-        picklist.skuList?.forEach((skuItem: any) => {
-          if (skuItem.sku) {
-            skus.add(skuItem.sku);
-          }
-        });
+        response.data
+          .filter((p: any) => p.linkedOrderId === orderId)
+          .forEach((picklist: any) => {
+            picklist.skuList?.forEach((skuItem: any) => {
+              if (skuItem.sku) {
+                skus.add(skuItem.sku);
+              }
+            });
+          });
 
         setPicklistSkus(skus);
       }
@@ -392,29 +394,24 @@ export default function AdminProductDetails({
 
   useEffect(() => {
     fetchPicklists();
-    if (picklistId) {
-      getOrderByPiclistId(picklistId)
+    if (orderId) {
+      getOrderById(orderId)
         .then((res) => {
-          const status = res?.data?.order?.status || "";
-          const extractedOrderId = res?.data?.order?._id || "";
+          const status = res?.data?.[0]?.status || "";
           setOrderStatus(status);
-          setOrderId(extractedOrderId);
         })
 
         .catch(() => {
           setOrderStatus("");
-          setOrderId("");
         });
     }
-  }, [picklistId]);
+  }, [orderId]);
   const refreshAllData = async () => {
     await Promise.all([
       fetchPicklists(),
-      picklistId ? getOrderByPiclistId(picklistId).then((res) => {
-        const status = res?.data?.order?.status || "";
-        const extractedOrderId = res?.data?.order?._id || "";
+      orderId ? getOrderById(orderId).then((res) => {
+        const status = res?.data?.[0]?.status || "";
         setOrderStatus(status);
-        setOrderId(extractedOrderId);
       }) : Promise.resolve()
     ]);
     onRefresh?.();

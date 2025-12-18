@@ -6,39 +6,14 @@ interface ProductDetailsForOrderProps {
   products: any[] | null | undefined;
   onProductEyeClick: (product: any) => void;
   onDealerEyeClick: (dealerId: string) => void;
-  picklistId?: string;
+  orderId?: string;
   onRefresh?: () => void;
   deliveryCharges?: number;
 }
 
-export default function ProductDetailsForOrder({
-  products,
-  onProductEyeClick,
-  onDealerEyeClick,
-  picklistId,
-  onRefresh,
-  deliveryCharges,
-}: ProductDetailsForOrderProps) {
+export default function ProductDetailsForOrder(props: ProductDetailsForOrderProps) {
   const auth = useAppSelector((state) => state.auth.user);
   const isAdmin = ["Super-admin", "Fulfillment-Admin", "Fullfillment-Admin"].includes(auth?.role);
 
-  return isAdmin ? (
-    <AdminProductDetails
-      products={products}
-      onProductEyeClick={onProductEyeClick}
-      onDealerEyeClick={onDealerEyeClick}
-      picklistId={picklistId}
-      onRefresh={onRefresh}
-      deliveryCharges={deliveryCharges}
-    />
-  ) : (
-    <StaffProductDetails
-      products={products}
-      onProductEyeClick={onProductEyeClick}
-      onDealerEyeClick={onDealerEyeClick}
-      picklistId={picklistId}
-      onRefresh={onRefresh}
-      deliveryCharges={deliveryCharges}
-    />
-  );
+  return isAdmin ? <AdminProductDetails {...props} /> : <StaffProductDetails {...props} />;
 }

@@ -194,7 +194,6 @@ export default function OrderDetailsView() {
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [order, setOrder] = useState<any>({});
-  const [picklistId, setPicklistId] = useState<string>("");
 
   // Use the correct root state type and property name as per your store setup
   const orderById = useAppSelector(
@@ -211,21 +210,9 @@ export default function OrderDetailsView() {
     dispatch(fetchOrderByIdRequest());
     try {
       const response = await getOrderById(orderId);
-      // Handle new API response structure: res.data.order and res.data.picklist
-      const order = response?.data?.order;
-      const picklist = response?.data?.picklist;
-      
-      if (order) {
-        console.log("Order data:", order);
-        dispatch(fetchOrderByIdSuccess(order));
-        // Extract picklistId from the first SKU
-        const extractedPicklistId = order?.skus?.[0]?.picklistId || "";
-        setPicklistId(extractedPicklistId);
-      } else {
-        console.warn("No order data found in response");
-        dispatch(fetchOrderByIdSuccess(null));
-        setPicklistId("");
-      }
+      const item = response.data;
+      console.log("Order data:", item);
+      dispatch(fetchOrderByIdSuccess(item));
       setLoading(false);
     } catch (error: any) {
       console.error(`Failed to fetch order with id ${orderId}:`, error);
@@ -439,8 +426,7 @@ export default function OrderDetailsView() {
 
   // Function to extract product data from orderById
   const product = (orderData: any) => {
-    // Handle empty state: if orderData is null/undefined, return empty array
-    if (!orderData || !orderData.skus || !Array.isArray(orderData.skus)) {
+    if (!orderData || !orderData.skus) {
       return [];
     }
 
@@ -771,7 +757,7 @@ export default function OrderDetailsView() {
             products={product(orderById)}
             onProductEyeClick={handleProductEyeClick}
             onDealerEyeClick={handleDealerEyeClick}
-            picklistId={picklistId}
+            orderId={orderId}
             onRefresh={fetchOrder}
             deliveryCharges={orderById?.deliveryCharges || 0}
           />
