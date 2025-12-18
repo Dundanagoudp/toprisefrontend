@@ -1,4 +1,4 @@
-import { orderResponse, PicklistResponse, AssignDealersRequest, CreatePicklistRequest, AssignPicklistRequest, UpdateOrderStatusByDealerRequest } from "@/types/order-Types";
+import { orderResponse, OrderWithPicklistResponse, PicklistResponse, AssignDealersRequest, CreatePicklistRequest, AssignPicklistRequest, UpdateOrderStatusByDealerRequest } from "@/types/order-Types";
 import apiClient from "@/apiClient";
 
 import axios from "axios";
@@ -65,6 +65,18 @@ export async function getOrderById(id: string): Promise<orderResponse> {
     return response.data;
   } catch (error) {
     console.error(`Failed to fetch order with id ${id}:`, error);
+    throw error;
+  }
+}
+
+
+// get order by piclist id
+export async function getOrderByPiclistId(piclistId: string): Promise<OrderWithPicklistResponse> {
+  try {
+    const response = await apiClient.get(`/orders/api/fulfillment/get/order/byPicklistId/${piclistId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to fetch order with piclist id ${piclistId}:`, error);
     throw error;
   }
 }
