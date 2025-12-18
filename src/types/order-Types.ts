@@ -3,6 +3,16 @@ export interface orderResponse {
     message: string;
     data: Order[];
 }
+
+// New response structure with order and picklist
+export interface OrderWithPicklistResponse {
+    success: boolean;
+    message: string;
+    data: {
+        order: Order | null;
+        picklist: Picklist | null;
+    };
+}
 interface Order {
   _id: string;
   orderId: string;
