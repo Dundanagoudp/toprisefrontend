@@ -212,12 +212,15 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
     document.body.removeChild(link);
     console.log("link clicked");
   };
-  const isReturnEligible = (order: any) => {
-    // Check if order is delivered and within return window (assuming 30 days)
+  const isReturnEligible = (order: any, returnWindowDays?: number) => {
+    // Check if order is delivered and within return window (using dynamic return_window_days)
     const deliveredStatus = ["delivered", "completed"].includes(
       order.status?.toLowerCase()
     );
     if (!deliveredStatus) return false;
+
+    // If no returnWindowDays provided, cannot determine eligibility
+    if (!returnWindowDays) return false;
 
     // Check if order has a delivery date and is within return window
     if (order.timestamps?.deliveredAt) {
@@ -227,7 +230,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
         (currentDate.getTime() - deliveredDate.getTime()) /
           (1000 * 60 * 60 * 24)
       );
-      return daysSinceDelivery <= 30; // Assuming 30-day return window
+      return daysSinceDelivery <= returnWindowDays;
     }
 
     return false;
@@ -1025,51 +1028,74 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                   </p>
                                 )}
 
-                                {/* Return Button - Show if item is returnable and delivery is finished */}
-                                {orderSku?.return_info?.is_returnable &&
-                                  !orderSku?.return_info?.is_returned &&
-                                  trackingInfo?.borzo_tracking_status ===
-                                    "finished" && (
-                                    <div className="flex justify-end">
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 h-auto"
-                                        onClick={() =>
-                                          handleReturnSku(
-                                            product.sku,
-                                            product.quantity
-                                          )
-                                        }
-                                        disabled={checkingBankDetails}
-                                      >
-                                        {checkingBankDetails ? (
-                                          <>
-                                            <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                                            Checking...
-                                          </>
-                                        ) : (
-                                          <>
-                                            <RotateCcw className="h-3 w-3 mr-1.5" />
-                                            Return
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  )}
+                                {/* Return Button - Show if item is returnable and delivery is finished and within return window */}
+                                {(() => {
+                                  const deliveredAt =
+                                    timestamps?.deliveredAt ||
+                                    order.timestamps?.deliveredAt;
+                                  const returnWindowDays =
+                                    orderSku?.return_info?.return_window_days;
+                                  
+                                  // Only proceed if return_window_days is defined
+                                  if (!returnWindowDays) return null;
+                                  
+                                  let withinReturnWindow = false;
+                                  if (deliveredAt) {
+                                    const daysSinceDelivery =
+                                      (Date.now() - new Date(deliveredAt).getTime()) /
+                                      (24 * 60 * 60 * 1000);
+                                    withinReturnWindow = daysSinceDelivery <= returnWindowDays;
+                                  } else {
+                                    // If no deliveredAt, assume it's recent
+                                    withinReturnWindow = true;
+                                  }
+
+                                  return (
+                                    orderSku?.return_info?.is_returnable &&
+                                    !orderSku?.return_info?.is_returned &&
+                                    trackingInfo?.borzo_tracking_status === "finished" &&
+                                    withinReturnWindow && (
+                                      <div className="flex justify-end">
+                                        <Button
+                                          variant="destructive"
+                                          size="sm"
+                                          className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 h-auto"
+                                          onClick={() =>
+                                            handleReturnSku(
+                                              product.sku,
+                                              product.quantity
+                                            )
+                                          }
+                                          disabled={checkingBankDetails}
+                                        >
+                                          {checkingBankDetails ? (
+                                            <>
+                                              <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                                              Checking...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <RotateCcw className="h-3 w-3 mr-1.5" />
+                                              Return
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    )
+                                  );
+                                })()}
 
                                 {/* Already Returned Info */}
                                 {orderSku?.return_info?.is_returned &&
                                   orderSku?.return_info?.return_id &&
                                   (() => {
-                                    // Check if delivered within 7 days or if return window is still active
+                                    // Check if delivered within return window or if return window is still active
                                     // Try SKU timestamps first, then order timestamps
                                     const deliveredAt =
                                       timestamps?.deliveredAt ||
                                       order.timestamps?.deliveredAt;
                                     const returnWindowDays =
-                                      orderSku?.return_info
-                                        ?.return_window_days || 7;
+                                      orderSku?.return_info?.return_window_days;
 
                                     console.log("Return tracking check:", {
                                       sku: product.sku,
@@ -1081,10 +1107,10 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                         orderSku?.return_info?.return_id,
                                     });
 
-                                    // If deliveredAt exists, check if within return window
+                                    // If deliveredAt and returnWindowDays exist, check if within return window
                                     let showTrackingButton = false;
 
-                                    if (deliveredAt) {
+                                    if (deliveredAt && returnWindowDays) {
                                       const daysSinceDelivery =
                                         (Date.now() -
                                           new Date(deliveredAt).getTime()) /
@@ -1094,14 +1120,16 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                       console.log(
                                         "Days since delivery:",
                                         daysSinceDelivery,
+                                        "Return window days:",
+                                        returnWindowDays,
                                         "Within window:",
                                         showTrackingButton
                                       );
                                     } else {
-                                      // If no deliveredAt, assume it's recent and show tracking button
+                                      // If no deliveredAt or returnWindowDays, assume it's recent and show tracking button
                                       showTrackingButton = true;
                                       console.log(
-                                        "No deliveredAt found, showing tracking button by default"
+                                        "No deliveredAt or returnWindowDays found, showing tracking button by default"
                                       );
                                     }
 
