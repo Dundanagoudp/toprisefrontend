@@ -8,11 +8,8 @@ import {
   MapPin, 
   Truck, 
   Package, 
-  DollarSign, 
-  Clock, 
   CheckCircle2, 
-  XCircle,
-  Calendar
+  XCircle
 } from "lucide-react"
 import { type Pincode } from "@/service/pincodeServices"
 
@@ -41,15 +38,8 @@ export function PincodeViewModal({ pincode, loading = false, onClose }: PincodeV
     )
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-IN', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    })
-  }
-
   return (
-    <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+    <div className="space-y-6">
       {/* Location Information */}
       <Card>
         <CardHeader className="pb-3">
@@ -142,74 +132,8 @@ export function PincodeViewModal({ pincode, loading = false, onClose }: PincodeV
         </CardContent>
       </Card>
 
-      {/* Delivery Settings */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Package className="w-5 h-5 text-[#C72920]" />
-            Delivery Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-1 mb-1">
-                <CheckCircle2 className="w-3 h-3 text-gray-500" />
-                <p className="text-xs text-gray-500">Delivery Available</p>
-              </div>
-              <Badge 
-                variant={pincode.delivery_available ? "default" : "secondary"}
-                className={pincode.delivery_available ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-gray-100 text-gray-600"}
-              >
-                {pincode.delivery_available ? "Yes" : "No"}
-              </Badge>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-1 mb-1">
-                <DollarSign className="w-3 h-3 text-gray-500" />
-                <p className="text-xs text-gray-500">Delivery Charges</p>
-              </div>
-              <p className="text-sm font-semibold text-gray-900">₹{pincode.delivery_charges}</p>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-1 mb-1">
-                <Clock className="w-3 h-3 text-gray-500" />
-                <p className="text-xs text-gray-500">Estimated Days</p>
-              </div>
-              <p className="text-sm font-semibold text-gray-900">{pincode.estimated_delivery_days} days</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Metadata */}
-      {(pincode.created_at || pincode.updated_at) && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#C72920]" />
-              Timestamps
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {pincode.created_at && (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Created</span>
-                <span className="text-gray-900 font-medium">{formatDate(pincode.created_at)}</span>
-              </div>
-            )}
-            {pincode.updated_at && (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Last Updated</span>
-                <span className="text-gray-900 font-medium">{formatDate(pincode.updated_at)}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Actions */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white">
+      <div className="flex items-center justify-end gap-3 pt-4 border-t">
         <Button
           onClick={onClose}
           className="bg-[#C72920] hover:bg-[#C72920]/90 text-white"
