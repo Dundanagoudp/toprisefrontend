@@ -22,7 +22,7 @@ export function BulkUploadModal({ onSuccess, onCancel }: BulkUploadModalProps) {
     totalRows: number
     inserted: number
     skipped: number
-    errors: string[]
+    errors?: Array<{ row: number; error: string }>
   } | null>(null)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,8 +49,35 @@ export function BulkUploadModal({ onSuccess, onCancel }: BulkUploadModalProps) {
     setUploading(true)
     try {
       const result = await bulkUploadPincodes(selectedFile)
-      setUploadResult(result.data)
-      showToast(result.message, "success")
+      console.log("📤 Upload result:", result)
+      
+      // Ensure errors array exists, even if empty
+      const uploadData = {
+        ...result.data,
+        errors: result.data.errors || []
+      }
+      
+      setUploadResult(uploadData)
+      
+      // Show appropriate message based on errors and results
+      if (uploadData.errors && uploadData.errors.length > 0) {
+        showToast(
+          `Upload completed with ${uploadData.errors.length} error(s). Please check the details below.`,
+          "error"
+        )
+      } else if (uploadData.inserted === 0 && uploadData.skipped > 0) {
+        showToast(
+          `No records were inserted. ${uploadData.skipped} row(s) were skipped. Please check your CSV data.`,
+          "error"
+        )
+      } else if (uploadData.inserted > 0 && uploadData.skipped > 0) {
+        showToast(
+          `Upload completed! ${uploadData.inserted} inserted, ${uploadData.skipped} skipped.`,
+          "warning"
+        )
+      } else {
+        showToast(result.message, "success")
+      }
     } catch (error) {
       console.error("Error uploading file:", error)
       showToast("Failed to upload file. Please try again.", "error")
@@ -166,21 +193,40 @@ export function BulkUploadModal({ onSuccess, onCancel }: BulkUploadModalProps) {
               </div>
               <div className="bg-red-50 p-3 rounded-md">
                 <p className="text-xs text-red-600 mb-1">Errors</p>
-                <p className="text-2xl font-bold text-red-900">{uploadResult.errors.length}</p>
+                <p className="text-2xl font-bold text-red-900">{uploadResult.errors?.length || 0}</p>
               </div>
             </div>
 
-            {uploadResult.errors.length > 0 && (
-              <div className="bg-red-50 border border-red-200 p-3 rounded-md">
-                <div className="flex items-start gap-2 mb-2">
-                  <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
-                  <h5 className="text-sm font-semibold text-red-900">Errors:</h5>
+            {/* Error Details Section - Simple compact message */}
+            {uploadResult.errors && uploadResult.errors.length > 0 && (
+              <div className="bg-red-50 border border-red-300 p-3 rounded-md">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                  <p className="text-sm text-red-800">
+                    <strong>Validation errors found in {uploadResult.errors.length} {uploadResult.errors.length === 1 ? 'row' : 'rows'}.</strong> Please fix the errors in your CSV file and upload again.
+                  </p>
                 </div>
-                <ul className="text-xs text-red-700 space-y-1 pl-6">
-                  {uploadResult.errors.map((error, index) => (
-                    <li key={index}>• {error}</li>
-                  ))}
+              </div>
+            )}
+
+            {/* Info Section - Shows general skip reasons when no specific errors */}
+            {uploadResult.skipped > 0 && (!uploadResult.errors || uploadResult.errors.length === 0) && (
+              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md">
+                <div className="flex items-start gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                  <h5 className="text-sm font-semibold text-yellow-900">Info:</h5>
+                </div>
+                <p className="text-xs text-yellow-700">
+                  {uploadResult.skipped} row(s) were skipped. This usually happens when:
+                </p>
+                <ul className="text-xs text-yellow-700 space-y-1 pl-6 mt-2">
+                  <li>• Pincode already exists in the database (duplicates)</li>
+                  <li>• Invalid data format in CSV columns</li>
+                  <li>• Missing required fields</li>
                 </ul>
+                <p className="text-xs text-yellow-700 mt-2">
+                  Please verify your CSV data and ensure all pincodes are unique and properly formatted.
+                </p>
               </div>
             )}
           </CardContent>
@@ -225,7 +271,14 @@ export function BulkUploadModal({ onSuccess, onCancel }: BulkUploadModalProps) {
               Upload Another
             </Button>
             <Button
-              onClick={onSuccess}
+              onClick={() => {
+                // Only call onSuccess if there are no errors
+                if (uploadResult.errors && uploadResult.errors.length > 0) {
+                  onCancel() // Close modal without success message
+                } else {
+                  onSuccess() // Close modal with success message
+                }
+              }}
               className="bg-[#C72920] hover:bg-[#C72920]/90 text-white"
             >
               Done

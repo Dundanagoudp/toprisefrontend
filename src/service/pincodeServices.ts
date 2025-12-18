@@ -70,8 +70,6 @@ export interface PincodeFilters {
   state?: string;
   district?: string;
   area?: string;
-  delivery_available?: string;
-  cod_available?: string;
   shipRocket_availability?: string;
   borzo_standard?: string;
   borzo_endOfDay?: string;
@@ -81,6 +79,13 @@ export interface PincodeFilters {
   sortOrder?: string;
   page?: number;
   limit?: number;
+}
+
+export interface PincodeMetadata {
+  states: string[];
+  districts: string[];
+  cities: string[];
+  areas: string[];
 }
 
 // Create a new pincode
@@ -122,8 +127,6 @@ export async function getPincodes(
     if (filters.shipRocket_availability) queryParams.append('shipRocket_availability', filters.shipRocket_availability);
     if (filters.borzo_standard) queryParams.append('borzo_standard', filters.borzo_standard);
     if (filters.borzo_endOfDay) queryParams.append('borzo_endOfDay', filters.borzo_endOfDay);
-    if (filters.delivery_available) queryParams.append('delivery_available', filters.delivery_available);
-    if (filters.cod_available) queryParams.append('cod_available', filters.cod_available);
     
     // Add other filters
     if (filters.estimated_delivery_days) queryParams.append('estimated_delivery_days', filters.estimated_delivery_days);
@@ -217,7 +220,7 @@ export async function bulkUploadPincodes(
     totalRows: number;
     inserted: number;
     skipped: number;
-    errors: string[];
+    errors?: Array<{ row: number; error: string }>;
   };
 }> {
   try {
@@ -251,6 +254,23 @@ export async function getPincodeByNumber(
     return response.data;
   } catch (error) {
     console.error("Failed to fetch pincode by number:", error);
+    throw error;
+  }
+}
+
+// Get pincode metadata for filters
+export async function getPincodeMetadata(): Promise<{
+  success: boolean;
+  message: string;
+  data: PincodeMetadata;
+}> {
+  try {
+    const response = await apiClient.get(
+      '/category/api/pincodes/get/pincode/metadata'
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch pincode metadata:", error);
     throw error;
   }
 }
