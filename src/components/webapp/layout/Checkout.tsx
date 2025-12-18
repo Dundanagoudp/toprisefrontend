@@ -801,7 +801,7 @@ export default function CheckoutPage() {
                 <div className="flex justify-between mt-6">
                   <Button
                     variant="outline"
-                    onClick={() => router.push("/shop")}
+                    onClick={() => router.push("/")}
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     ← Back to Shop
@@ -1438,7 +1438,7 @@ export default function CheckoutPage() {
                           Item Total ({cart?.items?.length ?? 0} items):
                         </span>
                         <span className="font-medium">
-                          ₹{Math.round(cart?.itemTotal || 0)}
+                          ₹{Math.round(cart?.itemTotal  || 0)-(cart?.gst_amount || 0)-(cart?.deliveryCharge || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1616,7 +1616,7 @@ export default function CheckoutPage() {
                       Item Total ({cart?.items?.length ?? 0} items):
                     </span>
                     <span className="font-medium">
-                      ₹{Math.round(cart?.itemTotal || 0)}
+                      ₹{Math.round(cart?.itemTotal || 0)-(cart?.gst_amount || 0)-(cart?.deliveryCharge || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
