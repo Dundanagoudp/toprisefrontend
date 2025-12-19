@@ -160,7 +160,7 @@ const data = {
     },
     {
       title: "SLA Violations ",
-      url: "/user/dashboard/SlaVoilations",
+      url: "/user/dashboard/slavoilation",
       icon: TicketIcon,
     },
     {
