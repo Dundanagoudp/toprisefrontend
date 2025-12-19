@@ -121,6 +121,7 @@ const getStatusBadge = (status: string) => {
 
 const getSkuStatus = (item: ProductItem): string => {
   // Packed: If picklist generated and marked as packed (admins don't need inspection)
+
   if (item.piclistGenerated && item.markAsPacked) {
     return "Packed";
   }
@@ -160,11 +161,16 @@ const ProductRow = ({
     ""
   ).toLowerCase();
   const isOrderPacked = React.useMemo(() => {
+    if (item?.markAsPacked === true) {
+      return true;
+    }
+
+    // Fall back to original logic using tracking_info.status or orderStatus
     const status = item?.tracking_info?.status || orderStatus || "";
     return status.toLocaleLowerCase() === "packed" ||
            status.toLocaleLowerCase() === "packed completed" ||
            status.toLocaleLowerCase() === "packedcompleted";
-  }, [item?.tracking_info?.status, orderStatus]);
+  }, [item?.markAsPacked, item?.tracking_info?.status, orderStatus]);
 
   // Debug once if orderStatus absent but item shows packed
   useEffect(() => {

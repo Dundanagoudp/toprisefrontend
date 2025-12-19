@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +16,8 @@ import {
   CircleX,
 } from "lucide-react";
 import { DynamicButton } from "@/components/common/button";
-import CreatePicklist from "./CreatePicklist";
 import { useToast as GlobalToast } from "@/components/ui/toast";
 import { useAppSelector } from "@/store/hooks";
-import { getDealerById } from "@/service/dealerServices";
 import {
   getAllPicklists,
   getPicklistById,
@@ -33,6 +31,8 @@ import {
   getOrderById,
 } from "@/service/order-service";
 import { getAuthToken } from "@/utils/auth";
+import MarkPackedForPicklistId from "../order-popus/MarkPackedForPicklistId";
+import ViewPicklistsModal from "../order-popus/ViewPicklistsModal";
 
 interface ProductItem {
   _id?: string;
@@ -56,6 +56,7 @@ interface ProductItem {
   piclistGenerated?: boolean;
   inspectionStarted?: boolean;
   inspectionCompleted?: boolean;
+  markAsPacked?: boolean;
 }
 
 interface StaffProductDetailsProps {
@@ -121,8 +122,12 @@ const getStatusBadge = (status: string) => {
 };
 
 const getSkuStatus = (item: ProductItem): string => {
+  // Packed Completed: All four flags must be true (most specific condition first)
+  if (item.piclistGenerated && item.markAsPacked && item.inspectionCompleted && item.inspectionStarted) {
+    return "packed";
+  }
   // Inspection Completed: Three flags must be true
-  if (item.piclistGenerated && item.inspectionStarted && item.inspectionCompleted) {
+  else if (item.piclistGenerated && item.inspectionStarted && item.inspectionCompleted) {
     return "Inspection Completed";
   }
   // Inspection In Progress: Two flags must be true
@@ -164,11 +169,17 @@ const ProductRow = ({
     ""
   ).toLowerCase();
   const isOrderPacked = React.useMemo(() => {
+    // First check if markAsPacked is explicitly set to true
+    if (item?.markAsPacked === true) {
+      return true;
+    }
+
+    // Fall back to original logic using tracking_info.status or orderStatus
     const status = item?.tracking_info?.status || orderStatus || "";
     return status.toLocaleLowerCase() === "packed" ||
            status.toLocaleLowerCase() === "packed completed" ||
            status.toLocaleLowerCase() === "packedcompleted";
-  }, [item?.tracking_info?.status, orderStatus]);
+  }, [item?.markAsPacked, item?.tracking_info?.status, orderStatus]);
 
   // Debug once if orderStatus absent but item shows packed
   useEffect(() => {
@@ -333,11 +344,7 @@ export default function StaffProductDetails({
   const isFulfillmentStaff = auth?.role === "Fulfillment-Staff";
 
   const [activeAction, setActiveAction] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ProductItem | null>(null);
-
-  const [modalsOpen, setModalsOpen] = useState({
-    createPick: false,
-  });
+  const [markPackedModalOpen, setMarkPackedModalOpen] = useState(false);
   const [picklistSkus, setPicklistSkus] = useState<Set<string>>(new Set());
   const [picklistScanStatuses, setPicklistScanStatuses] = useState<
     Map<string, string>
@@ -345,25 +352,9 @@ export default function StaffProductDetails({
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState<string>("");
-  const [dealerInfoMap, setDealerInfoMap] = useState<
-    Record<string, { trade_name: string; legal_name: string }>
-  >({});
+  const [currentPicklistId, setCurrentPicklistId] = useState<string>("");
+  const [currentDealerId, setCurrentDealerId] = useState<string>("");
 
-  // Group products by dealerId -> array of sku + quantity
-  const dealerSkuGroups: Record<
-    string,
-    Array<{ sku: string; quantity: number }>
-  > = React.useMemo(() => {
-    const map: Record<string, Array<{ sku: string; quantity: number }>> = {};
-    (products || []).forEach((p) => {
-      const dId = getResolvedDealerId(p);
-      // Only include products where picklist hasn't been generated yet
-      if (!dId || !p.sku || p.piclistGenerated === true) return;
-      if (!map[dId]) map[dId] = [];
-      map[dId].push({ sku: p.sku, quantity: p.quantity || 1 });
-    });
-    return map;
-  }, [products]);
 
   // get employee details
   const fetchEmployeeDetails = async () => {
@@ -380,6 +371,7 @@ export default function StaffProductDetails({
 
       if (empId) {
         setEmployeeId(empId);
+        console.log("Employee ID:", empId);
       }
     } catch (error) {
       console.error("Failed to fetch employee details:", error);
@@ -387,48 +379,65 @@ export default function StaffProductDetails({
   };
 
   const fetchPicklists = async () => {
-    if (!orderId) return;
+    if (!orderId || !employeeId) return;
     try {
-      const response = await getPicklistById(orderId);
-      if (response.success && response.data) {
+      // Use employee-specific picklist API
+      const response = await getPicklistByOrderId(orderId, employeeId);
+      if (response.success && response.data?.picklists) {
         const skus = new Set<string>();
         const scanStatuses = new Map<string, string>();
 
-        response.data
-          .filter((p: any) => p.linkedOrderId === orderId)
-          .forEach((picklist: any) => {
-            picklist.skuList?.forEach((skuItem: any) => {
-              if (skuItem.sku) {
-                skus.add(skuItem.sku);
-                // Store the picklist-level scanStatus for each SKU
-                scanStatuses.set(skuItem.sku, picklist.scanStatus);
-              }
-            });
+        // Get the first picklist's ID and dealerId for the modal
+        const firstPicklist = response.data.picklists[0];
+        if (firstPicklist) {
+          setCurrentPicklistId(firstPicklist.picklistId || "");
+          setCurrentDealerId(firstPicklist.dealerId || "");
+        }
+
+        response.data.picklists.forEach((picklist: any) => {
+          picklist.skuList?.forEach((skuItem: any) => {
+            if (skuItem.sku) {
+              skus.add(skuItem.sku);
+              // Store the picklist-level scanStatus for each SKU
+              scanStatuses.set(skuItem.sku, picklist.scanStatus);
+            }
           });
+        });
 
         setPicklistSkus(skus);
         setPicklistScanStatuses(scanStatuses);
+        console.log("Staff-specific SKUs loaded:", Array.from(skus));
       }
     } catch (error) {
-      console.error("Failed to fetch picklists:", error);
+      console.error("Failed to fetch employee picklists:", error);
+      // Clear the state if fetch fails
+      setPicklistSkus(new Set());
+      setPicklistScanStatuses(new Map());
+      setCurrentPicklistId("");
+      setCurrentDealerId("");
     }
   };
 
   useEffect(() => {
     fetchEmployeeDetails();
-    fetchPicklists();
     if (orderId) {
       getOrderById(orderId)
         .then((res) => {
           const status = res?.data?.[0]?.status || "";
           setOrderStatus(status);
         })
-
         .catch(() => {
           setOrderStatus("");
         });
     }
   }, [orderId]);
+
+  // Fetch picklists only after employeeId is available
+  useEffect(() => {
+    if (employeeId && orderId) {
+      fetchPicklists();
+    }
+  }, [employeeId, orderId]);
   const refreshAllData = async () => {
     await Promise.all([
       fetchEmployeeDetails(),
@@ -441,54 +450,8 @@ export default function StaffProductDetails({
     onRefresh?.();
   };
 
-  // Fetch dealer info for displaying trade_name in CreatePicklist
-  useEffect(() => {
-    const ids = Object.keys(dealerSkuGroups || {});
-    if (!ids.length) {
-      setDealerInfoMap({});
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const results = await Promise.all(
-          ids.map(async (id) => {
-            try {
-              const res = await getDealerById(id);
-              const dealer = (res as any)?.data;
-              return [
-                id,
-                {
-                  trade_name: dealer?.trade_name || "",
-                  legal_name: dealer?.legal_name || "",
-                },
-              ] as const;
-            } catch {
-              return [id, { trade_name: "", legal_name: "" }] as const;
-            }
-          })
-        );
-        if (!cancelled) {
-          const map: Record<
-            string,
-            { trade_name: string; legal_name: string }
-          > = {};
-          results.forEach(([id, info]) => {
-            map[id] = info;
-          });
-          setDealerInfoMap(map);
-        }
-      } catch {
-        if (!cancelled) setDealerInfoMap({});
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [dealerSkuGroups]);
 
   const handleAction = async (type: string, item: ProductItem) => {
-    setSelectedItem(item);
 
     if (type === "inspect") {
       try {
@@ -547,9 +510,6 @@ export default function StaffProductDetails({
       return;
     }
 
-    if (type === "createPicklist") {
-      setModalsOpen((p) => ({ ...p, createPick: true }));
-    }
   };
 
   const actionHandlers = {
@@ -558,17 +518,35 @@ export default function StaffProductDetails({
     viewDealer: onDealerEyeClick,
   };
 
+  // Filter products to only show staff-assigned items
+  const staffAssignedProducts = React.useMemo(() => {
+    // If not a fulfillment staff, show all products
+    if (!isFulfillmentStaff) return products || [];
+    
+    // If no employee ID yet or no picklist loaded, show empty
+    if (!employeeId || picklistSkus.size === 0) return [];
+    
+    // Filter products to only those in staff's picklist
+    return (products || []).filter((product) => 
+      picklistSkus.has(product.sku || "")
+    );
+  }, [products, isFulfillmentStaff, employeeId, picklistSkus]);
+
   // Determine if all product picklist scan statuses are Completed
-  const allScanCompleted = products?.length
-    ? products.every(
+  const allScanCompleted = staffAssignedProducts?.length
+    ? staffAssignedProducts.every(
         (p) => picklistScanStatuses.get(p.sku || "") === "Completed"
       )
     : false;
 
-  // Check if at least one item has piclistGenerated === false (for bulk Create Picklist)
-  const hasItemsWithoutPicklist = products?.some(
-    (item) => item.piclistGenerated === false
-  ) ?? false;
+  // Prepare items array for the MarkPackedForPicklistId modal
+  const modalItems = React.useMemo(() => {
+    return staffAssignedProducts.map(product => ({
+      sku: product.sku || "",
+      quantity: product.quantity || 1
+    })).filter(item => item.sku);
+  }, [staffAssignedProducts]);
+
 
   return (
     <>
@@ -582,7 +560,10 @@ export default function StaffProductDetails({
               </p>
             </div>
             <span className="text-sm text-gray-500">
-              {products?.length || 0} Products
+              {isFulfillmentStaff 
+                ? `${staffAssignedProducts.length} / ${products?.length || 0} Products Assigned`
+                : `${products?.length || 0} Products`
+              }
             </span>
           </div>
         </CardHeader>
@@ -600,64 +581,82 @@ export default function StaffProductDetails({
 
           {/* Product List */}
           <div className="divide-y divide-gray-100">
-            {products?.map((item: ProductItem, i: number) => (
-              <ProductRow
-                key={item._id || i}
-                item={item}
-                resolvedDealerId={getResolvedDealerId(item)}
-                actions={actionHandlers}
-                isStaff={isFulfillmentStaff}
-                hasPicklist={picklistSkus.has(item.sku || "")}
-                scanStatus={picklistScanStatuses.get(item.sku || "")}
-                orderStatus={orderStatus}
-                deliveryCharges={deliveryCharges}
-                totalProducts={products?.length || 1}
-              />
-            ))}
-            {!products?.length && (
+            {isFulfillmentStaff && !employeeId ? (
+              <div className="p-8 text-center text-gray-500">
+                <p className="font-medium">Loading employee information...</p>
+              </div>
+            ) : isFulfillmentStaff && employeeId && picklistSkus.size === 0 && products && products.length > 0 ? (
+              <div className="p-8 text-center">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 inline-block">
+                  <p className="text-yellow-800 font-medium mb-2">
+                    No Products Assigned
+                  </p>
+                  <p className="text-sm text-yellow-700">
+                    You don't have any products assigned from this order.
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-2">
+                    Total products in order: {products?.length || 0}
+                  </p>
+                </div>
+              </div>
+            ) : staffAssignedProducts.length > 0 ? (
+              staffAssignedProducts.map((item: ProductItem, i: number) => (
+                <ProductRow
+                  key={item._id || i}
+                  item={item}
+                  resolvedDealerId={getResolvedDealerId(item)}
+                  actions={actionHandlers}
+                  isStaff={isFulfillmentStaff}
+                  hasPicklist={picklistSkus.has(item.sku || "")}
+                  scanStatus={picklistScanStatuses.get(item.sku || "")}
+                  orderStatus={orderStatus}
+                  deliveryCharges={deliveryCharges}
+                  totalProducts={staffAssignedProducts.length}
+                />
+              ))
+            ) : (
               <div className="p-8 text-center text-gray-500">
                 No products found.
               </div>
             )}
           </div>
 
-          {/* Staff button - only visible when scans aren't completed and at least one item needs picklist */}
-          {isFulfillmentStaff && products && products.length > 0 && !allScanCompleted && hasItemsWithoutPicklist && (
-            <div className="p-4 bg-gray-50 border-t flex justify-end gap-1.5">
-              <DynamicButton
-                text="Create Picklist"
-                onClick={() => {
-                  setSelectedItem(null);
-                  setModalsOpen((p) => ({ ...p, createPick: true }));
-                }}
-              />
-            </div>
-          )}
         </CardContent>
+
+        {/* Footer with Mark as Packed button for fulfillment staff */}
+        {isFulfillmentStaff && staffAssignedProducts.length > 0 && (
+          <CardFooter className="border-t bg-gray-50">
+          
+           <div className="flex justify-end w-full">
+              <DynamicButton
+                onClick={() => setMarkPackedModalOpen(true)}
+                className="px-6 py-2"
+                disabled={!currentPicklistId}
+              >
+                Mark as Packed
+              </DynamicButton>
+            </div>
+          </CardFooter>
+        )}
       </Card>
 
-      <CreatePicklist
-        open={modalsOpen.createPick}
-        onClose={async () => {
-          setModalsOpen((p) => ({ ...p, createPick: false }));
-          fetchPicklists();
-          await refreshAllData();
-        }}
+      {/* Mark as Packed Modal */}
+      <MarkPackedForPicklistId
+        open={markPackedModalOpen}
+        onOpenChange={setMarkPackedModalOpen}
         orderId={orderId}
-        defaultDealerId={safeDealerId(selectedItem?.dealerId)}
-        defaultSkuList={
-          selectedItem
-            ? [
-                {
-                  sku: selectedItem.sku || "",
-                  quantity: selectedItem.quantity || 1,
-                },
-              ]
-            : []
-        }
-        groupedDealerSkus={dealerSkuGroups}
-        dealerInfoMap={dealerInfoMap}
+        dealerId={currentDealerId}
+        picklistId={currentPicklistId}
+        productName={`${staffAssignedProducts.length} Product${staffAssignedProducts.length > 1 ? 's' : ''}`}
+        items={modalItems}
+        onSuccess={() => {
+          refreshAllData();
+          setMarkPackedModalOpen(false);
+        }}
       />
+
+
+
     </>
   );
 }

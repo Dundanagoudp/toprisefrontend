@@ -188,6 +188,23 @@ export async function editUserAddress(userId: string, addressData: EditAddressRe
     throw error;
   }
 }
+export async function deleteUserAddress(
+  userId: string,
+  index: number
+): Promise<any> {
+  try {
+    const response = await apiClient.delete(
+      `/users/api/users/address/${userId}`,
+      {
+        data: { index },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete user address:", error);
+    throw error;
+  }
+}
 
 export interface BankDetailsResponse {
   success: boolean;
