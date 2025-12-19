@@ -177,7 +177,8 @@ export default function PaymentStatsCards({ className = "" }: PaymentStatsCardsP
   // Find paid status count
   const paidStatus = statusBreakdown.find(status => status.status === "paid");
   const createdStatus = statusBreakdown.find(status => status.status === "created" || status.status === "Created");
-  
+  //log the paid and created status
+
   const statsCards = [
     {
       title: "Total Payments",
@@ -197,15 +198,15 @@ export default function PaymentStatsCards({ className = "" }: PaymentStatsCardsP
       bgColor: "bg-green-50",
       borderColor: "border-green-200"
     },
-    {
-      title: "Successful",
-      value: paidStatus ? paidStatus.count.toLocaleString() : "0",
-      icon: CheckCircle,
-      description: paidStatus ? `₹${paidStatus.totalAmount.toLocaleString()}` : "No successful payments",
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200"
-    },
+    // {
+    //   title: "Successful",
+    //   value: paidStatus ? paidStatus.count.toLocaleString() : "0",
+    //   icon: CheckCircle,
+    //   description: paidStatus ? `₹${paidStatus.totalAmount.toLocaleString()}` : "No successful payments",
+    //   color: "text-green-600",
+    //   bgColor: "bg-green-50",
+    //   borderColor: "border-green-200"
+    // },
     {
       title: "Created",
       value: createdStatus ? createdStatus.count.toLocaleString() : "0",
@@ -224,22 +225,24 @@ export default function PaymentStatsCards({ className = "" }: PaymentStatsCardsP
       bgColor: "bg-purple-50",
       borderColor: "border-purple-200"
     },
-    {
-      title: "Refunds",
-      value: refunds.totalRefunds.toLocaleString(),
-      icon: RotateCcw,
-      description: `₹${refunds.totalRefundAmount.toLocaleString()}`,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      borderColor: "border-orange-200"
-    }
+    // {
+    //   title: "Refunds",
+    //   value: refunds.totalRefunds.toLocaleString(),
+    //   icon: RotateCcw,
+    //   description: `₹${refunds.totalRefundAmount.toLocaleString()}`,
+    //   color: "text-orange-600",
+    //   bgColor: "bg-orange-50",
+    //   borderColor: "border-orange-200"
+    // }
   ];
 
   return (
     <div className={`space-y-4 ${className}`}>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* make it resposnive  card*/}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
         {statsCards.map((stat, index) => {
           const IconComponent = stat.icon;
           return (

@@ -114,7 +114,7 @@ export default function PaymentDetailedStats({ className = "" }: PaymentDetailed
     if (!paymentStats) return;
     
     const { overview, statusBreakdown, methodBreakdown, dailyTrends, monthlyTrends, topDealers, recentPayments, refunds } = paymentStats;
-    
+    // log the overview data
     // Create comprehensive CSV content
     const csvData = [
       ["Payment Statistics Report", ""],
@@ -273,7 +273,7 @@ export default function PaymentDetailedStats({ className = "" }: PaymentDetailed
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-blue-600 mb-1">
                     {overview.totalPayments.toLocaleString()}
@@ -292,12 +292,12 @@ export default function PaymentDetailedStats({ className = "" }: PaymentDetailed
                   </div>
                   <div className="text-sm text-gray-600">Average Amount</div>
                 </div>
-                <div className="text-center">
+                {/* <div className="text-center">
                   <div className="text-3xl font-bold text-orange-600 mb-1">
                     {overview.successRate.toFixed(1)}%
                   </div>
                   <div className="text-sm text-gray-600">Success Rate</div>
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>

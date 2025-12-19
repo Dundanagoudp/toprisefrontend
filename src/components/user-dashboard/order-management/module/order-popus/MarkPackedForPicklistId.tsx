@@ -115,13 +115,14 @@ export default function MarkPackedForPicklistId({
     try {
       setLoading(true)
       const isSuperAdmin = auth?.role === "Super-admin"
+      const forcePacking = isSuperAdmin || auth?.role === "Fulfillment-Admin"
      const response = await markOrderAsPacked({
         orderId,
         dealerId,
         securePackageAmount: Number(securePackageAmount) || 0,
         picklistId,
         weight_object: weightObject,
-        forcePacking: isSuperAdmin
+        forcePacking: forcePacking
       })
       console.log("response", response)
       showToast("Order marked as packed", "success")
