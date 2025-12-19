@@ -1243,14 +1243,12 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium">
                       ₹
-                      {(order.total_amount || 0) -
-                        (order.GST || 0) -
-                        (order.deliveryCharges || 0).toLocaleString() || "0"}
+                      {(order.order_Amount || 0).toLocaleString() || "0"}
                     </span>
                   </div>
 
                   <div className="flex justify-between max-sm:text-sm">
-                    <span className="text-gray-600">GST</span>
+                    <span className="text-gray-600">GST (included)</span>
                     <span className="font-medium">
                       ₹{order.GST?.toLocaleString() || "0"}
                     </span>
@@ -1259,14 +1257,19 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   <div className="flex justify-between max-sm:text-sm">
                     <span className="text-gray-600">Delivery Charges</span>
                     <span className="font-medium">
-                      ₹{order.deliveryCharges?.toLocaleString() || "0"}
+                     
+                      {order.deliveryCharges > 0 ? (
+                        <span className="text-black-500">₹{order.deliveryCharges?.toLocaleString() || "0"}</span>
+                      ) : (
+                        <span className="text-black-500">Free Delivery</span>
+                      )}
                     </span>
                   </div>
 
                   <Separator />
 
                   <div className="flex justify-between text-lg font-semibold max-sm:text-base">
-                    <span>Total</span>
+                    <span>Total (Inclusive of GST)</span>
                     <span>₹{order.order_Amount?.toLocaleString() || "0"}</span>
                   </div>
                 </CardContent>

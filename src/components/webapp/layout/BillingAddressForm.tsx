@@ -1,33 +1,36 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { useAppSelector } from "@/store/hooks";
-import { getUserById } from "@/service/user/userService";
+import { getUserById, UpdateAddressRequest } from "@/service/user/userService";
 import { useState, useEffect } from "react";
 
 // Define the schema for the address form
 const addressSchema = z.object({
-  firstName: z.string().min(1, "First Name is required"),
-  lastName: z.string().min(1, "Last Name is required"),
-  addressLine1: z.string().min(1, "Address Line 1 is required"),
-  addressLine2: z.string().optional(),
+  nick_name: z.string().min(1, "Nick Name is required"),
+  building_no: z.string().min(1, "Building Number is required"),
+  street: z.string().min(1, "Street is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
-  pinCode: z.string()
+  pincode: z.string()
     .min(1, "Pin Code is required")
     .regex(/^\d{6}$/, "Pin Code must be exactly 6 digits"),
-  country: z.string().min(1, "Country is required"),
-  notes: z.string().optional(),
 });
 
 export type AddressFormValues = z.infer<typeof addressSchema>;
 
 interface BillingAddressFormProps {
-  onSubmit: (data: AddressFormValues) => Promise<void>;
+  onSubmit: (data: UpdateAddressRequest) => Promise<void>;
   onAddressSelect?: (address: any) => void;
   selectedAddressId?: string;
   isLoading?: boolean;
@@ -52,19 +55,17 @@ export default function BillingAddressForm({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      addressLine1: "",
-      addressLine2: "",
+      nick_name: "",
+      building_no: "",
+      street: "",
       city: "",
       state: "",
-      pinCode: "",
-      country: "India",
-      notes: "",
+      pincode: "",
     },
   });
   const userId = useAppSelector((state)=> state.auth.user?._id)
@@ -72,7 +73,20 @@ export default function BillingAddressForm({
   const handleFormSubmit = async (data: AddressFormValues) => {
     try {
       console.log("Form submitted with data:", data);
-      await onSubmit(data);
+      // Transform form data to API format (array of addresses)
+      const addressData: UpdateAddressRequest = {
+        address: [
+          {
+            nick_name: data.nick_name,
+            building_no: data.building_no,
+            street: data.street,
+            city: data.city,
+            state: data.state,
+            pincode: data.pincode,
+          },
+        ],
+      };
+      await onSubmit(addressData);
       reset();
       setShowForm(false); // Hide form after successful submission
       setShowAllAddresses(false); // Reset to show only first 3 addresses
@@ -246,81 +260,75 @@ export default function BillingAddressForm({
           </div>
 
           <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  First Name
-                </label>
-                <Input
-                  id="firstName"
-                  {...register("firstName")}
-                  placeholder="First Name"
-                  className="mt-1"
-                />
-                {errors.firstName && (
-                  <p className="text-red-600 text-sm">
-                    {errors.firstName.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Last Name
-                </label>
-                <Input
-                  id="lastName"
-                  {...register("lastName")}
-                  placeholder="Last Name"
-                  className="mt-1"
-                />
-                {errors.lastName && (
-                  <p className="text-red-600 text-sm">
-                    {errors.lastName.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
             <div>
               <label
-                htmlFor="addressLine1"
+                htmlFor="nick_name"
                 className="block text-sm font-medium text-gray-700"
               >
-                Address Line 1
+                Nick Name
               </label>
-              <Input
-                id="addressLine1"
-                {...register("addressLine1")}
-                placeholder="Address Line 1"
-                className="mt-1"
+              <Controller
+                name="nick_name"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger className="mt-1 w-full">
+                      <SelectValue placeholder="Select a nick name" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Home">Home</SelectItem>
+                      <SelectItem value="Office">shop</SelectItem>
+                      <SelectItem value="Work">Work</SelectItem>
+                      
+                    </SelectContent>
+                  </Select>
+                )}
               />
-              {errors.addressLine1 && (
+              {errors.nick_name && (
                 <p className="text-red-600 text-sm">
-                  {errors.addressLine1.message}
+                  {errors.nick_name.message}
                 </p>
               )}
             </div>
 
             <div>
               <label
-                htmlFor="addressLine2"
+                htmlFor="building_no"
                 className="block text-sm font-medium text-gray-700"
               >
-                Address Line 2 (Optional)
+                Building Number
               </label>
               <Input
-                id="addressLine2"
-                {...register("addressLine2")}
-                placeholder="Address Line 2"
+                id="building_no"
+                {...register("building_no")}
+                placeholder="Building Number"
                 className="mt-1"
               />
+              {errors.building_no && (
+                <p className="text-red-600 text-sm">
+                  {errors.building_no.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="street"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Street
+              </label>
+              <Input
+                id="street"
+                {...register("street")}
+                placeholder="Street Address"
+                className="mt-1"
+              />
+              {errors.street && (
+                <p className="text-red-600 text-sm">
+                  {errors.street.message}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -364,59 +372,24 @@ export default function BillingAddressForm({
               </div>
               <div>
                 <label
-                  htmlFor="pinCode"
+                  htmlFor="pincode"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Pin Code
                 </label>
                 <Input
-                  id="pinCode"
-                  {...register("pinCode")}
+                  id="pincode"
+                  {...register("pincode")}
                   placeholder="Pin Code"
                   className="mt-1"
                   maxLength={6}
                 />
-                {errors.pinCode && (
+                {errors.pincode && (
                   <p className="text-red-600 text-sm">
-                    {errors.pinCode.message}
+                    {errors.pincode.message}
                   </p>
                 )}
               </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="country"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Country
-              </label>
-              <Input
-                id="country"
-                {...register("country")}
-                placeholder="Country"
-                className="mt-1"
-              />
-              {errors.country && (
-                <p className="text-red-600 text-sm">
-                  {errors.country.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="notes"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Notes (Optional)
-              </label>
-              <Textarea
-                id="notes"
-                {...register("notes")}
-                placeholder="Additional notes"
-                className="mt-1"
-              />
             </div>
 
             <div className="flex gap-3">

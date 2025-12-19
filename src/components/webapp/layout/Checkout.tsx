@@ -40,12 +40,12 @@ import {
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { clearCart } from "@/store/slice/cart/cartSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
-import { getUserById } from "@/service/user/userService";
+import { getUserById, UpdateAddressRequest } from "@/service/user/userService";
 import { Cart, CartItem, CartResponse } from "@/types/User/cart-Types";
 import { ApiListResponse, AppUser } from "@/types/user-types";
 import OrderConfirmationDialog from "@/service/user/PopUps/OrderPlaced";
 import { useCart } from "@/hooks/use-cart";
-import BillingAddressForm, { AddressFormValues } from "./BillingAddressForm";
+import BillingAddressForm from "./BillingAddressForm";
 import { StepProgressBar } from "@/components/common/StepProgressBar";
 import type { Step } from "@/components/common/StepProgressBar";
 import {
@@ -721,23 +721,9 @@ export default function CheckoutPage() {
 
   //   quantityUpdateTimeouts.current.set(productId, timeout);
   // };
-  const onSubmit = async (data: AddressFormValues) => {
+  const onSubmit = async (data: UpdateAddressRequest) => {
     try {
-      const addressData = {
-        address: [
-          {
-            nick_name: "Home",
-            street:
-              data.addressLine1 +
-              (data.addressLine2 ? `, ${data.addressLine2}` : ""),
-            city: data.city,
-            pincode: data.pinCode,
-            state: data.state,
-          },
-        ],
-      };
-
-      const response = await addAddress(userId, addressData);
+      const response = await addAddress(userId, data);
 
       showToast("Address added successfully", "success");
 
