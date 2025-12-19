@@ -73,7 +73,7 @@ export default function OnlineRefundDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+           
             Initiate Online Refund
           </DialogTitle>
           <DialogDescription>
