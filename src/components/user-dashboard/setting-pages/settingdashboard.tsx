@@ -5,6 +5,7 @@ import { DeliveryChargeSettings } from "./modules/delivery-charge-settings"
 import PermissionAccess from "./modules/permission-access"
 import DealerPermissions from "./modules/dealer-permissions"
 import { PincodeManagement } from "./modules/pincode-management"
+import { SlaTypesTab } from "./modules/sla-violationstab"
 
 export default function SettingPage() {
   const [activeSetting, setActiveSetting] = useState("Dealer Permissions")
@@ -14,6 +15,7 @@ export default function SettingPage() {
     { name: "Dealer Permissions", id: "Dealer Permissions" },
     { name: "Other Settings", id: "Other Settings" },
     { name: "Pincodes", id: "Pincodes" },
+    { name: "SLA Types", id: "SLA Types" },
   ]
 
   return (
@@ -44,6 +46,7 @@ export default function SettingPage() {
           {activeSetting === "Dealer Permissions" && <DealerPermissions />}
           {activeSetting === "Other Settings" && <DeliveryChargeSettings />}
           {activeSetting === "Pincodes" && <PincodeManagement />}
+          {activeSetting === "SLA Types" && <SlaTypesTab />}
         </div>
       </div>
     </div>
