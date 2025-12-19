@@ -565,7 +565,7 @@ export default function AdminProductDetails({
                 }}
               />
               {/* Bulk Create Picklist - only show if at least one item has piclistGenerated === false */}
-              {hasItemsWithoutPicklist && (
+              {hasItemsWithoutPicklist || orderStatus === "Cancelled" || orderStatus === "Canceled" && (
                 <DynamicButton
                   text="Create Picklist"
                   onClick={() => {

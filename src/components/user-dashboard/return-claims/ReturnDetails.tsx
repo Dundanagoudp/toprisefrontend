@@ -49,6 +49,8 @@ import {
   X,
   AlertCircle,
   Info,
+  XCircle,
+  ExternalLink,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -74,6 +76,7 @@ import CODRefundDialog from "./modules/modalpopus/CODRefundDialog";
 import RejectReturnDialog from "./modules/modalpopus/RejectReturnDialog";
 import { useAppSelector } from "@/store/hooks";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
+import { useSelector } from "react-redux";
 
 interface ReturnDetailsProps {
   returnId: string;
@@ -135,15 +138,13 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
+        console.log("User ID:", userId);
         if (userId) {
           const response = await fetchEmployeeByUserId(userId);
-          console.log("Employee API response:", response.data);
 
-          if (response.success) {
-            console.log(
-              "Employee ID fetched successfully:",
-              response.employee._id
-            );
+
+          if (response) {
+     
             setEmployeeId(response.employee._id);
           } else {
             console.error("Failed to get employee ID from response:", response);
@@ -460,6 +461,8 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
     return actions;
   };
 
+  const isFullfillmentStaff = useSelector((state: any) => state.auth.user?.role === "Fulfillment-Staff");
+
   if (loading) {
     return (
       <div className="space-y-6 p-6">
@@ -546,7 +549,8 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
               {inspectionLoading ? "Processing..." : "Complete Inspection"}
             </Button>
           )}
-          {returnRequest.returnStatus === "Inspection_Completed" && (
+          
+          {returnRequest.returnStatus === "Inspection_Completed" && !isFullfillmentStaff && (
             <Button
               variant="default"
               size="sm"
@@ -680,7 +684,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+                  
                     Order Information
                   </CardTitle>
                 </CardHeader>
@@ -712,7 +716,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
+                    
                     Refund Information
                   </CardTitle>
                 </CardHeader>
@@ -755,7 +759,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Eye className="h-5 w-5" />
+                    
                       Inspection Information
                     </CardTitle>
                   </CardHeader>
@@ -843,261 +847,203 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
-                    {/* Return Requested */}
-                    <div className="flex items-start gap-4">
-                      <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">Return Requested</p>
-                          <Badge variant="outline" className="text-xs">
-                            Initiated
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {returnRequest.timestamps?.requestedAt
-                            ? formatDate(returnRequest.timestamps.requestedAt, {
-                                includeTime: true,
-                              })
-                            : formatDate(returnRequest.createdAt, {
-                                includeTime: true,
-                              })}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Customer submitted return request
-                        </p>
-                      </div>
-                    </div>
+                  {(() => {
+                    // Build timeline steps for the return process
+                    const allTimelineSteps = [
+                      {
+                        label: "Return Requested",
+                        timestamp: returnRequest.timestamps?.requestedAt || returnRequest.createdAt,
+                        icon: <FileText className="h-4 w-4" />,
+                      },
+                      {
+                        label: "Return Validated",
+                        timestamp: returnRequest.timestamps?.validatedAt,
+                        icon: <CheckCircle className="h-4 w-4" />,
+                      },
+                      {
+                        label: "Pickup Initiated",
+                        timestamp: returnRequest.timestamps?.borzoShipmentInitiatedAt,
+                        icon: <Truck className="h-4 w-4" />,
+                      },
+                      {
+                        label: "Pickup Completed",
+                        timestamp: returnRequest.timestamps?.borzoShipmentCompletedAt,
+                        icon: <Package className="h-4 w-4" />,
+                      },
+                      {
+                        label: "Inspection Started",
+                        timestamp: returnRequest.timestamps?.inspectionStartedAt,
+                        icon: <Eye className="h-4 w-4" />,
+                      },
+                      {
+                        label: "Inspection Completed",
+                        timestamp: returnRequest.timestamps?.inspectionCompletedAt,
+                        icon: returnRequest.inspection?.isApproved ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : (
+                          <XCircle className="h-4 w-4" />
+                        ),
+                        isCancelled: returnRequest.inspection?.isApproved === false,
+                      },
+                      {
+                        label: "Refund Initiated",
+                        timestamp: returnRequest.timestamps?.refundInitiatedAt,
+                        icon: <DollarSign className="h-4 w-4" />,
+                      },
+                    ];
 
-                    {/* Return Validated */}
-                    {returnRequest.timestamps?.validatedAt && (
-                      <div className="flex items-start gap-4">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">Return Validated</p>
-                            <Badge variant="outline" className="text-xs">
-                              Approved
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(returnRequest.timestamps.validatedAt, {
-                              includeTime: true,
-                            })}
-                          </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Return request was validated by admin
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                    // Filter to only show steps that have timestamps and sort by timestamp
+                    const timelineSteps = allTimelineSteps
+                      .filter((step) => step.timestamp)
+                      .sort(
+                        (a, b) =>
+                          new Date(a.timestamp).getTime() -
+                          new Date(b.timestamp).getTime()
+                      );
 
-                    {/* Shipment Initiated */}
-                    {returnRequest.timestamps?.shipmentInitiatedAt && (
-                      <div className="flex items-start gap-4">
-                        <div className="w-3 h-3 bg-indigo-500 rounded-full mt-2"></div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">Pickup Initiated</p>
-                            <Badge variant="outline" className="text-xs">
-                              In Progress
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(
-                              returnRequest.timestamps.borzoShipmentInitiatedAt,
-                              { includeTime: true }
-                            )}
-                          </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Return pickup was scheduled
-                          </p>
+                    return (
+                      <div className="space-y-6">
+                        {timelineSteps.length > 0 ? (
+                          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <div className="relative py-2">
+                              {timelineSteps.map((step, stepIndex) => (
+                                <div
+                                  key={stepIndex}
+                                  className="relative flex gap-4 pb-8 last:pb-0"
+                                >
+                                  {/* Timeline line */}
+                                  {stepIndex !== timelineSteps.length - 1 && (
+                                    <div
+                                      className={`absolute left-[15px] top-[32px] h-full w-[2px] ${
+                                        step.isCancelled
+                                          ? "bg-red-500"
+                                          : "bg-green-500"
+                                      }`}
+                                    />
+                                  )}
 
-                          {returnRequest.tracking_info?.borzo_tracking_url && (
-                            <div className="mt-2">
-                              <a
-                                href={
-                                  returnRequest.tracking_info.borzo_tracking_url
-                                }
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                              >
-                                Track Return Shipment
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
+                                  {/* Icon */}
+                                  <div
+                                    className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${
+                                      step.isCancelled
+                                        ? "border-red-500 bg-red-500"
+                                        : "border-green-500 bg-green-500"
+                                    } text-white`}
+                                  >
+                                    {step.icon}
+                                  </div>
+
+                                  {/* Content */}
+                                  <div className="flex-1 pt-0.5">
+                                    <h4
+                                      className={`text-sm font-medium mb-1 ${
+                                        step.isCancelled
+                                          ? "text-red-700"
+                                          : "text-green-700"
+                                      }`}
+                                    >
+                                      {step.label}
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      {new Date(step.timestamp).toLocaleString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </p>
+
+                                    {/* Additional content for specific steps */}
+                                    {step.label === "Pickup Initiated" && returnRequest.tracking_info?.borzo_tracking_url && (
+                                      <div className="mt-2">
+                                        <a
+                                          href={returnRequest.tracking_info.borzo_tracking_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                        >
+                                          Track Return Shipment
+                                          <ExternalLink className="h-3 w-3" />
+                                        </a>
+                                      </div>
+                                    )}
+
+                                    {step.label === "Pickup Completed" && returnRequest.tracking_info?.borzo_order_id && (
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Tracking ID: {returnRequest.tracking_info.borzo_order_id}
+                                      </p>
+                                    )}
+
+                                    {step.label === "Inspection Completed" && returnRequest.inspection?.conditionNotes && (
+                                      <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                                        <p className="font-medium text-gray-700">Notes:</p>
+                                        <p className="text-gray-600">{returnRequest.inspection.conditionNotes}</p>
+                                      </div>
+                                    )}
+
+                                    {step.label === "Refund Initiated" && (
+                                      <>
+                                        {returnRequest.refund?.refundAmount && (
+                                          <p className="text-sm text-gray-600 mt-1">
+                                            Refund Amount: ₹{returnRequest.refund.refundAmount}
+                                          </p>
+                                        )}
+                                        {returnRequest.refund?.expectedDate && (
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            Expected by {new Date(returnRequest.refund.expectedDate).toLocaleDateString("en-US", {
+                                              year: "numeric",
+                                              month: "long",
+                                              day: "numeric",
+                                            })}
+                                          </p>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Shipment Completed */}
-                    {returnRequest.timestamps?.borzoShipmentCompletedAt && (
-                      <div className="flex items-start gap-4">
-                        <div className="w-3 h-3 bg-purple-500 rounded-full mt-2"></div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">Pickup Completed</p>
-                            <Badge variant="outline" className="text-xs">
-                              Collected
-                            </Badge>
                           </div>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(
-                              returnRequest.timestamps.borzoShipmentCompletedAt,
-                              { includeTime: true }
-                            )}
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No timeline information available
                           </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Item was successfully picked up
-                          </p>
-                          {returnRequest.tracking_info?.borzo_order_id && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Tracking ID:{" "}
-                              {returnRequest.tracking_info.borzo_order_id}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Inspection Started */}
-                    {returnRequest.timestamps?.inspectionStartedAt && (
-                      <div className="flex items-start gap-4">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full mt-2"></div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">Inspection Started</p>
-                            <Badge variant="outline" className="text-xs">
-                              Reviewed
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(
-                              returnRequest.timestamps.inspectionStartedAt,
-                              { includeTime: true }
-                            )}
-                          </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Item inspection began
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Inspection Completed */}
-                    {returnRequest.timestamps?.inspectionCompletedAt && (
-                      <div className="flex items-start gap-4">
-                        <div className="w-3 h-3 bg-pink-500 rounded-full mt-2"></div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">Inspection Completed</p>
-                            <Badge
-                              variant={
-                                returnRequest.inspection?.isApproved
-                                  ? "default"
-                                  : "destructive"
-                              }
-                              className="text-xs"
-                            >
-                              {returnRequest.inspection?.isApproved
-                                ? "Approved"
-                                : "Rejected"}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(
-                              returnRequest.timestamps.inspectionCompletedAt,
-                              { includeTime: true }
-                            )}
-                          </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Item inspection completed -{" "}
-                            {returnRequest.inspection?.isApproved
-                              ? "Approved for refund"
-                              : "Rejected"}
-                          </p>
-                          {returnRequest.inspection?.notes && (
-                            <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                              <p className="font-medium text-gray-700">
-                                Notes:
-                              </p>
-                              <p className="text-gray-600">
-                                {returnRequest.inspection.notes}
-                              </p>
+                        )}
+                        {/* Current Status */}
+                        {returnRequest.tracking_info?.status && (
+                          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">
+                                  Current Status
+                                </p>
+                                <p className="text-lg font-semibold">
+                                  {returnRequest.tracking_info.status}
+                                </p>
+                              </div>
+                              {returnRequest.tracking_info?.borzo_last_updated && (
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-500">
+                                    Last Updated
+                                  </p>
+                                  <p className="text-sm">
+                                    {new Date(returnRequest.tracking_info.borzo_last_updated!).toLocaleString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </p>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Refund Initiated */}
-                    {returnRequest.timestamps?.refundInitiatedAt && (
-                      <div className="flex items-start gap-4">
-                        <div className="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">Refund Initiated</p>
-                            <Badge variant="outline" className="text-xs">
-                              Processing
-                            </Badge>
                           </div>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(
-                              returnRequest.timestamps.refundInitiatedAt,
-                              { includeTime: true }
-                            )}
-                          </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Refund has been initiated to your original payment
-                            method
-                          </p>
-                          {returnRequest.refund?.amount && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              Refund Amount: ₹{returnRequest.refund.amount}
-                            </p>
-                          )}
-                          {returnRequest.refund?.expectedDate && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Expected by{" "}
-                              {formatDate(returnRequest.refund.expectedDate)}
-                            </p>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    )}
-
-                    {/* Current Status */}
-                    {returnRequest.tracking_info?.status && (
-                      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-700">
-                              Current Status
-                            </p>
-                            <p className="text-lg font-semibold">
-                              {returnRequest.tracking_info.status}
-                            </p>
-                          </div>
-                          {returnRequest.tracking_info?.borzo_last_updated && (
-                            <div className="text-right">
-                              <p className="text-xs text-gray-500">
-                                Last Updated
-                              </p>
-                              <p className="text-sm">
-                                {formatDate(
-                                  returnRequest.tracking_info
-                                    .borzo_last_updated,
-                                  { includeTime: true }
-                                )}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>

@@ -1,6 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,11 +129,20 @@ const getStatusBadge = (status: string) => {
 
 const getSkuStatus = (item: ProductItem): string => {
   // Packed Completed: All four flags must be true (most specific condition first)
-  if (item.piclistGenerated && item.markAsPacked && item.inspectionCompleted && item.inspectionStarted) {
+  if (
+    item.piclistGenerated &&
+    item.markAsPacked &&
+    item.inspectionCompleted &&
+    item.inspectionStarted
+  ) {
     return "packed";
   }
   // Inspection Completed: Three flags must be true
-  else if (item.piclistGenerated && item.inspectionStarted && item.inspectionCompleted) {
+  else if (
+    item.piclistGenerated &&
+    item.inspectionStarted &&
+    item.inspectionCompleted
+  ) {
     return "Inspection Completed";
   }
   // Inspection In Progress: Two flags must be true
@@ -159,8 +174,13 @@ const ProductRow = ({
   const [expanded, setExpanded] = useState(false);
 
   // Step 1: Isolate conditional logic into clear boolean constants
-  const showInspect = isStaff && item.piclistGenerated && !item.inspectionStarted && !item.inspectionCompleted;
-  const showStopInspect = isStaff && item.inspectionStarted && !item.inspectionCompleted;
+  const showInspect =
+    isStaff &&
+    item.piclistGenerated &&
+    !item.inspectionStarted &&
+    !item.inspectionCompleted;
+  const showStopInspect =
+    isStaff && item.inspectionStarted && !item.inspectionCompleted;
 
   // Prefer item-level tracking status; fallback to overall orderStatus
   const packedSource = (
@@ -176,9 +196,11 @@ const ProductRow = ({
 
     // Fall back to original logic using tracking_info.status or orderStatus
     const status = item?.tracking_info?.status || orderStatus || "";
-    return status.toLocaleLowerCase() === "packed" ||
-           status.toLocaleLowerCase() === "packed completed" ||
-           status.toLocaleLowerCase() === "packedcompleted";
+    return (
+      status.toLocaleLowerCase() === "packed" ||
+      status.toLocaleLowerCase() === "packed completed" ||
+      status.toLocaleLowerCase() === "packedcompleted"
+    );
   }, [item?.markAsPacked, item?.tracking_info?.status, orderStatus]);
 
   // Debug once if orderStatus absent but item shows packed
@@ -291,7 +313,7 @@ const ProductRow = ({
       {/* Actions */}
       <div className="lg:col-span-2 flex justify-end">
         {isOrderPacked ? (
-            <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">
+          <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">
             Packed Completed
           </Badge>
         ) : (
@@ -354,7 +376,6 @@ export default function StaffProductDetails({
   const [orderStatus, setOrderStatus] = useState<string>("");
   const [currentPicklistId, setCurrentPicklistId] = useState<string>("");
   const [currentDealerId, setCurrentDealerId] = useState<string>("");
-
 
   // get employee details
   const fetchEmployeeDetails = async () => {
@@ -422,8 +443,8 @@ export default function StaffProductDetails({
     fetchEmployeeDetails();
     if (orderId) {
       getOrderById(orderId)
-        .then((res) => {
-          const status = res?.data?.[0]?.status || "";
+        .then((res: any) => {
+          const status = res?.data?.status || "";
           setOrderStatus(status);
         })
         .catch(() => {
@@ -442,17 +463,17 @@ export default function StaffProductDetails({
     await Promise.all([
       fetchEmployeeDetails(),
       fetchPicklists(),
-      orderId ? getOrderById(orderId).then((res) => {
-        const status = res?.data?.[0]?.status || "";
-        setOrderStatus(status);
-      }) : Promise.resolve()
+      orderId
+        ? getOrderById(orderId).then((res: any) => {
+            const status = res?.data?.status || "";
+            setOrderStatus(status);
+          })
+        : Promise.resolve(),
     ]);
     onRefresh?.();
   };
 
-
   const handleAction = async (type: string, item: ProductItem) => {
-
     if (type === "inspect") {
       try {
         if (!employeeId) {
@@ -509,7 +530,6 @@ export default function StaffProductDetails({
       }
       return;
     }
-
   };
 
   const actionHandlers = {
@@ -522,12 +542,12 @@ export default function StaffProductDetails({
   const staffAssignedProducts = React.useMemo(() => {
     // If not a fulfillment staff, show all products
     if (!isFulfillmentStaff) return products || [];
-    
+
     // If no employee ID yet or no picklist loaded, show empty
     if (!employeeId || picklistSkus.size === 0) return [];
-    
+
     // Filter products to only those in staff's picklist
-    return (products || []).filter((product) => 
+    return (products || []).filter((product) =>
       picklistSkus.has(product.sku || "")
     );
   }, [products, isFulfillmentStaff, employeeId, picklistSkus]);
@@ -541,12 +561,13 @@ export default function StaffProductDetails({
 
   // Prepare items array for the MarkPackedForPicklistId modal
   const modalItems = React.useMemo(() => {
-    return staffAssignedProducts.map(product => ({
-      sku: product.sku || "",
-      quantity: product.quantity || 1
-    })).filter(item => item.sku);
+    return staffAssignedProducts
+      .map((product) => ({
+        sku: product.sku || "",
+        quantity: product.quantity || 1,
+      }))
+      .filter((item) => item.sku);
   }, [staffAssignedProducts]);
-
 
   return (
     <>
@@ -560,10 +581,11 @@ export default function StaffProductDetails({
               </p>
             </div>
             <span className="text-sm text-gray-500">
-              {isFulfillmentStaff 
-                ? `${staffAssignedProducts.length} / ${products?.length || 0} Products Assigned`
-                : `${products?.length || 0} Products`
-              }
+              {isFulfillmentStaff
+                ? `${staffAssignedProducts.length} / ${
+                    products?.length || 0
+                  } Products Assigned`
+                : `${products?.length || 0} Products`}
             </span>
           </div>
         </CardHeader>
@@ -585,7 +607,11 @@ export default function StaffProductDetails({
               <div className="p-8 text-center text-gray-500">
                 <p className="font-medium">Loading employee information...</p>
               </div>
-            ) : isFulfillmentStaff && employeeId && picklistSkus.size === 0 && products && products.length > 0 ? (
+            ) : isFulfillmentStaff &&
+              employeeId &&
+              picklistSkus.size === 0 &&
+              products &&
+              products.length > 0 ? (
               <div className="p-8 text-center">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 inline-block">
                   <p className="text-yellow-800 font-medium mb-2">
@@ -620,24 +646,29 @@ export default function StaffProductDetails({
               </div>
             )}
           </div>
-
         </CardContent>
 
         {/* Footer with Mark as Packed button for fulfillment staff */}
-        {isFulfillmentStaff && staffAssignedProducts.length > 0 && (
-          <CardFooter className="border-t bg-gray-50">
-          
-           <div className="flex justify-end w-full">
-              <DynamicButton
-                onClick={() => setMarkPackedModalOpen(true)}
-                className="px-6 py-2"
-                disabled={!currentPicklistId}
-              >
-                Mark as Packed
-              </DynamicButton>
-            </div>
-          </CardFooter>
-        )}
+        {isFulfillmentStaff &&
+          staffAssignedProducts.length > 0 &&
+          orderStatus !== "Cancelled" &&
+          orderStatus !== "Canceled" &&
+          orderStatus !== "Packed" &&
+          orderStatus !== "Shipped" &&
+          orderStatus !== "Delivered" &&
+          orderStatus !== "Completed" && (
+            <CardFooter className="border-t bg-gray-50">
+              <div className="flex justify-end w-full">
+                <DynamicButton
+                  onClick={() => setMarkPackedModalOpen(true)}
+                  className="px-6 py-2"
+                  disabled={!currentPicklistId}
+                >
+                  Mark as Packed
+                </DynamicButton>
+              </div>
+            </CardFooter>
+          )}
       </Card>
 
       {/* Mark as Packed Modal */}
@@ -647,16 +678,15 @@ export default function StaffProductDetails({
         orderId={orderId}
         dealerId={currentDealerId}
         picklistId={currentPicklistId}
-        productName={`${staffAssignedProducts.length} Product${staffAssignedProducts.length > 1 ? 's' : ''}`}
+        productName={`${staffAssignedProducts.length} Product${
+          staffAssignedProducts.length > 1 ? "s" : ""
+        }`}
         items={modalItems}
         onSuccess={() => {
           refreshAllData();
           setMarkPackedModalOpen(false);
         }}
       />
-
-
-
     </>
   );
 }
