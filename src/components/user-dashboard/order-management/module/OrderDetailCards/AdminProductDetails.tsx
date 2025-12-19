@@ -8,13 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import {
-  Edit,
-  Package,
-  Eye,
-  MoreHorizontal,
-  UserCheck,
-} from "lucide-react";
+import { Edit, Package, Eye, MoreHorizontal, UserCheck } from "lucide-react";
 import { DynamicButton } from "@/components/common/button";
 import CreatePicklist from "./CreatePicklist";
 import { useToast as GlobalToast } from "@/components/ui/toast";
@@ -167,9 +161,11 @@ const ProductRow = ({
 
     // Fall back to original logic using tracking_info.status or orderStatus
     const status = item?.tracking_info?.status || orderStatus || "";
-    return status.toLocaleLowerCase() === "packed" ||
-           status.toLocaleLowerCase() === "packed completed" ||
-           status.toLocaleLowerCase() === "packedcompleted";
+    return (
+      status.toLocaleLowerCase() === "packed" ||
+      status.toLocaleLowerCase() === "packed completed" ||
+      status.toLocaleLowerCase() === "packedcompleted"
+    );
   }, [item?.markAsPacked, item?.tracking_info?.status, orderStatus]);
 
   // Debug once if orderStatus absent but item shows packed
@@ -282,8 +278,12 @@ const ProductRow = ({
       {/* Actions */}
       <div className="lg:col-span-2 flex justify-end">
         {isOrderPacked ? (
-            <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">
+          <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">
             Packed Completed
+          </Badge>
+        ) : (orderStatus === "Cancelled") ? (
+          <Badge className="text-xs px-2 py-0.5 bg-red-100 text-red-800 border-red-200">
+            Cancelled
           </Badge>
         ) : (
           isAuth && (
@@ -305,6 +305,7 @@ const ProductRow = ({
                     <UserCheck className="h-4 w-4 mr-2" /> Assign Dealers
                   </DropdownMenuItem>
                 )}
+                {/* Only show create picklist if order status is not cancelled or canceled */}
                 {showCreatePicklist && (
                   <DropdownMenuItem
                     onClick={() => actions.trigger("createPicklist", item)}
@@ -402,8 +403,8 @@ export default function AdminProductDetails({
     fetchPicklists();
     if (orderId) {
       getOrderById(orderId)
-        .then((res) => {
-          const status = res?.data?.[0]?.status || "";
+        .then((res: any) => {
+          const status = res?.data?.status || "";
           setOrderStatus(status);
         })
 
@@ -415,10 +416,12 @@ export default function AdminProductDetails({
   const refreshAllData = async () => {
     await Promise.all([
       fetchPicklists(),
-      orderId ? getOrderById(orderId).then((res) => {
-        const status = res?.data?.[0]?.status || "";
-        setOrderStatus(status);
-      }) : Promise.resolve()
+      orderId
+        ? getOrderById(orderId).then((res: any) => {
+            const status = res?.data?.status || "";
+            setOrderStatus(status);
+          })
+        : Promise.resolve(),
     ]);
     onRefresh?.();
   };
@@ -489,13 +492,12 @@ export default function AdminProductDetails({
   // Check if a dealer has any picklist
   const dealerHasPicklist = (dealerId: string): boolean => {
     const skus = dealerSkuGroups[dealerId] || [];
-    return skus.some(sku => picklistSkus.has(sku.sku));
+    return skus.some((sku) => picklistSkus.has(sku.sku));
   };
 
   // Check if at least one item has piclistGenerated === false (for bulk Create Picklist)
-  const hasItemsWithoutPicklist = products?.some(
-    (item) => item.piclistGenerated === false
-  ) ?? false;
+  const hasItemsWithoutPicklist =
+    products?.some((item) => item.piclistGenerated === false) ?? false;
 
   return (
     <>
@@ -565,7 +567,8 @@ export default function AdminProductDetails({
                 }}
               />
               {/* Bulk Create Picklist - only show if at least one item has piclistGenerated === false */}
-              {hasItemsWithoutPicklist || orderStatus === "Cancelled" || orderStatus === "Canceled" && (
+
+              {hasItemsWithoutPicklist && orderStatus !== "Cancelled" && (
                 <DynamicButton
                   text="Create Picklist"
                   onClick={() => {
@@ -644,7 +647,7 @@ export default function AdminProductDetails({
       <ViewPicklistsModal
         open={modalsOpen.viewPick}
         onOpenChange={async (o: boolean) => {
-          setModalsOpen((p) => ({ ...p, viewPick: o }))
+          setModalsOpen((p) => ({ ...p, viewPick: o }));
           if (!o) {
             await refreshAllData(); // Refresh all data when modal closes
           }

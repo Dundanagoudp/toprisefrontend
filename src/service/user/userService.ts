@@ -196,12 +196,7 @@ export async function getBankDetails(userId: string): Promise<BankDetailsRespons
       throw new Error("No authentication token found");
     }
 
-    const response = await apiClient.get(`/users/api/users/${userId}/bank-details`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await apiClient.get(`/users/api/users/${userId}/bank-details`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch bank details:", error);

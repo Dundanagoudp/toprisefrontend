@@ -114,7 +114,7 @@ function buildTrackingSteps(orderData: any) {
   const packedAt = skuTimestamps?.packedAt || orderTimestamps?.packedAt;
   const shippedAt = skuTimestamps?.shippedAt || orderTimestamps?.shippedAt;
   const deliveredAt = skuTimestamps?.deliveredAt || orderTimestamps?.deliveredAt;
-
+  const cancelledAt = skuTimestamps?.cancelledAt || orderTimestamps?.cancelledAt; 
   // Check if any dealer mapping has "packed" status
   const hasPackedStatus = orderData?.dealerMapping?.some((m: any) => 
     (m?.status || "").toLowerCase() === "packed"
@@ -125,7 +125,8 @@ function buildTrackingSteps(orderData: any) {
   
   // Confirmed: Always true if order exists
   const isConfirmed = true;
-  
+  // Cancelled: Only if order status is cancelled or canceled
+  const isCancelled = ["cancelled", "canceled"].includes(orderStatus);
   // Assigned: Only if order status is assigned or higher
   const isAssigned = ["assigned", "packed", "shipped", "delivered", "completed"].includes(orderStatus);
   
@@ -141,7 +142,7 @@ function buildTrackingSteps(orderData: any) {
   const borzoStatus = borzo?.borzo_order_status || "";
   const borzoUrl = borzo?.borzo_tracking_url;
 
-  return [
+  const allSteps = [
     {
       title: "Confirmed",
       status: isConfirmed ? "completed" : "pending",
@@ -149,6 +150,23 @@ function buildTrackingSteps(orderData: any) {
       time: confirmedAt ? formatDate(confirmedAt, { includeTime: true, timeFormat: "12h" }) : "",
       details: [],
     },
+  ];
+
+  // Only include Cancelled step if order is cancelled
+  if (isCancelled) {
+    allSteps.push({
+      title: "Cancelled",
+      status: "cancelled",
+      description: "Order has been cancelled.",
+      time: cancelledAt ? formatDate(cancelledAt, { includeTime: true, timeFormat: "12h" }) : "",
+      details: [],
+    });
+    // If cancelled, stop timeline here
+    return allSteps;
+  }
+
+  // Add remaining steps for non-cancelled orders
+  allSteps.push(
     {
       title: "Assigned",
       status: isAssigned ? "completed" : "pending",
@@ -176,8 +194,10 @@ function buildTrackingSteps(orderData: any) {
       description: isDelivered ? "Package delivered successfully" : "Your item will be delivered soon",
       time: deliveredAt ? formatDate(deliveredAt, { includeTime: true, timeFormat: "12h" }) : "",
       details: [],
-    },
-  ];
+    }
+  );
+
+  return allSteps;
 }
 
 export default function OrderDetailsView() {
@@ -311,7 +331,7 @@ export default function OrderDetailsView() {
                     key={index}
                     className="relative flex items-start gap-3 lg:gap-4"
                   >
-                    <Skeleton className="w-3 h-3 lg:w-4 lg:h-4 rounded-full flex-shrink-0 mt-1" />
+                    <Skeleton className="w-3 h-3 lg:w-4 lg:h-4 rounded-full shrink-0 mt-1" />
                     <div className="flex-1 min-w-0 pb-4 lg:pb-6">
                       <Skeleton className="h-4 lg:h-5 w-24 lg:w-32 mb-1" />
                       <Skeleton className="h-3 lg:h-4 w-36 lg:w-48 mb-1" />
@@ -650,6 +670,7 @@ export default function OrderDetailsView() {
               <div className="relative">
                 {trackingSteps.map((step, index) => {
                   const isLast = index === trackingSteps.length - 1;
+                  const isCancelled = step.status === "cancelled";
                   const isCompleted = step.status === "completed";
                   const nextStep = trackingSteps[index + 1];
                   const nextCompleted = nextStep && nextStep.status === "completed";
@@ -675,21 +696,21 @@ export default function OrderDetailsView() {
 
                       {/* Progress Circle */}
                       <div
-                        className={`w-4 h-4 rounded-full flex-shrink-0 mt-1 relative z-10 ${circleColor}`}
+                        className={`w-4 h-4 rounded-full shrink-0 mt-1 relative z-10 ${circleColor}`}
                       ></div>
 
                       {/* Step Content */}
                       <div className="flex-1 min-w-0 pb-6">
                         <div className="flex items-center gap-1 mb-1">
-                          <h3 className={`font-semibold ${isCompleted ? 'text-green-700' : 'text-gray-900'}`}>
+                          <h3 className={`font-semibold ${isCompleted ? 'text-green-700' : isCancelled ? 'text-red-700' : 'text-gray-900'}`}>
                             {step.title}
                           </h3>
                         </div>
-                        <p className={`text-sm mb-1 ${isCompleted ? 'text-green-600' : 'text-gray-700'}`}>
+                        <p className={`text-sm mb-1 ${isCompleted ? 'text-green-600' : isCancelled ? 'text-red-600' : 'text-gray-700'}`}>
                           {step.description}
                         </p>
                         {step.time && (
-                          <p className={`text-xs mb-2 ${isCompleted ? 'text-green-500' : 'text-gray-500'}`}>
+                          <p className={`text-xs mb-2 ${isCompleted ? 'text-green-500' : isCancelled ? 'text-red-500' : 'text-gray-500'}`}>
                             {step.time}
                           </p>
                         )}
