@@ -496,7 +496,7 @@ export default function OrderDetailsView() {
           <Badge className={`px-2 sm:px-3 py-1 text-xs sm:text-sm ${getStatusBadgeClasses(orderById?.status)}`}>
             {orderById?.status || "Active"}
           </Badge>
-          {isAuthorized && !["packed", "shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()) && (
+          {isAuthorized && !["packed", "shipped", "delivered", "completed","cancelled","canceled"].includes(orderById?.status?.toLowerCase()) && (
             <DynamicButton
               variant="outline"
               customClassName="border-gray-300 text-gray-700 hover:bg-gray-50 px-3 sm:px-4 h-8 sm:h-10 text-xs sm:text-sm"

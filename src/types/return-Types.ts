@@ -50,6 +50,8 @@ export interface ReturnRequest {
   isOverdue?: boolean;
   daysSinceRequest?: number | null;
   statusDisplay?: string | null;
+
+
 }
 
 // Order and Customer Types

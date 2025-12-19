@@ -25,7 +25,7 @@ const ViewPicklistsModal: React.FC<ViewPicklistsModalProps> = ({ open, onOpenCha
   const [picklists, setPicklists] = useState<DealerPickList[]>([])
   const [loading, setLoading] = useState(false)
   const [markPackedModal, setMarkPackedModal] = useState<{ open: boolean; picklistId?: string }>({ open: false })
-
+  const [orderStatus, setOrderStatus] = useState<string>("")
 // API service function
 const fetchPicklists = async (orderId: string): Promise<DealerPickList[]> => {
   try {
@@ -41,7 +41,7 @@ const fetchPicklists = async (orderId: string): Promise<DealerPickList[]> => {
       ? orderResponse.data 
       : orderResponse?.data ? [orderResponse.data] : [];
     const orderData = orderDataArray[0]; // Get first order
-    
+    setOrderStatus(orderData?.status || "")
     // Create a map of SKU to product information from order details
     const skuProductMap = new Map();
     if (orderData?.skus && Array.isArray(orderData.skus)) {
@@ -282,6 +282,10 @@ useEffect(() => {
                               // Render Packed Badge (Green, static) if all SKUs are packed
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-green-100 text-green-800 border-green-200">
                                 Packed
+                              </span>
+                            ) : orderStatus === "Cancelled" || orderStatus === "Canceled" ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-red-100 text-red-800 border-red-200">
+                                Cancelled
                               </span>
                             ) : (
                               // Render Mark as Packed Button (Blue, clickable) if not all SKUs are packed

@@ -1,10 +1,10 @@
-import Returnclaims from '@/components/user-dashboard/return-claims/returntable'
+import ReturnClaimsContainer from '@/components/user-dashboard/return-claims/ReturnClaimsContainer'
 import React from 'react'
 
 export default function page() {
   return (
     <div>
-        <Returnclaims />
+        <ReturnClaimsContainer />
     </div>
   )
 }
