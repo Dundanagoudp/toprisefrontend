@@ -10,7 +10,6 @@ import type { Dealer, Category } from "@/types/dealer-types"
 import { useToast as useToastMessage } from "@/components/ui/toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
-import AssignSLAForm from "../../dealer-management/module/popups/assignSLA"
 import { useAppSelector } from "@/store/hooks"
 import ExportButton from "./ExportButton"
 import { getBrand } from "@/service/product-Service"
@@ -111,8 +110,6 @@ export default function Dealertable({
   const paginatedData = filteredDealers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const router = useRouter()
   const [brands, setBrands] = useState<any[]>([])
-  const [slaFormOpen, setSlaFormOpen] = useState(false)
-  const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null)
   const [viewDealerLoading, setViewDealerLoading] = useState(false)
   const [editDealerLoading, setEditDealerLoading] = useState(false)
   const [addDealerLoading, setAddDealerLoading] = useState(false)
@@ -123,15 +120,6 @@ export default function Dealertable({
     fetchDealers()
     fetchBrands()
   }, [])
-
-  const handleSLAFormSubmit = (data: any) => {
-    setSlaFormOpen(false)
-    setSelectedDealerId(null)
-    showToast("SLA has been assigned successfully.", "success")
-    // Optionally, refresh dealers or perform other actions here
-  }
-
-
 
   const fetchDealers = async () => {
     try {
@@ -464,16 +452,6 @@ export default function Dealertable({
                         Edit
                       </DropdownMenuItem>
                     )}
-                    {canPerformAdminActions() && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedDealerId(dealer._id)
-                          setSlaFormOpen(true)
-                        }}
-                      >
-                        Assign SLA
-                      </DropdownMenuItem>
-                    )}
                     {canPerformAdminActions() && dealer.is_active && (
                       <DropdownMenuItem
                         onClick={() => {
@@ -540,13 +518,6 @@ export default function Dealertable({
         itemsPerPage={itemsPerPage}
       />
           </div>
-
-      <AssignSLAForm
-        open={slaFormOpen}
-        onClose={() => setSlaFormOpen(false)}
-        dealerId={selectedDealerId}
-        onSubmit={handleSLAFormSubmit}
-      />
 
       {/* Category Management Modals */}
 
