@@ -139,24 +139,13 @@ export async function updateUserProfile(userId: string, profileData: UpdateProfi
   }
 }
 
-export async function updateUserAddress(userId: string, addressData: UpdateAddressRequest): Promise<UpdateAddressResponse> {
+export async function AddAddress(userId: string, addressData: UpdateAddressRequest): Promise<UpdateAddressResponse> {
   try {
     const token = getAuthToken();
     if (!token) {
       throw new Error("No authentication token found");
     }
-
-    console.log("Updating address with token:", token ? "Token found" : "No token");
-    console.log("Address data:", addressData);
-
-    const response = await apiClient.put(`/users/api/users/updateAddress/${userId}`, addressData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    console.log("Address update response:", response.data);
+    const response = await apiClient.put(`/users/api/users/updateAddress/${userId}`, addressData);
     return response.data;
   } catch (error) {
     console.error("Failed to update user address:", error);
@@ -166,20 +155,10 @@ export async function updateUserAddress(userId: string, addressData: UpdateAddre
 
 export async function editUserAddress(userId: string, addressData: EditAddressRequest): Promise<EditAddressResponse> {
   try {
-    const token = getAuthToken();
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
 
-    console.log("Editing address with token:", token ? "Token found" : "No token");
-    console.log("Address edit data:", addressData);
 
-    const response = await apiClient.put(`/users/api/users/address/${userId}`, addressData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+
+    const response = await apiClient.put(`/users/api/users/address/${userId}`, addressData);
     
     console.log("Address edit response:", response.data);
     return response.data;
@@ -194,10 +173,8 @@ export async function deleteUserAddress(
 ): Promise<any> {
   try {
     const response = await apiClient.delete(
-      `/users/api/users/address/${userId}`,
-      {
-        data: { index },
-      }
+      `/users/api/users/address/${userId}?index=${index}`,
+      
     );
     return response.data;
   } catch (error) {

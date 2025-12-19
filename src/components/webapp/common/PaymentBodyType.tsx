@@ -34,6 +34,7 @@ export const prepareOrderBody = (
     orderType: "Online",
     orderSource: "Web",
     order_Amount: Math.round(cart.grandTotal || 0),
+    deliveryCharges: cart.deliveryCharge ?? 0,
     skus: cart.items.map((item) => ({
       sku: item.sku || "",
       quantity: item.quantity,
