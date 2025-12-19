@@ -4,6 +4,7 @@ import type {
   SlaViolationFilters,
   AddRemarkRequest,
   CloseViolationRequest,
+  ResolveViolationRequest,
   SlaViolationResponse,
 } from "@/types/sla-violation-types"
 
@@ -39,6 +40,30 @@ export const slaViolationService = {
     const response = await apiClient.patch<SlaViolationResponse>(
       `/orders/api/sla-voilation-model/${id}/close`,
       data
+    )
+    return response.data
+  },
+
+  // Resolve a violation
+  resolveViolation: async (
+    id: string,
+    data: ResolveViolationRequest
+  ): Promise<SlaViolationResponse> => {
+    const response = await apiClient.patch<SlaViolationResponse>(
+      `/orders/api/sla-voilation-model/${id}/resolve`,
+      data
+    )
+    return response.data
+  },
+
+  // Get SLA violations for a specific dealer
+  getSlaViolationsByDealer: async (
+    dealerId: string,
+    filters?: SlaViolationFilters
+  ): Promise<SlaViolationListResponse> => {
+    const response = await apiClient.get<SlaViolationListResponse>(
+      `/orders/api/sla-voilation-model/dealer/${dealerId}`,
+      { params: filters }
     )
     return response.data
   },

@@ -111,6 +111,11 @@ export interface CloseViolationRequest {
   added_by: string
 }
 
+export interface ResolveViolationRequest {
+  notes: string
+  added_by: string
+}
+
 export interface SlaViolationResponse {
   success: boolean
   message: string
