@@ -199,21 +199,30 @@ export default function SlaVoilationspage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="Search by order ID, SKU, or dealer..."
-            value={filters.search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10 h-10"
-          />
-        </div>
+      {/* Search and Filters */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search by dealer ID..."
+              value={filters.dealer_id || ""}
+              onChange={(e) => {
+                setFilters((prev) => ({
+                  ...prev,
+                  dealer_id: e.target.value,
+                  page: 1,
+                }))
+                setCurrentPage(1)
+              }}
+              className="pl-10 h-10"
+            />
+          </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-600 px-2">
-          <AlertTriangle className="w-4 h-4" />
-          <span className="font-medium">{totalCount} violations</span>
+          <div className="flex items-center gap-2 text-sm text-gray-600 px-2">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="font-medium">{totalCount} violations</span>
+          </div>
         </div>
       </div>
 
@@ -311,8 +320,8 @@ export default function SlaVoilationspage() {
                       <TableCell className="py-4 px-4">
                         <span className="text-sm font-mono">{violation.sku}</span>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600 py-4 px-4">
-                        <span className="font-mono">{violation.dealer_id.substring(0, 8)}...</span>
+                      <TableCell className="py-4 px-4">
+                        <span className="text-sm font-mono text-gray-900 break-all">{violation.dealer_id}</span>
                       </TableCell>
                       <TableCell className="py-4 px-4">
                         <span className="font-semibold text-red-600 text-sm">
