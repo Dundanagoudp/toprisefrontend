@@ -137,6 +137,7 @@ export default function StaffPicklistsTable() {
                             <TableHead>Order ID</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -158,6 +159,13 @@ export default function StaffPicklistsTable() {
                                         <Badge className={getStatusBadge(p.orderStatus || p.scanStatus)}>
                                             {p.orderStatus || p.scanStatus}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <DynamicButton
+                                            text="View"
+                                            customClassName="bg-primary text-white"
+                                            onClick={() => route.push(`/user/dashboard/order/orderdetails/${p.order._id}`)}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))

@@ -31,12 +31,13 @@ import {
   UserVehicleDetails,
   updateUserAddress,
   UpdateAddressRequest,
-  editUserAddress,
+  deleteUserAddress,
   EditAddressRequest,
   getUserById,
   getBankDetails,
   createBankDetails,
   updateBankDetails,
+  editUserAddress,
 } from "@/service/user/userService";
 import {
   getUserOrders,
@@ -772,6 +773,11 @@ export default function ProfilePage() {
       return;
     }
 
+    // Guard against multiple simultaneous saves
+    if (updatingAddress) {
+      return;
+    }
+
     try {
       setUpdatingAddress(true);
 
@@ -787,6 +793,15 @@ export default function ProfilePage() {
           showToast("Address updated successfully", "success");
           setEditingAddressIndex(null);
 
+          // Reset newAddress after successful edit
+          setNewAddress({
+            nick_name: "",
+            street: "",
+            city: "",
+            pincode: "",
+            state: "",
+          });
+
           const updatedProfile = await getUserProfile(userId);
           if (updatedProfile.success && updatedProfile.data) {
             setUserProfile(updatedProfile.data);
@@ -799,7 +814,26 @@ export default function ProfilePage() {
           showToast(response.message || "Failed to update address", "error");
         }
       } else {
-        const updatedAddressList = [...(profileData.address || []), newAddress];
+        // For new addresses, use current profileData.address to avoid duplicates
+        const currentAddresses = profileData.address || [];
+        
+        // Check if address already exists to prevent duplicates
+        const addressExists = currentAddresses.some(
+          (addr) =>
+            addr.nick_name === newAddress.nick_name &&
+            addr.street === newAddress.street &&
+            addr.city === newAddress.city &&
+            addr.pincode === newAddress.pincode &&
+            addr.state === newAddress.state
+        );
+
+        if (addressExists) {
+          showToast("This address already exists", "error");
+          setUpdatingAddress(false);
+          return;
+        }
+
+        const updatedAddressList = [...currentAddresses, newAddress];
 
         const addressData: UpdateAddressRequest = {
           address: updatedAddressList,
@@ -811,14 +845,23 @@ export default function ProfilePage() {
           showToast("Address added successfully", "success");
           setIsAddingAddress(false);
 
-          setProfileData((prev) => ({
-            ...prev,
-            address: updatedAddressList,
-          }));
+          // Reset newAddress immediately after successful save
+          setNewAddress({
+            nick_name: "",
+            street: "",
+            city: "",
+            pincode: "",
+            state: "",
+          });
 
+          // Fetch fresh data from API instead of using local state
           const updatedProfile = await getUserProfile(userId);
           if (updatedProfile.success && updatedProfile.data) {
             setUserProfile(updatedProfile.data);
+            setProfileData((prev) => ({
+              ...prev,
+              address: updatedProfile.data.address || [],
+            }));
           }
         } else {
           showToast(response.message || "Failed to add address", "error");
@@ -1850,7 +1893,7 @@ export default function ProfilePage() {
                     <Button
                       onClick={handleSaveAddress}
                       disabled={updatingAddress || showUpdateConfirmation}
-                      className="bg-gradient-to-r from-[#c72920] to-[#e5665f] text-white hover:opacity-90 max-sm:w-full"
+                      className="bg-primary from-[#c72920] to-[#e5665f] text-white hover:opacity-90 max-sm:w-full"
                     >
                       {updatingAddress ? (
                         <>
