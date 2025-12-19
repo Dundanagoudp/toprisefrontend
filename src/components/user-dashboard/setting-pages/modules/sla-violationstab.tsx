@@ -29,6 +29,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Trash2,
 } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 import {
@@ -40,6 +41,7 @@ import {
 import { CreateSlaModal } from "./popups/slapopup/createsla"
 import { UpdateSlaModal } from "./popups/slapopup/updatesla"
 import { ViewSlaModal } from "./popups/slapopup/viewsla"
+import { DeleteSlaModal } from "./popups/slapopup/delete-sla-modal"
 
 export function SlaTypesTab() {
   const { showToast } = useToast()
@@ -51,8 +53,10 @@ export function SlaTypesTab() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editingSlaType, setEditingSlaType] = useState<SlaType | null>(null)
   const [viewingSlaType, setViewingSlaType] = useState<SlaType | null>(null)
+  const [deletingSlaType, setDeletingSlaType] = useState<SlaType | null>(null)
   const [loadingView, setLoadingView] = useState(false)
 
   const itemsPerPage = 10
@@ -165,6 +169,26 @@ export function SlaTypesTab() {
       setIsViewModalOpen(false)
     } finally {
       setLoadingView(false)
+    }
+  }
+
+  const handleDeleteClick = (slaType: SlaType) => {
+    setDeletingSlaType(slaType)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleDeleteSlaType = async () => {
+    if (!deletingSlaType?._id) return
+
+    try {
+      await slaTypesService.deleteSlaType(deletingSlaType._id)
+      showToast("SLA Type deleted successfully!", "success")
+      setIsDeleteModalOpen(false)
+      setDeletingSlaType(null)
+      fetchSlaTypes()
+    } catch (error) {
+      console.error("Error deleting SLA type:", error)
+      showToast("Failed to delete SLA type. Please try again.", "error")
     }
   }
 
@@ -333,6 +357,15 @@ export function SlaTypesTab() {
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(slaType)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -419,6 +452,25 @@ export function SlaTypesTab() {
               setViewingSlaType(null)
             }}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          {deletingSlaType && (
+            <DeleteSlaModal
+              slaTypeName={deletingSlaType.name}
+              onSubmit={handleDeleteSlaType}
+              onCancel={() => {
+                setIsDeleteModalOpen(false)
+                setDeletingSlaType(null)
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

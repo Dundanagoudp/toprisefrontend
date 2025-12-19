@@ -67,6 +67,11 @@ const data = {
       icon: SiPhotobucket ,
     },
     {
+      title:"SLA Violations",
+      url: "/dealer/dashboard/slavoilation",
+      icon: TicketIcon,
+    },
+    {
       title:"Profile",
       url: "/dealer/dashboard/profile",
       icon: HiOutlineUser,
