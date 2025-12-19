@@ -287,18 +287,16 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
   };
 
   const handleBankDetailsAdded = () => {
- 
-    setBankDetailsPromptOpen(false)
-   
-    setTimeout(() => {
+    setBankDetailsPromptOpen(false);
 
+    setTimeout(() => {
       if (selectedReturnSku) {
-        setReturnModalOpen(true)
+        setReturnModalOpen(true);
       } else {
-        openReturnModal()
+        openReturnModal();
       }
-    }, 100)
-  }
+    }, 100);
+  };
   const handleReturnSku = async (sku: string, quantity: number) => {
     // Check if payment method is COD
     if (order.paymentType === "COD") {
@@ -837,8 +835,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                           orderSku?.timestamps || order.timestamps;
 
                         // Determine item status from tracking_info or main order status
-                        const itemStatus =
-                          trackingInfo?.status || order.status || "Processing";
+                        const itemStatus = trackingInfo?.status || "Processing";
                         const trackingStatus =
                           trackingInfo?.borzo_tracking_status;
 
@@ -880,6 +877,17 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                             timestamp: timestamps?.deliveredAt,
                             icon: <CheckCircle className="h-4 w-4" />,
                           },
+                          ...(order.status === "Cancelled" ||
+                          order.status === "Canceled"
+                            ? [
+                                {
+                                  label: "Cancelled",
+                                  timestamp: order.updatedAt || order.createdAt,
+                                  icon: <XCircle className="h-4 w-4" />,
+                                  isCancelled: true,
+                                },
+                              ]
+                            : []),
                         ];
 
                         // Add Borzo tracking status to timeline if available
@@ -948,18 +956,21 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                 <div className="flex flex-col items-end gap-2 flex-shrink-0 max-sm:w-full max-sm:flex-row max-sm:justify-between max-sm:items-center">
                                   <Badge
                                     className={`${
-                                      itemStatus === "Delivered" ||
-                                      trackingStatus === "finished"
-                                        ? "bg-green-600"
-                                        : itemStatus === "Shipped"
-                                        ? "bg-blue-600"
-                                        : hasReturn
-                                        ? "bg-orange-600"
-                                        : "bg-gray-600"
+                                      order.status === "Cancelled" ||
+                                      order.status === "Canceled"
+                                        ? "bg-red-600"
+                                        : "bg-green-600"
                                     } text-white max-sm:text-xs`}
                                   >
-                                    {trackingStatus === "finished"
+                                    {order.status === "Cancelled"
+                                      ? "Cancelled"
+                                      : trackingStatus === "finished"
                                       ? "Delivered"
+                                      : itemStatus ===
+                                        "On_The_Way_To_Next_Delivery_Point"
+                                      ? "In Transit"
+                                      : itemStatus === "OUT_FOR_DELIVERY"
+                                      ? "Out for Delivery"
                                       : itemStatus}
                                   </Badge>
                                   <div className="text-right">
@@ -968,12 +979,11 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                       {product.totalPrice?.toLocaleString() ||
                                         "0"}
                                     </p>
-                                    <p className="text-sm text-gray-600 max-sm:text-xs">
+                                    {/* <p className="text-sm text-gray-600 max-sm:text-xs">
                                       ₹
-                                      {product.selling_price?.toLocaleString() ||
-                                        "0"}{" "}
+                                      {product.selling_price?.toLocaleString()/product.quantity}{" "}
                                       each
-                                    </p>
+                                    </p> */}
                                   </div>
                                 </div>
                               </div>
@@ -993,17 +1003,35 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                           {/* Timeline line */}
                                           {stepIndex !==
                                             timelineSteps.length - 1 && (
-                                            <div className="absolute left-[15px] top-[32px] h-full w-[2px] bg-green-500" />
+                                            <div
+                                              className={`absolute left-[15px] top-[32px] h-full w-[2px] ${
+                                                step.isCancelled
+                                                  ? "bg-red-500"
+                                                  : "bg-green-500"
+                                              }`}
+                                            />
                                           )}
 
                                           {/* Icon */}
-                                          <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-green-500 bg-green-500 text-white">
+                                          <div
+                                            className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${
+                                              step.isCancelled
+                                                ? "border-red-500 bg-red-500"
+                                                : "border-green-500 bg-green-500"
+                                            } text-white`}
+                                          >
                                             {step.icon}
                                           </div>
 
                                           {/* Content */}
                                           <div className="flex-1 pt-0.5">
-                                            <h4 className="text-sm font-medium text-green-700 mb-1">
+                                            <h4
+                                              className={`text-sm font-medium mb-1 ${
+                                                step.isCancelled
+                                                  ? "text-red-700"
+                                                  : "text-green-700"
+                                              }`}
+                                            >
                                               {step.label}
                                             </h4>
                                             <p className="text-xs text-muted-foreground">
@@ -1035,16 +1063,18 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                     order.timestamps?.deliveredAt;
                                   const returnWindowDays =
                                     orderSku?.return_info?.return_window_days;
-                                  
+
                                   // Only proceed if return_window_days is defined
                                   if (!returnWindowDays) return null;
-                                  
+
                                   let withinReturnWindow = false;
                                   if (deliveredAt) {
                                     const daysSinceDelivery =
-                                      (Date.now() - new Date(deliveredAt).getTime()) /
+                                      (Date.now() -
+                                        new Date(deliveredAt).getTime()) /
                                       (24 * 60 * 60 * 1000);
-                                    withinReturnWindow = daysSinceDelivery <= returnWindowDays;
+                                    withinReturnWindow =
+                                      daysSinceDelivery <= returnWindowDays;
                                   } else {
                                     // If no deliveredAt, assume it's recent
                                     withinReturnWindow = true;
@@ -1053,7 +1083,8 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                   return (
                                     orderSku?.return_info?.is_returnable &&
                                     !orderSku?.return_info?.is_returned &&
-                                    trackingInfo?.borzo_tracking_status === "finished" &&
+                                    trackingInfo?.borzo_tracking_status ===
+                                      "finished" &&
                                     withinReturnWindow && (
                                       <div className="flex justify-end">
                                         <Button
@@ -1084,6 +1115,26 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                     )
                                   );
                                 })()}
+
+                                {/* SKU-level Tracking Button */}
+                                {trackingInfo?.borzo_tracking_url && (
+                                  <div className="flex justify-end">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-xs px-3 py-1.5 h-auto"
+                                      onClick={() =>
+                                        window.open(
+                                          trackingInfo.borzo_tracking_url,
+                                          "_blank"
+                                        )
+                                      }
+                                    >
+                                      <Truck className="h-3 w-3 mr-1.5" />
+                                      Track Package
+                                    </Button>
+                                  </div>
+                                )}
 
                                 {/* Already Returned Info */}
                                 {orderSku?.return_info?.is_returned &&
@@ -1177,57 +1228,6 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Tracking Information */}
-              {order.order_track_info && (
-                <Card>
-                  <CardHeader className="max-sm:px-4 max-sm:py-4">
-                    <CardTitle className="flex items-center gap-2 max-sm:text-base">
-                      <Truck className="h-5 w-5 max-sm:h-4 max-sm:w-4" />
-                      Tracking Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 max-sm:px-4 max-sm:pb-4 max-sm:space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-sm:grid-cols-1 max-sm:gap-3">
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1 max-sm:text-xs">
-                          Courier Status
-                        </p>
-                        <p className="font-medium max-sm:text-sm">
-                          {order.order_track_info.borzo_order_status || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1 max-sm:text-xs">
-                          Last Updated
-                        </p>
-                        <p className="font-medium max-sm:text-sm">
-                          {order.order_track_info.borzo_last_updated
-                            ? formatDate(
-                                order.order_track_info.borzo_last_updated,
-                                { includeTime: true }
-                              )
-                            : "-"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {order.order_track_info.borzo_tracking_url && (
-                      <div>
-                        <a
-                          href={order.order_track_info.borzo_tracking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium max-sm:text-sm"
-                        >
-                          Track Package
-                          <ExternalLink className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
             </div>
 
             {/* Right Column - Order Summary */}
@@ -1242,8 +1242,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   <div className="flex justify-between max-sm:text-sm">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium">
-                      ₹
-                      {(order.order_Amount || 0).toLocaleString() || "0"}
+                      ₹{(order.order_Amount || 0).toLocaleString() || "0"}
                     </span>
                   </div>
 
@@ -1257,9 +1256,10 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                   <div className="flex justify-between max-sm:text-sm">
                     <span className="text-gray-600">Delivery Charges</span>
                     <span className="font-medium">
-                     
                       {order.deliveryCharges > 0 ? (
-                        <span className="text-black-500">₹{order.deliveryCharges?.toLocaleString() || "0"}</span>
+                        <span className="text-black-500">
+                          ₹{order.deliveryCharges?.toLocaleString() || "0"}
+                        </span>
                       ) : (
                         <span className="text-black-500">Free Delivery</span>
                       )}

@@ -108,7 +108,7 @@ export const useCart = () => {
       dispatch(removeFromCart(productId));
       
       // Call API to remove from server
-      await removeProductFromCart(user._id, productId);
+      await removeProductFromCart(productId);
     } catch (err: any) {
       console.error('Failed to remove item from cart:', err);
       // Revert the optimistic update by refetching cart

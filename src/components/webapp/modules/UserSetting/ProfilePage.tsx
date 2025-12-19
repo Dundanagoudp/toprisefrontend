@@ -288,15 +288,7 @@ export default function ProfilePage() {
 
     fetchUserOrders();
   }, [userId, activeTab, showToast]);
-  useEffect (()=>{
-    const getOrders = async () => {
-      const response = await getUserOrders(userId);
-      if (response.success && response.data) {
-        setUserOrders(response.data);
-      }
-    }
-    getOrders();
-  })
+
   useEffect(() => {
     const fetchUserWishlist = async () => {
       if (!userId || activeTab !== "wishlists") return;
@@ -770,7 +762,13 @@ export default function ProfilePage() {
       return;
     }
 
-    setShowUpdateConfirmation(true);
+    // For adding addresses, directly save without confirmation
+    if (editingAddressIndex === null) {
+      await submitAddAddress();
+    } else {
+      // For editing addresses, show confirmation
+      setShowUpdateConfirmation(true);
+    }
   };
 
   const handleUpdateAddress = async () => {
@@ -839,6 +837,18 @@ export default function ProfilePage() {
       return;
     }
 
+    // Store the current address data before resetting
+    const addressToSave = { ...newAddress };
+
+    // Reset form before API call
+    setNewAddress({
+      nick_name: "",
+      street: "",
+      city: "",
+      pincode: "",
+      state: "",
+    });
+
     try {
       setUpdatingAddress(true);
 
@@ -848,11 +858,11 @@ export default function ProfilePage() {
       // Check if address already exists to prevent duplicates
       const addressExists = currentAddresses.some(
         (addr) =>
-          addr.nick_name === newAddress.nick_name &&
-          addr.street === newAddress.street &&
-          addr.city === newAddress.city &&
-          addr.pincode === newAddress.pincode &&
-          addr.state === newAddress.state
+          addr.nick_name === addressToSave.nick_name &&
+          addr.street === addressToSave.street &&
+          addr.city === addressToSave.city &&
+          addr.pincode === addressToSave.pincode &&
+          addr.state === addressToSave.state
       );
 
       if (addressExists) {
@@ -861,26 +871,19 @@ export default function ProfilePage() {
         return;
       }
 
-      const updatedAddressList = [...currentAddresses, newAddress];
-
-      const addressData: UpdateAddressRequest = {
-        address: updatedAddressList,
+      const updatedAddressList : UpdateAddressRequest = {
+        address: [addressToSave],
       };
 
-      const response = await AddAddress(userId, addressData);
+  
+
+      const response = await AddAddress(userId, updatedAddressList);
 
       if (response.success) {
         showToast("Address added successfully", "success");
         setIsAddingAddress(false);
 
-        // Reset newAddress immediately after successful save
-        setNewAddress({
-          nick_name: "",
-          street: "",
-          city: "",
-          pincode: "",
-          state: "",
-        });
+        // Form is already reset before API call, no need to reset again
 
         // Fetch fresh data from API instead of using local state
         const updatedProfile = await getUserProfile(userId);
@@ -1908,7 +1911,7 @@ export default function ProfilePage() {
                   <div className="flex gap-2 pt-4 max-sm:flex-col">
                     <Button
                       onClick={handleSaveAddress}
-                      disabled={updatingAddress || showUpdateConfirmation}
+                      disabled={updatingAddress || (showUpdateConfirmation && editingAddressIndex !== null)}
                       className="bg-primary from-[#c72920] to-[#e5665f] text-white hover:opacity-90 max-sm:w-full"
                     >
                       {updatingAddress ? (
