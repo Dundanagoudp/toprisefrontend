@@ -36,6 +36,8 @@ export interface AppSettings {
   supportPhone: string
   tnc: string
   privacyPolicy: string
+  lastStockCheck?: number
+  returnPolicy?: number
   createdAt?: string
   updatedAt?: string
   __v?: number
@@ -59,4 +61,6 @@ export interface UpdateAppSettingsRequest {
   supportPhone?: string
   tnc?: string
   privacyPolicy?: string
+  lastStockCheck?: number
+  returnPolicy?: number
 }
