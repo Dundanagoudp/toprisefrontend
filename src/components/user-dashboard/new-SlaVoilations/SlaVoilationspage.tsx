@@ -61,7 +61,31 @@ export default function SlaVoilationspage() {
   const fetchViolations = async () => {
     setLoading(true)
     try {
-      const response = await slaViolationService.getSlaViolations(filters)
+      // Build clean filters - only include non-empty values
+      const cleanFilters: SlaViolationFilters = {
+        page: filters.page,
+        limit: filters.limit,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+      }
+
+      // Add search if it has a value (searches both order ID and dealer ID)
+      if (filters.search && filters.search.trim()) {
+        cleanFilters.search = filters.search.trim()
+      }
+
+      // Add other optional filters if they have values
+      if (filters.status && filters.status.trim()) {
+        cleanFilters.status = filters.status.trim()
+      }
+      if (filters.dealer_id && filters.dealer_id.trim()) {
+        cleanFilters.dealer_id = filters.dealer_id.trim()
+      }
+      if (filters.order_id && filters.order_id.trim()) {
+        cleanFilters.order_id = filters.order_id.trim()
+      }
+
+      const response = await slaViolationService.getSlaViolations(cleanFilters)
       const fetchedViolations = response.data.data || []
       setViolations(fetchedViolations)
       setTotalCount(response.data.pagination.totalItems || 0)
@@ -79,11 +103,34 @@ export default function SlaVoilationspage() {
   }, [filters])
 
   const handleSearch = (query: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      search: query,
-      page: 1,
-    }))
+    const trimmedQuery = query.trim()
+    
+    // Detect if it's a dealer ID (24 character hex string, MongoDB ObjectId format)
+    const isDealerId = /^[0-9a-fA-F]{24}$/.test(trimmedQuery)
+    
+    setFilters((prev) => {
+      const newFilters: SlaViolationFilters = {
+        ...prev,
+        page: 1,
+      }
+      
+      // Clear all search fields first
+      delete newFilters.search
+      delete newFilters.dealer_id
+      delete newFilters.order_id
+      
+      if (trimmedQuery) {
+        if (isDealerId) {
+          // Use dealer_id parameter for dealer ID searches (24 char hex)
+          newFilters.dealer_id = trimmedQuery
+        } else {
+          // Use search parameter for order IDs and other searches
+          newFilters.search = trimmedQuery
+        }
+      }
+      
+      return newFilters
+    })
     setCurrentPage(1)
   }
 
@@ -205,16 +252,9 @@ export default function SlaVoilationspage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Search by dealer ID..."
-              value={filters.dealer_id || ""}
-              onChange={(e) => {
-                setFilters((prev) => ({
-                  ...prev,
-                  dealer_id: e.target.value,
-                  page: 1,
-                }))
-                setCurrentPage(1)
-              }}
+              placeholder="Search by order ID or dealer ID..."
+              value={filters.search || filters.dealer_id || ""}
+              onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 h-10"
             />
           </div>
