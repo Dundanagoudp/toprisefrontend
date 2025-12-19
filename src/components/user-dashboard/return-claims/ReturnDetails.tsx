@@ -301,7 +301,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
       try {
         const orderId = (returnRequest.orderId as any)?._id || "";
         if (orderId) {
-          const order = await getOrderById(orderId);
+          const order = await getOrderById(orderId) as any;
           paymentType = order.data?.paymentType || "";
         }
       } catch (error) {
@@ -558,7 +558,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
               disabled={inspectionLoading}
               className="flex items-center gap-2"
             >
-              <DollarSign className="h-4 w-4" />
+              
               {inspectionLoading ? "Processing..." : "Process Refund"}
             </Button>
           )}

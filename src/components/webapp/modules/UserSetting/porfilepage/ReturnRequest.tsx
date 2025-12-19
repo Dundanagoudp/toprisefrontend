@@ -9,141 +9,88 @@ import { CheckCircle, XCircle, Clock, AlertTriangle, Package, Search, Truck, Eye
 import { getReturnRequests } from "@/service/product-Service";
 import type { ReturnRequest, ReturnRequestsResponse } from "@/types/User/retrurn-Types";
 
-interface StatusStep {
-  label: string;
-  description: string;
-  timestamp?: string | null;
-  status: "completed" | "pending" | "current";
-  icon: React.ReactNode;
-}
 
 interface ReturnStatusTimelineProps {
   returnRequest: ReturnRequest;
 }
 
 function ReturnStatusTimeline({ returnRequest }: ReturnStatusTimelineProps) {
-  const steps: StatusStep[] = [
+  const allTimelineSteps = [
     {
       label: "Return Requested",
-      description: returnRequest.timestamps?.requestedAt 
-        ? `We've received your return request`
-        : "Processing has not started yet.",
-      timestamp: returnRequest.timestamps?.requestedAt,
-      status: returnRequest.timestamps?.requestedAt ? "completed" : "pending",
+      timestamp: returnRequest.timestamps?.requestedAt || returnRequest.createdAt,
       icon: <Package className="h-4 w-4" />,
     },
     {
       label: "Request Validation",
-      description: returnRequest.isEligible 
-        ? "Your request has been validated" 
-        : "Processing has not started yet.",
       timestamp: returnRequest.timestamps?.validatedAt,
-      status: returnRequest.timestamps?.validatedAt ? "completed" : 
-              returnRequest.timestamps?.requestedAt ? "current" : "pending",
       icon: <FileCheck className="h-4 w-4" />,
     },
     {
       label: "Pickup Scheduled",
-      description: returnRequest.pickupRequest?.scheduledDate
-        ? "Pickup has been scheduled"
-        : "Processing has not started yet.",
       timestamp: returnRequest.pickupRequest?.scheduledDate,
-      status: returnRequest.pickupRequest?.scheduledDate ? "completed" :
-              returnRequest.timestamps?.validatedAt ? "current" : "pending",
       icon: <Truck className="h-4 w-4" />,
     },
     {
       label: "Pickup Completed",
-      description: returnRequest.pickupRequest?.completedDate
-        ? "Item has been picked up"
-        : "Processing has not started yet.",
       timestamp: returnRequest.pickupRequest?.completedDate,
-      status: returnRequest.pickupRequest?.completedDate ? "completed" :
-              returnRequest.pickupRequest?.scheduledDate ? "current" : "pending",
       icon: <Truck className="h-4 w-4" />,
     },
     {
       label: "Inspection",
-      description: returnRequest.inspection?.inspectedAt
-        ? "Item inspection completed"
-        : "Processing has not started yet.",
       timestamp: returnRequest.inspection?.inspectedAt,
-      status: returnRequest.inspection?.inspectedAt ? "completed" :
-              returnRequest.pickupRequest?.completedDate ? "current" : "pending",
       icon: <Search className="h-4 w-4" />,
+      isCancelled: returnRequest.inspection?.isApproved === false,
     },
     {
       label: "Refund Processing",
-      description: returnRequest.refund?.refundStatus === "Processed"
-        ? "Refund has been processed"
-        : returnRequest.refund?.refundStatus === "Pending"
-        ? "Refund is being processed"
-        : "Processing has not started yet.",
-      timestamp: returnRequest.refund?.refundStatus === "Processed" 
-        ? returnRequest.timestamps?.inspectionCompletedAt 
+      timestamp: returnRequest.refund?.refundStatus === "Processed"
+        ? returnRequest.timestamps?.inspectionCompletedAt
         : undefined,
-      status: returnRequest.refund?.refundStatus === "Processed" ? "completed" :
-              returnRequest.inspection?.inspectedAt ? "current" : "pending",
       icon: <Eye className="h-4 w-4" />,
     },
   ];
 
+  const timelineSteps = allTimelineSteps
+    .filter((step) => step.timestamp)
+    .sort((a, b) => new Date(a.timestamp!).getTime() - new Date(b.timestamp!).getTime());
+
   return (
     <div className="relative py-2">
-      {steps.map((step, index) => (
-        <div key={index} className="relative flex gap-4 pb-8 last:pb-0">
+      {timelineSteps.map((step, stepIndex) => (
+        <div key={stepIndex} className="relative flex gap-4 pb-8 last:pb-0">
           {/* Timeline line */}
-          {index !== steps.length - 1 && (
-            <div 
-              className={`absolute left-[15px] top-[32px] h-full w-[2px] ${
-                step.status === "completed" ? "bg-green-500" : "bg-gray-200"
-              }`}
-            />
+          {stepIndex !== timelineSteps.length - 1 && (
+            <div className={`absolute left-[15px] top-[32px] h-full w-[2px] ${
+              step.isCancelled ? "bg-red-500" : "bg-green-500"
+            }`} />
           )}
-          
+
           {/* Icon */}
           <div className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${
-            step.status === "completed"
-              ? "border-green-500 bg-green-500 text-white"
-              : step.status === "current"
-              ? "border-blue-500 bg-blue-50 text-blue-600 animate-pulse"
-              : "border-gray-300 bg-white text-gray-400"
-          }`}>
-            {step.status === "completed" ? (
-              <CheckCircle className="h-4 w-4" />
-            ) : (
-              step.icon
-            )}
+            step.isCancelled
+              ? "border-red-500 bg-red-500"
+              : "border-green-500 bg-green-500"
+          } text-white`}>
+            {step.icon}
           </div>
 
           {/* Content */}
           <div className="flex-1 pt-0.5">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className={`text-sm font-medium ${
-                step.status === "completed" ? "text-green-700" :
-                step.status === "current" ? "text-blue-700" :
-                "text-gray-500"
-              }`}>
-                {step.label}
-              </h4>
-              {step.status === "current" && (
-                <Badge variant="outline" className="text-xs border-blue-500 text-blue-600">
-                  In Progress
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">{step.description}</p>
-            {step.timestamp && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {new Date(step.timestamp).toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </p>
-            )}
+            <h4 className={`text-sm font-medium mb-1 ${
+              step.isCancelled ? "text-red-700" : "text-green-700"
+            }`}>
+              {step.label}
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              {new Date(step.timestamp!).toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
           </div>
         </div>
       ))}

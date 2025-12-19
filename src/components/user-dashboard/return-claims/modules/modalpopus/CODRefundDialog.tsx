@@ -43,10 +43,10 @@ export default function CODRefundDialog({
   const fetchBankDetails = async () => {
     let userId: string | undefined;
     
-    console.log("CODRefundDialog - Fetching bank details");
-    console.log("returnRequest:", returnRequest);
-    console.log("returnRequest.orderId:", returnRequest?.orderId);
-    console.log("returnRequest.customerId:", returnRequest?.customerId);
+    // console.log("CODRefundDialog - Fetching bank details");
+    // console.log("returnRequest:", returnRequest);
+    // console.log("returnRequest.orderId:", returnRequest?.orderId);
+    // console.log("returnRequest.customerId:", returnRequest?.customerId);
     
     // Priority 1: Check if orderId is an object with customerDetails.userId
     if (returnRequest?.orderId && typeof returnRequest.orderId === 'object' && returnRequest.orderId !== null) {
@@ -87,13 +87,13 @@ export default function CODRefundDialog({
       setLoading(true);
       const response = await getBankDetails(userId);
       
-      console.log("Bank details API response:", response);
-      console.log("Response structure:", {
-        success: response.success,
-        data: response.data,
-        user: (response as any).data?.user,
-        bank_details: (response as any).data?.user?.bank_details
-      });
+      // console.log("Bank details API response:", response);
+      // console.log("Response structure:", {
+      //   success: response.success,
+      //   data: response.data,
+      //   user: (response as any).data?.user,
+      //   bank_details: (response as any).data?.user?.bank_details
+      // });
       
       // Map the response structure: response.data.user.bank_details
       let bankDetailsData: UserBankDetails | null = null;

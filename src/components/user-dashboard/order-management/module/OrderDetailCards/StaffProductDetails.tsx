@@ -316,7 +316,13 @@ const ProductRow = ({
           <Badge className="text-xs px-2 py-0.5 bg-green-100 text-green-800 border-green-200">
             Packed Completed
           </Badge>
-        ) : (
+        ) :
+        (orderStatus === "Cancelled") ? (
+          <Badge className="text-xs px-2 py-0.5 bg-red-100 text-red-800 border-red-200">
+            Cancelled
+          </Badge>
+        )
+        : (
           isStaff && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
