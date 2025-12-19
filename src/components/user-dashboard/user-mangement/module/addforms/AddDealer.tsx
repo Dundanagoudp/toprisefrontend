@@ -11,11 +11,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Badge } from "@/components/ui/badge"
 import { Plus, X } from "lucide-react"
-import { createDealer, getAllCategories } from "@/service/dealerServices"
+import { createDealer, getAllCategories, getAllSlaTypes } from "@/service/dealerServices"
 import { getAllFulfillmentStaff, getAllFulfillmentStaffWithoutPagination } from "@/service/employeeServices"
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useState, useEffect, Fragment, useRef } from "react"
 import type { User, Category } from "@/types/dealer-types"
+import { SlaType } from "@/types/sla-types"
 import { useRouter } from "next/navigation"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import { useAppSelector } from "@/store/hooks"
@@ -28,6 +29,7 @@ export default function AddDealer() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [allBrands, setAllBrands] = useState<any[]>([])
+  const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
   const [submitLoading, setSubmitLoading] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [formData, setFormData] = useState<DealerFormValues | null>(null)
@@ -69,6 +71,7 @@ export default function AddDealer() {
   useEffect(() => {
     fetchUsers()
     fetchBrands()
+    fetchSlaTypes()
   }, [])
 
   // Ensure form is properly reset when component mounts
@@ -138,6 +141,16 @@ export default function AddDealer() {
       }
     } catch (error) {
       showToast("Failed to load brands. Please refresh the page.", "error");
+    }
+  }
+
+  const fetchSlaTypes = async () => {
+    try {
+      const slaTypesResponse = await getAllSlaTypes()
+      const item = slaTypesResponse.data
+      setSlaTypes(item)
+    } catch (error) {
+      showToast("Failed to load SLA types. Please refresh the page.", "error");
     }
   }
 
@@ -576,9 +589,15 @@ export default function AddDealer() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Standard">Standard</SelectItem>
-                        <SelectItem value="Priority">Priority</SelectItem>
-                        <SelectItem value="Limited">Limited</SelectItem>
+                        {slaTypes && slaTypes.length > 0 ? (
+                          slaTypes.map((sla) => (
+                            <SelectItem key={sla._id} value={sla._id}>
+                              {sla.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-sla-types" disabled>No SLA Types</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

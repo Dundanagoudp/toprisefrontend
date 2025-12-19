@@ -99,6 +99,17 @@ export async function getAllCSlaTypes(): Promise<SlaTypesResponse> {
   }
 }
 
+// New function to get SLA types from the new endpoint
+export async function getAllSlaTypes(): Promise<SlaTypesResponse> {
+  try {
+    const response = await apiClient.get("/orders/api/sla-types/")
+    return response.data
+  } catch (error) {
+    console.error("Failed to fetch SLA types:", error)
+    throw error
+  }
+}
+
 // Get dealers by category ID
 export async function getDealersByCategory(categoryId: string): Promise<ApiResponse<Dealer[]>> {
   try {
