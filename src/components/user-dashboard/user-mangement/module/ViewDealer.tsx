@@ -337,8 +337,8 @@ export default function ViewDealer() {
                 )}
                 {slaTypeInfo.expectedHours !== "-" && (
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-700">Expected Hours</span>
-                    <span className="text-gray-900">{slaTypeInfo.expectedHours} hours</span>
+                    <span className="text-sm font-medium text-gray-700">Expected Minutes</span>
+                    <span className="text-gray-900">{slaTypeInfo.expectedHours} minutes</span>
                   </div>
                 )}
               </div>

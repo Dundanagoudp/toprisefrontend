@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { Checkbox } from "@/components/ui/checkbox"
-import { getDealerById, updateDealerById, getAllCategories, getAllCSlaTypes } from "@/service/dealerServices"
+import { getDealerById, updateDealerById, getAllCategories, getAllCSlaTypes, getAllSlaTypes } from "@/service/dealerServices"
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import type { User, Category } from "@/types/dealer-types"
 import {  SlaType } from "@/types/sla-types"
@@ -79,7 +79,7 @@ export default function EditDealer() {
 
   const fetchSlaTypes = async () => {
     try {
-      const slaTypesResponse = await getAllCSlaTypes()
+      const slaTypesResponse = await getAllSlaTypes()
       const item = slaTypesResponse.data
       setSlaTypes(item)
     } catch (error) {

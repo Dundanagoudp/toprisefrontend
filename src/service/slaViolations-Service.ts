@@ -1,5 +1,99 @@
 import apiClient from "@/apiClient";
 
+// TypeScript Interfaces for SLA Types
+export interface SlaType {
+  _id?: string;
+  name: string;
+  description: string;
+  expected_hours: number;
+  created_at?: string;
+  updated_at?: string;
+  __v?: number;
+}
+
+export interface SlaTypeFilters {
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}
+
+export interface SlaTypeListResponse {
+  success: boolean;
+  message: string;
+  data: {
+    data: SlaType[];
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+      pageSize: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      nextPage: number | null;
+      previousPage: number | null;
+    };
+  };
+}
+
+export interface SlaTypeResponse {
+  success: boolean;
+  message: string;
+  data: SlaType;
+}
+
+// SLA Types Service
+export const slaTypesService = {
+  // Get all SLA types with pagination, search, and sorting
+  getSlaTypes: async (filters?: SlaTypeFilters): Promise<SlaTypeListResponse> => {
+    const response = await apiClient.get<SlaTypeListResponse>(
+      "/orders/api/sla-types/all/pagination",
+      { params: filters }
+    );
+    return response.data;
+  },
+
+  // Get single SLA type by ID
+  getSlaTypeById: async (id: string): Promise<SlaTypeResponse> => {
+    const response = await apiClient.get<SlaTypeResponse>(
+      `/orders/api/sla-types/${id}`
+    );
+    return response.data;
+  },
+
+  // Create new SLA type
+  createSlaType: async (
+    data: Omit<SlaType, "_id" | "created_at" | "updated_at" | "__v">
+  ): Promise<SlaTypeResponse> => {
+    const response = await apiClient.post<SlaTypeResponse>(
+      "/orders/api/sla-types/",
+      data
+    );
+    return response.data;
+  },
+
+  // Update existing SLA type
+  updateSlaType: async (
+    id: string,
+    data: Partial<Omit<SlaType, "_id" | "created_at" | "updated_at" | "__v">>
+  ): Promise<SlaTypeResponse> => {
+    const response = await apiClient.put<SlaTypeResponse>(
+      `/orders/api/sla-types/${id}`,
+      data
+    );
+    return response.data;
+  },
+
+  // Delete SLA type
+  deleteSlaType: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      `/orders/api/sla-types/${id}`
+    );
+    return response.data;
+  },
+};
+
 // SLA Violation Statistics Service
 export const slaViolationsService = {
   // Get SLA Violation Statistics

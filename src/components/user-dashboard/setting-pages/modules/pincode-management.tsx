@@ -51,9 +51,11 @@ import {
   deletePincode,
   bulkDeletePincodes,
   getPincodeById,
+  getPincodeMetadata,
   type Pincode,
   type PincodeListResponse,
-  type PincodeFilters
+  type PincodeFilters,
+  type PincodeMetadata
 } from "@/service/pincodeServices"
 import { PincodeModal } from "./popups/pincode-modal"
 import { BulkUploadModal } from "./popups/pincodebulkupload"
@@ -92,8 +94,6 @@ export function PincodeManagement() {
     shipRocket_availability: "",
     borzo_standard: "",
     borzo_endOfDay: "",
-    delivery_available: "",
-    cod_available: "",
     status: "",
     estimated_delivery_days: "",
     sortBy: "created_at",
@@ -102,11 +102,18 @@ export function PincodeManagement() {
     limit: 20
   })
 
-  // Extract unique values for filter dropdowns
-  const [uniqueCities, setUniqueCities] = useState<string[]>([])
-  const [uniqueStates, setUniqueStates] = useState<string[]>([])
-  const [uniqueDistricts, setUniqueDistricts] = useState<string[]>([])
-  const [uniqueAreas, setUniqueAreas] = useState<string[]>([])
+  // Metadata for filter dropdowns
+  const [metadata, setMetadata] = useState<PincodeMetadata>({
+    states: [],
+    districts: [],
+    cities: [],
+    areas: []
+  })
+
+  // Filtered options based on current selections
+  const [filteredDistricts, setFilteredDistricts] = useState<string[]>([])
+  const [filteredCities, setFilteredCities] = useState<string[]>([])
+  const [filteredAreas, setFilteredAreas] = useState<string[]>([])
 
   const fetchPincodes = async () => {
     setLoading(true)
@@ -117,16 +124,8 @@ export function PincodeManagement() {
       setTotalCount(response.data.pagination.totalItems || 0)
       setTotalPages(response.data.pagination.totalPages || 1)
       
-      // Extract unique values for dropdowns
-      const cities = [...new Set(fetchedPincodes.map(p => p.city))].filter(Boolean).sort()
-      const states = [...new Set(fetchedPincodes.map(p => p.state))].filter(Boolean).sort()
-      const districts = [...new Set(fetchedPincodes.map(p => p.district))].filter(Boolean).sort()
-      const areas = [...new Set(fetchedPincodes.map(p => p.area))].filter(Boolean).sort()
-      
-      setUniqueCities(cities)
-      setUniqueStates(states)
-      setUniqueDistricts(districts)
-      setUniqueAreas(areas)
+      // Update filtered dropdown options based on current selections
+      updateFilteredOptions(fetchedPincodes)
       
       // Clear selection after fetch
       setSelectedPincodes([])
@@ -138,18 +137,123 @@ export function PincodeManagement() {
     }
   }
 
+  const updateFilteredOptions = (fetchedPincodes: Pincode[]) => {
+    // Filter districts based on selected state
+    if (filters.state) {
+      const districts = [...new Set(
+        fetchedPincodes
+          .filter(p => p.state === filters.state)
+          .map(p => p.district)
+      )].filter(Boolean).sort()
+      setFilteredDistricts(districts)
+    } else {
+      setFilteredDistricts(metadata.districts)
+    }
+
+    // Filter cities based on selected district
+    if (filters.district) {
+      const cities = [...new Set(
+        fetchedPincodes
+          .filter(p => (!filters.state || p.state === filters.state) && p.district === filters.district)
+          .map(p => p.city)
+      )].filter(Boolean).sort()
+      setFilteredCities(cities)
+    } else if (filters.state) {
+      const cities = [...new Set(
+        fetchedPincodes
+          .filter(p => p.state === filters.state)
+          .map(p => p.city)
+      )].filter(Boolean).sort()
+      setFilteredCities(cities)
+    } else {
+      setFilteredCities(metadata.cities)
+    }
+
+    // Filter areas based on selected city
+    if (filters.city) {
+      const areas = [...new Set(
+        fetchedPincodes
+          .filter(p => 
+            (!filters.state || p.state === filters.state) && 
+            (!filters.district || p.district === filters.district) && 
+            p.city === filters.city
+          )
+          .map(p => p.area)
+      )].filter(Boolean).sort()
+      setFilteredAreas(areas)
+    } else if (filters.district) {
+      const areas = [...new Set(
+        fetchedPincodes
+          .filter(p => 
+            (!filters.state || p.state === filters.state) && 
+            p.district === filters.district
+          )
+          .map(p => p.area)
+      )].filter(Boolean).sort()
+      setFilteredAreas(areas)
+    } else if (filters.state) {
+      const areas = [...new Set(
+        fetchedPincodes
+          .filter(p => p.state === filters.state)
+          .map(p => p.area)
+      )].filter(Boolean).sort()
+      setFilteredAreas(areas)
+    } else {
+      setFilteredAreas(metadata.areas)
+    }
+  }
+
   useEffect(() => {
     fetchPincodes()
   }, [filters])
 
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const response = await getPincodeMetadata()
+        setMetadata(response.data)
+        // Initialize filtered options with all metadata
+        setFilteredDistricts(response.data.districts)
+        setFilteredCities(response.data.cities)
+        setFilteredAreas(response.data.areas)
+      } catch (error) {
+        console.error("Error fetching pincode metadata:", error)
+        showToast("Failed to load filter options. Please refresh the page.", "error")
+      }
+    }
+    fetchMetadata()
+  }, [])
+
   const handleFilterChange = (key: keyof PincodeFilters, value: string) => {
     // Convert "all" or empty values to empty string for the filter state
     const filterValue = value === "all" ? "" : value
-    setFilters(prev => ({
-      ...prev,
-      [key]: filterValue,
-      page: 1 // Reset to first page on filter change
-    }))
+    
+    // Clear dependent filters when parent filter changes
+    setFilters(prev => {
+      const newFilters = {
+        ...prev,
+        [key]: filterValue,
+        page: 1 // Reset to first page on filter change
+      }
+      
+      // If state changes, clear district, city, and area
+      if (key === 'state') {
+        newFilters.district = ""
+        newFilters.city = ""
+        newFilters.area = ""
+      }
+      // If district changes, clear city and area
+      else if (key === 'district') {
+        newFilters.city = ""
+        newFilters.area = ""
+      }
+      // If city changes, clear area
+      else if (key === 'city') {
+        newFilters.area = ""
+      }
+      
+      return newFilters
+    })
     setCurrentPage(1)
   }
 
@@ -167,8 +271,6 @@ export function PincodeManagement() {
       shipRocket_availability: "",
       borzo_standard: "",
       borzo_endOfDay: "",
-      delivery_available: "",
-      cod_available: "",
       status: "",
       estimated_delivery_days: "",
       sortBy: "created_at",
@@ -177,6 +279,10 @@ export function PincodeManagement() {
       limit: 20
     })
     setCurrentPage(1)
+    // Reset filtered options to full metadata
+    setFilteredDistricts(metadata.districts)
+    setFilteredCities(metadata.cities)
+    setFilteredAreas(metadata.areas)
   }
 
   const handleSort = (column: string) => {
@@ -557,26 +663,6 @@ export function PincodeManagement() {
                 <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Location</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="filter-city" className="text-sm font-medium text-gray-700 block">
-                      City
-                    </label>
-                    <Select
-                      value={filters.city || "all"}
-                      onValueChange={(value) => handleFilterChange('city', value)}
-                    >
-                      <SelectTrigger id="filter-city" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
-                        <SelectValue placeholder="Select City" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Cities</SelectItem>
-                        {uniqueCities.map((city) => (
-                          <SelectItem key={city} value={city}>{city}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
                     <label htmlFor="filter-state" className="text-sm font-medium text-gray-700 block">
                       State
                     </label>
@@ -589,7 +675,7 @@ export function PincodeManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All States</SelectItem>
-                        {uniqueStates.map((state) => (
+                        {metadata.states.sort().map((state) => (
                           <SelectItem key={state} value={state}>{state}</SelectItem>
                         ))}
                       </SelectContent>
@@ -613,8 +699,32 @@ export function PincodeManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Districts</SelectItem>
-                        {uniqueDistricts.map((district) => (
+                        {filteredDistricts.map((district) => (
                           <SelectItem key={district} value={district}>{district}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="filter-city" className="text-sm font-medium text-gray-700 block">
+                      City
+                    </label>
+                    <Select
+                      value={filters.city || "all"}
+                      onValueChange={(value) => handleFilterChange('city', value)}
+                      disabled={!filters.district}
+                    >
+                      <SelectTrigger 
+                        id="filter-city" 
+                        className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <SelectValue placeholder={filters.district ? "Select City" : "Select District first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Cities</SelectItem>
+                        {filteredCities.map((city) => (
+                          <SelectItem key={city} value={city}>{city}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -627,82 +737,19 @@ export function PincodeManagement() {
                     <Select
                       value={filters.area || "all"}
                       onValueChange={(value) => handleFilterChange('area', value)}
-                      disabled={!filters.district}
+                      disabled={!filters.city}
                     >
                       <SelectTrigger 
                         id="filter-area" 
                         className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <SelectValue placeholder={filters.district ? "Select Area" : "Select District first"} />
+                        <SelectValue placeholder={filters.city ? "Select Area" : "Select City first"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Areas</SelectItem>
-                        {uniqueAreas.map((area) => (
+                        {filteredAreas.map((area) => (
                           <SelectItem key={area} value={area}>{area}</SelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Delivery Options Section */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Delivery Options</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="filter-delivery" className="text-sm font-medium text-gray-700 block">
-                      Delivery Available
-                    </label>
-                    <Select
-                      value={filters.delivery_available || "all"}
-                      onValueChange={(value) => handleFilterChange('delivery_available', value)}
-                    >
-                      <SelectTrigger id="filter-delivery" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
-                        <SelectValue placeholder="Select Option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="true">Available</SelectItem>
-                        <SelectItem value="false">Not Available</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label htmlFor="filter-cod" className="text-sm font-medium text-gray-700 block">
-                      COD Available
-                    </label>
-                    <Select
-                      value={filters.cod_available || "all"}
-                      onValueChange={(value) => handleFilterChange('cod_available', value)}
-                    >
-                      <SelectTrigger id="filter-cod" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
-                        <SelectValue placeholder="Select Option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="true">Available</SelectItem>
-                        <SelectItem value="false">Not Available</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label htmlFor="filter-shiprocket" className="text-sm font-medium text-gray-700 block">
-                      ShipRocket
-                    </label>
-                    <Select
-                      value={filters.shipRocket_availability || "all"}
-                      onValueChange={(value) => handleFilterChange('shipRocket_availability', value)}
-                    >
-                      <SelectTrigger id="filter-shiprocket" className="h-10 text-sm w-full focus:ring-2 focus:ring-[#C72920] focus:ring-offset-0">
-                        <SelectValue placeholder="Select Option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="true">Available</SelectItem>
-                        <SelectItem value="false">Not Available</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1083,7 +1130,10 @@ export function PincodeManagement() {
               fetchPincodes()
               showToast("Pincodes uploaded successfully!", "success")
             }}
-            onCancel={() => setIsBulkUploadOpen(false)}
+            onCancel={() => {
+              setIsBulkUploadOpen(false)
+              fetchPincodes() // Refresh list even if there were errors
+            }}
           />
         </DialogContent>
       </Dialog>
