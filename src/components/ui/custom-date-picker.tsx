@@ -82,69 +82,78 @@ export function CustomDatePicker({
       </Button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 mt-1 w-80 bg-white border rounded-md shadow-lg p-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Date Range</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsOpen(false)}
-                className="h-6 w-6 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+        <div className="absolute top-full left-0 z-50 mt-2 w-[400px] bg-white border border-gray-200 rounded-lg shadow-xl">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <Label className="text-base font-semibold text-gray-900">Date Range</Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOpen(false)}
+              className="h-6 w-6 p-0 hover:bg-gray-100"
+            >
+              <X className="h-4 w-4 text-gray-500" />
+            </Button>
+          </div>
 
+          {/* Date Inputs */}
+          <div className="p-4 pr-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="from-date" className="text-xs">From Date</Label>
+                <Label htmlFor="from-date" className="text-sm font-medium text-gray-700">
+                  From Date
+                </Label>
                 <Input
                   id="from-date"
                   type="date"
                   value={tempFrom}
                   onChange={(e) => setTempFrom(e.target.value)}
-                  className="text-sm"
+                  className="text-sm h-10"
+                  placeholder="dd-mm-yyyy"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="to-date" className="text-xs">To Date</Label>
+                <Label htmlFor="to-date" className="text-sm font-medium text-gray-700">
+                  To Date
+                </Label>
                 <Input
                   id="to-date"
                   type="date"
                   value={tempTo}
                   onChange={(e) => setTempTo(e.target.value)}
-                  className="text-sm"
+                  className="text-sm h-10"
+                  placeholder="dd-mm-yyyy"
                 />
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center justify-between pt-2 border-t">
+          {/* Footer Buttons */}
+          <div className="flex items-center justify-between px-4 pr-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              className="text-sm text-gray-700 hover:text-gray-900 hover:bg-transparent"
+            >
+              Clear
+            </Button>
+            <div className="flex gap-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={handleClear}
-                className="text-xs"
+                onClick={() => setIsOpen(false)}
+                className="text-sm"
               >
-                Clear
+                Cancel
               </Button>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsOpen(false)}
-                  className="text-xs"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleApply}
-                  className="text-xs"
-                >
-                  Apply
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                onClick={handleApply}
+                className="text-sm bg-[#C72920] hover:bg-[#C72920]/90 text-white"
+              >
+                Apply
+              </Button>
             </div>
           </div>
         </div>

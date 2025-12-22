@@ -1,9 +1,9 @@
-import AuditLogs from "@/components/user-dashboard/audit-logs/AuditLogs";
+import Auditlogspage from "@/components/user-dashboard/Auditlogs/auditlogspage";
 
 export default function Page() {
   return (
     <div>
-      <AuditLogs />
+      <Auditlogspage />
     </div>
   )
 }
