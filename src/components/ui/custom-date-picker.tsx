@@ -82,7 +82,7 @@ export function CustomDatePicker({
       </Button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 mt-2 w-[400px] bg-white border border-gray-200 rounded-lg shadow-xl">
+        <div className="absolute top-full right-0 z-50 mt-2 w-[400px] bg-white border border-gray-200 rounded-lg shadow-xl">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
             <Label className="text-base font-semibold text-gray-900">Date Range</Label>
@@ -97,39 +97,45 @@ export function CustomDatePicker({
           </div>
 
           {/* Date Inputs */}
-          <div className="p-4 pr-6">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="p-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="from-date" className="text-sm font-medium text-gray-700">
                   From Date
                 </Label>
-                <Input
-                  id="from-date"
-                  type="date"
-                  value={tempFrom}
-                  onChange={(e) => setTempFrom(e.target.value)}
-                  className="text-sm h-10"
-                  placeholder="dd-mm-yyyy"
-                />
+                <div className="relative">
+                  <Input
+                    id="from-date"
+                    type="date"
+                    value={tempFrom}
+                    onChange={(e) => setTempFrom(e.target.value)}
+                    className="text-sm h-10 pr-10"
+                    placeholder="dd-mm-yyyy"
+                  />
+                  <CalendarIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="to-date" className="text-sm font-medium text-gray-700">
                   To Date
                 </Label>
-                <Input
-                  id="to-date"
-                  type="date"
-                  value={tempTo}
-                  onChange={(e) => setTempTo(e.target.value)}
-                  className="text-sm h-10"
-                  placeholder="dd-mm-yyyy"
-                />
+                <div className="relative">
+                  <Input
+                    id="to-date"
+                    type="date"
+                    value={tempTo}
+                    onChange={(e) => setTempTo(e.target.value)}
+                    className="text-sm h-10 pr-10"
+                    placeholder="dd-mm-yyyy"
+                  />
+                  <CalendarIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex items-center justify-between px-4 pr-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b-lg">
             <Button
               variant="ghost"
               size="sm"
