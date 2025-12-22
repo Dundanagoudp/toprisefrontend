@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from "next/navigation";
 import TicketIcon, { BoxIcon, DashboardIcon, userIcon } from "./ui/TicketIcon";
 import { title } from "process";
+import auditLogService from "@/service/audit-log-service";
 
 //fullFillmen admin and staff
 // Role-based sidebar visibility config for scalability
@@ -232,7 +233,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Import persistor from store
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { persistor } = require("@/store/store");
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Log audit trail for logout action before clearing session
+      const userRole = auth?.role || "admin";
+      const actionName = userRole === "Super-admin" 
+        ? "Logout_Successful_Super_Admin" 
+        : `Logout_Successful_${userRole}`;
+      
+      await auditLogService.createActionAuditLog({
+        actionName: actionName,
+        actionModule: "USER",
+      });
+    } catch (auditError) {
+      console.error("Failed to log audit trail for logout:", auditError);
+      // Don't block logout if audit log fails
+    }
+
     Cookies.remove("token");
     Cookies.remove("role");
     Cookies.remove("lastlogin");

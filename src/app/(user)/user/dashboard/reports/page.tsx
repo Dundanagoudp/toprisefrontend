@@ -1,8 +1,8 @@
 "use client";
 
-import Reports from "@/components/user-dashboard/reports/Reports";
+import Reportspage from "@/components/user-dashboard/Reportspage/Reportspage";
 
 export default function ReportsPage() {
-  return <Reports />;
+  return <Reportspage />;
 }
 

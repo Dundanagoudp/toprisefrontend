@@ -27,6 +27,7 @@ import { fetchAndDownloadCSV } from "@/components/common/ExportCsv";
 import { SelectContext } from "@/utils/SelectContext";
 import { ProductSelectionProvider, useProductSelection } from "@/contexts/ProductSelectionContext";
 import apiClient from "@/apiClient";
+import auditLogService from "@/service/audit-log-service";
 
 
 type TabType = "Approved" | "Pending" | "Rejected";
@@ -510,6 +511,19 @@ const handleFrontendExport = async () => {
     document.body.removeChild(downloadLink);
 
     showToast("Export Successful!", "success");
+
+    // Log audit trail for export action
+    try {
+      console.log("📝 Creating audit log for Product Export...");
+      const auditResponse = await auditLogService.createActionAuditLog({
+        actionName: "Product_Exported",
+        actionModule: "REPORT_EXPORT",
+      });
+      console.log("✅ Audit log created successfully:", auditResponse);
+    } catch (auditError) {
+      console.error("❌ Failed to log audit trail:", auditError);
+      // Don't fail the export if audit log fails
+    }
   } catch (error) {
     console.error("EXPORT ERROR:", error);
     showToast("Export failed", "error");

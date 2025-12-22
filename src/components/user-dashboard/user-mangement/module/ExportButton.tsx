@@ -8,6 +8,7 @@ import { exportDataToCsv } from "@/service/csvExportService";
 import { Employee } from "@/types/employee-types";
 import { Dealer } from "@/types/dealer-types";
 import { AppUser } from "@/types/user-types";
+import auditLogService from "@/service/audit-log-service";
 
 interface ExportButtonProps {
   data: Employee[] | Dealer[] | AppUser[];
@@ -42,6 +43,28 @@ export default function ExportButton({
       
       const dataTypeLabel = dataType.charAt(0).toUpperCase() + dataType.slice(1);
       showToast(`${dataTypeLabel} data exported successfully!`, "success");
+
+      // Log audit trail for export action
+      try {
+        let actionName = "";
+        if (dataType === "employees") {
+          actionName = "Employee_Exported";
+        } else if (dataType === "dealers") {
+          actionName = "Dealer_Exported";
+        } else if (dataType === "users") {
+          actionName = "User_Exported";
+        }
+
+        if (actionName) {
+          await auditLogService.createActionAuditLog({
+            actionName,
+            actionModule: "REPORT_EXPORT",
+          });
+        }
+      } catch (auditError) {
+        console.error("Failed to log audit trail:", auditError);
+        // Don't fail the export if audit log fails
+      }
     } catch (error) {
       console.error("Export failed:", error);
       showToast("Failed to export data. Please try again.", "error");

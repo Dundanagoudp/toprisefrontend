@@ -69,6 +69,7 @@ import { getDealerById } from "@/service/dealerServices";
 import { getEmployeeById } from "@/service/employeeServices";
 import { getSKUDetails } from "@/service/product-Service";
 import DynamicPagination from "@/components/common/pagination/DynamicPagination";
+import auditLogService from "@/service/audit-log-service";
 
 export default function PickupManagement() {
   const router = useRouter();
@@ -430,6 +431,17 @@ export default function PickupManagement() {
         `CSV exported successfully (${dataToExport.length} records)${statusFilter !== 'all' ? ` - Status: ${statusFilter}` : ''}`, 
         "success"
       );
+
+      // Log audit trail for export action
+      try {
+        await auditLogService.createActionAuditLog({
+          actionName: "Picklist_Exported",
+          actionModule: "REPORT_EXPORT",
+        });
+      } catch (auditError) {
+        console.error("Failed to log audit trail:", auditError);
+        // Don't fail the export if audit log fails
+      }
     } catch (error) {
       console.error("Error exporting CSV:", error);
       showToast("Failed to export CSV", "error");

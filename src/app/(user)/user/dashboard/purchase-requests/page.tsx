@@ -29,6 +29,7 @@ import apiClient from "@/apiClient"
 import { useToast } from "@/components/ui/toast"
 import { useRouter, useSearchParams } from "next/navigation"
 import DynamicPagination from "@/components/common/pagination/DynamicPagination"
+import auditLogService from "@/service/audit-log-service"
 import { SimpleDatePicker } from "@/components/ui/simple-date-picker"
 import {
   DropdownMenu,
@@ -227,6 +228,19 @@ export default function PurchaseRequestsPage() {
       URL.revokeObjectURL(url)
       
       showToast(`Exported ${filteredRequests.length} purchase requests successfully`, "success")
+
+      // Log audit trail for export action
+      try {
+        console.log("📝 Creating audit log for Purchase Request Export...");
+        const auditResponse = await auditLogService.createActionAuditLog({
+          actionName: "Purchase_Request_Exported",
+          actionModule: "REPORT_EXPORT",
+        });
+        console.log("✅ Audit log created successfully:", auditResponse);
+      } catch (auditError) {
+        console.error("❌ Failed to log audit trail:", auditError);
+        // Don't fail the export if audit log fails
+      }
     } catch (error) {
       console.error('Error exporting CSV:', error)
       showToast('Failed to export data. Please try again.', "error")

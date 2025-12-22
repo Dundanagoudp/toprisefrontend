@@ -1,24 +1,17 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchOrdersRequest, fetchOrdersSuccess, fetchOrdersFailure } from "@/store/slice/order/orderSlice";
-import { getOrders, type OrderFilters } from "@/service/order-service";
-import { fetchEnhancedOrderStats } from "@/service/dashboardServices";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import DynamicButton from "@/components/common/button/button";
-import EnhancedOrderFilters from "@/components/user-dashboard/order-management/EnhancedOrderFilters";
-import EnhancedOrderStatsCards from "@/components/user-dashboard/order-management/EnhancedOrderStatsCards";
-import { useRouter } from "next/navigation";
-import { MoreHorizontal, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { DynamicPagination } from "@/components/common/pagination";
+import { getOrders, type OrderFilters } from "@/service/order-service";
 import { format } from "date-fns";
+import EnhancedOrderFilters from "@/components/user-dashboard/order-management/EnhancedOrderFilters";
 import auditLogService from "@/service/audit-log-service";
 
-// Strict Type Definition
 interface AdminOrder {
   id: string;
   orderId: string;
@@ -30,16 +23,9 @@ interface AdminOrder {
   dealers: number;
 }
 
-export default function AdminOrdersTable() {
-  const dispatch = useAppDispatch();
-  const route = useRouter();
-  // const { orders, loading } = useAppSelector((state) => state.order);
-  
-  // Local State
-  // get the order from local state 
-  const [Orders, setOrders] = useState<any[]>([]);
+export default function OrderAnalyticsTab() {
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [stats, setStats] = useState<any>(null);
   const [filters, setFilters] = useState<any>({
     status: "all",
     search: "",
@@ -131,9 +117,7 @@ export default function AdminOrdersTable() {
     });
   };
 
-  // Data Fetching
   const fetchOrdersData = async () => {
-    dispatch(fetchOrdersRequest());
     try {
       setLoading(true);
       
@@ -154,36 +138,26 @@ export default function AdminOrdersTable() {
         orderFilters.endDate = format(filters.dateRange.to, 'yyyy-MM-dd');
       }
 
-      const [orderRes, statsRes] = await Promise.all([
-        getOrders(currentPage, itemsPerPage, orderFilters),
-        fetchEnhancedOrderStats({})
-      ]);
-
+      const orderRes = await getOrders(currentPage, itemsPerPage, orderFilters);
       const apiData: any = orderRes.data;
       const mapped = mapApiOrders(apiData);
-      console.log("Mapped Orders:", mapped);
       setOrders(mapped);
-      dispatch(fetchOrdersSuccess(mapped));
-      setStats(statsRes.data);
-      // Handle pagination if present, else fallback
       setTotalOrders(apiData.pagination?.totalItems || mapped.length);
       setTotalPages(apiData.pagination?.totalPages || Math.ceil(mapped.length / itemsPerPage));
     } catch (err: any) {
-      dispatch(fetchOrdersFailure(err.message));
-    }
-    finally {
+      console.error("Failed to fetch orders:", err);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOrdersData();
-  }, [dispatch, currentPage, filters.paymentMethod, filters.status, filters.orderSource, filters.dealerId, filters.search, filters.sortBy, filters.order, filters.dateRange?.from, filters.dateRange?.to]);
+  }, [currentPage, filters.paymentMethod, filters.status, filters.orderSource, filters.dealerId, filters.search, filters.sortBy, filters.order, filters.dateRange?.from, filters.dateRange?.to]);
 
-  // Client-side Filtering (Replace with Server-side in future)
   const filteredData = useMemo(() => {
-    return applyFilters(Orders as AdminOrder[]);
-  }, [Orders, filters]);
+    return applyFilters(orders as AdminOrder[]);
+  }, [orders, filters]);
 
   const toCSVValue = (value: string | number | undefined | null) => {
     const stringValue = value ?? "";
@@ -279,23 +253,19 @@ export default function AdminOrdersTable() {
       const currentOrder = prev.order;
 
       if (field === "Amount") {
-        // Handle Amount column sorting: no sort -> asc -> desc -> no sort
         if (!currentSortBy || currentSortBy !== "order_Amount") {
-          // No sort or different field - start with ascending
           return {
             ...prev,
             sortBy: "order_Amount",
             order: "asc"
           };
         } else if (currentOrder === "asc") {
-          // Currently ascending - switch to descending
           return {
             ...prev,
             sortBy: "order_Amount",
             order: "desc"
           };
         } else {
-          // Currently descending - remove sorting (no sort)
           const { sortBy, order, ...rest } = prev;
           return rest;
         }
@@ -307,27 +277,17 @@ export default function AdminOrdersTable() {
 
   return (
     <div className="space-y-6">
-      <EnhancedOrderStatsCards 
-        stats={stats} 
-        loading={loading} 
-        filters={filters} 
-        onFilterChange={(k, v) => setFilters((prev: any) => ({...prev, [k]: v}))} 
-        onRefresh={() => {}} 
-        onClearFilters={() => setFilters({})}
-      />
-
       <EnhancedOrderFilters 
         onFiltersChange={setFilters} 
         loading={loading || exporting} 
         onExport={handleExportOrders}
         onRefresh={fetchOrdersData}
       />
-
+      
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Order Management</CardTitle>
-            {/* <DynamicButton text="Dashboard" variant="outline" onClick={() => route.push("/user/dashboard/orders-dashboard")} /> */}
           </div>
         </CardHeader>
         <CardContent>
@@ -357,17 +317,16 @@ export default function AdminOrdersTable() {
                 <TableHead>Dealers</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Payment Status</TableHead>
-                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">Loading...</TableCell>
+                  <TableCell colSpan={7} className="text-center">Loading...</TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     No Orders found
                   </TableCell>
                 </TableRow>
@@ -389,16 +348,6 @@ export default function AdminOrdersTable() {
                         {order.paymentStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger><MoreHorizontal className="w-4 h-4" /></DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => route.push(`/user/dashboard/order/orderdetails/${order.id}`)}>
-                              <Eye className="mr-2 h-4 w-4"/> View
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -407,7 +356,6 @@ export default function AdminOrdersTable() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
       {totalOrders > 0 && totalPages > 1 && (
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
           <div className="text-sm text-gray-600 text-center sm:text-left">
@@ -430,3 +378,4 @@ export default function AdminOrdersTable() {
     </div>
   );
 }
+
