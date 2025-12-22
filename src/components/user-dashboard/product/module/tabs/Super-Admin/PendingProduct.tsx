@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { getCategories, getBrand } from "@/service/product-Service";
 import {
   Pagination,
@@ -101,6 +102,13 @@ export default function PendingProduct({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [qcRejectTargetId, setQcRejectTargetId] = useState<string | null>(null);
+  const { isSuperAdmin, isInventoryAdmin } = useMemo(() => {
+    if (!auth?.user?.role) return { isSuperAdmin: false, isInventoryAdmin: false };
+    return {
+      isSuperAdmin: auth?.user?.role === "Super-admin",
+      isInventoryAdmin: auth?.user?.role === "Inventory-Admin",
+    };
+  }, [auth?.user?.role]);
   const {
     selectedProductIds: selectedItems,
     setSelectedProductIds: setSelectedItems,
@@ -554,6 +562,7 @@ export default function PendingProduct({
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                      {!isSuperAdmin && !isInventoryAdmin ?<span className="b2 text-gray-700">{product.Qc_status}</span> : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -579,6 +588,7 @@ export default function PendingProduct({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </TableCell>
                     {/* <TableCell className="px-6 py-4 font-sans">
                       <DropdownMenu>
@@ -613,6 +623,7 @@ export default function PendingProduct({
                       </DropdownMenu>
                     </TableCell> */}
                     <TableCell className="px-6 py-4 text-center font-sans">
+                      {!isSuperAdmin && !isInventoryAdmin ?<Badge variant="outline" className="bg-gray-100 text-gray-700 b2">Not Authorized</Badge> : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -639,6 +650,7 @@ export default function PendingProduct({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

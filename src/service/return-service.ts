@@ -36,6 +36,41 @@ export const getReturnRequests = async (params?: {
     throw error;
   }
 };
+
+// get return for fulfillment staff
+export const getReturnRequestsForFulfillmentStaff = async (dealerIds: string[],params?: {
+  refundMethod?: string;
+  status?: string;
+
+  page?: number;
+  limit?: number;
+
+}): Promise<ReturnRequestsResponse> => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params?.refundMethod) {
+      queryParams.append("refundMethod", params.refundMethod);
+    }
+    if (params?.status) {
+      queryParams.append("status", params.status);
+    }
+
+    if (params?.page) {
+      queryParams.append("page", params.page.toString());
+    }
+    if (params?.limit) {
+      queryParams.append("limit", params.limit.toString());
+    }
+    const queryString = queryParams.toString();
+    const response = await apiClient.post(`/orders/api/returns/return/forFullfillmentStaff?${queryString}`,{
+      dealerId: dealerIds
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching return requests:", error);
+    throw error;
+  }
+};
 export const getReturnRequestsById = async (
   id: string
 ): Promise<SingleReturnResponse> => {

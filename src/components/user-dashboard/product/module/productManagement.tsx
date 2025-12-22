@@ -284,6 +284,7 @@ useEffect(() => {
   };
   const handleResetSort = () => {
     setResetSortKey((prev) => prev + 1);
+  
   };
   // refreshKey triggers when any filter changes we care about
 
@@ -291,13 +292,13 @@ useEffect(() => {
 
 
   // Debug: Monitor searchQuery changes
-  useEffect(() => {
-    console.log("ProductManagement: searchQuery changed to:", searchQuery);
-  }, [searchQuery]);
+  // useEffect(() => {
+  //   console.log("ProductManagement: searchQuery changed to:", searchQuery);
+  // }, [searchQuery]);
 
-  useEffect(() => {
-    console.log("🔄 selectedCategoryId state changed to:", selectedCategoryId);
-  }, [selectedCategoryId]);
+  // useEffect(() => {
+  //   console.log("🔄 selectedCategoryId state changed to:", selectedCategoryId);
+  // }, [selectedCategoryId]);
 
   // Debug: Monitor category and subcategory filter changes
   useEffect(() => {
@@ -398,7 +399,7 @@ useEffect(() => {
         resetSortKey={resetSortKey}
       />
     );
-  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryId, selectedSubCategoryId, activeTab, refreshKey]);
+  }, [currentTabConfig, searchQuery, selectedTab, selectedCategoryId, selectedSubCategoryId, activeTab, refreshKey, resetSortKey]);
 
  
 const handleFrontendExport = async () => {

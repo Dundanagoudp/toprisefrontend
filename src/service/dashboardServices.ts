@@ -17,9 +17,15 @@ export async function fetchProductStats(): Promise<ProductStatsResponse> {
   return response.data as ProductStatsResponse;
 }
 
-export async function fetchEmployeeStats(): Promise<EmployeeStatsResponse> {
+export async function fetchEmployeeStats(role?: string): Promise<EmployeeStatsResponse> {
+  const params: any = {};
+  if (role) {
+    params.role = role;
+  }
+
   const response = await apiClient.get(
-    `/users/api/users/employee/stats`
+    `/users/api/users/employee/stats`,
+    { params }
   );
   return response.data as EmployeeStatsResponse;
 }
