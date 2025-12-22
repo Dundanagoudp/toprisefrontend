@@ -416,6 +416,22 @@ export async function getDealerIdFromUserId(userId?: string): Promise<string> {
   }
 }
 
+// Get dealer by user ID
+export async function getDealerByUserId(userId: string): Promise<any> {
+  try {
+    console.log(`[getDealerByUserId] Fetching dealer for user ID: ${userId}`)
+    const response = await apiClient.get(`/users/api/users/get/dealer/byUserId/${userId}`)
+    console.log(`[getDealerByUserId] Response:`, response.data)
+    
+    // Return the full response data to handle different structures
+    // API may return: { message: "...", dealer: {...} } or { success: true, data: {...} }
+    return response.data
+  } catch (error) {
+    console.error(`Failed to fetch dealer with user ID ${userId}:`, error)
+    throw error
+  }
+}
+
 // Get dealer profile details by dealer ID
 export async function getDealerProfileDetails(dealerId?: string): Promise<Dealer> {
   try {

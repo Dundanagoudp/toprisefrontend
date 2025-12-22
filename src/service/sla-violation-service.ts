@@ -61,10 +61,28 @@ export const slaViolationService = {
     dealerId: string,
     filters?: SlaViolationFilters
   ): Promise<SlaViolationListResponse> => {
+    // Clean filters - remove empty strings and undefined values
+    const cleanParams: Record<string, string | number> = {}
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        // Only include non-empty values
+        if (value !== undefined && value !== null && value !== "") {
+          cleanParams[key] = value
+        }
+      })
+    }
+    
+    console.log("API Call - Dealer ID:", dealerId, "Params:", cleanParams)
     const response = await apiClient.get<SlaViolationListResponse>(
       `/orders/api/sla-voilation-model/dealer/${dealerId}`,
-      { params: filters }
+      { params: cleanParams }
     )
+    console.log("API Response structure:", {
+      hasData: !!response.data,
+      hasDataData: !!response.data?.data,
+      isArray: Array.isArray(response.data?.data),
+      responseKeys: response.data ? Object.keys(response.data) : []
+    })
     return response.data
   },
 }

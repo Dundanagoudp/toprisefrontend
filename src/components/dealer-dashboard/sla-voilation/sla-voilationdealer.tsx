@@ -33,7 +33,7 @@ import { slaViolationService } from "@/service/sla-violation-service"
 import type { SlaViolation, SlaViolationFilters } from "@/types/sla-violation-types"
 import { ResolveModal } from "./modules/resolve-modal"
 import { ViewViolationModal } from "@/components/user-dashboard/new-SlaVoilations/modules/view-violation-modal"
-import { getDealerProfileDetails } from "@/service/dealerServices"
+import { getDealerProfileDetails, getDealerByUserId } from "@/service/dealerServices"
 import { getAuthToken, getCookie } from "@/utils/auth"
 
 export default function Slavoilationdealer() {
@@ -59,55 +59,119 @@ export default function Slavoilationdealer() {
     limit: itemsPerPage,
   })
 
-  // Get dealer ID on mount
+  // Get dealer ID on mount using user ID
   useEffect(() => {
     const fetchDealerId = async () => {
       setFetchingDealerId(true)
       try {
-        // First, try to get dealer ID from cookie
-        let id = getCookie("dealerId")
-        
-        if (!id) {
-          // Try to get dealer ID from token
-          const token = getAuthToken()
-          if (token) {
-            try {
-              const payloadBase64 = token.split(".")[1]
-              if (payloadBase64) {
-                const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/")
-                const paddedBase64 = base64.padEnd(
-                  base64.length + ((4 - (base64.length % 4)) % 4),
-                  "="
-                )
-                const payloadJson = atob(paddedBase64)
-                const payload = JSON.parse(payloadJson)
-                id = payload.dealerId || payload.id
-              }
-            } catch (err) {
-              console.error("Failed to decode token:", err)
-            }
-          }
-        }
-
-        // Fallback: get from dealer profile
-        if (!id) {
+        // First, get user ID from token
+        let userId: string | null = null
+        const token = getAuthToken()
+        if (token) {
           try {
-            const dealer = await getDealerProfileDetails()
-            if (dealer?._id) {
-              id = dealer._id
+            const payloadBase64 = token.split(".")[1]
+            if (payloadBase64) {
+              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/")
+              const paddedBase64 = base64.padEnd(
+                base64.length + ((4 - (base64.length % 4)) % 4),
+                "="
+              )
+              const payloadJson = atob(paddedBase64)
+              const payload = JSON.parse(payloadJson)
+              userId = payload.id || payload.userId || payload.user_id
             }
-          } catch (profileError) {
-            console.error("Failed to get dealer profile:", profileError)
+          } catch (err) {
+            console.error("Failed to decode token:", err)
           }
         }
 
-        if (id) {
-          console.log("Dealer ID found:", id)
-          setDealerId(id)
-        } else {
-          console.error("Dealer ID not found in cookie, token, or profile")
-          showToast("Failed to get dealer information. Please refresh the page.", "error")
+        if (!userId) {
+          console.error("User ID not found in token")
+          showToast("Failed to get user information. Please refresh the page.", "error")
           setLoading(false)
+          return
+        }
+
+        console.log("User ID found:", userId)
+
+        // Call API to get dealer by user ID
+        try {
+          const dealerResponse = await getDealerByUserId(userId)
+          console.log("Dealer response:", dealerResponse)
+          
+          // Handle different response structures
+          let dealer: any = null
+          const response = dealerResponse as any
+          
+          // Check for dealer property (from API response structure)
+          if (response?.dealer) {
+            dealer = response.dealer
+          } 
+          // Check for data property (from ApiResponse structure)
+          else if (response?.data) {
+            dealer = response.data
+          } 
+          // Check for nested data structure
+          else if (response?.success && response?.data) {
+            dealer = response.data
+          }
+
+          if (dealer?._id) {
+            console.log("Dealer ID found from API:", dealer._id)
+            console.log("Dealer user_id:", dealer.user_id)
+            setDealerId(dealer._id)
+          } else {
+            console.error("Dealer ID not found in API response")
+            showToast("Failed to get dealer information. Please refresh the page.", "error")
+            setLoading(false)
+          }
+        } catch (apiError) {
+          console.error("Failed to get dealer from API:", apiError)
+          
+          // Fallback: try to get dealer ID from cookie
+          let id = getCookie("dealerId")
+          
+          if (!id) {
+            // Try to get dealer ID from token
+            if (token) {
+              try {
+                const payloadBase64 = token.split(".")[1]
+                if (payloadBase64) {
+                  const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/")
+                  const paddedBase64 = base64.padEnd(
+                    base64.length + ((4 - (base64.length % 4)) % 4),
+                    "="
+                  )
+                  const payloadJson = atob(paddedBase64)
+                  const payload = JSON.parse(payloadJson)
+                  id = payload.dealerId || payload.id
+                }
+              } catch (err) {
+                console.error("Failed to decode token:", err)
+              }
+            }
+          }
+
+          // Final fallback: get from dealer profile
+          if (!id) {
+            try {
+              const dealer = await getDealerProfileDetails()
+              if (dealer?._id) {
+                id = dealer._id
+              }
+            } catch (profileError) {
+              console.error("Failed to get dealer profile:", profileError)
+            }
+          }
+
+          if (id) {
+            console.log("Dealer ID found from fallback:", id)
+            setDealerId(id)
+          } else {
+            console.error("Dealer ID not found in any method")
+            showToast("Failed to get dealer information. Please refresh the page.", "error")
+            setLoading(false)
+          }
         }
       } catch (error) {
         console.error("Error getting dealer ID:", error)
@@ -128,13 +192,71 @@ export default function Slavoilationdealer() {
 
     setLoading(true)
     try {
-      console.log("Fetching violations for dealer:", dealerId, "with filters:", filters)
-      const response = await slaViolationService.getSlaViolationsByDealer(dealerId, filters)
+      // Clean filters - remove empty search strings and undefined values
+      const cleanFilters: SlaViolationFilters = {
+        page: filters.page || 1,
+        limit: filters.limit || itemsPerPage,
+        sortBy: filters.sortBy || "created_at",
+        sortOrder: filters.sortOrder || "desc",
+      }
+      
+      // Only add search if it has a value
+      if (filters.search && filters.search.trim() !== "") {
+        cleanFilters.search = filters.search.trim()
+      }
+
+      console.log("Fetching violations for dealer:", dealerId, "with filters:", cleanFilters)
+      const response = await slaViolationService.getSlaViolationsByDealer(dealerId, cleanFilters)
       console.log("Violations response:", response)
-      const fetchedViolations = response.data.data || []
+      
+      // Handle different response structures
+      let fetchedViolations: SlaViolation[] = []
+      let totalItems = 0
+      let totalPagesCount = 1
+
+      if (response && response.data) {
+        const responseData = response.data as any
+        
+        // Check if responseData is an array (direct array response)
+        if (Array.isArray(responseData)) {
+          fetchedViolations = responseData
+          totalItems = responseData.length
+          totalPagesCount = 1
+        }
+        // Check if responseData.data exists (nested structure)
+        else if (responseData.data) {
+          // Check if responseData.data is an array
+          if (Array.isArray(responseData.data)) {
+            fetchedViolations = responseData.data
+          }
+          // Check if responseData.data.data exists (double nested)
+          else if (responseData.data.data && Array.isArray(responseData.data.data)) {
+            fetchedViolations = responseData.data.data
+          }
+          
+          // Get pagination info
+          if (responseData.data.pagination) {
+            totalItems = responseData.data.pagination.totalItems || 0
+            totalPagesCount = responseData.data.pagination.totalPages || 1
+          } else if (responseData.pagination) {
+            totalItems = responseData.pagination.totalItems || 0
+            totalPagesCount = responseData.pagination.totalPages || 1
+          }
+        }
+        // Check if responseData.violations exists (alternative structure)
+        else if (responseData.violations && Array.isArray(responseData.violations)) {
+          fetchedViolations = responseData.violations
+          if (responseData.pagination) {
+            totalItems = responseData.pagination.totalItems || (responseData.pagination as any).totalCount || 0
+            totalPagesCount = responseData.pagination.totalPages || 1
+          }
+        }
+      }
+
+      console.log("Parsed violations:", fetchedViolations.length, "Total items:", totalItems)
       setViolations(fetchedViolations)
-      setTotalCount(response.data.pagination.totalItems || 0)
-      setTotalPages(response.data.pagination.totalPages || 1)
+      setTotalCount(totalItems)
+      setTotalPages(totalPagesCount)
     } catch (error) {
       console.error("Error fetching SLA violations:", error)
       showToast("Failed to load SLA violations. Please refresh the page.", "error")
