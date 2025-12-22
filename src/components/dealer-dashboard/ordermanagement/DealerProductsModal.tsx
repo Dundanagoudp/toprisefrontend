@@ -68,9 +68,9 @@ export default function DealerProductsModal({
                   <TableHead className="text-gray-700 font-medium px-4 py-3 text-left">
                     Quantity
                   </TableHead>
-                  <TableHead className="text-gray-700 font-medium px-4 py-3 text-right">
+                  {/* <TableHead className="text-gray-700 font-medium px-4 py-3 text-right">
                     Actions
-                  </TableHead>
+                  </TableHead> */}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -88,7 +88,7 @@ export default function DealerProductsModal({
                     <TableCell className="px-4 py-3 text-gray-900 font-semibold">
                       {product.quantity}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-right">
+                    {/* <TableCell className="px-4 py-3 text-right">
                       <Button
                         variant="outline"
                         size="sm"
@@ -138,7 +138,7 @@ export default function DealerProductsModal({
                         <Truck className="h-4 w-4" />
                         Mark Shipped
                       </Button>
-                    </TableCell>
+                    </TableCell> */}
                   </TableRow>
                 ))}
               </TableBody>

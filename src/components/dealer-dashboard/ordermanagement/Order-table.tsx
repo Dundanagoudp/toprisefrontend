@@ -619,14 +619,14 @@ export default function OrdersTable() {
                                 <Eye className="h-4 w-4" />
                                 View Products
                               </DropdownMenuItem>
-
+{/* 
                               <DropdownMenuItem 
                                 className="b3 text-base font-red-hat flex items-center gap-2 rounded hover:bg-neutral-100 cursor-pointer"
                                 onClick={() => handleViewPickList(order)}
                               >
                                 <Eye className="h-4 w-4" />
                                 Pick List
-                              </DropdownMenuItem>
+                              </DropdownMenuItem> */}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

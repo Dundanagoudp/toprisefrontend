@@ -46,6 +46,7 @@ function BreadcrumbWithContext() {
       contentManagement: "Content Management", // Fix content management breadcrumb
       tickets: "Support Tickets", // Fix support tickets breadcrumb
       paymentDetails: "Payment Details", // Fix payment details breadcrumb
+      Dealerview: "", // Fix dealer view breadcrumb
       ...customLabels 
     }}
     showDashboard={showDashboard}

@@ -73,29 +73,78 @@ export default function RiseTicket({ open, onClose, orderId, showOrderSelection 
         }
     };
     const handleSubmitRiseTicket = async () => {
+        // Validate required fields
+        if (!description.trim()) {
+            showToast('Please provide a description', 'error');
+            return;
+        }
+
+        if (ticketType === "Order" && !selectedOrderId) {
+            showToast('Please select an order', 'error');
+            return;
+        }
+
+        if (!userid) {
+            showToast('User not authenticated', 'error');
+            return;
+        }
+
         setLoading(true);
        try{
-        const response = await riseTicket({
+        const payload = {
             userRef: userid,
             order_id: ticketType === "Order" ? selectedOrderId : null,
-            description: description,
+            description: description.trim(),
             ticketType: ticketType,
             attachments: attachments
-        })
+        };
+
+        console.log("Submitting ticket with payload:", payload);
+
+        const response = await riseTicket(payload);
+        
        if(response.success){
         showToast('Ticket raised successfully', 'success')
+        // Reset form
+        setDescription("");
+        setAttachments([]);
+        setSelectedOrderId(orderId || "");
         onClose()
        }
        else{
-        showToast('Failed to RAISE A TICKET. Please try again.', 'error')
+        showToast(response.message || 'Failed to raise ticket. Please try again.', 'error')
        }
        }
-       catch(error){
-        console.log(error);
-        showToast('Failed to RAISE A TICKET. Please try again.', 'error')
-        onClose()
+       catch(error: any){
+        console.error("Failed to rise ticket:", error);
+        const errorMessage = error?.response?.data?.message || error?.message;
+        if (errorMessage?.toLowerCase().includes('already')) {
+           // showToast('Ticket already raised', 'error');
+        } else {
+            showToast(errorMessage || 'Failed to raise ticket. Please try again.', 'error');
+        }
+        // Check if error response contains specific message
+        
+        // Check for specific error cases
+        if (errorMessage?.toLowerCase().includes('already raised') || 
+            errorMessage?.toLowerCase().includes('already exists') ||
+            errorMessage?.toLowerCase().includes('duplicate ticket') ||
+            errorMessage?.toLowerCase().includes('ticket already')) {
+          showToast('Ticket has already been raised for this order', 'error');
+        } else if (error?.response?.status === 400) {
+          // Handle other 400 errors
+          showToast(errorMessage || 'Invalid request. Please check all fields and try again.', 'error');
+        } else if (error?.response?.status === 401) {
+          showToast('You are not authorized. Please log in again.', 'error');
+        } else if (error?.response?.status === 404) {
+          showToast('Order not found. Please select a valid order.', 'error');
+        } else {
+          showToast(errorMessage || 'Failed to raise ticket. Please try again.', 'error');
+        }
        }
+       finally {
         setLoading(false);
+       }
     }
     return(
         <Dialog open={open} onOpenChange={onClose}>
