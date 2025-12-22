@@ -76,7 +76,7 @@ export function LoginForm({
         if (role === "Dealer") {
           router.replace("/dealer/dashboard");
         } else if (role === "Fulfillment-Admin") {
-          router.replace("/user/dashboard");
+          router.replace("/user/dashboard/product");
         } else if (
           role === "Fulfillment-Staff" ||
           role === "Fullfillment-staff"

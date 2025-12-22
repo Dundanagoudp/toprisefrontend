@@ -1,26 +1,41 @@
-"use client"
-import { MoreHorizontal, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { getAllDealers, disableDealer, enableDealer } from "@/service/dealerServices"
-import { getAllCategories } from "@/service/dealerServices"
-import type { Dealer, Category } from "@/types/dealer-types"
-import { useToast as useToastMessage } from "@/components/ui/toast"
-import { Skeleton } from "@/components/ui/skeleton"
-import DynamicPagination from "@/components/common/pagination/DynamicPagination"
-import { useAppSelector } from "@/store/hooks"
-import ExportButton from "./ExportButton"
-import { getBrand } from "@/service/product-Service"
+"use client";
+import {
+  MoreHorizontal,
+  Loader2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import {
+  getAllDealers,
+  disableDealer,
+  enableDealer,
+} from "@/service/dealerServices";
+import { getAllCategories } from "@/service/dealerServices";
+import type { Dealer, Category } from "@/types/dealer-types";
+import { useToast as useToastMessage } from "@/components/ui/toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import DynamicPagination from "@/components/common/pagination/DynamicPagination";
+import { useAppSelector } from "@/store/hooks";
+import ExportButton from "./ExportButton";
+import { getBrand } from "@/service/product-Service";
 
 interface DealertableProps {
-  search?: string
-  role?: string
-  status?: string
-  sortField?: string
-  sortDirection?: "asc" | "desc"
-  onSort?: (field: string) => void
+  search?: string;
+  role?: string;
+  status?: string;
+  sortField?: string;
+  sortDirection?: "asc" | "desc";
+  onSort?: (field: string) => void;
 }
 
 export default function Dealertable({
@@ -31,130 +46,160 @@ export default function Dealertable({
   sortDirection = "asc",
   onSort,
 }: DealertableProps) {
-  const [currentPage, setCurrentPage] = useState(1)
-  const [dealers, setDealers] = useState<Dealer[]>([])
-  const [loading, setLoading] = useState(true)
-  const { showToast } = useToastMessage()
-  const itemsPerPage = 10
-  const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"]
-  const auth = useAppSelector((state) => state.auth.user)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { showToast } = useToastMessage();
+  const itemsPerPage = 10;
+  const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
+  const auth = useAppSelector((state) => state.auth.user);
+  const { isSuperAdmin, isInventoryAdmin } = useMemo(() => {
+    if (!auth?.role) return { isSuperAdmin: false, isInventoryAdmin: false };
+    return {
+      isSuperAdmin: auth?.role === "Super-admin",
+      isInventoryAdmin: auth?.role === "Inventory-Admin",
+    };
+  }, [auth?.role]);
 
   // Helper function to check if user can perform admin actions
   const canPerformAdminActions = () => {
-    return auth && allowedRoles.includes(auth.role)
-  }
+    return auth && allowedRoles.includes(auth.role);
+  };
 
   // Helper function to check if user can view details
   const canViewDetails = () => {
-    return auth // Allow all authenticated users to view details
-  }
+    return auth; // Allow all authenticated users to view details
+  };
 
   // Helper function to check if user can access the table
   const canAccessTable = () => {
-    return auth // Allow all authenticated users to see the table
-  }
+    return auth; // Allow all authenticated users to see the table
+  };
 
   // Sort dealers based on sortField and sortDirection
   const sortedDealers = [...dealers].sort((a, b) => {
-    if (!sortField) return 0
+    if (!sortField) return 0;
 
-    let aValue: any
-    let bValue: any
+    let aValue: any;
+    let bValue: any;
 
     switch (sortField) {
       case "legalName":
-        aValue = a.legal_name?.toLowerCase() || ""
-        bValue = b.legal_name?.toLowerCase() || ""
-        break
+        aValue = a.legal_name?.toLowerCase() || "";
+        bValue = b.legal_name?.toLowerCase() || "";
+        break;
       case "tradeName":
-        aValue = a.trade_name?.toLowerCase() || ""
-        bValue = b.trade_name?.toLowerCase() || ""
-        break
+        aValue = a.trade_name?.toLowerCase() || "";
+        bValue = b.trade_name?.toLowerCase() || "";
+        break;
       case "status":
-        aValue = a.is_active ? "active" : "inactive"
-        bValue = b.is_active ? "active" : "inactive"
-        break
+        aValue = a.is_active ? "active" : "inactive";
+        bValue = b.is_active ? "active" : "inactive";
+        break;
       case "brand":
-        aValue = a.brands_allowed?.join(", ")?.toLowerCase() || ""
-        bValue = b.brands_allowed?.join(", ")?.toLowerCase() || ""
-        break
+        aValue = a.brands_allowed?.join(", ")?.toLowerCase() || "";
+        bValue = b.brands_allowed?.join(", ")?.toLowerCase() || "";
+        break;
       default:
-        return 0
+        return 0;
     }
 
     if (sortDirection === "asc") {
-      return aValue.localeCompare(bValue)
+      return aValue.localeCompare(bValue);
     } else {
-      return bValue.localeCompare(aValue)
+      return bValue.localeCompare(aValue);
     }
-  })
+  });
 
   // Filter dealers by search, role, and status
   const filteredDealers = sortedDealers.filter((dealer) => {
-    const searchLower = search.toLowerCase()
+    const searchLower = search.toLowerCase();
     const matchesSearch =
       dealer.legal_name.toLowerCase().includes(searchLower) ||
       dealer.trade_name.toLowerCase().includes(searchLower) ||
       dealer.user_id.email.toLowerCase().includes(searchLower) ||
       dealer.user_id.phone_Number.toLowerCase().includes(searchLower) ||
       dealer.contact_person.name.toLowerCase().includes(searchLower) ||
-      dealer.contact_person.email.toLowerCase().includes(searchLower)
+      dealer.contact_person.email.toLowerCase().includes(searchLower);
 
-    const matchesRole = !role || role.toLowerCase() === "all" || dealer.user_id.role?.toLowerCase() === role.toLowerCase()
-    const matchesStatus = !status || status.toLowerCase() === "all" || (status.toLowerCase() === "active" ? dealer.is_active : !dealer.is_active)
+    const matchesRole =
+      !role ||
+      role.toLowerCase() === "all" ||
+      dealer.user_id.role?.toLowerCase() === role.toLowerCase();
+    const matchesStatus =
+      !status ||
+      status.toLowerCase() === "all" ||
+      (status.toLowerCase() === "active"
+        ? dealer.is_active
+        : !dealer.is_active);
 
-    return matchesSearch && matchesRole && matchesStatus
-  })
-  const totalItems = filteredDealers.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const paginatedData = filteredDealers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-  const router = useRouter()
-  const [brands, setBrands] = useState<any[]>([])
-  const [viewDealerLoading, setViewDealerLoading] = useState(false)
-  const [editDealerLoading, setEditDealerLoading] = useState(false)
-  const [addDealerLoading, setAddDealerLoading] = useState(false)
-  const [disablingId, setDisablingId] = useState<string | null>(null)
-  const [enablingId, setEnablingId] = useState<string | null>(null)
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+  const totalItems = filteredDealers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedData = filteredDealers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const router = useRouter();
+  const [brands, setBrands] = useState<any[]>([]);
+  const [viewDealerLoading, setViewDealerLoading] = useState(false);
+  const [editDealerLoading, setEditDealerLoading] = useState(false);
+  const [addDealerLoading, setAddDealerLoading] = useState(false);
+  const [disablingId, setDisablingId] = useState<string | null>(null);
+  const [enablingId, setEnablingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDealers()
-    fetchBrands()
-  }, [])
+    fetchDealers();
+    fetchBrands();
+  }, []);
 
   const fetchDealers = async () => {
     try {
-      setLoading(true)
-      const response = await getAllDealers()
+      setLoading(true);
+      const response = await getAllDealers();
       if (response.success) {
-        setDealers(response.data)
+        setDealers(response.data);
       }
     } catch (error) {
-      showToast("Failed to fetch dealers", "error")
+      showToast("Failed to fetch dealers", "error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === "asc" ? (
+      <ArrowUp className="w-4 h-4 text-[#C72920]" />
+    ) : (
+      <ArrowDown className="w-4 h-4 text-[#C72920]" />
+    );
+  };
 
   const fetchBrands = async () => {
     try {
-      const response = await getBrand()
+      const response = await getBrand();
       if (response.success) {
-        setBrands(response.data)
+    
+        setBrands(response.data);
       }
     } catch (error) {
-      showToast("Failed to fetch brands", "error")
+      showToast("Failed to fetch brands", "error");
     }
-  }
+  };
 
   const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page)
-  }
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
 
   const handleSort = (field: string) => {
     if (onSort) {
-      onSort(field)
+      onSort(field);
     }
-  }
+  };
 
   const getStatusBadge = (isActive: boolean) => {
     return (
@@ -165,35 +210,38 @@ export default function Dealertable({
       >
         {isActive ? "Active" : "Inactive"}
       </span>
-    )
-  }
+    );
+  };
 
   const handleDisableDealer = async (dealerId: string) => {
     try {
-      setDisablingId(dealerId)
-      await disableDealer(dealerId)
-      setDealers((prev) => prev.map((d) => (d._id === dealerId ? { ...d, is_active: false } : d)))
-      showToast("Dealer Disabled Successfully", "success")
+      setDisablingId(dealerId);
+      await disableDealer(dealerId);
+      setDealers((prev) =>
+        prev.map((d) => (d._id === dealerId ? { ...d, is_active: false } : d))
+      );
+      showToast("Dealer Disabled Successfully", "success");
     } catch (error) {
-      showToast("Failed to disable dealer. Please try again.", "error")
+      showToast("Failed to disable dealer. Please try again.", "error");
     } finally {
-      setDisablingId(null)
+      setDisablingId(null);
     }
-  }
+  };
 
   const handleEnableDealer = async (dealerId: string) => {
     try {
-      setEnablingId(dealerId)
-      await enableDealer(dealerId)
-      setDealers((prev) => prev.map((d) => (d._id === dealerId ? { ...d, is_active: true } : d)))
-      showToast("Dealer Enabled Successfully", "success")
+      setEnablingId(dealerId);
+      await enableDealer(dealerId);
+      setDealers((prev) =>
+        prev.map((d) => (d._id === dealerId ? { ...d, is_active: true } : d))
+      );
+      showToast("Dealer Enabled Successfully", "success");
     } catch (error) {
-      showToast("Failed to enable dealer. Please try again.", "error")
+      showToast("Failed to enable dealer. Please try again.", "error");
     } finally {
-      setEnablingId(null)
+      setEnablingId(null);
     }
-  }
-
+  };
 
   if (loading) {
     return (
@@ -201,22 +249,20 @@ export default function Dealertable({
         <table className="w-full min-w-[1000px] max-w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">S. No.</th>
+              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                S. No.
+              </th>
               <th
                 className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
                 onClick={() => handleSort("legalName")}
               >
-                <div className="flex items-center gap-1">
-                  Legal Name
-                </div>
+                <div className="flex items-center gap-1">Legal Name</div>
               </th>
               <th
                 className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
                 onClick={() => handleSort("tradeName")}
               >
-                <div className="flex items-center gap-1">
-                  Trade Name
-                </div>
+                <div className="flex items-center gap-1">Trade Name</div>
               </th>
               <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
                 Email/Phone
@@ -231,11 +277,12 @@ export default function Dealertable({
                 className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
                 onClick={() => handleSort("status")}
               >
-                <div className="flex items-center gap-1">
-                  Status
-                </div>
+                <div className="flex items-center gap-1">Status</div>
               </th>
-              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm"> Actions</th>
+              <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm">
+                {" "}
+                Actions
+              </th>
               {/* <th
                 className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors"
                 onClick={() => handleSort("category")}
@@ -245,7 +292,6 @@ export default function Dealertable({
                 </div>
                
               </th> */}
-              
             </tr>
           </thead>
           <tbody>
@@ -283,16 +329,18 @@ export default function Dealertable({
           </tbody>
         </table>
       </div>
-    )
+    );
   }
 
   // Role-based access control
   if (!auth || !canAccessTable()) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-red-600 font-bold">You do not have permission to access this page.</div>
+        <div className="text-xl text-red-600 font-bold">
+          You do not have permission to access this page.
+        </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -306,17 +354,21 @@ export default function Dealertable({
           className="bg-[#C72920] hover:bg-[#A0221C] text-white"
         />
       </div>
-      
+
       <table className="w-full min-w-[1000px] max-w-full">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">S. No.</th>
+            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">
+              S. No.
+            </th>
+            {/* show the arroe*/}
             <th
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-36"
               onClick={() => handleSort("legalName")}
             >
               <div className="flex items-center gap-1">
                 Legal Name
+                {getSortIcon("legalName")}
               </div>
             </th>
             <th
@@ -325,23 +377,20 @@ export default function Dealertable({
             >
               <div className="flex items-center gap-1">
                 Trade Name
+                {getSortIcon("tradeName")}
               </div>
             </th>
             <th
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-44"
               onClick={() => handleSort("email")}
             >
-              <div className="flex items-center gap-1">
-                Email/Phone
-              </div>
+              <div className="flex items-center gap-1">Email/Phone</div>
             </th>
             <th
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-36"
               onClick={() => handleSort("contactPerson")}
             >
-              <div className="flex items-center gap-1">
-                Contact Person
-              </div>
+              <div className="flex items-center gap-1">Contact Person</div>
             </th>
             {/* <th
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-20"
@@ -355,32 +404,41 @@ export default function Dealertable({
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-16"
               onClick={() => handleSort("status")}
             >
-              <div className="flex items-center gap-1">
-                Status
-              </div>
+              <div className="flex items-center gap-1">Status</div>
             </th>
             <th
               className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm cursor-pointer hover:text-[#C72920] transition-colors w-32"
               onClick={() => handleSort("brand")}
             >
-              <div className="flex items-center gap-1">
-                Brand
-              </div>
+              <div className="flex items-center gap-1">Brand</div>
             </th>
-            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">Actions</th>
+            <th className="text-left p-3 md:p-4 font-medium text-gray-600 text-sm w-12">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
           {paginatedData.map((dealer, index) => (
-            <tr key={dealer._id} className="border-b border-gray-100 hover:bg-gray-50">
-              <td className="p-3 md:p-4 text-gray-600 text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+            <tr
+              key={dealer._id}
+              className="border-b border-gray-100 hover:bg-gray-50"
+            >
               <td className="p-3 md:p-4 text-gray-600 text-sm">
-                <div className="truncate max-w-[140px]" title={dealer.legal_name}>
+                {(currentPage - 1) * itemsPerPage + index + 1}
+              </td>
+              <td className="p-3 md:p-4 text-gray-600 text-sm">
+                <div
+                  className="truncate max-w-[140px]"
+                  title={dealer.legal_name}
+                >
                   {dealer.legal_name}
                 </div>
               </td>
               <td className="p-3 md:p-4 font-medium text-gray-900 text-sm">
-                <div className="truncate max-w-[140px]" title={dealer.trade_name}>
+                <div
+                  className="truncate max-w-[140px]"
+                  title={dealer.trade_name}
+                >
                   {dealer.trade_name}
                 </div>
               </td>
@@ -389,7 +447,10 @@ export default function Dealertable({
                   <div className="truncate" title={dealer.user_id.email}>
                     {dealer.user_id.email}
                   </div>
-                  <div className="text-xs text-gray-500 truncate" title={dealer.user_id.phone_Number}>
+                  <div
+                    className="text-xs text-gray-500 truncate"
+                    title={dealer.user_id.phone_Number}
+                  >
                     {dealer.user_id.phone_Number}
                   </div>
                 </div>
@@ -399,7 +460,10 @@ export default function Dealertable({
                   <div className="truncate" title={dealer.contact_person.name}>
                     {dealer.contact_person.name}
                   </div>
-                  <div className="text-xs text-gray-500 truncate" title={dealer.contact_person.email}>
+                  <div
+                    className="text-xs text-gray-500 truncate"
+                    title={dealer.contact_person.email}
+                  >
                     {dealer.contact_person.email}
                   </div>
                 </div>
@@ -412,22 +476,28 @@ export default function Dealertable({
               <td className="p-3 md:p-4">{getStatusBadge(dealer.is_active)}</td>
               <td className="p-3 md:p-4 text-gray-600 text-sm">
                 <div className="flex flex-wrap gap-1 max-w-[120px]">
-                  {dealer.brands_allowed.slice(0, 3).map((brandId: string, idx: number) => {
-                    const brand = brands.find((brand: any) => brand._id === brandId)
-                    return (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded truncate max-w-[100px]"
-                        title={brand ? brand.brand_name : brandId}
-                      >
-                        {brand ? brand.brand_name : brandId}
-                      </span>
-                    )
-                  })}
+                  {dealer.brands_allowed
+                    .slice(0, 3)
+                    .map((brandId: string, idx: number) => {
+                      const brand = brands.find(
+                        (brand: any) => brand._id === brandId
+                      );
+                      return (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded truncate max-w-[100px]"
+                          title={brand ? brand.brand_name : brandId}
+                        >
+                          {brand ? brand.brand_name : brandId}
+                        </span>
+                      );
+                    })}
                   {dealer.brands_allowed.length > 3 && (
                     <span
                       className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded truncate max-w-[100px]"
-                      title={`${dealer.brands_allowed.length - 3} more brand${dealer.brands_allowed.length - 3 > 1 ? 's' : ''}`}
+                      title={`${dealer.brands_allowed.length - 3} more brand${
+                        dealer.brands_allowed.length - 3 > 1 ? "s" : ""
+                      }`}
                     >
                       ...
                     </span>
@@ -442,55 +512,66 @@ export default function Dealertable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    {canPerformAdminActions() && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setEditDealerLoading(true)
-                          router.push(`/user/dashboard/user/edit-dealer/${dealer._id}`)
-                        }}
-                      >
-                        Edit
-                      </DropdownMenuItem>
-                    )}
-                    {canPerformAdminActions() && dealer.is_active && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          if (disablingId) return
-                          handleDisableDealer(dealer._id)
-                        }}
-                      >
-                        {disablingId === dealer._id ? (
-                          <span className="flex items-center">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Disabling...
-                          </span>
-                        ) : (
-                          "Disable Dealer"
-                        )}
-                      </DropdownMenuItem>
-                    )}
-                    {canPerformAdminActions() && !dealer.is_active && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          if (enablingId) return
-                          handleEnableDealer(dealer._id)
-                        }}
-                      >
-                        {enablingId === dealer._id ? (
-                          <span className="flex items-center">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Enabling...
-                          </span>
-                        ) : (
-                          "Enable Dealer"
-                        )}
-                      </DropdownMenuItem>
-                    )}
+                    {canPerformAdminActions() &&
+                      (  isSuperAdmin ||
+                        isInventoryAdmin) && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditDealerLoading(true);
+                            router.push(
+                              `/user/dashboard/user/edit-dealer/${dealer._id}`
+                            );
+                          }}
+                        >
+                          Edit
+                        </DropdownMenuItem>
+                      )}
+                    {canPerformAdminActions() &&
+                      dealer.is_active &&
+                      (isSuperAdmin || isInventoryAdmin) && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (disablingId) return;
+                            handleDisableDealer(dealer._id);
+                          }}
+                        >
+                          {disablingId === dealer._id ? (
+                            <span className="flex items-center">
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Disabling...
+                            </span>
+                          ) : (
+                            "Disable Dealer"
+                          )}
+                        </DropdownMenuItem>
+                      )}
+                    {canPerformAdminActions() &&
+                      !dealer.is_active &&
+                      (  isSuperAdmin ||
+                        isInventoryAdmin) && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (enablingId) return;
+                            handleEnableDealer(dealer._id);
+                          }}
+                        >
+                          {enablingId === dealer._id ? (
+                            <span className="flex items-center">
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Enabling...
+                            </span>
+                          ) : (
+                            "Enable Dealer"
+                          )}
+                        </DropdownMenuItem>
+                      )}
                     {canViewDetails() && (
                       <DropdownMenuItem
                         onClick={() => {
-                          setViewDealerLoading(true)
-                          router.push(`/user/dashboard/user/dealerview/${dealer._id}`)
+                          setViewDealerLoading(true);
+                          router.push(
+                            `/user/dashboard/user/dealerview/${dealer._id}`
+                          );
                         }}
                       >
                         View Details
@@ -503,21 +584,23 @@ export default function Dealertable({
           ))}
         </tbody>
       </table>
-{/* Dynamic pagincaiton with showing total items and items per page*/}
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-600">
-              Showing {currentPage * itemsPerPage - itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} items
-            </p>
-          
-                  {/* Dynamic Pagination */}
-      <DynamicPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-        totalItems={totalItems}
-        itemsPerPage={itemsPerPage}
-      />
-          </div>
+      {/* Dynamic pagincaiton with showing total items and items per page*/}
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-600">
+          Showing {currentPage * itemsPerPage - itemsPerPage + 1} to{" "}
+          {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{" "}
+          items
+        </p>
+
+        {/* Dynamic Pagination */}
+        <DynamicPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+        />
+      </div>
 
       {/* Category Management Modals */}
 
@@ -526,7 +609,9 @@ export default function Dealertable({
         <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
             <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
-            <p className="text-lg font-medium text-gray-700">Loading Dealer details...</p>
+            <p className="text-lg font-medium text-gray-700">
+              Loading Dealer details...
+            </p>
           </div>
         </div>
       )}
@@ -534,7 +619,9 @@ export default function Dealertable({
         <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
             <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
-            <p className="text-lg font-medium text-gray-700">Loading Dealer details...</p>
+            <p className="text-lg font-medium text-gray-700">
+              Loading Dealer details...
+            </p>
           </div>
         </div>
       )}
@@ -542,10 +629,12 @@ export default function Dealertable({
         <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-xl">
             <Loader2 className="h-16 w-16 animate-spin text-[#C72920] mb-4" />
-            <p className="text-lg font-medium text-gray-700">Loading Dealer details...</p>
+            <p className="text-lg font-medium text-gray-700">
+              Loading Dealer details...
+            </p>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -47,7 +47,7 @@ import {
 import SearchFiltersModal from "./modules/modalpopus/searchfilters";
 import SearchInput from "@/components/common/search/SearchInput";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { getReturnRequests, initiateBorzoPickup, getReturnStats } from "@/service/return-service";
+import { getReturnRequests, initiateBorzoPickup, getReturnStats, getReturnRequestsForFulfillmentStaff } from "@/service/return-service";
 import { ReturnRequest, ReturnRequestsResponse, ReturnStatsResponse } from "@/types/return-Types";
 import { getAllDealers } from "@/service/dealerServices";
 import SchedulePickupDialog from "./modules/modalpopus/SchedulePickupDialog";
@@ -55,9 +55,14 @@ import CompletePickupDialog from "./modules/modalpopus/CompletePickupDialog";
 import InspectDialog from "./modules/modalpopus/inspectDialog";
 import InitiateRefundForm from "./modules/modalpopus/InitiateReturn";
 import ReturnStatsCards from "./ReturnStatsCards";
-
+import { getEmployeeById } from "@/service/employeeServices";
+import { useAppSelector } from "@/store/hooks";
+import { getUserById } from "@/service/user/userService";
+3        
+import { fetchEmployeeByUserId } from "@/service/order-service";
 export default function FulfillmentReturnClaims() {
   const router = useRouter();
+  const auth = useAppSelector((state) => state.auth.user);
   const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -101,6 +106,26 @@ export default function FulfillmentReturnClaims() {
     returnId: null,
     returnRequest: null,
   });
+
+
+
+  // get Fulfillment Staff Dealer Ids
+  useEffect(() => {
+    const fetchFulfillmentStaffDealerIds = async () => {
+      const response = await getUserById(auth?._id);
+      if (response.success && response.data) {
+        console.log("Fulfillment Staff Dealer Ids:", response.data);
+        // get employee id from user id
+        const employeeId = await fetchEmployeeByUserId(response.data._id);
+        console.log("Employee ID:", employeeId);
+        // empyoyee details by employee id
+        const employeeDetails = await getEmployeeById(employeeId.employee._id);
+        console.log("Employee Details:", employeeDetails);
+        // setFulfillmentStaffDealerIds(response.data);
+      }
+    };
+    fetchFulfillmentStaffDealerIds();
+  }, []);
 
   // Inspect dialog state
   const [inspectDialog, setInspectDialog] = useState<{
@@ -151,7 +176,7 @@ export default function FulfillmentReturnClaims() {
       params.page = currentPage;
       params.limit = itemsPerPage;
 
-      const response: ReturnRequestsResponse = await getReturnRequests(params);
+      const response: ReturnRequestsResponse = await getReturnRequestsForFulfillmentStaff([selectedDealerId],params);
 
       if (response.success && response.data) {
         setReturnRequests(response.data.returnRequests);
@@ -473,7 +498,7 @@ export default function FulfillmentReturnClaims() {
                   placeholder="Search returns..."
                 />
               </div>
-              <Select value={selectedDealerId} onValueChange={setSelectedDealerId}>
+              {/* <Select value={selectedDealerId} onValueChange={setSelectedDealerId}>
                 <SelectTrigger className="w-full sm:w-48 h-10 bg-white border-gray-200">
                   <SelectValue placeholder="All Dealers" />
                 </SelectTrigger>
@@ -489,7 +514,7 @@ export default function FulfillmentReturnClaims() {
                     ))
                   )}
                 </SelectContent>
-              </Select>
+              </Select> */}
               <SearchFiltersModal
                 trigger={
                   <Button

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { 
   fetchProductsWithLiveStatus,
@@ -55,6 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 // Helper function to get status color classes
 const getStatusColor = (status: string) => {
@@ -102,6 +103,7 @@ export default function RejectedProduct({
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [sortPriceDirection, setSortPriceDirection] = useState<"L-H" | "H-L">("L-H");
+  const auth = useAppSelector((state) => state.auth);
   const route = useRouter();
   const { showToast } = useGlobalToast();
   const itemsPerPage = 10;
@@ -112,7 +114,13 @@ export default function RejectedProduct({
   } = useProductSelection();
   const [isRejectReasonDialogOpen, setIsRejectReasonDialogOpen] = useState(false);
   const [selectedProductForRejectReason, setSelectedProductForRejectReason] = useState<any>(null);
-
+  const { isSuperAdmin, isInventoryAdmin } = useMemo(() => {
+    if (!auth?.user?.role) return { isSuperAdmin: false, isInventoryAdmin: false };
+    return {
+      isSuperAdmin: auth?.user?.role === "Super-admin",
+      isInventoryAdmin: auth?.user?.role === "Inventory-Admin",
+    };
+  }, [auth?.user?.role]);
   // Fetch products when component mounts or when pagination changes
   useEffect(() => {
     const fetchProducts = async () => {
@@ -513,6 +521,7 @@ export default function RejectedProduct({
                     </DropdownMenu>
                   </TableCell> */}
                   <TableCell className="px-6 py-4 font-[Red Hat Display]">
+                    {!isSuperAdmin && !isInventoryAdmin ?<span className="b2 text-gray-700">{product.live_status}</span> : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -538,8 +547,10 @@ export default function RejectedProduct({
                         </DropdownMenuItem> */}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    )}
                   </TableCell>
                   <TableCell className="px-6 py-4 text-center font-[Red Hat Display]">
+                    {!isSuperAdmin && !isInventoryAdmin ?<Badge variant="outline" className="bg-gray-100 text-gray-700 b2">Not Authorized</Badge> : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -572,6 +583,7 @@ export default function RejectedProduct({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

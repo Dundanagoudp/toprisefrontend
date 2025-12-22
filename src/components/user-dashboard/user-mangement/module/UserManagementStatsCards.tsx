@@ -1,33 +1,57 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Building2, UserCheck, Loader2 } from "lucide-react";
 import { fetchUserCounts, fetchEmployeeStats, fetchDealerStats } from "@/service/dashboardServices";
-import { UserCountsData, EmployeeStatsData, DealerStatsData } from "@/types/dashboard-Types";
+import { UserCountsData, EmployeeStatsResponse, DealerStatsResponse } from "@/types/dashboard-Types";
+import { useAppSelector } from "@/store/hooks";
 
 interface UserManagementStatsCardsProps {
   className?: string;
 }
 
 export default function UserManagementStatsCards({ className = "" }: UserManagementStatsCardsProps) {
+  const auth = useAppSelector((state) => state.auth.user);
+  const userRole = auth?.role?.trim() || "";
+
   const [userCounts, setUserCounts] = useState<UserCountsData | null>(null);
-  const [employeeStats, setEmployeeStats] = useState<EmployeeStatsData | null>(null);
-  const [dealerStats, setDealerStats] = useState<DealerStatsData | null>(null);
+  const [employeeStats, setEmployeeStats] = useState<EmployeeStatsResponse['data'] | null>(null);
+  const [dealerStats, setDealerStats] = useState<DealerStatsResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+const {isSuperAdmin ,isInventoryAdmin} = useMemo(() => {
+  if (!auth?.role) return { isSuperAdmin: false, isInventoryAdmin: false };
+  return {
+    isSuperAdmin: auth?.role === "Super-admin",
+    isInventoryAdmin: auth?.role === "Inventory-Admin",
+  };
+}, [auth?.role]); 
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
       setError(null);
       
       try {
+        // Determine role filter for employee stats
+        // - Fulfillment Admin: sees only fulfillment staff
+        // - Inventory Admin: sees only inventory staff
+        // - Super Admin: sees all employees
+        let employeeRoleFilter: string | undefined;
+        if (userRole === "Fulfillment-Admin") {
+          employeeRoleFilter = "Fulfillment-Admin";
+        } else if (userRole === "Inventory-Admin") {
+          employeeRoleFilter = "Inventory-Admin";
+        }
+        // Super-admin sees all employees (no filter)
+
+        console.log(`Fetching employee stats for role: ${userRole}, filter: ${employeeRoleFilter || 'all'}`);
+
         // Fetch all stats in parallel
         const [userCountsResponse, employeeStatsResponse, dealerStatsResponse] = await Promise.allSettled([
           fetchUserCounts(),
-          fetchEmployeeStats(),
+          fetchEmployeeStats(employeeRoleFilter),
           fetchDealerStats()
         ]);
 
@@ -61,7 +85,7 @@ export default function UserManagementStatsCards({ className = "" }: UserManagem
     };
 
     fetchStats();
-  }, []);
+  }, [userRole]);
 
   if (loading) {
     return (
@@ -102,16 +126,39 @@ export default function UserManagementStatsCards({ className = "" }: UserManagem
   const totalDealers = dealerStats?.summary?.totalDealers || userCounts?.Dealers || 0;
   const totalUsers = userCounts?.Users || 0;
 
+  // Determine employee title based on user role
+  const getEmployeeTitle = () => {
+    switch (userRole) {
+      case "Fulfillment-Admin":
+        return "Fulfillment Staff";
+      case "Inventory-Admin":
+        return "Inventory Staff";
+      default:
+        return "Total Employees";
+    }
+  };
+
+  const getEmployeeDescription = () => {
+    switch (userRole) {
+      case "Fulfillment-Admin":
+        return "Active fulfillment staff in the system";
+      case "Inventory-Admin":
+        return "Active inventory staff in the system";
+      default:
+        return "Active employees in the system";
+    }
+  };
+
   const statsCards = [
-    {
-      title: "Total Employees",
+    ...(isInventoryAdmin ? [] : [{
+      title: getEmployeeTitle(),
       value: totalEmployees,
       icon: UserCheck,
-      description: "Active employees in the system",
+      description: getEmployeeDescription(),
       color: "text-blue-600",
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200"
-    },
+    }]),
     {
       title: "Total Dealers",
       value: totalDealers,

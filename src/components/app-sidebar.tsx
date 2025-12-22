@@ -99,8 +99,8 @@ const sidebarVisibilityConfig = {
   },
   "Inventory-Admin": {
     hide: [
-      "Dashboard",
-      "Inventory Management",
+      // "Dashboard",
+      // "Inventory Management",
       "SLA Violations ",
       " Payment Details",
       "Order Management",
@@ -148,11 +148,11 @@ const data = {
       url: "/user/dashboard/product",
       icon: BoxIcon,
     },
-    {
-      title: "Catalogues",
-      url: "/user/dashboard/catalogues",
-      icon: BookOpen,
-    },
+    // {
+    //   title: "Catalogues",
+    //   url: "/user/dashboard/catalogues",
+    //   icon: BookOpen,
+    // },
     {
       title: "User Management",
       url: "/user/dashboard/user",
