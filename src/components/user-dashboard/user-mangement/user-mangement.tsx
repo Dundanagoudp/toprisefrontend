@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Employeetable from "./module/Employee-table"
 import Dealertable from "./module/Dealer-table"
 import AppUsersTable from "./module/AppUsers-table"
@@ -21,7 +21,21 @@ import UserManagementStatsCards from "./module/UserManagementStatsCards"
 
 
 export default function Usermangement() {
-  const [activeTab, setActiveTab] = useState("employee")
+  const auth = useAppSelector((state) => state.auth.user);
+  const {isInventoryAdmin} = useMemo(() => {
+    if (!auth?.role) return { isInventoryAdmin: false };
+    return {
+      isInventoryAdmin: auth?.role === "Inventory-Admin",
+    };
+  }, [auth?.role]);
+
+  const [activeTab, setActiveTab] = useState(() => {
+    // Set default tab based on user role
+    if (isInventoryAdmin) {
+      return "dealer"; // Inventory admins default to dealer tab since they can't see employee tab
+    }
+    return "employee"; // Default for all other roles
+  })
   const [addLoading, setAddLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -40,20 +54,13 @@ export default function Usermangement() {
   
   const router = useRouter();
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
-  const auth = useAppSelector((state) => state.auth.user);
-
-  // Debug: Log auth state
-  useEffect(() => {
-    console.log("User Management - Auth state:", auth);
-    console.log("User Management - User role:", auth?.role);
-  }, [auth]);
-
-  // Set default tab based on user role - hide dealer tab for fulfillment staff only
-  useEffect(() => {
-    if (["Fulfillment-Staff"].includes(auth?.role)) {
-      setActiveTab("employee");
-    }
+  const {isSuperAdmin} = useMemo(() => {
+    if (!auth?.role) return { isSuperAdmin: false };
+    return {
+      isSuperAdmin: auth?.role === "Super-admin",
+    };
   }, [auth?.role]);
+
 
   // Reset filters when tab changes
   useEffect(() => {
@@ -136,6 +143,7 @@ export default function Usermangement() {
 
         {/* Tabs - Connected design */}
         <div className="inline-flex mb-4 md:mb-6 border-b border-gray-200">
+          { !isInventoryAdmin && (
           <button
             onClick={() => setActiveTab("employee")}
             className={`px-6 py-2 -mb-px font-medium text-lg transition-colors duration-200 border-b-2 focus:outline-none ${
@@ -146,6 +154,7 @@ export default function Usermangement() {
           >
             Employee
           </button>
+          )}
           {/* Hide Dealer tab for Fulfillment-Staff only */}
           {!["Fulfillment-Staff"].includes(auth.role) && (
             <button
@@ -201,6 +210,7 @@ export default function Usermangement() {
 
           <div className="flex items-center gap-3 justify-end">
             {activeTab === "dealer" && canPerformAdminActions() && (
+              (isSuperAdmin || isInventoryAdmin) && (
               <DynamicButton
                 variant="default"
                 customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
@@ -215,8 +225,10 @@ export default function Usermangement() {
                 icon={<Image src={uploadFile} alt="Upload" className="h-4 w-4" />}
                 text="Upload"
               />
+              )
             )}
             {canPerformAdminActions() && activeTab !== "users" && (
+              (isSuperAdmin || isInventoryAdmin) && (
               <Button
                 className="flex items-center gap-3 bg-[#C729201A] border border-[#C72920] hover:bg-[#c728203a] text-[#C72920] rounded-[8px] px-4 py-2 min-w-[140px] justify-center"
                 variant="default"
@@ -237,7 +249,7 @@ export default function Usermangement() {
                   <Image src={addSquare} alt="Add" className="h-4 w-4" />
                 )}
                 <span className="b3 font-RedHat">{activeTab === "employee" ? "Add Employee" : "Add Dealer"}</span>
-              </Button>
+              </Button> )
             )}
           </div>
         </div>
@@ -246,7 +258,9 @@ export default function Usermangement() {
       {/* Table Content - Mobile responsive */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {activeTab === "employee"
-          ? <Employeetable 
+          ? 
+          !isInventoryAdmin && (
+          <Employeetable 
               search={search}
               role={role === "all" ? "" : role}
               status={status === "all" ? "" : status}
@@ -255,7 +269,7 @@ export default function Usermangement() {
               sortDirection={sortDirection}
               onSort={handleSort}
               onRolesUpdate={setAvailableRoles}
-            />
+            />)
           : activeTab === "dealer" ? (
             <Dealertable 
               search={search} 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -44,6 +44,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Loader2, MoreHorizontal } from "lucide-react";
 import { fetchProductsSuccess } from "@/store/slice/product/productSlice";
 import { useRouter } from "next/navigation";
@@ -101,7 +102,13 @@ export default function ApprovedProduct({
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state) => state.auth);
   // Use the correct state for products with live status
-
+  const { isSuperAdmin, isInventoryAdmin } = useMemo(() => {
+    if (!auth?.user?.role) return { isSuperAdmin: false, isInventoryAdmin: false };
+      return {
+      isSuperAdmin: auth?.user?.role === "Super-admin",
+      isInventoryAdmin: auth?.user?.role === "Inventory-Admin",
+    };
+  }, [auth?.user?.role]);
   const loading = useAppSelector((state) => state.productLiveStatus.loading);
   const [paginatedProducts, setPaginatedProducts] = useState<any[]>([]);
 
@@ -238,11 +245,13 @@ export default function ApprovedProduct({
   }, [searchQuery, categoryFilter, subCategoryFilter]);
 
   // Reset sorting when resetSortKey changes
+
   useEffect(() => {
     if (resetSortKey !== undefined && resetSortKey > 0) {
       setSortField("");
       setSortDirection("asc");
       setSortPriceDirection("L-H");
+      fetchProducts();
     }
   }, [resetSortKey]);
 
@@ -716,6 +725,7 @@ export default function ApprovedProduct({
                       </span>
                     </TableCell>
                     <TableCell className="px-6 py-4 font-sans">
+                      {!isSuperAdmin && !isInventoryAdmin ?<span className="b2 text-gray-700">{product.Qc_status}</span> : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -741,8 +751,10 @@ export default function ApprovedProduct({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </TableCell>
                     <TableCell className="px-6 py-4 font-sans">
+                      {!isSuperAdmin && !isInventoryAdmin ?<span className="b2 text-gray-700">{product.live_status}</span> : (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -777,54 +789,58 @@ export default function ApprovedProduct({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </TableCell>
                     <TableCell className="px-6 py-4 text-center font-sans">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 hover:bg-gray-100"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem
+                      {!isSuperAdmin && !isInventoryAdmin ?<Badge variant="outline" className="bg-gray-100 text-gray-700 b2">Not Authorized</Badge> : (
+                          <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-gray-100"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() => handleEditProduct(product._id)}
+                            >
+                              Edit Product
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() => handleViewProduct(product._id)}
+                            >
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() =>
+                                handleAssignDealers(product._id, product)
+                              }
+                            >
+                              Assign Dealers
+                            </DropdownMenuItem>
+                            {/* <DropdownMenuItem
                             className="cursor-pointer"
-                            onClick={() => handleEditProduct(product._id)}
+                            onClick={() => handleViewProduct(product._id)}
                           >
-                            Edit Product
+                            Add Model
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="cursor-pointer"
                             onClick={() => handleViewProduct(product._id)}
                           >
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer"
-                            onClick={() =>
-                              handleAssignDealers(product._id, product)
-                            }
-                          >
-                            Assign Dealers
-                          </DropdownMenuItem>
-                          {/* <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handleViewProduct(product._id)}
-                        >
-                          Add Model
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => handleViewProduct(product._id)}
-                        >
-                          Year
-                        </DropdownMenuItem> */}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            Year
+                          </DropdownMenuItem> */}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    
                     </TableCell>
                   </TableRow>
                 );

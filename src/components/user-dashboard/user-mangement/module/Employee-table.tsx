@@ -12,7 +12,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { useState, useEffect } from "react" 
+import { useState, useEffect, useMemo } from "react" 
 import { useRouter } from "next/navigation"
 import { 
   getAllEmployees, 
@@ -70,6 +70,13 @@ export default function EmployeeTable({
   const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([])
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Fulfillment-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
+  const {isSuperAdmin ,isInventoryAdmin} = useMemo(() => {
+    if (!auth?.role) return { isSuperAdmin: false, isInventoryAdmin: false };
+    return {
+      isSuperAdmin: auth?.role === "Super-admin",
+      isInventoryAdmin: auth?.role === "Inventory-Admin",
+    };
+  }, [auth?.role]);
   const { showToast } = useToast();
 
   // Helper function to check if user can perform admin actions
@@ -522,21 +529,22 @@ export default function EmployeeTable({
                           View Details
                         </DropdownMenuItem>
                       )}
-                      {auth?.role === "Fulfillment-Admin" && employee.role === "Fulfillment-Staff" && (
+                      {/* {auth?.role === "Fulfillment-Admin" && employee.role === "Fulfillment-Staff" && (
                         <DropdownMenuItem 
                           onClick={() => handleAssignRegionDealer(employee)}
                           className="text-blue-600 hover:text-blue-700"
                         >
                           Assign Region & Dealer
                         </DropdownMenuItem>
-                      )}
+                      )} */}
                       {canPerformAdminActions() && employee.role !== "User" && (employee.active !== false) && (
+                        isSuperAdmin && isInventoryAdmin && (
                         <DropdownMenuItem 
                           onClick={() => handleRevokeRole(employee._id, employee.First_name)}
                           className="text-red-600 hover:text-red-700"
                         >
                           Revoke Role
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>)
                       )}
                       {canPerformAdminActions() && employee.role !== "User" && employee.active === false && (
                         <DropdownMenuItem 

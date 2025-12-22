@@ -41,7 +41,7 @@ export async function getEmployeeById(id: string): Promise<ApiResponse<Employee>
 
     
     // Check if token exists
-    const token = Cookies.get("token") || Cookies.get("authToken") || Cookies.get("jwt") || Cookies.get("accessToken");
+
 
     
     const response = await apiClient.get(`/users/api/users/employee/${id}`)

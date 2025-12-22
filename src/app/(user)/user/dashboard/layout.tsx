@@ -15,6 +15,7 @@ import { NotificationsPanel } from "@/components/notifications/modules/notificat
 import { getAllNotifications } from "@/service/notificationServices";
 import { getUserIdFromToken } from "@/utils/auth";
 import { BreadcrumbProvider, useBreadcrumb } from "@/contexts/BreadcrumbContext";
+import { useAppSelector } from "@/store/hooks";
 
 const ADMIN_DASHBOARD_ROLES = [
   "Fulfillment-Admin",
@@ -27,23 +28,28 @@ const ADMIN_DASHBOARD_ROLES = [
 
 function BreadcrumbWithContext() {
   const { customLabels } = useBreadcrumb();
-  return <DynamicBreadcrumb customLabels={{ 
-    user: "User Management", 
-    employeeview: "", // Hide employeeview from breadcrumb
-    addemployee: "Add Employee", // Change addemployee to Add Employee
-    "edit-dealer": "Edit Dealer", // Change edit-dealer to Edit Dealer
-    adddealer: "Add Dealer", // Change adddealer to Add Dealer
-    "PricingMarginMangement": "SLA Violations", // Fix route display
-    "sla-violations": "SLA Violations", // Correct route display
-    order: "Order Management", // Fix order breadcrumb
-    orderdetails: "Order Details", // Fix order details breadcrumb
-    returnclaims: "Order Returns", // Fix return claims breadcrumb
-    pickup: "Picklist Management", // Fix pickup breadcrumb
-    contentManagement: "Content Management", // Fix content management breadcrumb
-    tickets: "Support Tickets", // Fix support tickets breadcrumb
-    paymentDetails: "Payment Details", // Fix payment details breadcrumb
-    ...customLabels 
-  }} />;
+  const auth = useAppSelector((state) => state.auth.user);
+  const showDashboard = auth?.role === "Super-admin";
+  return <DynamicBreadcrumb 
+    customLabels={{ 
+      user: "User Management", 
+      employeeview: "", // Hide employeeview from breadcrumb
+      addemployee: "Add Employee", // Change addemployee to Add Employee
+      "edit-dealer": "Edit Dealer", // Change edit-dealer to Edit Dealer
+      adddealer: "Add Dealer", // Change adddealer to Add Dealer
+      "PricingMarginMangement": "SLA Violations", // Fix route display
+      "sla-violations": "SLA Violations", // Correct route display
+      order: "Order Management", // Fix order breadcrumb
+      orderdetails: "Order Details", // Fix order details breadcrumb
+      returnclaims: "Order Returns", // Fix return claims breadcrumb
+      pickup: "Picklist Management", // Fix pickup breadcrumb
+      contentManagement: "Content Management", // Fix content management breadcrumb
+      tickets: "Support Tickets", // Fix support tickets breadcrumb
+      paymentDetails: "Payment Details", // Fix payment details breadcrumb
+      ...customLabels 
+    }}
+    showDashboard={showDashboard}
+  />;
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
