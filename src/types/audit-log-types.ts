@@ -50,3 +50,14 @@ export interface ActionAuditLogListResponse {
   pagination: ActionAuditLogPagination
 }
 
+export interface CreateActionAuditLogRequest {
+  actionName: string
+  actionModule: string
+}
+
+export interface CreateActionAuditLogResponse {
+  success: boolean
+  message: string
+  data: ActionAuditLog
+}
+

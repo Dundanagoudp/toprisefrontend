@@ -54,7 +54,21 @@ export default function Auditlogspage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [showFilters, setShowFilters] = useState(false)
-  const [availableModules, setAvailableModules] = useState<string[]>([])
+  // Predefined modules for the filter dropdown - only show these modules
+  const predefinedModules = [
+    "USER",
+    "PRODUCT",
+    "ORDER",
+    "RETURN",
+    "PAYMENTS",
+    "CONTENT_MANAGEMENT",
+    "SETTING",
+    "PURCHASE_REQUEST",
+    "REPORT_EXPORT"
+  ]
+  
+  // Always use only the predefined modules, don't merge with fetched modules
+  const [availableModules] = useState<string[]>(predefinedModules)
   const [availableRoles, setAvailableRoles] = useState<string[]>([])
 
   const itemsPerPage = 10
@@ -112,19 +126,12 @@ export default function Auditlogspage() {
       setTotalCount(response.pagination.total || 0)
       setTotalPages(response.pagination.totalPages || 1)
 
-      // Extract unique modules and roles from fetched logs
-      const uniqueModules = Array.from(
-        new Set(fetchedLogs.map((log) => log.actionModule).filter(Boolean))
-      ).sort()
+      // Extract unique roles from fetched logs (modules are predefined, don't update)
       const uniqueRoles = Array.from(
         new Set(fetchedLogs.map((log) => log.role).filter(Boolean))
       ).sort()
 
-      // Update available modules and roles (merge with existing to accumulate all unique values)
-      setAvailableModules((prev) => {
-        const merged = Array.from(new Set([...prev, ...uniqueModules]))
-        return merged.sort()
-      })
+      // Only update roles, modules stay as predefined
       setAvailableRoles((prev) => {
         const merged = Array.from(new Set([...prev, ...uniqueRoles]))
         return merged.sort()
@@ -137,32 +144,29 @@ export default function Auditlogspage() {
     }
   }
 
-  // Fetch all available modules and roles on initial load
+  // Fetch all available roles on initial load (modules are predefined)
   useEffect(() => {
-    const fetchAllModulesAndRoles = async () => {
+    const fetchAllRoles = async () => {
       try {
-        // Fetch without filters to get all available modules and roles
+        // Fetch without filters to get all available roles
         const response = await auditLogService.getActionAuditLogs({
           page: 1,
           limit: 1000, // Fetch a large number to get all unique values
         })
         const allLogs = response.data || []
         
-        const uniqueModules = Array.from(
-          new Set(allLogs.map((log) => log.actionModule).filter(Boolean))
-        ).sort()
         const uniqueRoles = Array.from(
           new Set(allLogs.map((log) => log.role).filter(Boolean))
         ).sort()
 
-        setAvailableModules(uniqueModules)
+        // Only update roles, modules are predefined and don't change
         setAvailableRoles(uniqueRoles)
       } catch (error) {
-        console.error("Error fetching all modules and roles:", error)
+        console.error("Error fetching all roles:", error)
       }
     }
 
-    fetchAllModulesAndRoles()
+    fetchAllRoles()
   }, [])
 
   useEffect(() => {

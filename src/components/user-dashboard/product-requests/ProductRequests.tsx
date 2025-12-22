@@ -50,6 +50,8 @@ import ApprovedProducts from "./tabs/ApprovedProducts";
 import RejectedProducts from "./tabs/RejectedProducts";
 import { auth } from "@/lib/firebase";
 import { useAppSelector } from "@/store/hooks";
+import apiClient from "@/apiClient";
+import auditLogService from "@/service/audit-log-service";
 
 type TabType = "Pending" | "Approved" | "Rejected";
 
@@ -602,6 +604,17 @@ if (dateRange.to) {
     document.body.removeChild(link);
 
     showToast("Export Successful!", "success");
+
+    // Log audit trail for export action
+    try {
+      await auditLogService.createActionAuditLog({
+        actionName: "Purchase_Request_Exported",
+        actionModule: "REPORT_EXPORT",
+      });
+    } catch (auditError) {
+      console.error("Failed to log audit trail:", auditError);
+      // Don't fail the export if audit log fails
+    }
   } catch (error) {
     console.error("EXPORT ERROR:", error);
     showToast("Export failed", "error");

@@ -16,6 +16,7 @@ import { MoreHorizontal, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-rea
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DynamicPagination } from "@/components/common/pagination";
 import { format } from "date-fns";
+import auditLogService from "@/service/audit-log-service";
 
 // Strict Type Definition
 interface AdminOrder {
@@ -254,6 +255,17 @@ export default function AdminOrdersTable() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
+      // Log audit trail for export action
+      try {
+        await auditLogService.createActionAuditLog({
+          actionName: "Order_Exported",
+          actionModule: "REPORT_EXPORT",
+        });
+      } catch (auditError) {
+        console.error("Failed to log audit trail:", auditError);
+        // Don't fail the export if audit log fails
+      }
     } catch (error) {
       console.error("Failed to export orders CSV:", error);
     } finally {

@@ -14,6 +14,7 @@ import useDebounce from "@/utils/useDebounce";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import DynamicButton from "@/components/common/button/button";
+import auditLogService from "@/service/audit-log-service";
 
 export default function ProductAnalyticsTab() {
   const [products, setProducts] = useState<any[]>([]);
@@ -238,6 +239,17 @@ export default function ProductAnalyticsTab() {
       URL.revokeObjectURL(url);
 
       alert(`CSV exported successfully (${allPages.length} records)`);
+
+      // Log audit trail for export action
+      try {
+        await auditLogService.createActionAuditLog({
+          actionName: "Product_Exported",
+          actionModule: "REPORT_EXPORT",
+        });
+      } catch (auditError) {
+        console.error("Failed to log audit trail:", auditError);
+        // Don't fail the export if audit log fails
+      }
     } catch (error) {
       console.error("Failed to export products CSV:", error);
       alert("Failed to export CSV");

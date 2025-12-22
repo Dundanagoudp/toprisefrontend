@@ -10,6 +10,7 @@ import { getPaymentDetails, exportAllPaymentDetails } from "@/service/payment-se
 import { PaymentDetail } from "@/types/paymentDetails-Types";
 import SearchInput from "@/components/common/search/SearchInput";
 import DynamicButton from "@/components/common/button/button";
+import auditLogService from "@/service/audit-log-service";
 import {
   Dialog,
   DialogContent,
@@ -239,6 +240,17 @@ export default function PaymentsTab() {
       document.body.removeChild(link);
       
       alert(`CSV exported successfully (${allPayments.length} records)`);
+
+      // Log audit trail for export action
+      try {
+        await auditLogService.createActionAuditLog({
+          actionName: "Payment_Exported",
+          actionModule: "REPORT_EXPORT",
+        });
+      } catch (auditError) {
+        console.error("Failed to log audit trail:", auditError);
+        // Don't fail the export if audit log fails
+      }
     } catch (error) {
       console.error("Export error:", error);
       alert("Failed to export CSV");

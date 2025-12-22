@@ -10,6 +10,7 @@ import { DynamicPagination } from "@/components/common/pagination";
 import { getOrders, type OrderFilters } from "@/service/order-service";
 import { format } from "date-fns";
 import EnhancedOrderFilters from "@/components/user-dashboard/order-management/EnhancedOrderFilters";
+import auditLogService from "@/service/audit-log-service";
 
 interface AdminOrder {
   id: string;
@@ -228,6 +229,17 @@ export default function OrderAnalyticsTab() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
+      // Log audit trail for export action
+      try {
+        await auditLogService.createActionAuditLog({
+          actionName: "Order_Exported",
+          actionModule: "REPORT_EXPORT",
+        });
+      } catch (auditError) {
+        console.error("Failed to log audit trail:", auditError);
+        // Don't fail the export if audit log fails
+      }
     } catch (error) {
       console.error("Failed to export orders CSV:", error);
     } finally {
