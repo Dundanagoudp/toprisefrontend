@@ -184,6 +184,10 @@ export default function ProductEdit() {
   const [loadingDealers, setLoadingDealers] = useState(false);
   const { showToast } = useGlobalToast();
   const allowedRoles = ["Super-admin", "Inventory-Admin", "Inventory-Staff"];
+  
+  // Loading state to track initial data loading
+  const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
+  const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
 
   // Combine Redux error with local error
   const apiError = productError;
@@ -348,87 +352,96 @@ const fetchDealersByBrand = async (brandId: string) => {
     }
   };
   // Effect 1: Initial Data Fetch (Once on Mount)
+  // Master effect: Load all data simultaneously without page reload
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const loadAllData = async () => {
+      if (!id.id || typeof id.id !== "string") {
+        return;
+      }
+
+      setIsInitialDataLoaded(false);
+      setInitialLoadError(null);
+
       try {
-        const [typesResponse, yearRangesResponse] = await Promise.all([
+        // Step 1: Fetch product data from Redux
+        const productAction = await dispatch(fetchProductByIdThunk(id.id));
+        const fetchedProduct = productAction.payload;
+
+        if (!fetchedProduct || typeof fetchedProduct === 'string') {
+          throw new Error("Product not found");
+        }
+
+        // Extract IDs from product
+        const typeId = fetchedProduct.brand?.type?._id;
+        const categoryId = fetchedProduct.category?._id;
+        const brandId = fetchedProduct.brand?._id;
+        const modelIds = Array.isArray(fetchedProduct.model)
+          ? fetchedProduct.model.map((m: { _id: string }) => m._id)
+          : [];
+
+        // Step 2: Fetch ALL data in parallel
+        const [
+          typesResponse,
+          yearRangesResponse,
+          categoriesResponse,
+          subCategoriesResponse,
+          brandsResponse,
+          modelsResponse,
+          variantsResponse,
+        ] = await Promise.all([
           getTypes(),
           getYearRange(),
+          typeId ? getCategoriesByType(typeId) : Promise.resolve({ data: [] }),
+          categoryId ? getSubcategoriesByCategoryId(categoryId) : Promise.resolve({ data: [] }),
+          typeId ? getBrandByType(typeId) : Promise.resolve({ data: [] }),
+          brandId ? getModelByBrand(brandId) : Promise.resolve({ data: [] }),
+          modelIds.length > 0 ? getVariantsByModelIds(modelIds) : Promise.resolve({ data: [] }),
         ]);
 
+        // Step 3: Set all dropdown options
         setTypeOptions(
           Array.isArray(typesResponse.data)
-            ? typesResponse.data.map((type: any) => type)
+            ? typesResponse.data
             : Array.isArray(typesResponse.data?.products)
-            ? typesResponse.data.products.map((type: any) => type)
+            ? typesResponse.data.products
             : []
         );
-        setYearRangeOptions(
-          Array.isArray(yearRangesResponse.data)
-            ? yearRangesResponse.data.map((year: any) => year)
-            : []
-        );
-        console.log("Fetched all initial data in parallel");
-      } catch (error) {
-        console.error("Failed to fetch initial data in parallel:", error);
+        setYearRangeOptions(Array.isArray(yearRangesResponse.data) ? yearRangesResponse.data : []);
+        setCategoryOptions(Array.isArray(categoriesResponse.data) ? categoriesResponse.data : []);
+        setSubCategoryOptions(Array.isArray(subCategoriesResponse.data) ? subCategoriesResponse.data : []);
+        setBrandOptions(Array.isArray(brandsResponse.data) ? brandsResponse.data : []);
+        setModelOptions(Array.isArray(modelsResponse.data) ? modelsResponse.data : []);
+        setVarientOptions(Array.isArray(variantsResponse.data) ? variantsResponse.data : []);
+
+        // Step 4: Fetch dealers by brand
+        if (brandId) {
+          await fetchDealersByBrand(brandId);
+        }
+
+        // Step 5: Populate form with product data
+        populateFormWithProduct(fetchedProduct);
+
+        // Mark as loaded
+        setIsInitialDataLoaded(true);
+      } catch (error: any) {
+        console.error("Failed to load data:", error);
+        const errorMessage = error.message || "Failed to load product data";
+        setInitialLoadError(errorMessage);
+        showToast(errorMessage, "error");
+        setIsInitialDataLoaded(true); // Set to true to show error state
       }
     };
-    fetchInitialData();
-  }, []);
 
-
-
-
-  // Effect 2: Fetch Product and All Dependencies (Once)
-  useEffect(() => {
-    if (!id.id || typeof id.id !== "string") {
-      return;
-    }
-
-    // Dispatch Redux action to fetch product
-    dispatch(fetchProductByIdThunk(id.id));
-  }, [id.id, dispatch]);
-
-  // Effect 3: Parallel Fetch All Dependent Options
-  useEffect(() => {
-    if (!product) return;
-
-    // Extract all IDs from product
-    const typeId = product.brand?.type?._id;
-    const categoryId = product.category?._id;
-    const brandId = product.brand?._id;
-    const modelIds = product.model?.map((m: { _id: string }) => m._id) || [];
-
-    // Fetch ALL options in parallel (except dealers which are fetched separately)
-    Promise.all([
-      getCategoriesByType(typeId),
-      getSubcategoriesByCategoryId(categoryId),
-      getBrandByType(typeId),
-      getModelByBrand(brandId),
-      getVariantsByModelIds(modelIds)
-    ]).then(([cats, subCats, brands, models, variants]) => {
-      // Set all options
-      setCategoryOptions(Array.isArray(cats.data) ? cats.data : []);
-      setSubCategoryOptions(Array.isArray(subCats.data) ? subCats.data : []);
-      setBrandOptions(Array.isArray(brands.data) ? brands.data : []);
-      setModelOptions(Array.isArray(models.data) ? models.data : []);
-      setVarientOptions(Array.isArray(variants.data) ? variants.data : []);
-
-      // Fetch dealers by brand separately
-      fetchDealersByBrand(brandId);
-
-      // NOW populate form after all options loaded
-      populateFormWithProduct(product);
-    }).catch((error) => {
-      console.error("Failed to fetch dependent options:", error);
-      showToast("Failed to load product options", "error");
-    });
-  }, [product]);
+    loadAllData();
+  }, [id.id, dispatch, showToast, populateFormWithProduct]);
 
   // Interactive useEffects for user-triggered changes
 
   // When user changes vehicle type → fetch categories and brands
   useEffect(() => {
+    // Only run if initial data is loaded and value actually changed
+    if (!isInitialDataLoaded) return;
+
     const vehicleType = watch("vehicle_type");
     if (vehicleType && vehicleType !== prevVehicleTypeRef.current) {
       prevVehicleTypeRef.current = vehicleType;
@@ -451,10 +464,13 @@ const fetchDealersByBrand = async (brandId: string) => {
         showToast("Failed to load options for selected vehicle type", "error");
       });
     }
-  }, [selectedProductTypeId, showToast]); // Removed watch and setValue from deps
+  }, [selectedProductTypeId, isInitialDataLoaded, showToast]); // Removed watch and setValue from deps
 
   // When user changes category → fetch subcategories
   useEffect(() => {
+    // Only run if initial data is loaded and value actually changed
+    if (!isInitialDataLoaded) return;
+
     const category = watch("category");
     if (category && category !== prevCategoryRef.current) {
       prevCategoryRef.current = category;
@@ -468,10 +484,13 @@ const fetchDealersByBrand = async (brandId: string) => {
           showToast("Failed to load options for selected category", "error");
         });
     }
-  }, [selectedCategoryId, showToast]); // Removed watch and setValue from deps
+  }, [selectedCategoryId, isInitialDataLoaded, showToast]); // Removed watch and setValue from deps
 
   // When user changes brand → fetch models and dealers
   useEffect(() => {
+    // Only run if initial data is loaded and value actually changed
+    if (!isInitialDataLoaded) return;
+
     const brand = watch("brand");
     if (brand && brand !== prevBrandRef.current) {
       prevBrandRef.current = brand;
@@ -494,10 +513,13 @@ const fetchDealersByBrand = async (brandId: string) => {
         setIsLoadingBrands(false);
       });
     }
-  }, [selectedbrandId, showToast]); // Removed watch and setValue from deps
+  }, [selectedbrandId, isInitialDataLoaded, showToast]); // Removed watch and setValue from deps
 
   // When user changes models → fetch variants
   useEffect(() => {
+    // Only run if initial data is loaded and value actually changed
+    if (!isInitialDataLoaded) return;
+
     const models = watch("model");
     if (Array.isArray(models) && models.length > 0) {
       const modelIds = models.filter(id => id && id.trim() !== "");
@@ -524,7 +546,7 @@ const fetchDealersByBrand = async (brandId: string) => {
         setModelId([]);
       }
     }
-  }, [modelId, showToast]); // Removed watch and setValue from deps
+  }, [modelId, isInitialDataLoaded, showToast]); // Removed watch and setValue from deps
 
 
 
@@ -643,25 +665,29 @@ const fetchDealersByBrand = async (brandId: string) => {
 
   return (
     <div className="flex-1 p-4 md:p-6 bg-(neutral-100)-50 min-h-screen">
-      {apiError && (
+      {apiError && !isLoadingProduct && !isInitialDataLoaded && (
         <div className="mb-4 p-2 bg-red-100 text-red-800 rounded">
           {apiError}
         </div>
       )}
 
-      {isLoadingProduct ? (
+      {(isLoadingProduct || !isInitialDataLoaded) ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-            <p className="mt-2 text-gray-600">Loading product details...</p>
+            <p className="mt-2 text-gray-600">Loading all product data...</p>
+            <p className="mt-1 text-sm text-gray-500">Fetching product details, dropdowns, and dealers</p>
           </div>
         </div>
-      ) : !product ? (
+      ) : !product || initialLoadError ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <p className="text-gray-600">
-              Product not found or failed to load.
+            <p className="text-gray-600 mb-2">
+              {initialLoadError || "Product not found or failed to load."}
             </p>
+            <Button onClick={() => router.push("/product")}>
+              Back to Products
+            </Button>
           </div>
         </div>
       ) : (

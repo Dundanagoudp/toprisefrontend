@@ -125,7 +125,7 @@ export default function DealerProductEditRedux() {
   const productError = useAppSelector(selectDealerProductError);
 
   // Permission states
-  const [dealerId, setDealerId] = useState<string | null>(null);
+  const [dealerId, setDealerId] = useState<string>("");
   const [allowedReadFields, setAllowedReadFields] = useState<string[] | null>(
     null
   );
@@ -151,6 +151,10 @@ export default function DealerProductEditRedux() {
 
   // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Loading state to track initial data loading
+  const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
+  const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
 
   // Refs for tracking previous values to prevent infinite loops
   const prevVehicleTypeRef = useRef<string | undefined>(undefined);
@@ -193,51 +197,6 @@ export default function DealerProductEditRedux() {
     },
     [allowedUpdateFields, updatePermissionsEnabled]
   );
-
-  // Get dealer permissions
-  useEffect(() => {
-    const fetchDealerPermissions = async () => {
-      try {
-        const id = await getDealerIdFromUserId();
-        setDealerId(id);
-
-        const dealerResponse = await getDealerById(id);
-        const dealer = dealerResponse.data as Dealer;
-
-        // Set read permissions
-        const readEnabled =
-          dealer.permission?.readPermissions?.isEnabled ?? true;
-        setReadPermissionsEnabled(readEnabled);
-        setAllowedReadFields(
-          dealer.permission?.readPermissions?.allowed_fields || null
-        );
-
-        // Set update permissions
-        const updateEnabled =
-          dealer.permission?.updatePermissions?.isEnabled ?? true;
-        setUpdatePermissionsEnabled(updateEnabled);
-        setAllowedUpdateFields(
-          dealer.permission?.updatePermissions?.allowed_fields || null
-        );
-      } catch (err) {
-        console.error("Failed to fetch dealer permissions:", err);
-        // Fallback to all permissions enabled
-        setReadPermissionsEnabled(true);
-        setUpdatePermissionsEnabled(true);
-        setAllowedReadFields(null);
-        setAllowedUpdateFields(null);
-      }
-    };
-
-    fetchDealerPermissions();
-  }, []);
-
-  // Fetch product data when component mounts
-  useEffect(() => {
-    if (productId) {
-      dispatch(fetchDealerProductByIdThunk(productId));
-    }
-  }, [productId, dispatch]);
 
   // Helper function for form population
   const populateFormWithProduct = useCallback((product: any) => {
@@ -287,15 +246,67 @@ export default function DealerProductEditRedux() {
     setValue("search_tags", product.search_tags || []);
   }, [setValue]);
 
-  // Effect 1: Initial Data Fetch (Once on Mount)
+  // Master effect: Load all data simultaneously without page reload
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const loadAllData = async () => {
+      if (!productId) return;
+      
+      setIsInitialDataLoaded(false);
+      setInitialLoadError(null);
+
       try {
-        const [typesResponse, yearRangesResponse] = await Promise.all([
+        // Step 1: Fetch dealer permissions and ID first
+        const id = await getDealerIdFromUserId();
+        setDealerId(id || "");
+
+        const dealerResponse = await getDealerById(id);
+        const dealer = dealerResponse.data as Dealer;
+
+        // Set permissions
+        const readEnabled = dealer.permission?.readPermissions?.isEnabled ?? true;
+        setReadPermissionsEnabled(readEnabled);
+        setAllowedReadFields(dealer.permission?.readPermissions?.allowed_fields || null);
+
+        const updateEnabled = dealer.permission?.updatePermissions?.isEnabled ?? true;
+        setUpdatePermissionsEnabled(updateEnabled);
+        setAllowedUpdateFields(dealer.permission?.updatePermissions?.allowed_fields || null);
+
+        // Step 2: Fetch product data from Redux
+        const productAction = await dispatch(fetchDealerProductByIdThunk(productId));
+        const fetchedProduct = productAction.payload;
+
+        if (!fetchedProduct || typeof fetchedProduct === 'string') {
+          throw new Error("Product not found");
+        }
+
+        // Extract IDs from product
+        const typeId = fetchedProduct.brand?.type?._id;
+        const categoryId = fetchedProduct.category?._id;
+        const brandId = fetchedProduct.brand?._id;
+        const modelIds = Array.isArray(fetchedProduct.model) 
+          ? fetchedProduct.model.map((m: { _id: string }) => m._id) 
+          : [];
+
+        // Step 3: Fetch ALL data in parallel
+        const [
+          typesResponse,
+          yearRangesResponse,
+          categoriesResponse,
+          subCategoriesResponse,
+          brandsResponse,
+          modelsResponse,
+          variantsResponse,
+        ] = await Promise.all([
           getTypes(),
           getYearRange(),
+          typeId ? getCategoriesByType(typeId) : Promise.resolve({ data: [] }),
+          categoryId ? getSubcategoriesByCategoryId(categoryId) : Promise.resolve({ data: [] }),
+          typeId && id ? getBrandsByTypeAndDealerId(id, typeId) : Promise.resolve({ data: [] }),
+          brandId ? getModelByBrand(brandId) : Promise.resolve({ data: [] }),
+          modelIds.length > 0 ? getVariantsByModelIds(modelIds) : Promise.resolve({ data: [] }),
         ]);
 
+        // Step 4: Set all dropdown options
         setTypeOptions(
           Array.isArray(typesResponse.data)
             ? typesResponse.data
@@ -303,59 +314,38 @@ export default function DealerProductEditRedux() {
             ? typesResponse.data.products
             : []
         );
-        setYearRangeOptions(
-          Array.isArray(yearRangesResponse.data)
-            ? yearRangesResponse.data
-            : []
-        );
-      } catch (error) {
-        console.error("Failed to fetch initial data:", error);
-        showToast("Failed to load initial options", "error");
+        setYearRangeOptions(Array.isArray(yearRangesResponse.data) ? yearRangesResponse.data : []);
+        setCategoryOptions(Array.isArray(categoriesResponse.data) ? categoriesResponse.data : []);
+        setSubCategoryOptions(Array.isArray(subCategoriesResponse.data) ? subCategoriesResponse.data : []);
+        setBrandOptions(Array.isArray(brandsResponse.data) ? brandsResponse.data : []);
+        setModelOptions(Array.isArray(modelsResponse.data) ? modelsResponse.data : []);
+        setVarientOptions(Array.isArray(variantsResponse.data) ? variantsResponse.data : []);
+
+        // Step 5: Populate form with product data
+        populateFormWithProduct(fetchedProduct);
+
+        // Mark as loaded
+        setIsInitialDataLoaded(true);
+      } catch (error: any) {
+        console.error("Failed to load data:", error);
+        const errorMessage = error.message || "Failed to load product data";
+        setInitialLoadError(errorMessage);
+        showToast(errorMessage, "error");
+        setIsInitialDataLoaded(true); // Set to true to show error state
       }
     };
-    fetchInitialData();
-  }, [showToast]);
 
-  // Effect 2: Parallel Fetch All Dependent Options
-  useEffect(() => {
-    if (!product) return;
+    loadAllData();
+  }, [productId, dispatch, showToast, populateFormWithProduct]);
 
-    // Extract all IDs from product
-    const typeId = product.brand?.type?._id;
-    const categoryId = product.category?._id;
-    const brandId = product.brand?._id;
-    const modelIds = product.model?.map((m: { _id: string }) => m._id) || [];
-    
-    if (!dealerId) {
-      showToast("Dealer not found", "error");
-      return;
-    }
-    // Fetch ALL options in parallel
-    Promise.all([
-      getCategoriesByType(typeId),
-      getSubcategoriesByCategoryId(categoryId),
-      getBrandsByTypeAndDealerId(dealerId, typeId),
-      getModelByBrand(brandId),
-      getVariantsByModelIds(modelIds),
-    ]).then(([cats, subCats, brands, models, variants]) => {
-      // Set all options
-      setCategoryOptions(Array.isArray(cats.data) ? cats.data : []);
-      setSubCategoryOptions(Array.isArray(subCats.data) ? subCats.data : []);
-      setBrandOptions(Array.isArray(brands.data) ? brands.data : []);
-      setModelOptions(Array.isArray(models.data) ? models.data : []);
-      setVarientOptions(Array.isArray(variants.data) ? variants.data : []);
-
-      // NOW populate form after all options loaded
-      populateFormWithProduct(product);
-    }).catch((error) => {
-      console.error("Failed to fetch dependent options:", error);
-      showToast("Failed to load product options", "error");
-    });
-  }, [product, populateFormWithProduct, showToast, dealerId]);
+  // Reactive effects for user-driven dropdown changes (only run after initial load)
 
   // When vehicle type changes → fetch categories and brands
   const vehicleType = watch("vehicle_type");
   useEffect(() => {
+    // Only run if initial data is loaded and value actually changed
+    if (!isInitialDataLoaded) return;
+    
     if (vehicleType && vehicleType !== prevVehicleTypeRef.current) {
       prevVehicleTypeRef.current = vehicleType;
       setValue("category", "");
@@ -365,7 +355,7 @@ export default function DealerProductEditRedux() {
 
       Promise.all([
         getCategoriesByType(vehicleType),
-        getBrandByType(vehicleType),
+        dealerId ? getBrandsByTypeAndDealerId(dealerId, vehicleType) : getBrandByType(vehicleType),
       ])
         .then(([cats, brands]) => {
           setCategoryOptions(Array.isArray(cats.data) ? cats.data : []);
@@ -376,11 +366,14 @@ export default function DealerProductEditRedux() {
           showToast("Failed to load options for selected vehicle type", "error");
         });
     }
-  }, [vehicleType, showToast]);
+  }, [vehicleType, isInitialDataLoaded, dealerId, showToast]);
 
   // When category changes → fetch subcategories
   const category = watch("category");
   useEffect(() => {
+    // Only run if initial data is loaded and value actually changed
+    if (!isInitialDataLoaded) return;
+    
     if (category && category !== prevCategoryRef.current) {
       prevCategoryRef.current = category;
       setValue("sub_category", "");
@@ -394,11 +387,14 @@ export default function DealerProductEditRedux() {
           showToast("Failed to load subcategories", "error");
         });
     }
-  }, [category, showToast]);
+  }, [category, isInitialDataLoaded, showToast]);
 
   // When brand changes → fetch models
   const brand = watch("brand");
   useEffect(() => {
+    // Only run if initial data is loaded and value actually changed
+    if (!isInitialDataLoaded) return;
+    
     if (brand && brand !== prevBrandRef.current) {
       prevBrandRef.current = brand;
       setValue("model", []);
@@ -413,11 +409,14 @@ export default function DealerProductEditRedux() {
           showToast("Failed to load models for selected brand", "error");
         });
     }
-  }, [brand, showToast]);
+  }, [brand, isInitialDataLoaded, showToast]);
 
   // When models change → fetch variants for ALL selected models
   const models = watch("model");
   useEffect(() => {
+    // Only run if initial data is loaded and value actually changed
+    if (!isInitialDataLoaded) return;
+    
     if (
       Array.isArray(models) &&
       models.length > 0 &&
@@ -440,7 +439,7 @@ export default function DealerProductEditRedux() {
         setVarientOptions([]);
       }
     }
-  }, [models, showToast]);
+  }, [models, isInitialDataLoaded, showToast]);
 
   const onSubmit = async (data: FormValues) => {
     if (!productId) return;
@@ -538,24 +537,27 @@ export default function DealerProductEditRedux() {
     }
   };
 
-  if (loading) {
+  // Show loading state while initial data is being fetched
+  if (loading || !isInitialDataLoaded) {
     return (
       <div className="min-h-screen bg-neutral-50">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading product data...</p>
+        <div className="flex flex-col items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600">Loading all product data...</p>
+          <p className="text-sm text-gray-500 mt-2">Fetching product details, dropdowns, and permissions</p>
         </div>
       </div>
     );
   }
 
-  if (productError || !product) {
+  // Show error state
+  if (productError || !product || initialLoadError) {
     return (
       <div className="min-h-screen bg-neutral-50">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {productError || "Product Not Found"}
+              {initialLoadError || productError || "Product Not Found"}
             </h3>
             <p className="text-gray-600">
               Unable to load product data for editing.
