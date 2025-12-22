@@ -383,7 +383,7 @@ export default function SlaVoilationspage() {
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          {violation.status !== "pending" && (
+                          {violation.status === "pending" && (
                             <Button
                               variant="ghost"
                               size="sm"
