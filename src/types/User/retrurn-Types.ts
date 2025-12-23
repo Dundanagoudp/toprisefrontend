@@ -28,6 +28,7 @@ export interface ReturnRequestsResponse {
     refund?: Refund | null;
     actionTaken?: string | null;
     timestamps?: RequestTimestamps | null;
+    tracking_info?: Tracking_info | null;
     originalOrderDate?: string | null;
     notes?: any[]; // keep flexible
     createdAt?: string;
@@ -43,6 +44,9 @@ export interface ReturnRequestsResponse {
     isOverdue?: boolean;
     daysSinceRequest?: number | null;
     statusDisplay?: string | null;
+    borzoShipmentInitiatedAt?: string | null;
+    borzoShipmentCompletedAt?: string | null;
+    courrierScheduledAt?: string | null;
   }
   
   /** Inspection details */
@@ -58,7 +62,13 @@ export interface ReturnRequestsResponse {
     conditionNotes?: string | null;
     rejectionReason?: string | null;
   }
-  
+  /** Tracking info */
+  export interface Tracking_info {
+    courrierScheduledAt?: string | null;
+    courrierDepartedAt?: string | null;
+    courrier_departed?: string | null;
+    courrier_delivered?: string | null;
+  }
   /** User who inspected */
   export interface InspectedByUser {
     id: string;
@@ -83,6 +93,11 @@ export interface ReturnRequestsResponse {
     pickupCompletedAt?: string | null;
     inspectionStartedAt?: string | null;
     inspectionCompletedAt?: string | null;
+    courrierScheduledAt?: string | null;
+    courrierDepartedAt?: string | null;
+    courrierDeliveredAt?: string | null;
+    rejectedAt?: string | null;
+    borzoShipmentInitiatedAt?: string | null;
     // include any other timestamp keys present
   }
   
@@ -95,6 +110,8 @@ export interface ReturnRequestsResponse {
     pickupAddress?: Address | null;
     deliveryAddress?: Address | null;
     completedDate?: string | null;
+    shipmentInitiatedAt?: string | null;
+    shipmentCompletedAt?: string | null;
   }
   
   /** Simple address */
