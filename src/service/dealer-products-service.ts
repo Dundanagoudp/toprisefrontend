@@ -106,6 +106,17 @@ export interface ProductsSummary {
   maxPrice: number;
 }
 
+export interface ProductStockStatsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    dealerId: string;
+    totalProducts: number;
+    inStockCount: number;
+    outOfStockCount: number;
+  };
+}
+
 export interface ProductsPagination {
   currentPage: number;
   totalPages: number;
@@ -373,5 +384,19 @@ export async function updateDealerProduct(
   } catch (error) {
     console.error("Error updating dealer product:", error);
     throw error;
+  }
+}
+
+// Get product stock stats by dealer ID
+export async function getProductStockStats(dealerId: string): Promise<ProductStockStatsResponse | null> {
+  try {
+    const response = await apiClient.get<ProductStockStatsResponse>(
+      `/category/products/v1/dealer/${dealerId}/product-stock-stats`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch product stock stats:", error);
+    // Return null instead of throwing to prevent breaking the component
+    return null;
   }
 }

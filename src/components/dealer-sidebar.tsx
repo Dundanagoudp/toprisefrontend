@@ -106,11 +106,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Removed debug logs
 
   // Map navMain to set isActive dynamically
+  // Sort by URL length (longest first) to prioritize more specific routes
+  const sortedNavItems = [...data.navMain].sort((a, b) => b.url.length - a.url.length);
+  
+  // Find the most specific matching route
+  const activeUrl = sortedNavItems.find(item => 
+    pathname === item.url || 
+    (item.url !== "/dealer/dashboard" && pathname.startsWith(item.url + "/"))
+  )?.url;
+
+  // Map navMain to set isActive - only the most specific matching route is active
   const navItems = data.navMain.map(item => ({
     ...item,
-    isActive:
-      pathname === item.url ||
-      (item.url !== "/dealer/dashboard" && pathname.startsWith(item.url + "/"))
+    isActive: item.url === activeUrl
   }));
 
   return (

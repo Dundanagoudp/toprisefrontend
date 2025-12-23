@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Search, Filter, ChevronDown, Edit, Eye, MoreHorizontal, ChevronUp } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -472,9 +471,6 @@ export default function OrdersTable() {
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-                  <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
-                    <Checkbox aria-label="Select all" />
-                  </TableHead>
                   <TableHead 
                     className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] cursor-pointer hover:text-[#C72920] transition-colors"
                     onClick={() => handleSort("orderId")}
@@ -541,9 +537,6 @@ export default function OrdersTable() {
                 {loading
                   ? Array.from({ length: 10 }).map((_, idx) => (
                       <TableRow key={idx}>
-                        <TableCell className="px-4 py-4 w-8">
-                          <Skeleton className="w-5 h-5 rounded" />
-                        </TableCell>
                         <TableCell className="px-6 py-4">
                           <Skeleton className="w-16 h-12 rounded-md" />
                         </TableCell>
@@ -570,9 +563,6 @@ export default function OrdersTable() {
                     ))
                   : paginatedData.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="px-4 py-4 w-8">
-                          <Checkbox />
-                        </TableCell>
                         <TableCell className="px-6 py-4 font-medium">
                           {order.orderId}
                         </TableCell>
