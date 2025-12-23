@@ -95,6 +95,7 @@ export interface DealerProduct {
   created_at: string;
   updated_at: string;
   permission_matrix?: PermissionMatrix;
+  Qc_status?: string;
 }
 
 export interface ProductsSummary {
@@ -160,6 +161,7 @@ export async function getDealerProducts(
     search?: string;
     sortBy?: string;
     sortOrder?: string;
+    status?: string;
   }
 ): Promise<DealerProductsResponse> {
   try {
@@ -192,6 +194,7 @@ export async function getDealerProducts(
       if (filters.search) queryParams.append('search', filters.search);
       if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
       if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);
+      if (filters.status) queryParams.append('status', filters.status);
     }
     
     const url = `/category/products/v1/dealer/${id}?${queryParams.toString()}`;

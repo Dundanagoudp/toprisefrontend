@@ -356,12 +356,12 @@ export default function DealerDashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="Total Products"
-            value={productStats?.totalProducts || stats?.products.total || 0}
+            title="Total Created Products"
+            value={productStats?.totalCreatedProducts || stats?.products.total || 0}
             icon={Package}
             color="text-blue-600"
             trend="up"
-            subtitle="Active inventory"
+            subtitle="Created inventory"
           />
           <StatCard
             title="Total Orders"
@@ -391,14 +391,26 @@ export default function DealerDashboard() {
 
         {/* Product Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-l-4 border-l-blue-500">
+          {/* <Card className="border-l-4 border-l-blue-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Products</p>
-                  <p className="text-2xl font-bold text-blue-600">{productStats?.totalProducts || stats?.products.total || 0}</p>
+                  <p className="text-sm text-gray-600">Created Products</p>
+                  <p className="text-2xl font-bold text-blue-600">{productStats?.totalCreatedProducts || stats?.products.total || 0}</p>
                 </div>
                 <Package className="h-8 w-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card> */}
+          
+          <Card className="border-l-4 border-l-indigo-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Active Products</p>
+                  <p className="text-2xl font-bold text-indigo-600">{productStats?.totalActiveProducts || stats?.products.total || 0}</p>
+                </div>
+                <Package className="h-8 w-8 text-indigo-500" />
               </div>
             </CardContent>
           </Card>
@@ -408,7 +420,7 @@ export default function DealerDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Approved Products</p>
-                  <p className="text-2xl font-bold text-green-600">{productStats?.totaApprovedProducts || stats?.products.approved || 0}</p>
+                  <p className="text-2xl font-bold text-green-600">{productStats?.totalApprovedProducts || stats?.products.approved || 0}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>

@@ -102,8 +102,10 @@ export interface ProductStatsByDealerResponse {
   success: boolean;
   message: string;
   data: {
-    totalProducts: number;
-    totaApprovedProducts: number; // Note: API has typo "tota" instead of "total"
+    totalCreatedProducts?: number;
+    totalActiveProducts?: number;
+    totalProducts?: number;
+    totalApprovedProducts: number;
     totalPendingProducts: number;
     totalRejectedProducts: number;
   };
@@ -780,7 +782,7 @@ export const getDealerProfileById = async (dealerId: string): Promise<DealerProf
 export const getProductStatsByDealer = async (dealerId: string): Promise<ProductStatsByDealerResponse | null> => {
   try {
     const response = await apiClient.get<ProductStatsByDealerResponse>(
-      `/category/products/v1/get/product/stats/by-dealer/${dealerId}`
+      `/category/products/v1/get/product/stats/by/dealer/${dealerId}`
     );
     return response.data;
   } catch (error) {
