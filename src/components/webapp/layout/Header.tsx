@@ -237,12 +237,12 @@ export const Header = () => {
             >
               Upload Purchase Request
             </button>
-            <NavigationMenuLink
+            {/* <NavigationMenuLink
               href="/services/upcoming"
               className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
             >
               Upcoming Services
-            </NavigationMenuLink>
+            </NavigationMenuLink> */}
           </div>
         </NavigationMenuContent>
       </NavigationMenuItem>
@@ -268,7 +268,7 @@ export const Header = () => {
               href="/ShippingAndReturnPolicy"
               className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
             >
-              Shipping Policy
+              Shipping & Returns
             </NavigationMenuLink>
             <NavigationMenuLink
               href="/TermsAndConditions"
@@ -424,13 +424,13 @@ export const Header = () => {
                   >
                     Upload Required Parts List
                   </a>
-                  <a
+                  {/* <a
                     href="/services/upcoming"
                     className="block py-2 text-sm text-gray-700 hover:text-gray-900"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Upcoming Services
-                  </a>
+                  </a> */}
                 </div>
               </div>
 
@@ -451,7 +451,7 @@ export const Header = () => {
                     className="block py-2 text-sm text-gray-700 hover:text-gray-900"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Shipping Policy
+                    Shipping & Returns
                   </a>
                   <a
                     href="/TermsAndConditions"

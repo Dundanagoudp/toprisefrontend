@@ -558,10 +558,10 @@ export default function StaffProductDetails({
     );
   }, [products, isFulfillmentStaff, employeeId, picklistSkus]);
 
-  // Determine if all product picklist scan statuses are Completed
+  // Determine if all products are marked as packed
   const allScanCompleted = staffAssignedProducts?.length
     ? staffAssignedProducts.every(
-        (p) => picklistScanStatuses.get(p.sku || "") === "Completed"
+        (p) => p.markAsPacked === true
       )
     : false;
 
@@ -657,12 +657,7 @@ export default function StaffProductDetails({
         {/* Footer with Mark as Packed button for fulfillment staff */}
         {isFulfillmentStaff &&
           staffAssignedProducts.length > 0 &&
-          orderStatus !== "Cancelled" &&
-          orderStatus !== "Canceled" &&
-          orderStatus !== "Packed" &&
-          orderStatus !== "Shipped" &&
-          orderStatus !== "Delivered" &&
-          orderStatus !== "Completed" && (
+          !allScanCompleted && (
             <CardFooter className="border-t bg-gray-50">
               <div className="flex justify-end w-full">
                 <DynamicButton

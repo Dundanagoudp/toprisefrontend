@@ -18,14 +18,14 @@ export default function OrderConfirmationDialog({
   const router = useRouter();
 
   // Close dialog after 5 seconds automatically (optional)
-  useEffect(() => {
-    if (open) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 5000); // Auto-close after 5 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [open, onClose]);
+  // useEffect(() => {
+  //   if (open) {
+  //     const timer = setTimeout(() => {
+  //       onClose();
+  //     }, 5000); // Auto-close after 5 seconds
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [open, onClose]);
 
   const handleViewOrderDetails = () => {
     if (orderId) {
