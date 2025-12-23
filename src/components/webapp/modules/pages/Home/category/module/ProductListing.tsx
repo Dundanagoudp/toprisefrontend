@@ -161,14 +161,20 @@ const ProductListing = ({
                   </div>
                   <div className="flex gap-2">
                     {/* <button
-                      onClick={() => handleViewProduct(product._id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleViewProduct(product._id);
+                      }}
                       className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs bg-transparent hover:bg-secondary/50 border border-border rounded-md transition-colors"
                     >
                       <Eye className="w-3 h-3" />
                       View
                     </button> */}
                     <button
-                      onClick={() => handleAddToCart(product._id, product.product_name)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleAddToCart(product._id, product.product_name);
+                      }}
                       disabled={addingToCart === product._id || isOutOfStock}
                       className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs rounded-md transition-colors ${
                         isOutOfStock

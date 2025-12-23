@@ -951,12 +951,12 @@ export default function CheckoutPage() {
                       <div className="ml-7 space-y-2">
                         <div
                           className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                            deliveryType === "express-fast"
+                            deliveryType === "express-regular"
                               ? "border-[#C72920] bg-red-50"
                               : "border-gray-200 hover:border-gray-300"
                           }`}
                           onClick={() =>
-                            handleDeliveryTypeSelect("express-fast")
+                            handleDeliveryTypeSelect("express-regular")
                           }
                         >
                           <div className="flex items-center justify-between">
@@ -981,12 +981,12 @@ export default function CheckoutPage() {
 
                         <div
                           className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                            deliveryType === "express-regular"
+                            deliveryType === "express-fast"
                               ? "border-[#C72920] bg-red-50"
                               : "border-gray-200 hover:border-gray-300"
                           }`}
                           onClick={() =>
-                            handleDeliveryTypeSelect("express-regular")
+                            handleDeliveryTypeSelect("express-fast")
                           }
                         >
                           <div className="flex items-center justify-between">
@@ -1003,7 +1003,7 @@ export default function CheckoutPage() {
                                 {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${cart.deliveryCharge}`}
                               </p>
                               <p className="text-sm text-gray-600">
-                                {pincodeData?.estimated_delivery_days || 3} days
+                                 Arrival EOD  or Next Day
                               </p>
                             </div>
                           </div>
@@ -1128,12 +1128,12 @@ export default function CheckoutPage() {
                           </p>
                           <p className="text-sm text-gray-600">
                             {deliveryType === "Standard"
-                              ? "Estimated delivery: 5-7 days"
+                              ? "Estimated delivery: 2-3 hours"
                               : deliveryType === "express-fast"
-                              ? "Estimated delivery: 1-2 days"
-                              : `Estimated delivery: ${
-                                  pincodeData?.estimated_delivery_days || 3
-                                } days`}
+                              ? "Estimated delivery: Arrival EOD  or Next Day"
+                              : deliveryType === "express-regular"
+                              ? "Estimated delivery: 2-3 hours"
+                              : "Estimated delivery: 2-3 hours"}
                           </p>
                         </div>
                         <div className="text-right">

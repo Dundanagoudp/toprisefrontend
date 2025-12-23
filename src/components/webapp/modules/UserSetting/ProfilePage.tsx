@@ -1121,6 +1121,7 @@ export default function ProfilePage() {
           );
 
           if (response?.data) {
+            console.log("Vehicle Details:", response.data);
             setVehicleDetails((prev: any[]) => [...prev, response.data]);
             // console.log("Vehicle Details: all:", response.data);
           }
@@ -2042,7 +2043,7 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-sm:gap-3">
                   {vehicleDetails.map((vehicle: any, index: number) => (
                     <div key={index} className="relative">
-                      <Link href={`/profile/vehicles/${vehicle._id}`}>
+                     
                         <Card className="p-3 sm:p-4 hover:shadow-md transition-shadow cursor-pointer">
                           <div className="flex items-center gap-3 sm:gap-4">
                             {/* Brand Logo */}
@@ -2069,7 +2070,7 @@ export default function ProfilePage() {
                             </div>
                           </div>
                         </Card>
-                      </Link>
+                      
                       {/* Menu Icon and Dropdown */}
                       <div className="absolute top-4 right-4">
                         <div className="relative">

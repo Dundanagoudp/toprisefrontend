@@ -5,6 +5,7 @@ import ContactDialog from "./popup/contactus";
 import { on } from "events";
 import { useState } from "react";
 import { FaInstagram, FaGooglePlay } from "react-icons/fa";
+import { BiLogoApple } from "react-icons/bi";
 export default function Footer() {
     const [contactUsOpen, setContactUsOpen] = useState(false);
     const [isOpen , setIsOpen] = useState<boolean>(false);
@@ -55,6 +56,14 @@ export default function Footer() {
               <FaInstagram />
             </a>
             <a
+              href="https://apps.apple.com/in/app/toprise/id6748516348"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white text-xl transition-colors"
+            >
+              <BiLogoApple />
+            </a>
+            <a
               href="https://play.google.com/store/apps/details?id=com.dig9.toprise1"
               target="_blank"
               rel="noopener noreferrer"
@@ -66,9 +75,9 @@ export default function Footer() {
         </div>
 
         {/* Right Section - Quick Links */}
-        <div className="md:justify-self-end md:text-right">
+        <div className=" items-end md:justify-self-end md:text-right md:items-end">
           <h4 className="text-md font-semibold mb-4">Quick Links</h4>
-          <nav className="flex flex-col items-end space-y-3">
+          <nav className="flex flex-col space-y-3">
             {footerLinks.map((link, index) => (
               <div key={index}>
                 {link.href ? (

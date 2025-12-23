@@ -13,7 +13,7 @@ import {
 import { getVehicleInfo } from "@/service/vehicle-info-service";
 import { useToast } from "@/components/ui/toast";
 import SearchModal from "../product-sections/module/SearchModal";
-import { BiLogoPlayStore } from "react-icons/bi";
+import { BiLogoPlayStore, BiLogoApple } from "react-icons/bi";
 
 interface Model {
   _id: string;
@@ -262,12 +262,12 @@ export default function BannerSection() {
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-black/60" />
         {/* Top gradient to blend with white navbar */}
-        <div className="absolute inset-x-0 top-0 h-24 md:h-28 bg-gradient-to-b from-white/45 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-24 md:h-28 bg-linear-to-b from-white/45 to-transparent pointer-events-none" />
       </div>
 
       {/* Content Grid */}
-      <div className="relative z-10 container mx-auto px-4 pt-4 sm:pt-8 pb-8 h-screen">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full items-center">
+      <div className="relative z-10 container mx-auto px-4 flex items-center min-h-[calc(100vh-100px)] py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center w-full">
           {/* Left Side - Text Content */}
           <div className="text-white space-y-6">
             <h1 className="font-sans font-bold text-white text-4xl md:text-5xl lg:text-6xl leading-tight">
@@ -282,14 +282,14 @@ export default function BannerSection() {
 
           {/* Right Side - Search Form */}
           <div className="flex justify-center lg:justify-end">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 w-full max-w-md space-y-6 shadow-2xl">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 w-full max-w-md space-y-6 shadow-2xl overflow-visible">
               {/* Vehicle Search Form */}
               <div className="space-y-4">
                 <h3 className="text-white font-semibold text-lg mb-4">
                   Search by vehicle
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-4">
                   <select
                     value={selectedBrand}
                     onChange={(e) => setSelectedBrand(e.target.value)}
@@ -398,7 +398,20 @@ export default function BannerSection() {
 
               {/* App Download CTA */}
               <div className="pt-4 border-t border-white/20">
-                <div className="flex justify-center lg:justify-end">
+                <div className="flex justify-center lg:justify-end gap-4">
+                  <a
+                    href="https://apps.apple.com/in/app/toprise/id6748516348"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Download the TopRise app from App Store"
+                    className="inline-flex items-center gap-3 bg-black hover:bg-gray-900 text-white font-medium py-3 px-5 rounded-lg transition-colors duration-200"
+                  >
+                    <BiLogoApple className="text-2xl" />
+                    <div className="flex flex-col items-start">
+                      <span className="text-xs">DOWNLOAD ON THE</span>
+                      <span className="text-sm font-semibold">App Store</span>
+                    </div>
+                  </a>
                   <a
                     href="https://play.google.com/store/apps/details?id=com.dig9.toprise1&hl=en_IN"
                     target="_blank"

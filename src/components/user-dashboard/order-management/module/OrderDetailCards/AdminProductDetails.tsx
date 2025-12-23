@@ -477,6 +477,8 @@ export default function AdminProductDetails({
 
     if (type === "createPicklist") {
       setModalsOpen((p) => ({ ...p, createPick: true }));
+    } else if (type === "markPacked") {
+      setModalsOpen((p) => ({ ...p, viewPick: true }));
     } else {
       setActiveAction(type);
       setModalsOpen((p) => ({ ...p, action: true }));
