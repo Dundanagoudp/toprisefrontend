@@ -482,7 +482,7 @@ export default function CheckoutPage() {
 
       // Only proceed if response is successful
       if (response.success) {
-        setOrderId(response.data.orderId || response.data._id);
+        setOrderId( response.data._id);
         setIsOrderConfirmed(true);
 
         finalizeOrder(response.data, "Order placed successfully!");
@@ -490,9 +490,9 @@ export default function CheckoutPage() {
         showToast("Order placed successfully!", "success");
 
         // Navigate to shop page after successful order placement
-        setTimeout(() => {
-          router.push("/");
-        }, 2000);
+        // setTimeout(() => {
+        //   router.push("/");
+        // }, 2000);
       } else {
         throw new Error(response.message || "Order creation failed");
       }
@@ -758,12 +758,12 @@ export default function CheckoutPage() {
     } catch (e) {}
 
     showToast(successMessage, "success");
-    setOrderId(responseData.orderId || responseData._id);
+    setOrderId( responseData._id);
     setIsOrderConfirmed(true);
 
-    setTimeout(() => {
-      router.push("/");
-    }, 1500);
+    // setTimeout(() => {
+    //   router.push("/");
+    // }, 1500);
   };
 
   return (
@@ -1780,7 +1780,7 @@ export default function CheckoutPage() {
       <OrderConfirmationDialog
         open={isOrderConfirmed}
         onClose={() => setIsOrderConfirmed(false)}
-        orderId={orderId ?? undefined}
+        orderId={orderId || ""}
       />
     </div>
   );

@@ -1276,7 +1276,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
               </Card>
 
               {/* Order Timeline */}
-              <Card>
+              {/* <Card>
                 <CardHeader className="max-sm:px-4 max-sm:py-4">
                   <CardTitle className="max-sm:text-base">
                     Order Timeline
@@ -1363,7 +1363,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                     )}
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               {/* Order Review Section */}
               {isDelivered && (
