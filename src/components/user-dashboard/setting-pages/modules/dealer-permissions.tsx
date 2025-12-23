@@ -335,6 +335,15 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
 
   const toggleDealerSelection = (userId: string) => {
     setSelectedDealers(prev => (prev.includes(userId) ? [] : [userId]))
+    // Reset form fields when dealer selection changes
+    setReadFields([])
+    setReadEnabled(false)
+    setUpdateFields([])
+    setUpdateEnabled(false)
+    setIsDelete(false)
+    setIsAdd(false)
+    setIsUpdateStock(false)
+    setAllowedFieldsInput("")
   }
 
   // Load current permissions into form for editing
@@ -627,7 +636,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                       />
                       <Label htmlFor="current-is-add" className="cursor-default">Can Add New Products</Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    {/* <div className="flex items-center space-x-2">
                       <Checkbox
                         checked={currentDealerPermissions.isDelete || false}
                         disabled
@@ -645,7 +654,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                         <FileUp className="w-4 h-4" />
                         Can Update Stock
                       </Label>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>
@@ -761,7 +770,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                 />
                 <Label htmlFor="is-add" className="cursor-pointer">Can Add New Products</Label>
               </div>
-              <div className="flex items-center space-x-2">
+              {/* <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={isDelete}
                   onCheckedChange={(checked) => setIsDelete(!!checked)}
@@ -779,7 +788,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                   <FileUp className="w-4 h-4" />
                   Can Update Stock
                 </Label>
-              </div>
+              </div> */}
             </div>
           </div>
 

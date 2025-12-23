@@ -358,7 +358,9 @@ React.useEffect(() => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {products.map((product) => (
+                  {products.map((product) => {
+                    const isOutOfStock = product.out_of_stock ?? false;
+                    return (
                     <div
                       key={product._id}
                       className="group flex h-full flex-col rounded-lg border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg"
@@ -370,6 +372,13 @@ React.useEffect(() => {
                             onClick={() => handleViewProduct(product._id)}
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
+                        {isOutOfStock && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <span className="bg-primary text-white px-2 py-1 rounded text-xs font-medium">
+                              Out of Stock
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-1 flex-col"   onClick={() => handleViewProduct(product._id)}>
                         <h3 className="line-clamp-2 text-base font-semibold text-foreground">
@@ -396,7 +405,7 @@ React.useEffect(() => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             )}

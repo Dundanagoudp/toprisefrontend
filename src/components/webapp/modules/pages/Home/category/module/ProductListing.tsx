@@ -141,7 +141,7 @@ const ProductListing = ({
                   />
                   {isOutOfStock && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+                      <span className="bg-primary text-white px-2 py-1 rounded text-xs font-medium">
                         Out of Stock
                       </span>
                     </div>
