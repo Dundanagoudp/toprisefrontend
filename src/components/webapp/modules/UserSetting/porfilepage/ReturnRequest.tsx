@@ -22,13 +22,29 @@ function ReturnStatusTimeline({ returnRequest }: ReturnStatusTimelineProps) {
       icon: <Package className="h-4 w-4" />,
     },
     {
-      label: "Request Validation",
-      timestamp: returnRequest.timestamps?.validatedAt,
-      icon: <FileCheck className="h-4 w-4" />,
+      label: "Return Cancelled",
+      timestamp: returnRequest.timestamps?.rejectedAt,
+      icon: <XCircle className="h-4 w-4" />,
+      isCancelled: true,
     },
+    // {
+    //   label: "Pickup Initiated",
+    //   timestamp: returnRequest.timestamps?.borzoShipmentInitiatedAt,
+    //   icon: <FileCheck className="h-4 w-4" />,
+    // },
+    // {
+    //   label: "Request Validation",
+    //   timestamp: returnRequest.timestamps?.validatedAt,
+    //   icon: <FileCheck className="h-4 w-4" />,
+    // },
     {
       label: "Pickup Scheduled",
-      timestamp: returnRequest.pickupRequest?.scheduledDate,
+      timestamp: returnRequest.timestamps?.borzoShipmentInitiatedAt,
+      icon: <Truck className="h-4 w-4" />,
+    },
+    {
+      label: "Out for Pickup ",
+      timestamp: returnRequest.tracking_info?.courrier_departed,
       icon: <Truck className="h-4 w-4" />,
     },
     {
@@ -160,7 +176,7 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
       case "Requested":
         return <Clock className="h-4 w-4 text-yellow-600" />;
       default:
-        return <AlertTriangle className="h-4 w-4 text-gray-600" />;
+        return <CheckCircle className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -168,6 +184,8 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
     switch (status) {
       case "Approved":
         return "default";
+      case "Validated":
+        return "success";
       case "Rejected":
         return "destructive";
       case "Requested":
@@ -194,6 +212,7 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
     <ScrollArea className="h-[80vh]">
       <Accordion type="multiple" className="w-full space-y-4">
         {returnRequests.data.returnRequests.map((req: ReturnRequest) => (
+          console.log("Return Request:", req),
           <AccordionItem
             key={req._id}
             value={req._id}
@@ -211,8 +230,11 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 max-sm:w-full max-sm:justify-start">
                   {getStatusIcon(req.returnStatus || "Requested")}
-                  <Badge variant={getStatusVariant(req.returnStatus || "Requested") as any} className="max-sm:text-xs">
-                    {req.statusDisplay || req.returnStatus || "Unknown"}
+                  <Badge
+                    variant={getStatusVariant(req.returnStatus || "Requested") as any}
+                    className={`max-sm:text-xs ${req.returnStatus === "Validated" ? "bg-green-500 text-white hover:bg-green-600" : ""}`}
+                  >
+                    { req.returnStatus || "Unknown"}
                   </Badge>
                 </div>
               </div>
@@ -282,7 +304,7 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
               )}
 
               {/* Inspection Status */}
-              {req.inspection && (
+              {/* {req.inspection && (
                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800 max-sm:p-3">
                   <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
                     <Search className="h-4 w-4" />
@@ -320,7 +342,7 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
                     </p>
                   )}
                 </div>
-              )}
+              )} */}
 
               {/* Return Images */}
               {req.returnImages && req.returnImages.length > 0 && (
@@ -358,11 +380,11 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
                       ? new Date(req.timestamps.requestedAt).toLocaleDateString()
                       : "N/A"}
                   </div>
-                  <div>
+                  {/* <div>
                     <span className="text-muted-foreground">Days Since Request:</span>
                     <br />
                     {req.daysSinceRequest || 0} days
-                  </div>
+                  </div> */}
                   {req.isOverdue && (
                     <div className="col-span-2">
                       <Badge variant="destructive" className="text-xs">

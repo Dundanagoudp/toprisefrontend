@@ -108,7 +108,28 @@ const SearchResults = () => {
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products.filter((product) => {
       const price = product.selling_price || 0;
-      return price >= minPrice && price <= maxPrice;
+
+      // Price filter
+      if (price < minPrice || price > maxPrice) {
+        return false;
+      }
+
+      // Category filter
+      if (filterCategory && product.category !== filterCategory) {
+        return false;
+      }
+
+      // Sub-category filter
+      if (filterSubCategory && product.sub_category !== filterSubCategory) {
+        return false;
+      }
+
+      // Year filter
+      if (filterYear && (!product.year_range || !product.year_range.includes(filterYear))) {
+        return false;
+      }
+
+      return true;
     });
 
     // Sort products
@@ -128,7 +149,7 @@ const SearchResults = () => {
     });
 
     return filtered;
-  }, [products, sortBy, minPrice, maxPrice]);
+  }, [products, sortBy, minPrice, maxPrice, filterCategory, filterSubCategory, filterYear]);
 
   // Update search value when component mounts
   useEffect(() => {
@@ -398,7 +419,14 @@ const SearchResults = () => {
         setError(null);
         try {
           // Send both query and vehicleTypeId to smartSearch
-          const response = await smartSearch(query, vehicleTypeId || undefined, sortBy, sortBy, minPrice, maxPrice);
+          const response = await smartSearch(
+            query,
+            vehicleTypeId || undefined,
+            sortBy,
+            sortBy,
+            minPrice,
+            maxPrice
+          );
           console.log("smartSearch response:", response);
 
           // Validate response structure
@@ -407,7 +435,7 @@ const SearchResults = () => {
           }
 
           // Check is_brand, is_model, is_variant, and is_product flags
- 
+
           const brandFlag = response.is_brand || false;
           const modelFlag = response.is_model || false;
           const variantFlag = response.is_variant || false;
@@ -653,7 +681,9 @@ const SearchResults = () => {
             {/* Desktop Sidebar */}
             <div className="hidden lg:block">
               <FilterSidebar
-                products={filteredAndSortedProducts as unknown as ProductFilterType[]}
+                products={
+                  filteredAndSortedProducts as unknown as ProductFilterType[]
+                }
                 sortBy={sortBy}
                 setSortBy={setSortBy}
                 minPrice={minPrice}
@@ -684,7 +714,9 @@ const SearchResults = () => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <FilterSidebar
-                    products={filteredAndSortedProducts as unknown as ProductFilterType[]}
+                    products={
+                      filteredAndSortedProducts as unknown as ProductFilterType[]
+                    }
                     sortBy={sortBy}
                     setSortBy={setSortBy}
                     minPrice={minPrice}
@@ -711,8 +743,8 @@ const SearchResults = () => {
               {/* Product Grid */}
               <main>
                 {/* Page Header */}
-                <div className="mb-6 flex items-center justify-between">
-                  <h1 className="text-2xl font-bold text-foreground mb-4">
+                <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                     {isCategory && categoryName
                       ? `Brands in "${categoryName}" Category`
                       : `Search Results for "${query}"`}
@@ -737,26 +769,26 @@ const SearchResults = () => {
                 {/* Brand Display - grid of all brands */}
                 {(isBrand || isCategory) && brandData.length > 0 && (
                   <div className="mb-6">
-                    <div className="mb-4">
-                      <h2 className="text-lg font-semibold text-foreground">
+                    <div className="mb-3 sm:mb-4">
+                      <h2 className="text-base sm:text-lg font-semibold text-foreground">
                         {brandData.length} Brand
                         {brandData.length !== 1 ? "s" : ""} Found
                       </h2>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                       {brandData.map((brand) => (
                         <div
                           key={brand._id}
-                          className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
+                          className="bg-card rounded-lg border border-border p-3 sm:p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
                           onClick={() => handleBrandClick(brand.brand_name)}
                         >
-                          <div className="flex flex-col items-center gap-3">
+                          <div className="flex flex-col items-center gap-2 sm:gap-3">
                             <img
                               src={brand.brand_logo || "/placeholder.svg"}
                               alt={brand.brand_name}
-                              className="w-16 h-16 object-contain rounded-lg"
+                              className="w-12 h-12 sm:w-16 sm:h-16 object-contain rounded-lg"
                             />
-                            <h4 className="text-sm font-medium text-foreground text-center line-clamp-2 leading-tight">
+                            <h4 className="text-xs sm:text-sm font-medium text-foreground text-center line-clamp-2 leading-tight">
                               {brand.brand_name}
                             </h4>
                           </div>
@@ -834,31 +866,31 @@ const SearchResults = () => {
                 {/* Direct Product Display for variants that have products */}
                 {isVariant && filteredAndSortedProducts.length > 0 && (
                   <div className="mb-6">
-                    <div className="mb-4">
-                      <h2 className="text-lg font-semibold text-foreground">
+                    <div className="mb-3 sm:mb-4">
+                      <h2 className="text-base sm:text-lg font-semibold text-foreground">
                         {filteredAndSortedProducts.length} Product
                         {filteredAndSortedProducts.length !== 1 ? "s" : ""}{" "}
                         Found
                       </h2>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
                       {displayedProducts.map((product) => (
                         <div
                           key={product._id}
-                          className="bg-card rounded-lg border border-border p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+                          className="bg-card rounded-lg border border-border p-2 sm:p-4 hover:shadow-lg transition-shadow cursor-pointer group"
                         >
-                          <div className="aspect-square bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
+                          <div className="aspect-square bg-muted rounded-md mb-2 sm:mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
                             <img
                               src={buildImageUrl(product.images?.[0])}
                               alt={product.product_name || "Product"}
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <h3 className="font-medium text-foreground text-sm mb-2 line-clamp-2">
+                          <h3 className="font-medium text-foreground text-xs sm:text-sm mb-1 sm:mb-2 line-clamp-2">
                             {product.product_name}
                           </h3>
                           <div className="flex items-center justify-between">
-                            <span className="text-primary font-semibold">
+                            <span className="text-primary font-semibold text-xs sm:text-base">
                               Rs {product.selling_price?.toLocaleString() || 0}
                             </span>
                           </div>
@@ -867,10 +899,10 @@ const SearchResults = () => {
                     </div>
                     {/* Load More */}
                     {hasMoreProducts && displayedProducts.length > 0 && (
-                      <div className="flex justify-center mt-8">
+                      <div className="flex justify-center mt-6 sm:mt-8">
                         <button
                           onClick={handleLoadMore}
-                          className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+                          className="px-4 sm:px-6 py-2 border border-primary text-primary text-sm sm:text-base rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
                         >
                           Load More Products (
                           {filteredAndSortedProducts.length - displayLimit}{" "}
@@ -902,24 +934,24 @@ const SearchResults = () => {
                 {!isProduct && products.length > 0 && (
                   <>
                     {displayedProducts.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
                         {displayedProducts.map((product) => (
                           <div
                             key={product._id}
-                            className="bg-card rounded-lg border border-border p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+                            className="bg-card rounded-lg border border-border p-2 sm:p-4 hover:shadow-lg transition-shadow cursor-pointer group"
                           >
-                            <div className="aspect-square bg-muted rounded-md mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
+                            <div className="aspect-square bg-muted rounded-md mb-2 sm:mb-3 flex items-center justify-center overflow-hidden group-hover:bg-secondary transition-colors">
                               <img
                                 src={buildImageUrl(product.images?.[0])}
                                 alt={product.product_name || "Product"}
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            <h3 className="font-medium text-foreground text-sm mb-2 line-clamp-2">
+                            <h3 className="font-medium text-foreground text-xs sm:text-sm mb-1 sm:mb-2 line-clamp-2">
                               {product.product_name}
                             </h3>
                             <div className="flex items-center justify-between">
-                              <span className="text-primary font-semibold">
+                              <span className="text-primary font-semibold text-xs sm:text-base">
                                 Rs{" "}
                                 {product.selling_price?.toLocaleString() || 0}
                               </span>
@@ -943,10 +975,10 @@ const SearchResults = () => {
                     )}
                     {/* Load More */}
                     {hasMoreProducts && displayedProducts.length > 0 && (
-                      <div className="flex justify-center mt-8">
+                      <div className="flex justify-center mt-6 sm:mt-8">
                         <button
                           onClick={handleLoadMore}
-                          className="px-6 py-2 border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+                          className="px-4 sm:px-6 py-2 border border-primary text-primary text-sm sm:text-base rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
                         >
                           Load More Products (
                           {filteredAndSortedProducts.length - displayLimit}{" "}
