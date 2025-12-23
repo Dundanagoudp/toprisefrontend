@@ -33,7 +33,8 @@ import {
   MoreVertical,
   MoreHorizontal,
   Plus,
-  Minus
+  Minus,
+  Clock
 } from "lucide-react";
 import { 
   getDealerProducts, 
@@ -50,7 +51,8 @@ import {
   type DealerProduct,
   type DealerProductsResponse,
   type ProductsSummary,
-  type ProductStockStatsResponse
+  type ProductStockStatsResponse,
+  type ProductsPagination
 } from "@/service/dealer-products-service";
 import { getDealerIdFromUserId } from "@/service/dealerServices";
 import { useToast } from "@/components/ui/toast";
@@ -215,10 +217,9 @@ const SummaryCard = ({ summary, loading }: SummaryCardProps) => {
 export default function DealerProductsTable() {
   const [products, setProducts] = useState<DealerProduct[]>([]);
   const [summary, setSummary] = useState<ProductsSummary | null>(null);
+  const [pagination, setPagination] = useState<ProductsPagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [brandFilter, setBrandFilter] = useState<string>("all");
@@ -229,11 +230,46 @@ export default function DealerProductsTable() {
   const [selectedProduct, setSelectedProduct] = useState<DealerProduct | null>(null);
   const [stockQuantity, setStockQuantity] = useState(0);
   const [updatingStock, setUpdatingStock] = useState(false);
+  const [activeTab, setActiveTab] = useState<"Pending" | "Approved" | "Rejected">("Approved");
+  
+  // Pagination state for each tab
+  const [currentPageApproved, setCurrentPageApproved] = useState(1);
+  const [currentPagePending, setCurrentPagePending] = useState(1);
+  const [currentPageRejected, setCurrentPageRejected] = useState(1);
+  const itemsPerPage = 10;
+  
+  // Tab counts state
+  const [tabCounts, setTabCounts] = useState({
+    Approved: 0,
+    Pending: 0,
+    Rejected: 0
+  });
   
   const { showToast } = useToast();
   const router = useRouter();
 
-  const fetchProducts = async (page: number = 1) => {
+  const fetchTabCounts = async () => {
+    try {
+      // Fetch counts for each tab by making lightweight API calls
+      const statuses: Array<"Approved" | "Pending" | "Rejected"> = ["Approved", "Pending", "Rejected"];
+      const counts = { Approved: 0, Pending: 0, Rejected: 0 };
+      
+      for (const status of statuses) {
+        try {
+          const response = await getDealerProducts(undefined, 1, 1, { status });
+          counts[status] = response.data.pagination.totalProducts;
+        } catch (error) {
+          console.error(`Failed to fetch count for ${status}:`, error);
+        }
+      }
+      
+      setTabCounts(counts);
+    } catch (error) {
+      console.error("Failed to fetch tab counts:", error);
+    }
+  };
+
+  const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -244,13 +280,24 @@ export default function DealerProductsTable() {
       if (brandFilter !== "all") filters.brand = brandFilter;
       if (sortBy) filters.sortBy = sortBy;
       if (sortOrder) filters.sortOrder = sortOrder;
+      if (activeTab) filters.status = activeTab;
       
-      const response = await getDealerProducts(undefined, page, 12, filters);
+      // Use backend pagination instead of fetching all products
+      const currentPage = getCurrentPage();
+      console.log(`[DealerProductsTable] Fetching products - Tab: ${activeTab}, Page: ${currentPage}, Filters:`, filters);
+      const response = await getDealerProducts(undefined, currentPage, itemsPerPage, filters);
+      
+      console.log(`[DealerProductsTable] Received ${response.data.products.length} products for status: ${activeTab}, Total: ${response.data.pagination.totalProducts}`);
       
       setProducts(response.data.products);
+      setPagination(response.data.pagination);
       setSummary(response.data.summary);
-      setCurrentPage(response.data.pagination.currentPage);
-      setTotalPages(response.data.pagination.totalPages);
+      
+      // Update tab count for current tab
+      setTabCounts(prev => ({
+        ...prev,
+        [activeTab]: response.data.pagination.totalProducts
+      }));
       
       // Fetch product stock stats and update summary
       try {
@@ -279,18 +326,28 @@ export default function DealerProductsTable() {
     }
   };
 
+  // Fetch tab counts on mount
+  useEffect(() => {
+    fetchTabCounts();
+  }, []);
+
   useEffect(() => {
     fetchProducts();
-  }, [categoryFilter, brandFilter, sortBy, sortOrder]);
+  }, [categoryFilter, brandFilter, sortBy, sortOrder, activeTab, currentPageApproved, currentPagePending, currentPageRejected]);
 
   // Debounce search - trigger API call after user stops typing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchProducts(1);
+      fetchProducts();
     }, 500);
 
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryFilter, brandFilter, statusFilter]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -318,7 +375,7 @@ export default function DealerProductsTable() {
       await updateStockByDealer(selectedProduct._id, dealerId, stockQuantity);
       showToast("Stock updated successfully", "success");
       setIsUpdateStockOpen(false);
-      fetchProducts(currentPage);
+      fetchProducts();
     } catch (err: any) {
       console.error("Failed to update stock:", err);
       showToast(err?.response?.data?.message || "Failed to update stock", "error");
@@ -328,12 +385,7 @@ export default function DealerProductsTable() {
   };
 
   const handleRefresh = () => {
-    fetchProducts(currentPage);
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    fetchProducts(page);
+    fetchProducts();
   };
 
   // Build unique category and brand options using object IDs
@@ -364,27 +416,42 @@ export default function DealerProductsTable() {
 
   const normalized = (s: string | undefined | null) => String(s || "").toLowerCase();
 
+  // Backend already handles: search, brand, category, status (QC status)
+  // Only apply client-side filters that backend doesn't handle
   const filteredProducts = products.filter((p) => {
-    // Brand filter
-    if (brandFilter !== "all" && String(p.brand?._id || "") !== String(brandFilter)) return false;
-    // Category filter
-    if (categoryFilter !== "all" && String(p.category?._id || "") !== String(categoryFilter)) return false;
-    // Status filter
+    // Status filter (stock status) - only if needed
     if (statusFilter !== "all") {
       const st = getComputedStatus(p);
       if (st !== statusFilter) return false;
     }
-    // Search filter (name, sku, brand, category)
-    if (searchTerm) {
-      const q = normalized(searchTerm);
-      const hay = [p.product_name, p.sku_code, p.brand?.brand_name, p.category?.category_name]
-        .map(normalized)
-        .join("\n");
-      if (!hay.includes(q)) return false;
-    }
     return true;
   });
   console.log("filteredProducts",filteredProducts)
+
+  // Pagination logic
+  const getCurrentPage = () => {
+    switch (activeTab) {
+      case "Approved": return currentPageApproved;
+      case "Pending": return currentPagePending;
+      case "Rejected": return currentPageRejected;
+      default: return 1;
+    }
+  };
+
+  const setCurrentPage = (page: number) => {
+    switch (activeTab) {
+      case "Approved": setCurrentPageApproved(page); break;
+      case "Pending": setCurrentPagePending(page); break;
+      case "Rejected": setCurrentPageRejected(page); break;
+    }
+  };
+
+  const currentPage = getCurrentPage();
+  // Use backend pagination data instead of client-side calculation
+  const totalPages = pagination?.totalPages || 1;
+  const startIndex = ((pagination?.currentPage || 1) - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, pagination?.totalProducts || 0);
+  const paginatedProducts = filteredProducts; // Products are already paginated by backend
 
   if (loading && products.length === 0) {
     return (
@@ -583,10 +650,10 @@ export default function DealerProductsTable() {
       {/* Products Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Package className="h-5 w-5 mr-2" />
-              Products ({products.length})
+              <h2 className="text-lg font-semibold">Products ({pagination?.totalProducts || 0})</h2>
             </div>
             <div className="flex items-center space-x-2">
               <Button 
@@ -597,7 +664,62 @@ export default function DealerProductsTable() {
                 Add Product
               </Button>
             </div>
-          </CardTitle>
+          </div>
+          <div className="flex items-center justify-between border-b border-gray-200">
+            <nav className="flex space-x-8" aria-label="Tabs">
+              <button
+                onClick={() => {
+                  setActiveTab("Approved");
+                  setCurrentPageApproved(1); // Reset to page 1 when switching tabs
+                }}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "Approved"
+                    ? "text-[#C72920] border-[#C72920]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <CheckCircle className="w-4 h-4 inline mr-2" />
+                Approved
+                <span className="ml-2 px-2 py-1 text-xs rounded-full bg-gray-100">
+                  {tabCounts.Approved}
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("Pending");
+                  setCurrentPagePending(1); // Reset to page 1 when switching tabs
+                }}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "Pending"
+                    ? "text-[#C72920] border-[#C72920]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <Clock className="w-4 h-4 inline mr-2" />
+                Pending
+                <span className="ml-2 px-2 py-1 text-xs rounded-full bg-gray-100">
+                  {tabCounts.Pending}
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("Rejected");
+                  setCurrentPageRejected(1); // Reset to page 1 when switching tabs
+                }}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "Rejected"
+                    ? "text-[#C72920] border-[#C72920]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <XCircle className="w-4 h-4 inline mr-2" />
+                Rejected
+                <span className="ml-2 px-2 py-1 text-xs rounded-full bg-gray-100">
+                  {tabCounts.Rejected}
+                </span>
+              </button>
+            </nav>
+          </div>
         </CardHeader>
         <CardContent>
           {filteredProducts.length === 0 ? (
@@ -631,7 +753,7 @@ export default function DealerProductsTable() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.map((product) => (
+                  {paginatedProducts.map((product) => (
                     <ProductTableRow 
                       key={product._id} 
                       product={product} 
@@ -643,33 +765,113 @@ export default function DealerProductsTable() {
               </Table>
             </div>
           )}
+          
+          {/* Pagination Controls */}
+          {filteredProducts.length > 0 && totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 px-2">
+              {/* Left side - showing items count */}
+              <div className="text-sm text-gray-600">
+                Showing {startIndex + 1}-{Math.min(endIndex, pagination?.totalProducts || 0)} of {pagination?.totalProducts || 0} items
+              </div>
+              
+              {/* Right side - pagination controls */}
+              <div className="flex items-center space-x-1">
+                {/* Previous Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm"
+                >
+                  <span className="mr-1">←</span> Previous
+                </Button>
+                
+                {/* Page Numbers */}
+                <div className="flex items-center space-x-1">
+                  {/* First page */}
+                  {currentPage > 2 && (
+                    <>
+                      <Button
+                        variant={currentPage === 1 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(1)}
+                        className={`w-9 h-9 p-0 ${currentPage === 1 ? "bg-gray-900 text-white" : ""}`}
+                      >
+                        1
+                      </Button>
+                      {currentPage > 3 && (
+                        <span className="px-2 text-gray-500">...</span>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Previous page */}
+                  {currentPage > 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      className="w-9 h-9 p-0"
+                    >
+                      {currentPage - 1}
+                    </Button>
+                  )}
+                  
+                  {/* Current page */}
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-9 h-9 p-0 bg-gray-900 text-white border-gray-900"
+                  >
+                    {currentPage}
+                  </Button>
+                  
+                  {/* Next page */}
+                  {currentPage < totalPages && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      className="w-9 h-9 p-0"
+                    >
+                      {currentPage + 1}
+                    </Button>
+                  )}
+                  
+                  {/* Last page */}
+                  {currentPage < totalPages - 1 && (
+                    <>
+                      {currentPage < totalPages - 2 && (
+                        <span className="px-2 text-gray-500">...</span>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(totalPages)}
+                        className="w-9 h-9 p-0"
+                      >
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+                
+                {/* Next Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm"
+                >
+                  Next <span className="ml-1">→</span>
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
-        </div>
-      )}
 
       {/* Update Stock Dialog */}
       <Dialog open={isUpdateStockOpen} onOpenChange={setIsUpdateStockOpen}>
