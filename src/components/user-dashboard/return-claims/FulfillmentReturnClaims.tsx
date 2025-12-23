@@ -85,6 +85,9 @@ export default function FulfillmentReturnClaims() {
   const [dealers, setDealers] = useState<Array<{ _id: string; legal_name: string }>>([]);
   const [loadingDealers, setLoadingDealers] = useState(false);
 
+  // Fulfillment staff dealer IDs
+  const [fulfillmentDealerIds, setFulfillmentDealerIds] = useState<string[]>([]);
+
   // Schedule pickup dialog state
   const [schedulePickupDialog, setSchedulePickupDialog] = useState<{
     open: boolean;
@@ -112,16 +115,26 @@ export default function FulfillmentReturnClaims() {
   // get Fulfillment Staff Dealer Ids
   useEffect(() => {
     const fetchFulfillmentStaffDealerIds = async () => {
-      const response = await getUserById(auth?._id);
-      if (response.success && response.data) {
-        console.log("Fulfillment Staff Dealer Ids:", response.data);
-        // get employee id from user id
-        const employeeId = await fetchEmployeeByUserId(response.data._id);
-        console.log("Employee ID:", employeeId);
-        // empyoyee details by employee id
-        const employeeDetails = await getEmployeeById(employeeId.employee._id);
-        console.log("Employee Details:", employeeDetails);
-        // setFulfillmentStaffDealerIds(response.data);
+      try {
+        const response = await getUserById(auth?._id);
+        if (response.success && response.data) {
+          console.log("Fulfillment Staff User:", response.data);
+          // get employee id from user id
+          const employeeId = await fetchEmployeeByUserId(response.data._id);
+          console.log("Employee ID:", employeeId);
+          // employee details by employee id
+          const employeeDetails = await getEmployeeById(employeeId.employee._id);
+          console.log("Employee Details:", employeeDetails);
+
+          // Extract assigned dealer IDs
+          if (employeeDetails.success && employeeDetails.data?.assigned_dealers) {
+            const dealerIds = employeeDetails.data.assigned_dealers.map(dealer => dealer._id);
+            console.log("Fulfillment Staff Dealer IDs:", dealerIds);
+            setFulfillmentDealerIds(dealerIds);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch fulfillment staff dealer IDs:", error);
       }
     };
     fetchFulfillmentStaffDealerIds();
@@ -159,7 +172,25 @@ export default function FulfillmentReturnClaims() {
   const fetchReturnRequests = async () => {
     try {
       setLoading(true);
-      const params: { refundMethod?: string; status?: string; dealerId?: string; page?: number; limit?: number } = {};
+
+      // Determine which dealer IDs to use for the API call
+      let dealerIdsToUse: string[] = [];
+      if (selectedDealerId === "all") {
+        dealerIdsToUse = fulfillmentDealerIds;
+      } else {
+        dealerIdsToUse = [selectedDealerId];
+      }
+
+      // Don't fetch if we don't have dealer IDs
+      if (dealerIdsToUse.length === 0) {
+        console.log("No dealer IDs available for fulfillment staff");
+        setReturnRequests([]);
+        setTotalPages(1);
+        setTotalItems(0);
+        return;
+      }
+
+      const params: { refundMethod?: string; status?: string; page?: number; limit?: number } = {};
 
       if (advancedFilterClaimType) {
         params.refundMethod = advancedFilterClaimType;
@@ -169,14 +200,10 @@ export default function FulfillmentReturnClaims() {
         params.status = advancedFilterStatus;
       }
 
-      if (selectedDealerId && selectedDealerId !== "all") {
-        params.dealerId = selectedDealerId;
-      }
-
       params.page = currentPage;
       params.limit = itemsPerPage;
 
-      const response: ReturnRequestsResponse = await getReturnRequestsForFulfillmentStaff([selectedDealerId],params);
+      const response: ReturnRequestsResponse = await getReturnRequestsForFulfillmentStaff(dealerIdsToUse, params);
 
       if (response.success && response.data) {
         setReturnRequests(response.data.returnRequests);
@@ -194,7 +221,7 @@ export default function FulfillmentReturnClaims() {
 
   useEffect(() => {
     fetchReturnRequests();
-  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId, currentPage]);
+  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId, currentPage, fulfillmentDealerIds]);
 
   // Fetch return stats on mount
   useEffect(() => {

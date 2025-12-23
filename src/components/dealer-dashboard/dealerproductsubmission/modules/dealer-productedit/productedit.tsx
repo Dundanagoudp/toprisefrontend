@@ -1100,7 +1100,7 @@ export default function DealerProductEdit() {
                 <SelectContent>
                  
                   <SelectItem value="OEM">OEM</SelectItem>
-                  <SelectItem value="AfterMarket">Aftermarket</SelectItem>
+                  <SelectItem value="AFTERMARKET">Aftermarket</SelectItem>
                 </SelectContent>
               </Select>
               {errors.product_type && (
