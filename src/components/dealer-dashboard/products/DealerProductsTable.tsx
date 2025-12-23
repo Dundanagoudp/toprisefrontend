@@ -46,9 +46,11 @@ import {
   canEditField,
   canManage,
   updateStockByDealer,
+  getProductStockStats,
   type DealerProduct,
   type DealerProductsResponse,
-  type ProductsSummary
+  type ProductsSummary,
+  type ProductStockStatsResponse
 } from "@/service/dealer-products-service";
 import { getDealerIdFromUserId } from "@/service/dealerServices";
 import { useToast } from "@/components/ui/toast";
@@ -169,8 +171,8 @@ const SummaryCard = ({ summary, loading }: SummaryCardProps) => {
           <Skeleton className="h-6 w-32" />
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="text-center">
                 <Skeleton className="h-8 w-16 mx-auto mb-2" />
                 <Skeleton className="h-4 w-20 mx-auto" />
@@ -191,7 +193,7 @@ const SummaryCard = ({ summary, loading }: SummaryCardProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900">{summary.totalProducts}</div>
             <div className="text-sm text-gray-600">Total Products</div>
@@ -203,10 +205,6 @@ const SummaryCard = ({ summary, loading }: SummaryCardProps) => {
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">{summary.totalOutOfStock}</div>
             <div className="text-sm text-gray-600">Out of Stock</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(summary.averagePrice)}</div>
-            <div className="text-sm text-gray-600">Avg Price</div>
           </div>
         </div>
       </CardContent>
@@ -254,6 +252,24 @@ export default function DealerProductsTable() {
       setCurrentPage(response.data.pagination.currentPage);
       setTotalPages(response.data.pagination.totalPages);
       
+      // Fetch product stock stats and update summary
+      try {
+        const dealerId = await getDealerIdFromUserId();
+        const stockStats = await getProductStockStats(dealerId);
+        if (stockStats && stockStats.data) {
+          // Update summary with API data
+          setSummary({
+            ...response.data.summary,
+            totalProducts: stockStats.data.totalProducts,
+            totalInStock: stockStats.data.inStockCount,
+            totalOutOfStock: stockStats.data.outOfStockCount
+          });
+        }
+      } catch (stockStatsError) {
+        console.error("Failed to fetch stock stats:", stockStatsError);
+        // Don't break if stock stats fail, use existing summary
+      }
+      
     } catch (err) {
       console.error("Failed to fetch products:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch products");
@@ -267,13 +283,17 @@ export default function DealerProductsTable() {
     fetchProducts();
   }, [categoryFilter, brandFilter, sortBy, sortOrder]);
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    // Debounce search
+  // Debounce search - trigger API call after user stops typing
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchProducts(1);
     }, 500);
+
     return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
   };
 
   const handleViewDetails = (product: DealerProduct) => {

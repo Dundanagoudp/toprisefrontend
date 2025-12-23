@@ -97,6 +97,80 @@ export interface DealerDashboardResponse {
   };
 }
 
+// Product stats by dealer response interface
+export interface ProductStatsByDealerResponse {
+  success: boolean;
+  message: string;
+  data: {
+    totalProducts: number;
+    totaApprovedProducts: number; // Note: API has typo "tota" instead of "total"
+    totalPendingProducts: number;
+    totalRejectedProducts: number;
+  };
+}
+
+// Dealer revenue response interface
+export interface DealerRevenueResponse {
+  success: boolean;
+  message: string;
+  data: {
+    dealerId: string;
+    totalRevenue: number;
+    totalOrders: number;
+    orders: Array<{
+      orderId: string;
+      mongoOrderId: string;
+      revenue: number;
+    }>;
+  };
+}
+
+// Dealer by user ID response interface
+export interface DealerByUserIdResponse {
+  message: string;
+  dealer: {
+    _id: string;
+    user_id: string;
+    dealerId: string;
+    legal_name: string;
+    trade_name: string;
+    GSTIN: string;
+    Pan: string;
+    is_active: boolean;
+    categories_allowed: string[];
+    brands_allowed: string[];
+    upload_access_enabled: boolean;
+    default_margin: number;
+    last_fulfillment_date: string;
+    assigned_Toprise_employee: Array<{
+      assigned_user: string;
+      status: string;
+      _id: string;
+      assigned_at: string;
+    }>;
+    SLA_type: string;
+    SLA_max_dispatch_time: number;
+    onboarding_date: string;
+    remarks: string;
+    created_at: string;
+    updated_at: string;
+    __v: number;
+    is_permissios_set: boolean;
+    Address?: {
+      street: string;
+      city: string;
+      pincode: string;
+      state: string;
+    };
+    contact_person?: {
+      name: string;
+      email: string;
+      phone_number: string;
+    };
+    permission?: any;
+  };
+}
+
 // New interface for dealer list response
 export interface DealerListResponse {
   success: boolean;
@@ -227,7 +301,7 @@ const getDealerIdsFromUserId = async (userId: string): Promise<string[]> => {
 };
 
 // Helper function to get dealer ID (either directly from token or via user ID)
-const getDealerId = async (): Promise<string> => {
+export const getDealerId = async (): Promise<string> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error("No authentication token found");
@@ -699,5 +773,47 @@ export const getDealerProfileById = async (dealerId: string): Promise<DealerProf
   } catch (error) {
     console.error("Failed to fetch dealer profile by ID:", error);
     throw error;
+  }
+};
+
+// Get product stats by dealer ID
+export const getProductStatsByDealer = async (dealerId: string): Promise<ProductStatsByDealerResponse | null> => {
+  try {
+    const response = await apiClient.get<ProductStatsByDealerResponse>(
+      `/category/products/v1/get/product/stats/by-dealer/${dealerId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch product stats by dealer:", error);
+    // Return null instead of throwing to prevent breaking the dashboard
+    return null;
+  }
+};
+
+// Get dealer revenue by dealer ID
+export const getDealerRevenue = async (dealerId: string): Promise<DealerRevenueResponse | null> => {
+  try {
+    const response = await apiClient.get<DealerRevenueResponse>(
+      `/orders/api/orders/dealer/${dealerId}/revenue`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch dealer revenue:", error);
+    // Return null instead of throwing to prevent breaking the dashboard
+    return null;
+  }
+};
+
+// Get dealer by user ID
+export const getDealerByUserId = async (userId: string): Promise<DealerByUserIdResponse | null> => {
+  try {
+    const response = await apiClient.get<DealerByUserIdResponse>(
+      `/users/api/users/get/dealer/byUserld/${userId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch dealer by user ID:", error);
+    // Return null instead of throwing to prevent breaking the dashboard
+    return null;
   }
 };

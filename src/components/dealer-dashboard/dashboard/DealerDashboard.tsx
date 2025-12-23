@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Package, 
   ShoppingCart, 
@@ -19,8 +18,7 @@ import {
   DollarSign,
   BarChart3,
   Target,
-  TrendingDown,
-  AlertTriangle
+  TrendingDown
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { 
@@ -28,9 +26,14 @@ import {
   DealerDashboardResponse,
   DealerDashboardStats,
   DealerOrderKPI,
-  DealerAssignedCategory
+  DealerAssignedCategory,
+  getProductStatsByDealer,
+  ProductStatsByDealerResponse,
+  getDealerRevenue,
+  DealerRevenueResponse
 } from "@/service/dealer-dashboard-services"
-import DealerSLAViolations from "../sla-violations/DealerSLAViolations"
+import { getDealerIdFromUserId, getDealerByUserId } from "@/service/dealerServices"
+import { getAuthToken } from "@/utils/auth"
 
 // Stat Card Component
 const StatCard = ({ 
@@ -199,6 +202,9 @@ const DashboardSkeleton = () => (
 export default function DealerDashboard() {
   const router = useRouter()
   const [dashboardData, setDashboardData] = useState<DealerDashboardResponse | null>(null)
+  const [productStats, setProductStats] = useState<ProductStatsByDealerResponse['data'] | null>(null)
+  const [revenueData, setRevenueData] = useState<DealerRevenueResponse['data'] | null>(null)
+  const [dealerData, setDealerData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -207,8 +213,86 @@ export default function DealerDashboard() {
       try {
         setLoading(true)
         setError(null)
+        
+        // Fetch dashboard data
         const data = await getDealerDashboardData()
         setDashboardData(data)
+        
+        // Get user ID from token
+        let userId: string | null = null
+        const token = getAuthToken()
+        if (token) {
+          try {
+            const payloadBase64 = token.split(".")[1]
+            if (payloadBase64) {
+              const base64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/")
+              const paddedBase64 = base64.padEnd(
+                base64.length + ((4 - (base64.length % 4)) % 4),
+                "="
+              )
+              const payloadJson = atob(paddedBase64)
+              const payload = JSON.parse(payloadJson)
+              userId = payload.id || payload.userId || payload.user_id
+            }
+          } catch (err) {
+            console.error("Failed to decode token for userId:", err)
+          }
+        }
+        
+        // Fetch product stats, revenue, and dealer data independently (don't let one failure break others)
+        try {
+          const dealerId = await getDealerIdFromUserId()
+          
+          // Fetch product stats independently
+          getProductStatsByDealer(dealerId)
+            .then((response) => {
+              if (response && response.data) {
+                setProductStats(response.data)
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to fetch product stats:", error)
+              // Keep existing data, don't break
+            })
+          
+          // Fetch revenue independently
+          getDealerRevenue(dealerId)
+            .then((response) => {
+              if (response && response.data) {
+                setRevenueData(response.data)
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to fetch revenue:", error)
+              // Keep existing data, don't break
+            })
+        } catch (dealerIdError) {
+          console.error("Failed to get dealer ID:", dealerIdError)
+          // Don't break the dashboard
+        }
+        
+        // Fetch dealer by user ID independently
+        if (userId) {
+          getDealerByUserId(userId)
+            .then((response) => {
+              // Handle different response structures
+              if (response) {
+                if (response.dealer) {
+                  setDealerData(response.dealer)
+                } else if (response.data && response.data.dealer) {
+                  setDealerData(response.data.dealer)
+                } else if (response.data) {
+                  setDealerData(response.data)
+                } else {
+                  setDealerData(response)
+                }
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to fetch dealer by user ID:", error)
+              // Keep existing data, don't break
+            })
+        }
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err)
         setError("Failed to load dashboard data")
@@ -243,7 +327,7 @@ export default function DealerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-10xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -267,26 +351,13 @@ export default function DealerDashboard() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="overview" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="sla-violations" className="flex items-center space-x-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span>SLA Violations</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-
+        {/* Overview Content */}
+        <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Products"
-            value={stats?.products.total || 0}
+            value={productStats?.totalProducts || stats?.products.total || 0}
             icon={Package}
             color="text-blue-600"
             trend="up"
@@ -294,7 +365,7 @@ export default function DealerDashboard() {
           />
           <StatCard
             title="Total Orders"
-            value={stats?.orders.total || 0}
+            value={revenueData?.totalOrders || stats?.orders.total || 0}
             icon={ShoppingCart}
             color="text-green-600"
             trend="up"
@@ -302,30 +373,42 @@ export default function DealerDashboard() {
           />
           <StatCard
             title="Revenue"
-            value={`₹${(stats?.orders.totalRevenue || 0).toLocaleString()}`}
+            value={`₹${((revenueData?.totalRevenue || stats?.orders.totalRevenue) || 0).toLocaleString()}`}
             icon={DollarSign}
             color="text-purple-600"
             trend="up"
             subtitle="Total earnings"
           />
           <StatCard
-            title="Assigned Categories"
-            value={stats?.categories.assigned || 0}
+            title="Allowed Brands"
+            value={dealerData?.brands_allowed?.length || stats?.categories.assigned || 0}
             icon={Target}
             color="text-orange-600"
             trend="stable"
-            subtitle="Active categories"
+            subtitle="Brands allowed"
           />
         </div>
 
         {/* Product Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Products</p>
+                  <p className="text-2xl font-bold text-blue-600">{productStats?.totalProducts || stats?.products.total || 0}</p>
+                </div>
+                <Package className="h-8 w-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
           <Card className="border-l-4 border-l-green-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Approved Products</p>
-                  <p className="text-2xl font-bold text-green-600">{stats?.products.approved || 0}</p>
+                  <p className="text-2xl font-bold text-green-600">{productStats?.totaApprovedProducts || stats?.products.approved || 0}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
@@ -337,7 +420,7 @@ export default function DealerDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Pending Products</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats?.products.pending || 0}</p>
+                  <p className="text-2xl font-bold text-yellow-600">{productStats?.totalPendingProducts || stats?.products.pending || 0}</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-500" />
               </div>
@@ -349,29 +432,16 @@ export default function DealerDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Rejected Products</p>
-                  <p className="text-2xl font-bold text-red-600">{stats?.products.rejected || 0}</p>
+                  <p className="text-2xl font-bold text-red-600">{productStats?.totalRejectedProducts || stats?.products.rejected || 0}</p>
                 </div>
                 <XCircle className="h-8 w-8 text-red-500" />
               </div>
             </CardContent>
           </Card>
-          
-          <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Created Products</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats?.products.created || 0}</p>
-                </div>
-                <Package className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Order KPIs */}
+        {/* Main Content Grid - Order Performance and Performance Metrics */}
+        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -427,7 +497,6 @@ export default function DealerDashboard() {
             </CardContent>
           </Card>
 
-          {/* Performance Metrics */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -464,10 +533,10 @@ export default function DealerDashboard() {
               />
             </CardContent>
           </Card>
-        </div>
+        </div> */}
 
         {/* Assigned Categories */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
@@ -494,13 +563,8 @@ export default function DealerDashboard() {
               </div>
             )}
           </CardContent>
-        </Card>
-          </TabsContent>
-
-          <TabsContent value="sla-violations">
-            <DealerSLAViolations />
-          </TabsContent>
-        </Tabs>
+        </Card> */}
+        </div>
       </div>
     </div>
   )
