@@ -817,7 +817,7 @@ export default function DealerProductEditRedux() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="OEM">OEM</SelectItem>
-                      <SelectItem value="Aftermarket">Aftermarket</SelectItem>
+                      <SelectItem value="AFTERMARKET">Aftermarket</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.product_type && (
