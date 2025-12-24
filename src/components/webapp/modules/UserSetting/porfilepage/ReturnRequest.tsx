@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, XCircle, Clock, AlertTriangle, Package, Search, Truck, Eye, FileCheck } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertTriangle, Package, Search, Truck, Eye, FileCheck, IndianRupee } from "lucide-react";
 import { getReturnRequests } from "@/service/product-Service";
 import type { ReturnRequest, ReturnRequestsResponse } from "@/types/User/retrurn-Types";
 
@@ -65,6 +65,13 @@ function ReturnStatusTimeline({ returnRequest }: ReturnStatusTimelineProps) {
         : undefined,
       icon: <Eye className="h-4 w-4" />,
     },
+    {
+      label: "Refund Completed",
+      timestamp: returnRequest.refund?.refundStatus === "Processed"
+        ? returnRequest.timestamps?.refundCompletedAt
+        : undefined,
+      icon: <IndianRupee className="h-4 w-4" />,
+    }
   ];
 
   const timelineSteps = allTimelineSteps

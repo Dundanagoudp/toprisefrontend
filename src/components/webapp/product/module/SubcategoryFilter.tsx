@@ -171,12 +171,15 @@ export default function SubcategoryFilter() {
       mounted = false;
     };
   }, [userId]);
-  const handleSavedVehicleSelect = (sv: any) => {
+  const handleSavedVehicleSelect = async (sv: any) => {
     // set selects to vehicle ids (if available)
-    if (sv.brandId) setSelectedBrand(String(sv.brandId));
+    if (sv.brandId) {
+      setSelectedBrand(String(sv.brandId));
+      await fetchModels(String(sv.brandId)); // fetch models first
+    }
     if (sv.modelId) {
       setSelectedModel(String(sv.modelId));
-      fetchVariants(String(sv.modelId)); // load variants for that model
+      await fetchVariants(String(sv.modelId)); // load variants for that model
     }
     if (sv.variantId) setSelectedVariant(String(sv.variantId));
     // optionally scroll to selects
@@ -261,9 +264,11 @@ export default function SubcategoryFilter() {
       const response = await getModelsByBrand(brandId);
       const items = response.data ?? [];
       setModels(items as any);
+      return items;
     } catch (error) {
       console.error("Failed to fetch models:", error);
       setModels([]);
+      return [];
     } finally {
       setLoadingModels(false);
     }
