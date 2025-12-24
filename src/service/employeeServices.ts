@@ -293,3 +293,14 @@ export async function getAllFulfillmentStaffWithoutPagination(): Promise<ApiResp
     throw error;
   }
 }
+
+// get fulfillment staff by dealer id who's not assigned to any dealer
+export async function getFulfillmentStaffByDealer(dealerId: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.get(`/users/api/users/get/fulfillment/staff/byDealer/${dealerId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch fulfillment staff by dealer:", error);
+    throw error;
+  }
+}

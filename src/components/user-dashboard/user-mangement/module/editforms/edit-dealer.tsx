@@ -15,7 +15,7 @@ import { getDealerById, updateDealerById, getAllCategories, getAllCSlaTypes, get
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import type { User, Category } from "@/types/dealer-types"
 import {  SlaType } from "@/types/sla-types"
-import { getAllFulfillmentStaffWithoutPagination } from "@/service/employeeServices"
+import { getAllFulfillmentStaffWithoutPagination, getFulfillmentStaffByDealer } from "@/service/employeeServices"
 import { useAppSelector } from "@/store/hooks"
 import { useBreadcrumb } from "@/contexts/BreadcrumbContext"
 import { getBrand } from "@/service/product-Service"
@@ -88,10 +88,22 @@ export default function EditDealer() {
   }
   const fetchUsers = async () => {
     try {
-      const response = await getAllFulfillmentStaffWithoutPagination()
-      
-      if (response.success && response.data?.data) {
-        const staff = response.data.data
+      const response = await getFulfillmentStaffByDealer(dealerId)
+
+      if (response.success && response.data) {
+        const { availableEmployeesWithNoDealer = [], assignedEmployees = [] } = response.data
+
+        // Check if any employee is assigned to the current dealer
+        const isAssigned = assignedEmployees.some((emp: any) =>
+          emp.assigned_dealers?.includes(dealerId)
+        )
+
+        // Determine the source list based on assignment
+        const sourceList = isAssigned
+          ? [...availableEmployeesWithNoDealer, ...assignedEmployees]
+          : availableEmployeesWithNoDealer
+
+        const staff = sourceList
           .filter((s: any) => s.role === "Fulfillment-Staff")
           .map((s: any) => ({
             _id: s._id,
@@ -99,7 +111,7 @@ export default function EditDealer() {
             username: s.First_name,
             employee_id: s.employee_id,
           }))
-        
+
         setUsers(staff)
         if (staff.length === 0) {
           showToast("No Fulfillment Staff found.", "warning");
