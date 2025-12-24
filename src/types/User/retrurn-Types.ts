@@ -98,6 +98,7 @@ export interface ReturnRequestsResponse {
     courrierDeliveredAt?: string | null;
     rejectedAt?: string | null;
     borzoShipmentInitiatedAt?: string | null;
+    refundCompletedAt?: string | null;
     // include any other timestamp keys present
   }
   
