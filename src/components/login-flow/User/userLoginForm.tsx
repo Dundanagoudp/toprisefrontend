@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { checkUserExists } from "@/service/auth-service";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { useAppDispatch } from "@/store/hooks";
@@ -14,9 +14,10 @@ import { useToast } from "@/components/ui/toast";
 import { firebasePhoneAuth } from "@/service/firebase-auth-service";
 import { loginWithFirebaseToken } from "@/service/phone-login-service";
 import { ConfirmationResult } from "firebase/auth";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RefreshCcw } from "lucide-react";
 import Image from "next/image";
 import LogoNoname from "../../../../public/assets/logo.png";
+import { DynamicButton } from "@/components/common/button";
 export function UserLoginForm({
   className,
   ...props
@@ -28,8 +29,17 @@ export function UserLoginForm({
   const [confirmationResult, setConfirmationResult] =
     useState<ConfirmationResult | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
+
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
 
   /**
    * Send OTP to phone number
@@ -57,6 +67,11 @@ export function UserLoginForm({
       return;
     }
 
+    if (!/^\d{10}$/.test(phoneNumber)) {
+      showToast("Please enter a valid 10-digit phone number", "error");
+      return;
+    }
+
     const phoneE164 = normalizePhone(phoneNumber);
 
     setOtpLoading(true);
@@ -79,6 +94,7 @@ export function UserLoginForm({
       const result = await firebasePhoneAuth.sendOTP(phoneE164);
       setConfirmationResult(result);
       setOtpSent(true);
+      setResendTimer(60); // Start 60-second countdown
       showToast(`OTP sent to ${phoneE164}`, "success");
     } catch (err: any) {
       console.error("Error in handleSendOTP:", err);
@@ -86,6 +102,11 @@ export function UserLoginForm({
     } finally {
       setOtpLoading(false);
     }
+  };
+
+  // handle resend OTP  
+  const handleResendOTP = async () => {
+    await handleSendOTP();
   };
 
   /**
@@ -213,10 +234,10 @@ export function UserLoginForm({
                         placeholder="9876543210"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
+                        maxLength={10}
                       />
                       <p className="text-xs text-gray-500">
-                        Enter 10-digit number (we'll add +91) or full
-                        international number
+                        Enter 10-digit number without country code
                       </p>
                     </div>
                     <Button
@@ -314,6 +335,15 @@ export function UserLoginForm({
                         "Verify & Login"
                       )}
                     </Button>
+                    <DynamicButton
+                      text={resendTimer > 0 ? `Resend OTP (${resendTimer}s)` : "Resend OTP"}
+                      icon={<RefreshCcw className="h-4 w-4" />}
+                      onClick={handleResendOTP}
+                      disabled={otpLoading || resendTimer > 0}
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-primary-red"
+                    />
                   </>
                 )}
               </div>
