@@ -136,7 +136,7 @@ function ReturnRequestList({ userId }: ReturnRequestListProps) {
         setIsLoading(true);
         setError(null);
         const response = await getReturnRequests(userId);
-        setReturnRequests(response);
+        setReturnRequests(response as ReturnRequestsResponse);
       } catch (err) {
         console.error("Error fetching return requests:", err);
         setError("Failed to load return requests");
