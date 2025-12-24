@@ -11,7 +11,7 @@ import Cookies from "js-cookie";
 import { useAppDispatch } from "@/store/hooks";
 import { loginSuccess } from "@/store/slice/auth/authSlice";
 import { useToast } from "@/components/ui/toast";
-import { firebasePhoneAuth } from "@/service/firebase-auth-service";
+import { firebasePhoneAuth, clearRecaptcha } from "@/service/firebase-auth-service";
 import { loginWithFirebaseToken } from "@/service/phone-login-service";
 import { ConfirmationResult } from "firebase/auth";
 import { ArrowLeft, RefreshCcw } from "lucide-react";
@@ -104,8 +104,9 @@ export function UserLoginForm({
     }
   };
 
-  // handle resend OTP  
+  // handle resend OTP
   const handleResendOTP = async () => {
+    // Singleton RecaptchaVerifier handles reCAPTCHA automatically
     await handleSendOTP();
   };
 
@@ -196,6 +197,8 @@ export function UserLoginForm({
     setOtpCode("");
     setPhoneNumber("");
     setConfirmationResult(null);
+    setResendTimer(0);
+    clearRecaptcha();
   };
 
   return (
@@ -347,6 +350,9 @@ export function UserLoginForm({
                   </>
                 )}
               </div>
+
+              {/* reCAPTCHA container - required for Firebase authentication */}
+              <div id="recaptcha-container"></div>
 
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">

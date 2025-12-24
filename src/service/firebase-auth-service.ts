@@ -1,31 +1,21 @@
-import { 
-  signInWithPhoneNumber, 
-  RecaptchaVerifier, 
+import {
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
   ConfirmationResult,
   PhoneAuthProvider,
   signInWithCredential
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
-// Declare recaptchaVerifier globally to avoid re-initialization
-declare global {
-  interface Window {
-    recaptchaVerifier: RecaptchaVerifier;
-  }
-}
+// Singleton RecaptchaVerifier instance
+let recaptchaVerifier: RecaptchaVerifier | null = null;
 
-export class FirebasePhoneAuthService {
-  private recaptchaVerifier: RecaptchaVerifier | null = null;
-
-  /**
-   * Initialize reCAPTCHA verifier
-   */
-  private initializeRecaptcha(containerId: string = 'recaptcha-container'): RecaptchaVerifier {
-    if (this.recaptchaVerifier) {
-      this.recaptchaVerifier.clear();
-    }
-
-    this.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+/**
+ * Get singleton RecaptchaVerifier instance
+ */
+const getRecaptchaVerifier = (containerId: string = 'recaptcha-container'): RecaptchaVerifier => {
+  if (!recaptchaVerifier) {
+    recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
       size: 'invisible',
       callback: (response: any) => {
         console.log('reCAPTCHA solved');
@@ -34,9 +24,21 @@ export class FirebasePhoneAuthService {
         console.log('reCAPTCHA expired');
       }
     });
-
-    return this.recaptchaVerifier;
   }
+  return recaptchaVerifier;
+};
+
+/**
+ * Clear the RecaptchaVerifier instance
+ */
+const clearRecaptcha = (): void => {
+  if (recaptchaVerifier) {
+    recaptchaVerifier.clear();
+    recaptchaVerifier = null;
+  }
+};
+
+export class FirebasePhoneAuthService {
 
   /**
    * Send OTP to phone number
@@ -45,15 +47,15 @@ export class FirebasePhoneAuthService {
     try {
       // Ensure phone number has country code
       const formattedPhoneNumber = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
-      
-      const recaptchaVerifier = this.initializeRecaptcha(containerId);
-      
+
+      const verifier = getRecaptchaVerifier(containerId);
+
       const confirmationResult = await signInWithPhoneNumber(
-        auth, 
-        formattedPhoneNumber, 
-        recaptchaVerifier
+        auth,
+        formattedPhoneNumber,
+        verifier
       );
-      
+
       return confirmationResult;
     } catch (error: any) {
       console.error('Error sending OTP:', error);
@@ -98,10 +100,7 @@ export class FirebasePhoneAuthService {
   async signOut(): Promise<void> {
     try {
       await auth.signOut();
-      if (this.recaptchaVerifier) {
-        this.recaptchaVerifier.clear();
-        this.recaptchaVerifier = null;
-      }
+      clearRecaptcha();
     } catch (error: any) {
       console.error('Error signing out:', error);
       throw new Error('Failed to sign out');
@@ -133,5 +132,6 @@ export class FirebasePhoneAuthService {
   }
 }
 
-// Export singleton instance
+// Export singleton instance and utility functions
 export const firebasePhoneAuth = new FirebasePhoneAuthService();
+export { clearRecaptcha };
