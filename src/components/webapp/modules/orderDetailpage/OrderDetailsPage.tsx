@@ -1240,14 +1240,14 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 </CardHeader>
                 <CardContent className="space-y-4 max-sm:px-4 max-sm:pb-4 max-sm:space-y-3">
                   <div className="flex justify-between max-sm:text-sm">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-gray-600">Items Total (Excluding GST)</span>
                     <span className="font-medium">
-                      ₹{(order.order_Amount || 0).toLocaleString() || "0"}
+                      ₹{(order.order_Amount - order.GST - order.deliveryCharges || 0).toLocaleString() || "0"}
                     </span>
                   </div>
 
                   <div className="flex justify-between max-sm:text-sm">
-                    <span className="text-gray-600">GST (included)</span>
+                    <span className="text-gray-600">GST (Inclusive)</span>
                     <span className="font-medium">
                       ₹{order.GST?.toLocaleString() || "0"}
                     </span>

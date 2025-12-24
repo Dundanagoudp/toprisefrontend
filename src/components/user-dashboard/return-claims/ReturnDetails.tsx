@@ -51,6 +51,7 @@ import {
   Info,
   XCircle,
   ExternalLink,
+  IndianRupee,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -888,7 +889,12 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
                       {
                         label: "Refund Initiated",
                         timestamp: returnRequest.timestamps?.refundInitiatedAt,
-                        icon: <DollarSign className="h-4 w-4" />,
+                        icon: <IndianRupee className="h-4 w-4" />,
+                      },
+                      {
+                        label: "Refund Completed",
+                        timestamp: returnRequest.timestamps?.refundCompletedAt,
+                        icon: <CheckCircle className="h-4 w-4" />,
                       },
                     ];
 
