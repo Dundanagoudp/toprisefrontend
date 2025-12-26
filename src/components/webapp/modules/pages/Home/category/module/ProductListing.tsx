@@ -147,7 +147,7 @@ const ProductListing = ({
                     </div>
                   )}
                 </div>
-                <div className="text-center" onClick={() => onProductSelect(product.product_name)}>
+                <div className="text-center cursor-pointer" onClick={() => handleViewProduct(product._id)}>
                   <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight mb-2">
                     {product.product_name}
                   </h4>
