@@ -1000,6 +1000,7 @@ export default function DealerProductEdit() {
                 id="hsn_code"
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
+                maxLength={8}
                 {...register("hsn_code")}
                 disabled={Boolean(allowedFields && !allowedFields.includes("hsn_code"))}
               />

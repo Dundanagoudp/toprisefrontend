@@ -17,28 +17,45 @@ interface CreateYearModalProps {
 function CreateYearModal({ open, onClose, onSuccess }: CreateYearModalProps) {
   const [yearName, setYearName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { showToast } = useGlobalToast();
+
+  const currentYear = new Date().getFullYear();
+  const minAllowedYear = currentYear - 35;
 
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!open) {
       setYearName("");
       setSubmitting(false);
+      setError(null);
     }
   }, [open]);
 
   const handleSubmit = async () => {
     const yearNameTrimmed = yearName.trim();
-    
+    const yearNumber = parseInt(yearNameTrimmed, 10);
+
     if (!yearNameTrimmed) {
       showToast("Year name is required", "error");
       return;
     }
 
+    if (isNaN(yearNumber)) {
+      setError("Year must be a valid number");
+      return;
+    }
+
+    if (yearNumber < minAllowedYear || yearNumber > currentYear) {
+      setError(`Year must be between ${minAllowedYear} and ${currentYear}`);
+      return;
+    }
+
+    setError(null);
     setSubmitting(true);
     
     try {
-      const response = await createYear({ year_name: yearNameTrimmed });
+      const response = await createYear({ year_name: yearNumber.toString() });
       
       if (response && response.success) {
         showToast("Year created successfully", "success");
@@ -75,16 +92,25 @@ function CreateYearModal({ open, onClose, onSuccess }: CreateYearModalProps) {
           <Input
             id="year_name"
             value={yearName}
-            onChange={(event) => setYearName(event.target.value)}
-            placeholder="Enter year (e.g., 2024)"
+            onChange={(event) => {
+              const value = event.target.value;
+              setYearName(value);
+              // Clear error when user types
+              if (error && value) setError(null);
+            }}
+            placeholder={`Enter year (${minAllowedYear}–${currentYear})`}
             disabled={submitting}
             type="number"
+            min={minAllowedYear}
+            max={currentYear}
+            maxLength={4}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !submitting) {
+              if (e.key === 'Enter' && !submitting && !error) {
                 handleSubmit();
               }
             }}
           />
+          {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
         <DialogFooter className="gap-2">
           <Button 
@@ -94,9 +120,9 @@ function CreateYearModal({ open, onClose, onSuccess }: CreateYearModalProps) {
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={submitting || !yearName.trim()}
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || !yearName.trim() || !!error}
           >
             {submitting ? "Creating..." : "Create"}
           </Button>
