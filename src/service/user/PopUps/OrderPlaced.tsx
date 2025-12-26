@@ -81,7 +81,11 @@ export default function OrderConfirmationDialog({
               View Order Details
             </DynamicButton>
           )}
-          <DynamicButton onClick={onClose}>
+
+          <DynamicButton onClick={() => {
+            onClose();
+            router.push('/');
+          }}>
             Continue Shopping
           </DynamicButton>
         </div>
