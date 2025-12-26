@@ -56,7 +56,7 @@ import { getOrderById } from "@/service/order-service";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cartData: cart, fetchCart } = useCart();
+  const { cartData: cart, fetchCart, loading: cartLoading } = useCart();
   const { showToast } = useGlobalToast();
   const dispatch = useAppDispatch();
   const [user, setUser] = useState<any | null>(null);
@@ -268,6 +268,18 @@ export default function CheckoutPage() {
         return;
       }
 
+      if (!cart.items || cart.items.length === 0) {
+        console.log("Cart is empty");
+        showToast("Your cart is empty. Please add items before placing an order.", "error");
+        return;
+      }
+
+      if (!cart.itemTotal || cart.itemTotal <= 0) {
+        console.log("No items in cart");
+        showToast("Your cart is empty. Please add items before placing an order.", "error");
+        return;
+      }
+
       const paymentBody = preparePaymentBody(
         user,
         cart,
@@ -452,6 +464,18 @@ export default function CheckoutPage() {
     if (!user || !cart) {
       console.log("Missing user or cart data");
       showToast("User or cart data is not available", "error");
+      return;
+    }
+
+    if (!cart.items || cart.items.length === 0) {
+      console.log("Cart is empty");
+      showToast("Your cart is empty. Please add items before placing an order.", "error");
+      return;
+    }
+
+    if (!cart.itemTotal || cart.itemTotal <= 0) {
+      console.log("No items in cart");
+      showToast("Your cart is empty. Please add items before placing an order.", "error");
       return;
     }
 
@@ -941,10 +965,13 @@ export default function CheckoutPage() {
                       </p>
                       {expressAvailable && (
                         <>
-                          <p>
-                            <strong>Delivery Charges:</strong>{" "}
-                            {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${cart.deliveryCharge}`}
-                          </p>
+                          {/* Only show delivery charges if cart has items and item total > 0 */}
+                          {cart?.items && cart.items.length > 0 && cart?.itemTotal && cart.itemTotal > 0 && (
+                            <p>
+                              <strong>Delivery Charges:</strong>{" "}
+                              {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${cart.deliveryCharge}`}
+                            </p>
+                          )}
                           <p>
                             <strong>Estimated Delivery:</strong>{" "}
                             {pincodeData.estimated_delivery_days} days
@@ -1504,14 +1531,17 @@ export default function CheckoutPage() {
                           ₹{Math.round(cart?.gst_amount || 0)}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">
-                          Delivery Charge ({cart?.delivery_type || "Standard"}):
-                        </span>
-                        <span className="font-medium">
-                          {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${Math.round(cart.deliveryCharge)}`}
-                        </span>
-                      </div>
+                      {/* Only show delivery charge if cart has items and item total > 0 */}
+                      {cart?.items && cart.items.length > 0 && cart?.itemTotal && cart.itemTotal > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">
+                            Delivery Charge ({cart?.delivery_type || "Standard"}):
+                          </span>
+                          <span className="font-medium">
+                            {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${Math.round(cart.deliveryCharge)}`}
+                          </span>
+                        </div>
+                      )}
                       <hr className="border-gray-300" />
                       <div className="flex justify-between text-lg font-semibold">
                         <span className="text-gray-900">Total (Inclusive of GST):</span>
@@ -1682,14 +1712,17 @@ export default function CheckoutPage() {
                       ₹{Math.round(cart?.gst_amount || 0)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">
-                      Delivery Charge ({cart?.delivery_type || "Standard"}):
-                    </span>
-                    <span className="font-medium">
-                      {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${Math.round(cart.deliveryCharge)}`}
-                    </span>
-                  </div>
+                  {/* Only show delivery charge if cart has items and item total > 0 */}
+                  {cart?.items && cart.items.length > 0 && cart?.itemTotal && cart.itemTotal > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">
+                        Delivery Charge ({cart?.delivery_type || "Standard"}):
+                      </span>
+                      <span className="font-medium">
+                        {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${Math.round(cart.deliveryCharge)}`}
+                      </span>
+                    </div>
+                  )}
                   <hr className="border-gray-300" />
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span className="text-gray-900">Total (Inclusive of GST):</span>
@@ -1766,6 +1799,16 @@ export default function CheckoutPage() {
                     }}
                     disabled={
                       isPlacingOrder ||
+                      isOrderConfirmed ||
+                      isLoading ||
+                      cartLoading ||
+                      !cart ||
+                      !cart.items ||
+                      cart.items.length === 0 ||
+                      !cart.itemTotal ||
+                      cart.itemTotal <= 0 ||
+                      !cart.grandTotal ||
+                      cart.grandTotal <= 0 ||
                       (currentStep === 0 && !selectedAddress) ||
                       (currentStep === 3 &&
                         (!user || !cart || !selectedAddress)) ||
@@ -1804,6 +1847,25 @@ export default function CheckoutPage() {
                     )}
                   </Button>
 
+                  {/* Show message when cart is empty or loading */}
+                  {(!isPlacingOrder && currentStep === 3 && (
+                    (!cart || !cart.items || cart.items.length === 0 || !cart.itemTotal || cart.itemTotal <= 0) ? (
+                      <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200 mt-2">
+                        <div className="flex items-center gap-2">
+                          <Package className="w-4 h-4" />
+                          <span>Your cart is empty. Add items before placing an order.</span>
+                        </div>
+                      </div>
+                    ) : (isLoading || cartLoading) ? (
+                      <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mt-2">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Loading your cart data...</span>
+                        </div>
+                      </div>
+                    ) : null
+                  ))}
+
                   {!isPlacingOrder &&
                     currentStep === 3 &&
                     (!user || !cart || !selectedAddress !|| !user.username || !user.phone_Number || !user.email) && (
@@ -1814,7 +1876,7 @@ export default function CheckoutPage() {
                         {!user.username && <div>• Username not loaded</div>}
                         {!user.phone_Number && <div>• Phone number not loaded</div>}
                         {!user.email && <div>• Email not loaded</div>}
-                        <div className="mt-2 flex gap-2">
+                        {/* <div className="mt-2 flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -1833,7 +1895,7 @@ export default function CheckoutPage() {
                           >
                             Refresh Page
                           </Button>
-                        </div>
+                        </div> */}
                       </div>
                     )}
                 </div>
