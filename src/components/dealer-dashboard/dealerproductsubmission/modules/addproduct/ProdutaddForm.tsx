@@ -466,6 +466,7 @@ export default function DealerAddProducts() {
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 type="number"
+                maxLength={8}
                 {...register("hsn_code", {
                   valueAsNumber: true,
                   required: "HSN Code is required",

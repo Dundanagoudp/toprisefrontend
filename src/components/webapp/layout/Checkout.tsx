@@ -52,6 +52,7 @@ import {
   prepareOrderBody,
   preparePaymentBody,
 } from "../common/PaymentBodyType";
+import { getOrderById } from "@/service/order-service";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -63,6 +64,7 @@ export default function CheckoutPage() {
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Steps: Address (0) -> Delivery (1) -> Review (2) -> Pay (3)
   const [currentStep, setCurrentStep] = useState(0);
@@ -255,6 +257,12 @@ export default function CheckoutPage() {
   const handlePayment = async () => {
     console.log("🔔 handlePayment called");
     try {
+      if (isPlacingOrder) {
+        console.log("Payment already in progress, ignoring click");
+        return;
+      }
+      
+      setIsPlacingOrder(true);
       if (!user || !cart || !selectedAddress) {
         showToast("Missing required data for payment", "error");
         return;
@@ -343,6 +351,11 @@ export default function CheckoutPage() {
 
       const rzpay = new Razorpay(options);
       rzpay.open();
+      
+      // Start polling for payment status from backend
+      if (order?._id) {
+        pollPaymentStatus(order._id);
+      }
     } catch (err: any) {
       console.error("Payment error:", err);
       showToast(`Payment failed: ${err.message}`, "error");
@@ -361,6 +374,10 @@ export default function CheckoutPage() {
         clearTimeout(timeout);
       });
       quantityUpdateTimeouts.current.clear();
+      
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
     };
   }, []);
 
@@ -751,6 +768,17 @@ export default function CheckoutPage() {
     responseData: any,
     successMessage = "Order placed successfully!"
   ) => {
+    if (isOrderConfirmed) {
+      console.log("Order already confirmed, ignoring duplicate call");
+      return;
+    }
+    
+    // Stop polling if active
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+
     dispatch(clearCart());
 
     try {
@@ -758,12 +786,46 @@ export default function CheckoutPage() {
     } catch (e) {}
 
     showToast(successMessage, "success");
-    setOrderId( responseData._id);
+    setOrderId(responseData._id);
     setIsOrderConfirmed(true);
 
     // setTimeout(() => {
     //   router.push("/");
     // }, 1500);
+  };
+
+  const pollPaymentStatus = async (orderId: string) => {
+    // Clear any existing interval
+    if (pollingInterval.current) clearInterval(pollingInterval.current);
+
+    pollingInterval.current = setInterval(async () => {
+      try {
+        const response = await getOrderById(orderId);
+        // getOrderById returns { data: Order[] } based on search results
+        // but typically getById should return single object.
+        // Checking data[0] if array, or data if object.
+        const orderData = Array.isArray(response.data) ? response.data[0] : response.data;
+        
+        if (orderData) {
+          const status = (orderData.status || "").toLowerCase();
+          // Check for success statuses
+          if (["confirmed", "processing", "paid"].includes(status)) {
+             console.log("Payment confirmed via polling");
+             finalizeOrder(orderData, "Payment confirmed by server!");
+          }
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    // Stop polling after 5 minutes
+    setTimeout(() => {
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+        pollingInterval.current = null;
+      }
+    }, 5 * 60 * 1000);
   };
 
   return (
@@ -1194,7 +1256,7 @@ export default function CheckoutPage() {
                             key={item._id}
                             className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 border border-gray-200 rounded-lg"
                           >
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-md flex-shrink-0 mx-auto sm:mx-0">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-md shrink-0 mx-auto sm:mx-0">
                               {item.product_image && item.product_image[0] && (
                                 <img
                                   src={item.product_image[0]}
@@ -1298,7 +1360,7 @@ export default function CheckoutPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 flex-shrink-0"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 shrink-0"
                                 onClick={() => removeItem(item.productId)}
                               >
                                 <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -1514,7 +1576,7 @@ export default function CheckoutPage() {
                       >
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-md flex-shrink-0">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-md shrink-0">
                               {item.product_image && item.product_image[0] && (
                                 <img
                                   src={item.product_image[0]}
@@ -1697,7 +1759,11 @@ export default function CheckoutPage() {
                    */}
                   <Button
                     className="w-full bg-red-600 hover:bg-red-700 text-white py-3 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    onClick={handleProceed}
+                    onClick={() => {
+                      if (!isPlacingOrder) {
+                        handleProceed();
+                      }
+                    }}
                     disabled={
                       isPlacingOrder ||
                       (currentStep === 0 && !selectedAddress) ||

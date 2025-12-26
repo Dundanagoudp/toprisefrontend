@@ -5,7 +5,9 @@ export const dealerProductSchema = z.object({
   manufacturer_part_name: z.string(),
   product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().min(1, "Brand is required"),
-  hsn_code: z.number().optional(),
+  hsn_code: z.number().optional().refine((val) => val !== undefined && val.toString().length <= 8, {
+    message: "HSN code must be 8 digits",
+  }),
   category: z.string().min(1, "Category is required"),
   sub_category: z.string().min(1, "Sub-category is required"),
   product_type: z.string().min(1, "Product type is required"),

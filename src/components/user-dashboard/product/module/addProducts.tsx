@@ -74,7 +74,9 @@ const schema = z.object({
     .min(1, "Manufacturer Part Number is required"),
   product_name: z.string().min(1, "Product Name is required"),
   brand: z.string().optional(),
-  hsn_code: z.number().optional(),
+  hsn_code: z.number().optional().refine((val) => val !== undefined && val.toString().length <= 8, {
+    message: "HSN code must be 8 digits",
+  }),
   category: z.string().min(1, "Category is required"),
   sub_category: z.string().min(1, "Sub-category is required"),
   product_type: z.string().min(1, "Product type is required"),
@@ -634,6 +636,7 @@ export default function AddProducts() {
                 placeholder="Enter HSN Code"
                 className="bg-gray-50 border-gray-200 rounded-[8px] p-4"
                 type="number"
+                maxLength={8}
                 onKeyDown={handleNumericKeyDown}
                 onPaste={handleNumericPaste}
                 {...register("hsn_code", {
@@ -642,6 +645,8 @@ export default function AddProducts() {
                   validate: (value) =>
                     value === undefined || isNaN(value)
                       ? "Invalid input: expected number"
+                      : value.toString().length > 8
+                      ? "HSN Code must not exceed 8 digits"
                       : true,
                 })}
               />

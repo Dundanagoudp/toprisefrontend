@@ -124,7 +124,7 @@ export async function updateUserProfile(userId: string, profileData: UpdateProfi
     console.log("Updating profile with token:", token ? "Token found" : "No token");
     console.log("Profile data:", profileData);
 
-    const response = await apiClient.put(`/users/api/users/profile/${userId}`, profileData, {
+    const response = await apiClient.put(`/users/api/users/profile/user/${userId}`, profileData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
