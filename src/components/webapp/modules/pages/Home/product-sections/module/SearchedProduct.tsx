@@ -391,13 +391,8 @@ const SearchResults = () => {
 
   // Handle product click - update search query and trigger new search
   const handleProductClick = async (productName: string) => {
-    const newQuery = `${query} ${productName}`.trim();
-    console.log("Product clicked:", productName, "New query:", newQuery);
+    router.push(`/shop/product/${productName}`);
 
-    // Update URL with new query
-    const newSearchParams = new URLSearchParams(searchParams.toString());
-    newSearchParams.set("query", newQuery);
-    router.push(`?${newSearchParams.toString()}`);
   };
 
   // Handle back to model - go back to model selection
