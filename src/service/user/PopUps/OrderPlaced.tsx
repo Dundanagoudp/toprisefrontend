@@ -35,7 +35,8 @@ export default function OrderConfirmationDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+
+    <Dialog open={open} onOpenChange={(open) => { if (!open) { router.push('/'); } }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Order Confirmed</DialogTitle>
