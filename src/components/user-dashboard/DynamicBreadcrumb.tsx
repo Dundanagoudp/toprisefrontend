@@ -33,7 +33,7 @@ export function DynamicBreadcrumb({ customLabels = {}, showDashboard = true }: {
       return false;
     }
     return true;
-  }).map(({ label, href }) => ({ label, href })); // Remove segment property after filtering
+  }); // Keep segment property for determining clickable links
   
   const items = showDashboard 
     ? [{ label: 'Dashboard', href: '/user/dashboard' }, ...subItems]
@@ -41,20 +41,27 @@ export function DynamicBreadcrumb({ customLabels = {}, showDashboard = true }: {
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        {items.map((item, idx) => (
-          <React.Fragment key={item.href}>
-            <BreadcrumbItem>
-              {idx === items.length - 1 ? (
-                <BreadcrumbPage>{item.label}</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink asChild>
-                  <Link href={item.href}>{item.label}</Link>
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>
-            {idx < items.length - 1 && <BreadcrumbSeparator className="hidden md:block" />}
-          </React.Fragment>
-        ))}
+        {items.map((item, idx) => {
+          // Check if this item should be clickable
+          // Don't make it clickable if the next item exists and looks like an ID
+          const nextItem = items[idx + 1];
+          const shouldBeClickable = idx !== items.length - 1 && (!nextItem || !/^[0-9a-f]{24}$/i.test(nextItem.segment || ''));
+
+          return (
+            <React.Fragment key={item.href}>
+              <BreadcrumbItem>
+                {idx === items.length - 1 || !shouldBeClickable ? (
+                  <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <Link href={item.href}>{item.label}</Link>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+              {idx < items.length - 1 && <BreadcrumbSeparator className="hidden md:block" />}
+            </React.Fragment>
+          );
+        })}
       </BreadcrumbList>
     </Breadcrumb>
   );
