@@ -195,17 +195,21 @@ const SummaryCard = ({ summary, loading }: SummaryCardProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900">{summary.totalProducts}</div>
             <div className="text-sm text-gray-600">Total Products</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{summary.totalInStock}</div>
+            
+            <div className="text-2xl font-bold text-green-600" 
+            
+            >{summary.totalInStock || 0}</div>
             <div className="text-sm text-gray-600">In Stock</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{summary.totalOutOfStock}</div>
+            <div className="text-2xl font-bold text-red-600">{summary.totalOutOfStock || 0}</div>
             <div className="text-sm text-gray-600">Out of Stock</div>
           </div>
         </div>
@@ -292,6 +296,7 @@ export default function DealerProductsTable() {
       setProducts(response.data.products);
       setPagination(response.data.pagination);
       setSummary(response.data.summary);
+      console.log("setSummary data",response.data.summary)
       
       // Update tab count for current tab
       setTabCounts(prev => ({
@@ -303,6 +308,7 @@ export default function DealerProductsTable() {
       try {
         const dealerId = await getDealerIdFromUserId();
         const stockStats = await getProductStockStats(dealerId);
+        console.log("stockStats",stockStats)
         if (stockStats && stockStats.data) {
           // Update summary with API data
           setSummary({
