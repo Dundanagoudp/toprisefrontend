@@ -137,7 +137,7 @@ const ModelSelection: React.FC<ModelSelectionProps> = ({ brandId }) => {
             </Link>
             <span>/</span>
             <Link
-              href="/shop"
+              href="/"
               className="hover:text-primary cursor-pointer transition-colors"
             >
               Shop
