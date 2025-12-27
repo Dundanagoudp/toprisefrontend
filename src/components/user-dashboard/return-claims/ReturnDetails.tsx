@@ -573,7 +573,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
             Refresh
           </Button>
 
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <MoreHorizontal className="h-4 w-4" />
@@ -585,7 +585,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
                 Export Details
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
         </div>
       </div>
 

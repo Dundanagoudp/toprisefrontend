@@ -158,6 +158,8 @@ export default function StatusTable() {
     if (logs.length === 0) return alert("No logs to export");
 
     const headers = [
+      // all add sku column
+      "SKU",
       "Session ID",
       "Status",
       "Created By",
@@ -169,6 +171,7 @@ export default function StatusTable() {
     ];
 
     const csvRows = logs.map((log) => [
+      log.logData.successLogs.products.map((p: any) => p.sku).join(","),
       log.sessionId,
       log.status,
       log.createdBy,
@@ -230,7 +233,7 @@ export default function StatusTable() {
     const allRows = [...successRows, ...failedRows];
 
     const csvData = [...metaRows, ...allRows]
-      .map((row) => row.map((c) => `"${c}"`).join(","))
+      .map((row) => row.map((c: any) => `"${c}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csvData], { type: "text/csv" });

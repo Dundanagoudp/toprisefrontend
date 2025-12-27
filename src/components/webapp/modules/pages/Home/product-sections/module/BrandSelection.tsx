@@ -104,7 +104,7 @@ const BrandSelection: React.FC<BrandSelectionProps> = ({ vehicleTypeId }) => {
             </Link>
             <span>/</span>
             <Link
-              href="/shop"
+              href="/"
               className="hover:text-primary cursor-pointer transition-colors"
             >
               Shop
