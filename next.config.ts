@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   images: {
     domains: [
       "toprisebucket.s3.eu-north-1.amazonaws.com",
+      "toprisebucket01.s3.ap-south-1.amazonaws.com",
       "firebasestorage.googleapis.com",
       "193.203.161.146",
     ],
