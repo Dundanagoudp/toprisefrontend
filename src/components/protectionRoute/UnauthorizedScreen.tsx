@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/store/hooks";
+import Cookies from "js-cookie";
+import { LogOut as logoutAction } from "@/store/slice/auth/authSlice";
+import { persistor } from "@/store/store";
 
 interface UnauthorizedScreenProps {
   title?: string;
@@ -10,6 +15,8 @@ interface UnauthorizedScreenProps {
   actionLabel?: string;
   secondaryHref?: string;
   secondaryLabel?: string;
+  thirdaryHref?: string;
+  thirdaryLabel?: string;
 }
 
 const UnauthorizedScreen: React.FC<UnauthorizedScreenProps> = ({
@@ -19,7 +26,28 @@ const UnauthorizedScreen: React.FC<UnauthorizedScreenProps> = ({
   actionLabel = "Go to homepage",
   secondaryHref,
   secondaryLabel,
+  thirdaryHref,
+  thirdaryLabel,
 }) => {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  const handleLogout = async () => {
+    
+       
+
+   
+       Cookies.remove("token");
+       Cookies.remove("role");
+       Cookies.remove("lastlogin");
+       localStorage.clear();
+       sessionStorage.clear();
+       dispatch(logoutAction());
+       persistor.purge();
+       window.location.href = "/";
+     
+   
+  };
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6 text-center px-4">
       <div className="space-y-2">
@@ -38,6 +66,16 @@ const UnauthorizedScreen: React.FC<UnauthorizedScreenProps> = ({
             <Link href={secondaryHref}>{secondaryLabel}</Link>
           </Button>
         ) : null}
+  
+        {thirdaryHref && thirdaryLabel ? (
+          <Button asChild variant="ghost">
+            <Link href={thirdaryHref}>{thirdaryLabel}</Link>
+          </Button>
+        ) : null}
+
+        <Button onClick={handleLogout} variant="ghost">
+          Logout
+        </Button>
       </div>
     </div>
   );
