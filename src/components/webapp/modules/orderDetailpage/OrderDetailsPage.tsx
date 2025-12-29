@@ -1083,8 +1083,8 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                   return (
                                     orderSku?.return_info?.is_returnable &&
                                     !orderSku?.return_info?.is_returned &&
-                                    trackingInfo?.borzo_tracking_status ===
-                                      "finished" &&
+                                    (trackingInfo?.borzo_tracking_status ===
+                                      "finished" || trackingInfo?.borzo_tracking_status === "completed") &&
                                     withinReturnWindow && (
                                       <div className="flex justify-end">
                                         <Button
