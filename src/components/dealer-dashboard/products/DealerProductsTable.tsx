@@ -92,7 +92,7 @@ const ProductTableRow = ({ product, onViewDetails, onUpdateStock }: ProductTable
           <Badge variant="outline" className="text-xs">
             {product.brand?.brand_name || 'Unknown Brand'}
           </Badge>
-          <div className="text-sm text-gray-600">{product.category.category_name}</div>
+          <div className="text-sm text-gray-600">{product.category?.category_name}</div>
         </div>
       </TableCell>
       <TableCell>
