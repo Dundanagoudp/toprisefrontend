@@ -408,8 +408,9 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                     <h3 className="font-semibold text-blue-900 mb-2">Permission Management Options</h3>
                     <ul className="text-sm text-blue-800 space-y-1">
                       <li><strong>Set Dealer Permissions:</strong> Configure granular read/update/action permissions for product fields</li>
-                      <li><strong>Module Permissions:</strong> Manage module-level permissions (legacy system for batch operations)</li>
+                      {/* <li><strong>Module Permissions:</strong> Manage module-level permissions (legacy system for batch operations)</li>
                       <li><strong>Field Selection:</strong> Use the searchable dropdown to select specific fields or "Select All" for unrestricted access</li>
+                     */}
                     </ul>
                   </div>
                 </div>

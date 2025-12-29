@@ -14,7 +14,7 @@ export default function SettingPage() {
   const settingsNav = [
     // { name: "Permission Access", id: "Permission Access" },
     { name: "Dealer Permissions", id: "Dealer Permissions" },
-    { name: "Other Settings", id: "Other Settings" },
+    // { name: "Other Settings", id: "Other Settings" },
     { name: "Pincodes", id: "Pincodes" },
     { name: "SLA Types", id: "SLA Types" },
     { name: "General", id: "General" },
