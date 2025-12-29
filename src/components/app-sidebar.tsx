@@ -56,8 +56,8 @@ const sidebarVisibilityConfig = {
       "User Management",
       " Payment Details",
       "Order Management",
-      "Order Returns"
-     // "Audit Logs",
+      "Order Returns", 
+     "Audit Logs",
     ],
   },
   "Fulfillment-Staff": {

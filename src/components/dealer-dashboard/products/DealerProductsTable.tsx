@@ -55,6 +55,7 @@ import {
   type ProductsPagination
 } from "@/service/dealer-products-service";
 import { getDealerIdFromUserId } from "@/service/dealerServices";
+import { getCategories } from "@/service/product-Service";
 import { useToast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 
@@ -249,6 +250,8 @@ export default function DealerProductsTable() {
     Rejected: 0
   });
   
+  const [accumulatedCategories, setAccumulatedCategories] = useState<any[]>([]);
+  
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -288,15 +291,24 @@ export default function DealerProductsTable() {
       
       // Use backend pagination instead of fetching all products
       const currentPage = getCurrentPage();
-      console.log(`[DealerProductsTable] Fetching products - Tab: ${activeTab}, Page: ${currentPage}, Filters:`, filters);
+
       const response = await getDealerProducts(undefined, currentPage, itemsPerPage, filters);
-      
-      console.log(`[DealerProductsTable] Received ${response.data.products.length} products for status: ${activeTab}, Total: ${response.data.pagination.totalProducts}`);
       
       setProducts(response.data.products);
       setPagination(response.data.pagination);
       setSummary(response.data.summary);
       console.log("setSummary data",response.data.summary)
+      
+      // Accumulate categories from the current products
+      const newCategories = response.data.products
+        .map(p => p.category)
+        .filter((c: any) => c && c._id && c.category_name);
+      setAccumulatedCategories(prev => {
+        const combined = [...prev, ...newCategories];
+        return Array.from(
+          new Map(combined.map(c => [c._id, c])).values()
+        );
+      });
       
       // Update tab count for current tab
       setTabCounts(prev => ({
@@ -397,8 +409,7 @@ export default function DealerProductsTable() {
   // Build unique category and brand options using object IDs
   const categoryOptions = Array.from(
     new Map(
-      products
-        .map(p => p.category)
+      accumulatedCategories
         .filter((c: any) => c && c._id && c.category_name)
         .map((c: any) => [c._id, { id: c._id as string, name: c.category_name as string }])
     ).values()
@@ -632,7 +643,7 @@ export default function DealerProductsTable() {
                   <SelectItem value="updated_at">Last Updated</SelectItem>
                   <SelectItem value="product_name">Product Name</SelectItem>
                   <SelectItem value="dealer_selling_price">Price</SelectItem>
-                  <SelectItem value="quantity_available">Stock</SelectItem>
+    
                 </SelectContent>
               </Select>
             </div>

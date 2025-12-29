@@ -59,6 +59,7 @@ export default function AdminReturnClaims() {
   const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -96,11 +97,27 @@ export default function AdminReturnClaims() {
     returnId: null,
   });
 
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
+  // Reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
   // Fetch return requests from API
   const fetchReturnRequests = async () => {
     try {
       setLoading(true);
-      const params: { refundMethod?: string; status?: string; dealerId?: string; page?: number; limit?: number; searchTerm?: string } = {};
+      const params: { refundMethod?: string; status?: string; dealerId?: string; page?: number; limit?: number; search?: string } = {};
 
       if (advancedFilterClaimType) {
         params.refundMethod = advancedFilterClaimType;
@@ -114,8 +131,8 @@ export default function AdminReturnClaims() {
         params.dealerId = selectedDealerId;
       }
 
-      if (searchTerm.trim()) {
-        params.searchTerm = searchTerm.trim();
+      if (debouncedSearchTerm) {
+        params.search = searchTerm;
       }
 
       params.page = currentPage;
@@ -124,6 +141,7 @@ export default function AdminReturnClaims() {
       const response: ReturnRequestsResponse = await getReturnRequests(params);
 
       if (response.success && response.data) {
+        console.log(response.data.returnRequests);
         setReturnRequests(response.data.returnRequests);
 
         setTotalPages(response.data.pagination.pages);
@@ -139,7 +157,7 @@ export default function AdminReturnClaims() {
 
   useEffect(() => {
     fetchReturnRequests();
-  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId, currentPage, searchTerm]);
+  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId, currentPage, debouncedSearchTerm]);
 
   // Fetch return stats on mount
   useEffect(() => {
@@ -230,9 +248,6 @@ export default function AdminReturnClaims() {
     }
   };
 
-
-
-
   // Handle advanced filter apply
   const handleApplyAdvancedFilters = (status: string, claimType: string) => {
     setAdvancedFilterStatus(status);
@@ -252,10 +267,10 @@ export default function AdminReturnClaims() {
     setCurrentPage(page);
   };
 
-  // Reset page when search term changes
+  // Reset selection when page or filters change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+    setSelectedClaims([]);
+  }, [currentPage, searchTerm]);
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-3 py-1 rounded-full text-xs font-medium border font-[Poppins]";
@@ -308,8 +323,8 @@ export default function AdminReturnClaims() {
     `${request._id}-${index}`;
 
   const allSelected =
-    filteredReturnRequests.length > 0 &&
-    filteredReturnRequests.every((r, idx) =>
+    returnRequests.length > 0 &&
+    returnRequests.every((r, idx) =>
       selectedClaims.includes(getRowId(r, idx))
     );
 
@@ -317,7 +332,7 @@ export default function AdminReturnClaims() {
     if (allSelected) {
       setSelectedClaims([]);
     } else {
-      const ids = filteredReturnRequests.map((r, idx) => getRowId(r, idx));
+      const ids = returnRequests.map((r, idx) => getRowId(r, idx));
       setSelectedClaims(ids);
     }
   };
@@ -345,6 +360,7 @@ export default function AdminReturnClaims() {
                   onChange={setSearchTerm}
                   onClear={() => setSearchTerm("")}
                   placeholder="Search returns..."
+                  isLoading={loading}
                 />
               </div>
               <Select value={selectedDealerId} onValueChange={setSelectedDealerId}>
@@ -491,7 +507,7 @@ export default function AdminReturnClaims() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : returnRequests.map((request, index) => {
+                  : returnRequests.map((request :any, index) => {
                       const rowId = getRowId(request, index);
                       const zebra =
                         index % 2 === 0 ? "bg-white" : "bg-gray-50/30";
@@ -517,13 +533,13 @@ export default function AdminReturnClaims() {
                           </TableCell>
                           <TableCell
                             className="px-6 py-4 font-[Poppins] whitespace-nowrap max-w-[160px] truncate"
-                            title={request.orderId?.orderId || "N/A"}
+                            title={request.order?._id || "N/A"}
                           >
                             <span className="text-gray-700 b2">
-                              {request.orderId?.orderId
-                                ? request.orderId.orderId.length > 8
-                                  ? request.orderId.orderId.slice(0, 8) + "..."
-                                  : request.orderId.orderId
+                              {request.order?._id
+                                ? request.order._id.length > 8
+                                  ? request.order._id.slice(0, 8) + "..."
+                                  : request.order._id
                                 : "N/A"}
                             </span>
                           </TableCell>
@@ -538,11 +554,11 @@ export default function AdminReturnClaims() {
                           <TableCell className="px-6 py-4 font-[Poppins] max-w-[200px]">
                             <div className="flex flex-col truncate">
                               <span className="text-gray-900 b2">
-                                {request.orderId?.customerDetails?.name ||
+                                {request.order?.customerDetails?.name ||
                                   "N/A"}
                               </span>
                               <span className="text-gray-500 text-xs">
-                                {request.orderId?.customerDetails?.email || ""}
+                                {request.order?.customerDetails?.email || ""}
                               </span>
                             </div>
                           </TableCell>

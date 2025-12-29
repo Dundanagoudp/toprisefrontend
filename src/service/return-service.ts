@@ -7,7 +7,7 @@ export const getReturnRequests = async (params?: {
   dealerId?: string;
   page?: number;
   limit?: number;
-  searchTerm?: string;
+  search?: string;
 }): Promise<ReturnRequestsResponse> => {
   try {
     const queryParams = new URLSearchParams();
@@ -27,8 +27,8 @@ export const getReturnRequests = async (params?: {
       queryParams.append("limit", params.limit.toString());
     }
     // serach term
-    if(params?.searchTerm){
-      queryParams.append("searchTerm", params.searchTerm);
+    if(params?.search){
+      queryParams.append("search", params.search);
     }
     
     const queryString = queryParams.toString();
