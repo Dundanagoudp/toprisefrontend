@@ -1,8 +1,10 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DynamicButton from "@/components/common/button/button";
+import { getUserOrders } from "@/service/user/orderService";
+import { useAppSelector } from "@/store/hooks";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -16,6 +18,8 @@ export default function OrderConfirmationDialog({
   orderId
 }: OrderConfirmationDialogProps) {
   const router = useRouter();
+  const userId = useAppSelector((state) => state.auth.user?._id);
+  const [recentOrderId, setRecentOrderId] = useState<string | null>(null);
 
   // Close dialog after 5 seconds automatically (optional)
   // useEffect(() => {
@@ -27,7 +31,48 @@ export default function OrderConfirmationDialog({
   //   }
   // }, [open, onClose]);
 
-  const handleViewOrderDetails = () => {
+  // Fetch recent order ID when orderId is not provided
+  useEffect(() => {
+    if (open && !orderId && userId) {
+      const fetchRecentOrder = async () => {
+        try {
+          const response = await getUserOrders(userId);
+          if (response.success && response.data && response.data.length > 0) {
+            setRecentOrderId(response.data[0].orderId);
+          }
+        } catch (error) {
+          console.error('Failed to fetch recent order:', error);
+        }
+      };
+      fetchRecentOrder();
+    }
+  }, [open, orderId, userId]);
+
+  const handleViewOrders = async () => {
+    if (!userId) {
+      router.push('/profile?tab=orders');
+      onClose();
+      return;
+    }
+
+    try {
+      const response = await getUserOrders(userId);
+      if (response.success && response.data && response.data.length > 0) {
+        // Navigate to the first order
+        const firstOrder = response.data[0];
+        router.push(`/shop/order/${firstOrder._id}`);
+      } else {
+        // No orders, go to orders tab
+        router.push('/profile?tab=orders');
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      // Fallback to orders tab
+      router.push('/profile?tab=orders');
+    }
+    onClose();
+  };
+    const handleViewOrderDetails = () => {
     if (orderId) {
       router.push(`/shop/order/${orderId}`);
       onClose();
@@ -64,9 +109,9 @@ export default function OrderConfirmationDialog({
           <p className="text-sm text-gray-500 mb-4">
             Your order has been placed successfully.
           </p>
-          {orderId && (
+          {(orderId || recentOrderId) && (
             <p className="text-sm text-gray-500 mb-4">
-              Order ID: <span className="font-medium">{orderId}</span>
+              Order ID: <span className="font-medium">{orderId || recentOrderId || "N/A"}</span>
             </p>
           )}
           <p className="text-sm text-gray-500">
@@ -74,12 +119,19 @@ export default function OrderConfirmationDialog({
           </p>
         </div>
         <div className="flex justify-center gap-3">
-          {orderId && (
+          {orderId ?(
             <DynamicButton 
               variant="outline" 
               onClick={handleViewOrderDetails}
             >
               View Order Details
+            </DynamicButton>
+          ) : (
+            <DynamicButton 
+              variant="outline" 
+              onClick={handleViewOrders}
+            >
+              View Orders
             </DynamicButton>
           )}
 
