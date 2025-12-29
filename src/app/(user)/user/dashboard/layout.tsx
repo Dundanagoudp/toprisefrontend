@@ -112,6 +112,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           actionLabel="Return to home"
           secondaryHref="/login"
           secondaryLabel="Login with another account"
+          thirdaryHref=""
+          thirdaryLabel="Logout"
         />
       }
     >
