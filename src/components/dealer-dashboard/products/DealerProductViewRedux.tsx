@@ -136,15 +136,15 @@ export default function DealerProductViewRedux({
     return (
       <div className="min-h-screen bg-neutral-50">
         <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
+          {/* <Breadcrumb>
+            <BreadcrumbList> */}
+              {/* <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link href="/">Home</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
+              <BreadcrumbSeparator /> */}
+              {/* <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link href="/dealer/dashboard/product">Product</Link>
                 </BreadcrumbLink>
@@ -154,7 +154,7 @@ export default function DealerProductViewRedux({
                 <BreadcrumbPage>Product Details</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
-          </Breadcrumb>
+          </Breadcrumb> */}
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -170,7 +170,7 @@ export default function DealerProductViewRedux({
     <div className="min-h-screen bg-neutral-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <Breadcrumb>
+        {/* <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -188,7 +188,7 @@ export default function DealerProductViewRedux({
               <BreadcrumbPage>Product Details</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
-        </Breadcrumb>
+        </Breadcrumb> */}
         <div className="flex items-center justify-between mt-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">
