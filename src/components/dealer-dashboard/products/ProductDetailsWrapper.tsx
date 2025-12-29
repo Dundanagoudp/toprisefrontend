@@ -101,12 +101,12 @@ export default function ProductDetailsWrapper({ productId }: ProductDetailsWrapp
       <div className="p-6">
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem>
+            {/* <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Link href="/">Home</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator />
+            <BreadcrumbSeparator /> */}
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Link href="/dealer/dashboard/product">Product</Link>
@@ -133,12 +133,12 @@ export default function ProductDetailsWrapper({ productId }: ProductDetailsWrapp
       <div className="p-6">
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem>
+            {/* <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Link href="/">Home</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator />
+            <BreadcrumbSeparator /> */}
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
                 <Link href="/dealer/dashboard/product">Product</Link>

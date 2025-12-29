@@ -578,7 +578,7 @@ export default function DealerProductEditRedux() {
     <div className="min-h-screen bg-neutral-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <Breadcrumb>
+        {/* <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -596,7 +596,7 @@ export default function DealerProductEditRedux() {
               <BreadcrumbPage>Edit Product</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
-        </Breadcrumb>
+        </Breadcrumb> */}
         <div className="flex items-center justify-between mt-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-sans">

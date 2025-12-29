@@ -11,7 +11,7 @@ const DEALER_ONLY_ROLES = ["Dealer"];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const shouldHideBreadcrumb = pathname?.includes("/product/") || false;
+  // const shouldHideBreadcrumb = pathname?.includes("/product/") || false;
 
   return (
     <WithProtectionRoute
@@ -38,7 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 orientation="vertical"
                 className="mr-2 data-[orientation=vertical]:h-4"
               />
-              {!shouldHideBreadcrumb && <DynamicBreadcrumb />}
+              { <DynamicBreadcrumb />}
             </div>
           </header>
           {children}
