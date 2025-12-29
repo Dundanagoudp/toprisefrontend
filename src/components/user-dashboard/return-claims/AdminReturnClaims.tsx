@@ -100,7 +100,7 @@ export default function AdminReturnClaims() {
   const fetchReturnRequests = async () => {
     try {
       setLoading(true);
-      const params: { refundMethod?: string; status?: string; dealerId?: string; page?: number; limit?: number } = {};
+      const params: { refundMethod?: string; status?: string; dealerId?: string; page?: number; limit?: number; searchTerm?: string } = {};
 
       if (advancedFilterClaimType) {
         params.refundMethod = advancedFilterClaimType;
@@ -112,6 +112,10 @@ export default function AdminReturnClaims() {
 
       if (selectedDealerId && selectedDealerId !== "all") {
         params.dealerId = selectedDealerId;
+      }
+
+      if (searchTerm.trim()) {
+        params.searchTerm = searchTerm.trim();
       }
 
       params.page = currentPage;
@@ -135,7 +139,7 @@ export default function AdminReturnClaims() {
 
   useEffect(() => {
     fetchReturnRequests();
-  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId, currentPage]);
+  }, [advancedFilterStatus, advancedFilterClaimType, selectedDealerId, currentPage, searchTerm]);
 
   // Fetch return stats on mount
   useEffect(() => {
@@ -227,22 +231,7 @@ export default function AdminReturnClaims() {
   };
 
 
-  const filteredReturnRequests = useMemo(() => {
-    return returnRequests.filter((request) => {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        request._id.toLowerCase().includes(searchLower) ||
-        request.sku.toLowerCase().includes(searchLower) ||
-        (request.orderId?.orderId || "")
-          .toLowerCase()
-          .includes(searchLower) ||
-        (request.orderId?.customerDetails?.name || "")
-          .toLowerCase()
-          .includes(searchLower) ||
-        request.returnReason.toLowerCase().includes(searchLower)
-      );
-    });
-  }, [returnRequests, searchTerm]);
+
 
   // Handle advanced filter apply
   const handleApplyAdvancedFilters = (status: string, claimType: string) => {
@@ -263,10 +252,10 @@ export default function AdminReturnClaims() {
     setCurrentPage(page);
   };
 
-  // Reset selection when page or filters change
+  // Reset page when search term changes
   useEffect(() => {
-    setSelectedClaims([]);
-  }, [currentPage, searchTerm]);
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-3 py-1 rounded-full text-xs font-medium border font-[Poppins]";
@@ -502,7 +491,7 @@ export default function AdminReturnClaims() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : filteredReturnRequests.map((request, index) => {
+                  : returnRequests.map((request, index) => {
                       const rowId = getRowId(request, index);
                       const zebra =
                         index % 2 === 0 ? "bg-white" : "bg-gray-50/30";
@@ -668,7 +657,7 @@ export default function AdminReturnClaims() {
         )}
 
         {/* Empty State */}
-        {filteredReturnRequests.length === 0 && !loading && (
+        {returnRequests.length === 0 && !loading && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center mt-6">
             <p className="text-gray-500 text-lg mb-2">
               No return requests found
