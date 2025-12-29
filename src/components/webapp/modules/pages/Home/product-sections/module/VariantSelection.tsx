@@ -44,6 +44,7 @@ const VariantSelection: React.FC<VariantSelectionProps> = ({ modelId }) => {
         const response = await getVariantsByModel(modelId);
         
         if (response && response.data && Array.isArray(response.data)) {
+          console.log("Fetched variants:", response.data);
           setVariants(response.data);
         } else {
           setError("No variants found for this model");
@@ -217,12 +218,12 @@ const VariantSelection: React.FC<VariantSelectionProps> = ({ modelId }) => {
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-16 h-16 flex items-center justify-center">
                       <img
-                        src={buildImageUrl(variant.variant_image)}
+                        src={buildImageUrl(variant.model.model_image)}
                         alt={variant.variant_name}
                         className="w-full h-full object-contain rounded-lg"
                       />
                     </div>
-                    <div className="text-center">
+                    {/* <div className="text-center">
                       <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight mb-1">
                         {variant.variant_name}
                       </h4>
@@ -231,7 +232,7 @@ const VariantSelection: React.FC<VariantSelectionProps> = ({ modelId }) => {
                           Year: {variant.Year.join(", ")}
                         </p>
                       )}
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               ))}
