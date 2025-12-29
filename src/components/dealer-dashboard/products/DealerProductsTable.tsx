@@ -90,7 +90,7 @@ const ProductTableRow = ({ product, onViewDetails, onUpdateStock }: ProductTable
       <TableCell>
         <div className="space-y-1">
           <Badge variant="outline" className="text-xs">
-            {product.brand.brand_name}
+            {product.brand?.brand_name || 'Unknown Brand'}
           </Badge>
           <div className="text-sm text-gray-600">{product.category.category_name}</div>
         </div>
@@ -125,9 +125,9 @@ const ProductTableRow = ({ product, onViewDetails, onUpdateStock }: ProductTable
       </TableCell>
       <TableCell>
         <div className="space-y-1">
-          <div className="text-sm font-medium">{product.brand.brand_name}</div>
+          <div className="text-sm font-medium">{product.brand?.brand_name || 'Unknown Brand'}</div>
           <div className="text-xs text-gray-600">
-            {product.model.model_name}
+            {product.model?.model_name || 'Unknown Model'}
           </div>
         </div>
       </TableCell>
