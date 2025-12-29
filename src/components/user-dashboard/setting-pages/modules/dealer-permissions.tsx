@@ -511,7 +511,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                   className="bg-blue-50 hover:bg-blue-100"
                 >
                   <Edit className="w-4 h-4 mr-2" />
-                  Load into Form
+                  Edit Dealer Permissions
                 </Button>
               )}
             </div>
@@ -759,7 +759,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
           </div>
 
           {/* Action Permissions */}
-          <div className="space-y-4 p-4 border rounded-lg">
+          {/* <div className="space-y-4 p-4 border rounded-lg">
             <h4 className="font-semibold">Action Permissions</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center space-x-2">
@@ -770,7 +770,7 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                 />
                 <Label htmlFor="is-add" className="cursor-pointer">Can Add New Products</Label>
               </div>
-              {/* <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={isDelete}
                   onCheckedChange={(checked) => setIsDelete(!!checked)}
@@ -788,9 +788,9 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                   <FileUp className="w-4 h-4" />
                   Can Update Stock
                 </Label>
-              </div> */}
+              </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Permission Summary */}
           {(readEnabled || updateEnabled || isDelete || isAdd || isUpdateStock) && (
