@@ -82,7 +82,6 @@ const SearchResults = () => {
   const [searchValue, setSearchValue] = useState<string>(
     query || categoryName || ""
   );
-  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
 
   // Filter states
   const [sortBy, setSortBy] = useState<string>("A-Z");
@@ -248,53 +247,15 @@ const SearchResults = () => {
     router.push(`?${newSearchParams.toString()}`);
   };
 
-  // Handle model click - fetch variants for selected model and show them
+  // Handle model click - update search query and trigger new search
   const handleModelClick = async (modelName: string) => {
-    try {
-      setLoading(true);
-      setError(null);
+    const newQuery = `${query || ""} ${modelName}`.trim();
+    console.log("Model clicked:", modelName, "New query:", newQuery);
 
-      const model = modelData.find((m) => m.model_name === modelName);
-      if (!model) {
-        throw new Error("Selected model not found");
-      }
-
-      // Store selected model
-      setSelectedModel(model);
-
-      const variantsRes: any = await getVariantsByModel(model._id);
-      const fetchedVariants: Variant[] = Array.isArray(variantsRes?.data)
-        ? variantsRes.data
-        : Array.isArray(variantsRes?.data?.products)
-        ? variantsRes.data.products
-        : Array.isArray(variantsRes?.products)
-        ? variantsRes.products
-        : [];
-
-      // If variants exist, show them; otherwise fall back to search
-      if (fetchedVariants.length > 0) {
-        setIsCategory(false);
-        setIsBrand(false);
-        setIsModel(false);
-        setIsVariant(true);
-        setIsProduct(false);
-
-        setVariantData(fetchedVariants);
-        setModelData([model]);
-        setProducts([]);
-      } else {
-        // No variants - fall back to search
-        const newQuery = `${query || ""} ${modelName}`.trim();
-        const newSearchParams = new URLSearchParams(searchParams.toString());
-        newSearchParams.set("query", newQuery);
-        router.push(`?${newSearchParams.toString()}`);
-      }
-    } catch (err) {
-      console.error("Error fetching variants by model:", err);
-      setError("Failed to load variants for this model");
-    } finally {
-      setLoading(false);
-    }
+    // Update URL with new query
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    newSearchParams.set("query", newQuery);
+    router.push(`?${newSearchParams.toString()}`);
   };
 
   // Handle variant click - update search query and trigger new search
@@ -837,9 +798,9 @@ const SearchResults = () => {
                         <h2 className="text-lg font-semibold text-foreground">
                           {variantData.length} Variant
                           {variantData.length !== 1 ? "s" : ""} Found
-                          {selectedModel && (
+                          {modelData.length > 0 && (
                             <span className="text-sm text-muted-foreground ml-2">
-                              for {selectedModel.model_name}
+                              for {modelData[0].model_name}
                             </span>
                           )}
                         </h2>
