@@ -104,6 +104,7 @@ export default function BaseAuditLogs({
     page: 1,
     limit: itemsPerPage,
     module: defaultModuleFilter,
+    role: allowedRoles && allowedRoles.length > 0 ? allowedRoles[0] : undefined,
   })
 
   const [dateRange, setDateRange] = useState<{
@@ -288,17 +289,17 @@ export default function BaseAuditLogs({
     // Validate that the selected role is allowed (if allowedRoles is specified)
     if (value !== "all" && allowedRoles && allowedRoles.length > 0) {
       if (!allowedRoles.includes(value)) {
-        // If role is not allowed, reset to "all"
+        // If role is not allowed, reset to first allowed role
         setFilters((prev) => ({
           ...prev,
-          role: undefined,
+          role: allowedRoles[0],
           page: 1,
         }))
         setCurrentPage(1)
         return
       }
     }
-    
+
     setFilters((prev) => ({
       ...prev,
       role: value === "all" ? undefined : value,
@@ -329,6 +330,7 @@ export default function BaseAuditLogs({
       page: 1,
       limit: itemsPerPage,
       module: defaultModuleFilter,
+      role: allowedRoles && allowedRoles.length > 0 ? allowedRoles[0] : undefined,
     })
     setDateRange({ from: undefined, to: undefined })
     setCurrentPage(1)
@@ -399,7 +401,9 @@ export default function BaseAuditLogs({
                 <SelectValue placeholder="Role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
+                {!allowedRoles || allowedRoles.length === 0 ? (
+                  <SelectItem value="all">All Roles</SelectItem>
+                ) : null}
                 {displayRoles.map((role) => (
                   <SelectItem key={role} value={role}>
                     {role}
@@ -476,7 +480,9 @@ export default function BaseAuditLogs({
                       <SelectValue placeholder="Role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
+                      {!allowedRoles || allowedRoles.length === 0 ? (
+                        <SelectItem value="all">All Roles</SelectItem>
+                      ) : null}
                       {displayRoles.map((role) => (
                         <SelectItem key={role} value={role}>
                           {role}
