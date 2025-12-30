@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import Image from "next/image";
-import { updatePopularVehicles, getBrand, getModels, getTypes, getVariantsByModel } from "@/service/product-Service";
+import { updatePopularVehicles, getBrand, getModels, getTypes, getVariantsByModel, getBrandsByType, getModelsByBrand } from "@/service/product-Service";
 
 interface PopularVehicleUpdateModalProps {
   open: boolean;
@@ -50,13 +50,9 @@ function PopularVehicleUpdateModal({ open, onClose, onSubmit, vehicle }: Popular
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [brandsRes, modelsRes, typesRes] = await Promise.all([
-          getBrand(),
-          getModels(),
+        const [ typesRes] = await Promise.all([
           getTypes(),
         ]);
-        setBrands(brandsRes.data || []);
-        setModels(modelsRes.data?.products || modelsRes.data || []);
         setVehicleTypes(typesRes.data?.products || typesRes.data || []);
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -65,6 +61,33 @@ function PopularVehicleUpdateModal({ open, onClose, onSubmit, vehicle }: Popular
     fetchData();
   }, []);
 
+  // get brands by type
+
+  useEffect(() => {
+    const fetchBrandsByType = async () => {
+      const response = await getBrandsByType(formData.vehicle_type);
+      setBrands(response.data || []);
+    };
+    fetchBrandsByType();
+  }, [formData.vehicle_type]);
+
+  // get models by brand
+  useEffect(() => {
+    const fetchModelsByBrand = async () => {
+      const response = await getModelsByBrand(formData.brand_id);
+      setModels(response.data?.products || response.data || []);
+    };
+    fetchModelsByBrand();
+  }, [formData.brand_id]);  
+
+  // get variants by model
+  useEffect(() => {
+    const fetchVariants = async () => {
+      const response = await getVariantsByModel(formData.model_id);
+      setVariants(response?.data as any);
+    };
+    fetchVariants();
+  }, [formData.variant_id]);
   // Fetch variants when model changes
   useEffect(() => {
     const fetchVariants = async () => {
@@ -248,7 +271,7 @@ function PopularVehicleUpdateModal({ open, onClose, onSubmit, vehicle }: Popular
               disabled={submitting}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select brand (optional)" />
+                <SelectValue placeholder="Select brand " />
               </SelectTrigger>
               <SelectContent>
                 {brands.map((brand) => (
@@ -269,7 +292,7 @@ function PopularVehicleUpdateModal({ open, onClose, onSubmit, vehicle }: Popular
               disabled={submitting}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select model (optional)" />
+                <SelectValue placeholder="Select model " />
               </SelectTrigger>
               <SelectContent>
                 {models.map((model) => (
@@ -290,7 +313,7 @@ function PopularVehicleUpdateModal({ open, onClose, onSubmit, vehicle }: Popular
               disabled={submitting || !formData.model_id}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select variant (optional)" />
+                <SelectValue placeholder="Select variant " />
               </SelectTrigger>
               <SelectContent>
                 {variants.map((variant) => (
