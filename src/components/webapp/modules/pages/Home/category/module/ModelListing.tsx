@@ -75,14 +75,14 @@ const ModelListing = ({
         {displayedModels.map((model) => (
           <div
             key={model._id}
-            className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
+            className="bg-card h-50 rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
             onClick={() => onModelSelect(model.model_name)}
           >
             <div className="flex flex-col items-center gap-3">
               <img
                 src={model.model_image || "/placeholder.svg"}
                 alt={model.model_name}
-                className="w-16 h-16 object-contain rounded-lg"
+                className="w-full h-full object-contain rounded-lg"
               />
               <h4 className="text-sm font-medium text-foreground text-center line-clamp-2 leading-tight">
                 {model.model_name}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import Image from "next/image";
-import { createPopularVehicles, getBrand, getModels, getTypes, getVariantsByModel } from "@/service/product-Service";
+import { createPopularVehicles, getBrand, getBrandsByType, getModels, getModelsByBrand, getTypes, getVariantsByModel } from "@/service/product-Service";
 
 interface CreatePopularVehicleModalProps {
   open: boolean;
@@ -49,13 +49,9 @@ function CreatePopularVehicleModal({ open, onClose, onSuccess }: CreatePopularVe
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [brandsRes, modelsRes, typesRes] = await Promise.all([
-          getBrand(),
-          getModels(),
+        const [  typesRes] = await Promise.all([
           getTypes(),
         ]);
-        setBrands(brandsRes.data || []);
-        setModels(modelsRes.data?.products || modelsRes.data || []);
         setVehicleTypes(typesRes.data?.products || typesRes.data || []);
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -63,6 +59,23 @@ function CreatePopularVehicleModal({ open, onClose, onSuccess }: CreatePopularVe
     };
     fetchData();
   }, []);
+  // get brands by type
+  useEffect(() => {
+    const fetchBrandsByType = async () => {
+      const response = await getBrandsByType(formData.vehicle_type);
+      setBrands(response.data || []);
+
+    };
+    fetchBrandsByType();
+  }, [formData.vehicle_type]);  
+  // get models by brand
+  useEffect(() => {
+    const fetchModelsByBrand = async () => {
+      const response = await getModelsByBrand(formData.brand_id);
+      setModels(response.data?.products || response.data || []);
+    };
+    fetchModelsByBrand();
+  }, [formData.brand_id]);
 
   // Fetch variants when model changes
   useEffect(() => {
@@ -81,6 +94,15 @@ function CreatePopularVehicleModal({ open, onClose, onSuccess }: CreatePopularVe
     };
     fetchVariants();
   }, [formData.model_id]);
+
+  // get variants by model
+  useEffect(() => {
+    const fetchVariants = async () => {
+      const response = await getVariantsByModel(formData.model_id);
+      setVariants(response?.data as any);
+    };
+    fetchVariants();
+  }, [formData.variant_id]);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -231,7 +253,7 @@ function CreatePopularVehicleModal({ open, onClose, onSuccess }: CreatePopularVe
               disabled={submitting}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select brand (optional)" />
+                <SelectValue placeholder="Select brand " />
               </SelectTrigger>
               <SelectContent>
                 {brands.map((brand) => (
@@ -252,7 +274,7 @@ function CreatePopularVehicleModal({ open, onClose, onSuccess }: CreatePopularVe
               disabled={submitting}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select model (optional)" />
+                <SelectValue placeholder="Select model " />
               </SelectTrigger>
               <SelectContent>
                 {models.map((model) => (
@@ -273,7 +295,7 @@ function CreatePopularVehicleModal({ open, onClose, onSuccess }: CreatePopularVe
               disabled={submitting || !formData.model_id}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select variant (optional)" />
+                <SelectValue placeholder="Select variant " />
               </SelectTrigger>
               <SelectContent>
                 {variants.map((variant) => (

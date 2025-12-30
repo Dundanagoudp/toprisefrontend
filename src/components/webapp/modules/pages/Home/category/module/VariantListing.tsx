@@ -109,14 +109,14 @@ const VariantListing = ({
         {displayedVariants.map((variant) => (
           <div
             key={variant._id}
-            className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
+            className="bg-card h-50 rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
             onClick={() => onVariantSelect(variant.variant_name, variant._id)}
           >
             <div className="flex flex-col items-center gap-3">
               <img
                 src={getVariantImage(variant)}
                 alt={variant.variant_name}
-                className="w-16 h-16 object-contain rounded-lg"
+                className="w-full h-full object-contain rounded-lg"
               />
               <div className="text-center">
                 <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight">
