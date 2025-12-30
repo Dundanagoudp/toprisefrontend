@@ -63,6 +63,7 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOrderConfirmed, setIsOrderConfirmed] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [displayOrderId, setDisplayOrderId] = useState<string | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -523,7 +524,8 @@ export default function CheckoutPage() {
 
       // Only proceed if response is successful
       if (response.success) {
-        setOrderId( response.data._id);
+        setOrderId(response.data._id);
+        setDisplayOrderId(response.data.orderId);
         setIsOrderConfirmed(true);
 
         finalizeOrder(response.data, "Order placed successfully!");
@@ -811,6 +813,7 @@ export default function CheckoutPage() {
 
     showToast(successMessage, "success");
     setOrderId(responseData._id);
+    setDisplayOrderId(responseData.orderId);
     setIsOrderConfirmed(true);
 
     // setTimeout(() => {
@@ -1909,6 +1912,7 @@ export default function CheckoutPage() {
         open={isOrderConfirmed}
         onClose={() => setIsOrderConfirmed(false)}
         orderId={orderId || ""}
+        displayOrderId={displayOrderId || ""}
       />
     </div>
   );

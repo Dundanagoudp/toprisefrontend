@@ -417,13 +417,13 @@ export const Header = () => {
                   >
                     Upload Purchase Request
                   </button>
-                  <a
+                  {/* <a
                     href="/services/upload-parts"
                     className="block py-2 text-sm text-gray-700 hover:text-gray-900"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Upload Required Parts List
-                  </a>
+                  </a> */}
                   {/* <a
                     href="/services/upcoming"
                     className="block py-2 text-sm text-gray-700 hover:text-gray-900"
