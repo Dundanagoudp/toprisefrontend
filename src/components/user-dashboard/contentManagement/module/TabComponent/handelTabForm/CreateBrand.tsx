@@ -28,6 +28,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { type } from "os";
 import { useAppSelector } from "@/store/hooks";
 
@@ -55,6 +56,8 @@ const brandSchema = z.object({
 
 
   type_ref: z.string().min(1, "Please select a type"),
+
+  featured_brand: z.boolean().default(false),
 
   brand_logo: z
     .instanceof(File)
@@ -108,11 +111,14 @@ export default function CreateBrand({
       brand_name: "",
       brand_code: "",
       type_ref: "",
+      featured_brand: false,
       brand_logo: undefined,
     },
   });
 
   const watchedImage = watch("brand_logo");
+  const watchedFeatured = watch("featured_brand");
+  
   useEffect(() => {
     const fetchTypes = async () => {
       setTypeLoading(true);
@@ -144,6 +150,7 @@ export default function CreateBrand({
         formData.append("type", data.type_ref);
         formData.append("created_by", auth.user._id);
         formData.append("updated_by", auth.user._id);
+        formData.append("featured_brand", String(data.featured_brand));
         // Status will be set to "Created" by default on the backend
 
         if (data.brand_logo) {
@@ -358,6 +365,31 @@ export default function CreateBrand({
               Code is independent and can be set manually. Use uppercase
               letters, numbers, hyphens, or underscores.
             </p>
+          </div>
+
+          {/* Featured Brand Toggle */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="featured_brand" className="text-sm font-medium">
+                  Featured Brand
+                </Label>
+                <p className="text-xs text-gray-500">
+                  Mark this brand as featured to highlight it on the platform
+                </p>
+              </div>
+              <Controller
+                name="featured_brand"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id="featured_brand"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
           </div>
 
 

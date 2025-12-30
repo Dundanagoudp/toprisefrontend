@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { getCategories, getBrand, getTypes, deleteBrand } from "@/service/product-Service";
 import { updateBrand } from "@/service/catalogue-service";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Trash2, Star } from "lucide-react";
 import UpdateModal from "../UpdateModal";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 
@@ -246,6 +246,7 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
                                 {getSortIcon("type")}
                             </Button>
                         </TableHead>
+                        <TableHead>Featured</TableHead>
                         <TableHead>Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -277,6 +278,16 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
                                 </TableCell>
                                 <TableCell>{item?.type?.type_name || "No Type"}</TableCell>
                                 <TableCell>
+                                    {item?.featured_brand ? (
+                                        <div className="flex items-center gap-1">
+                                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                            <span className="text-sm font-medium text-yellow-600">Featured</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm text-gray-400">-</span>
+                                    )}
+                                </TableCell>
+                                <TableCell>
                                     <div className="flex items-center gap-2">
                                         <Button 
                                             variant="outline" 
@@ -304,7 +315,7 @@ export default function ShowBrand({ searchQuery }: { searchQuery: string }) {
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                            <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                                 No brands found
                             </TableCell>
                         </TableRow>
