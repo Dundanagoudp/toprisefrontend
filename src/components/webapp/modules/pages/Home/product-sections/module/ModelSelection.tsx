@@ -209,11 +209,11 @@ const ModelSelection: React.FC<ModelSelectionProps> = ({ brandId }) => {
               {filteredModels.map((model) => (
                 <div
                   key={model._id}
-                  className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group"
+                  className="bg-card h-50 rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group"
                   onClick={() => handleModelClick(model._id, model.model_name)}
                 >
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center">
                       <img
                         src={buildImageUrl(model.model_image)}
                         alt={model.model_name}
