@@ -50,7 +50,7 @@ interface PaymentDetailsByIdProps {
 export default function PaymentDetailsById({ paymentId }: PaymentDetailsByIdProps) {
   const router = useRouter();
   const { updateLabel } = useBreadcrumb();
-  const [payment, setPayment] = useState<PaymentDetail | null>(null);
+  const [payment, setPayment] = useState<PaymentDetail>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const breadcrumbUpdatedRef = useRef(false);
@@ -566,20 +566,27 @@ export default function PaymentDetailsById({ paymentId }: PaymentDetailsByIdProp
                       <div>
                         <label className="text-sm font-medium text-gray-500">Payment ID</label>
                         <div className="flex items-center gap-2 mt-1">
+                        {payment.payment_method === "Razorpay" ? (
                           <p className="text-sm font-mono text-gray-900">
                             {payment.paymentSummary.paymentId}
-                          </p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(payment.paymentSummary.paymentId)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
+                          </p>):(
+                            <p className="text-sm font-mono text-gray-900">
+                              N/A
+                            </p>
+                          )}
+                          {payment.payment_method === "Razorpay" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(payment.paymentSummary?.paymentId || "")}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            )}
                         </div>
                       </div>
-                      <div>
+                      {/* <div>
                         <label className="text-sm font-medium text-gray-500">Razorpay Payment ID</label>
                         <div className="flex items-center gap-2 mt-1">
                           <p className="text-sm font-mono text-gray-900">
@@ -594,21 +601,33 @@ export default function PaymentDetailsById({ paymentId }: PaymentDetailsByIdProp
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
-                      </div>
+                      </div> */}
                       <div>
+
                         <label className="text-sm font-medium text-gray-500">Razorpay Order ID</label>
                         <div className="flex items-center gap-2 mt-1">
+                          {payment.payment_method === "Razorpay" ? (
                           <p className="text-sm font-mono text-gray-900">
                             {payment.paymentSummary.razorpayOrderId}
                           </p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(payment.paymentSummary.razorpayOrderId)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
+
+                          
+                          ):(
+                            <p className="text-sm font-mono text-gray-900">
+                              N/A
+                            </p>
+                          )}
+                          {payment.payment_method === "Razorpay" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(payment.paymentSummary?.razorpayOrderId || "")}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            )}
+                    
                         </div>
                       </div>
                       <div>

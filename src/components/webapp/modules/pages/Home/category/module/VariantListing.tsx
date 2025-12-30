@@ -109,19 +109,23 @@ const VariantListing = ({
         {displayedVariants.map((variant) => (
           <div
             key={variant._id}
-            className="bg-card h-50 rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
+            className="bg-card h-72 rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
             onClick={() => onVariantSelect(variant.variant_name, variant._id)}
           >
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-3 h-full w-full">
+              <div className="w-full aspect-4/3 flex items-center justify-center overflow-hidden rounded-lg bg-muted">
               <img
                 src={getVariantImage(variant)}
                 alt={variant.variant_name}
                 className="w-full h-full object-contain rounded-lg"
               />
+              </div>
+              <div className="flex-1 flex items-center justify-center w-full">
               <div className="text-center">
                 <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight">
                   {variant.variant_name}
                 </h4>
+                </div>
                 {/* {variant.Year && variant.Year.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
                     {variant.Year.join(', ')}
