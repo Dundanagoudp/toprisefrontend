@@ -111,9 +111,11 @@ export default function FeaturedProducts() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        console.log("Fetching popular vehicles for type:", vehicle_type)
+   
         const res = await getPopularVehicles(vehicle_type)
+        console.log("Fetched vehicles:", res)
         const items = (res.data || [])
+    
         // console.log("Fetched vehicles:", items)
         setVehicles(items)
       } catch (e) {
@@ -168,7 +170,7 @@ export default function FeaturedProducts() {
             className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"
           >
             {(loading ? Array.from({ length: 8 }) : vehicles).map((vehicle: Vehicle | any, idx: number) => {
-          const imageSrc = vehicle?.vehicle_image || "/placeholder.svg"
+          const imageSrc = buildImageUrl(vehicle?.vehicle_image) || "/placeholder.svg"
           const name = vehicle?.vehicle_name || "Vehicle"
           const brand = vehicle?.brand_id?.brand_name || ""
           const model = vehicle?.model_id?.model_name || ""

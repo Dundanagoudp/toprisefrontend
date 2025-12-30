@@ -1110,6 +1110,7 @@ export async function getContentStats(): Promise<{
   brands: number;
   models: number;
   variants: number;
+  years: number;
 }> {
   // Fetch all content types in parallel and tolerate individual failures
   const results = await Promise.allSettled([
@@ -1118,9 +1119,10 @@ export async function getContentStats(): Promise<{
     getModels(),
     getvarient(),
     getSubcategories(),
+    getAllYears(),
   ]);
 
-  const [categoriesRes, brandsRes, modelsRes, variantsRes, subcategoriesRes] = results;
+  const [categoriesRes, brandsRes, modelsRes, variantsRes, subcategoriesRes, yearsRes] = results;
 
   const safeCount = (res: any): number => {
     if (res?.status !== "fulfilled") return 0;
@@ -1138,6 +1140,7 @@ export async function getContentStats(): Promise<{
     brands: safeCount(brandsRes),
     models: safeCount(modelsRes),
     variants: safeCount(variantsRes),
+    years: safeCount(yearsRes),
   };
 }
 
@@ -1691,6 +1694,58 @@ export async function createYear(data: any): Promise<any> {
     return response.data;
   } catch (error) {
     console.error("Failed to create year:", error);
+    throw error;
+  }
+}
+
+
+// create Popular Vehicles
+export async function createPopularVehicles(data: any): Promise<any> {
+  try {
+    const response = await apiClient.post(`/category/api/popularVehicle/`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create popular vehicles:", error);
+    throw error;
+  }
+}
+//update Popular Vehicles
+export async function updatePopularVehicles(id: string, data: any): Promise<any> {
+  try {
+    const response = await apiClient.put(`/category/api/popularVehicle/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to update popular vehicles:", error);
+    throw error;
+  }
+}
+//get all popular vehicles
+export async function getAllPopularVehicles(): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/popularVehicle/`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch all popular vehicles:", error);
+    throw error;
+  }
+}
+// get popular vehicles by id
+export async function getPopularVehiclesById(id: string): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/api/popularVehicle/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch popular vehicles by id:", error);
+    throw error;
+  }
+}
+// delete popular vehicles
+export async function deletePopularVehicles(id: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await apiClient.delete(`/category/api/popularVehicle/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to delete popular vehicles:", error);
     throw error;
   }
 }
