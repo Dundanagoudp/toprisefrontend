@@ -171,7 +171,7 @@ export default function FeaturedProducts() {
           >
             {(loading ? Array.from({ length: 8 }) : vehicles).map((vehicle: Vehicle | any, idx: number) => {
           const imageSrc = buildImageUrl(vehicle?.vehicle_image) || "/placeholder.svg"
-          const name = vehicle?.vehicle_name || "Vehicle"
+          const name = vehicle?.model_id?.model_name || "Vehicle"
           const brand = vehicle?.brand_id?.brand_name || ""
           const model = vehicle?.model_id?.model_name || ""
           const variant = vehicle?.variant_id?.variant_name || ""
