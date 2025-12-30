@@ -11,7 +11,10 @@ import Cookies from "js-cookie";
 import { useAppDispatch } from "@/store/hooks";
 import { loginSuccess } from "@/store/slice/auth/authSlice";
 import { useToast } from "@/components/ui/toast";
-import { firebasePhoneAuth, clearRecaptcha } from "@/service/firebase-auth-service";
+import {
+  firebasePhoneAuth,
+  clearRecaptcha,
+} from "@/service/firebase-auth-service";
 import { loginWithFirebaseToken } from "@/service/phone-login-service";
 import { ConfirmationResult } from "firebase/auth";
 import { ArrowLeft, RefreshCcw } from "lucide-react";
@@ -78,10 +81,9 @@ export function UserLoginForm({
     try {
       // First, check if user exists
       console.log("Checking if user exists with phone:", phoneE164);
-      
+
       const userExists = await checkUserExists(phoneE164);
 
-      
       if (!userExists) {
         console.log("User doesn't exist, showing error toast");
         showToast("User doesn't exist. Please sign up first.", "error");
@@ -229,54 +231,66 @@ export function UserLoginForm({
                         Back
                       </button>
                     </div>
-                    <div className="grid gap-3">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="9876543210"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        maxLength={10}
-                      />
-                      <p className="text-xs text-gray-500">
-                        Enter 10-digit number without country code
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={handleSendOTP}
-                      className="w-full"
-                      disabled={otpLoading || !phoneNumber.trim()}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSendOTP();
+                      }}
                     >
-                      {otpLoading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg
-                            className="animate-spin h-5 w-5 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v8z"
-                            ></path>
-                          </svg>
-                          Sending OTP...
-                        </span>
-                      ) : (
-                        "Send OTP"
-                      )}
-                    </Button>
+                      <div className="grid gap-3">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="9876543210"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          maxLength={10}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSendOTP();
+                            }
+                          }}
+                        />
+                        <p className="text-xs text-gray-500">
+                          Enter 10-digit number without country code
+                        </p>
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full mt-3"
+                        disabled={otpLoading || !phoneNumber.trim()}
+                      >
+                        {otpLoading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <svg
+                              className="animate-spin h-5 w-5 text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v8z"
+                              ></path>
+                            </svg>
+                            Sending OTP...
+                          </span>
+                        ) : (
+                          "Send OTP"
+                        )}
+                      </Button>
+                    </form>
                   </>
                 ) : (
                   <>
@@ -290,56 +304,73 @@ export function UserLoginForm({
                         Back
                       </button>
                     </div>
-                    <div className="grid gap-3">
-                      <Label htmlFor="otp">Enter OTP</Label>
-                      <Input
-                        id="otp"
-                        type="text"
-                        placeholder="123456"
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value)}
-                        maxLength={6}
-                      />
-                      <p className="text-xs text-gray-500">
-                        OTP sent to {phoneNumber}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={handleVerifyOTP}
-                      className="w-full"
-                      disabled={otpLoading || !otpCode.trim()}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleVerifyOTP();
+                      }}
                     >
-                      {otpLoading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg
-                            className="animate-spin h-5 w-5 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v8z"
-                            ></path>
-                          </svg>
-                          Verifying...
-                        </span>
-                      ) : (
-                        "Verify & Login"
-                      )}
-                    </Button>
+                      <div className="grid gap-3">
+                        <Label htmlFor="otp">Enter OTP</Label>
+                        <Input
+                          id="otp"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Enter OTP"
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value)}
+                          maxLength={6}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleVerifyOTP();
+                            }
+                          }}
+                        />
+                        <p className="text-xs text-gray-500">
+                          OTP sent to {phoneNumber}
+                        </p>
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full mt-3"
+                        disabled={otpLoading || !otpCode.trim()}
+                      >
+                        {otpLoading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <svg
+                              className="animate-spin h-5 w-5 text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v8z"
+                              ></path>
+                            </svg>
+                            Verifying...
+                          </span>
+                        ) : (
+                          "Verify & Login"
+                        )}
+                      </Button>
+                    </form>
                     <DynamicButton
-                      text={resendTimer > 0 ? `Resend OTP (${resendTimer}s)` : "Resend OTP"}
+                      text={
+                        resendTimer > 0
+                          ? `Resend OTP (${resendTimer}s)`
+                          : "Resend OTP"
+                      }
                       icon={<RefreshCcw className="h-4 w-4" />}
                       onClick={handleResendOTP}
                       disabled={otpLoading || resendTimer > 0}
@@ -385,17 +416,16 @@ export function UserLoginForm({
                 className="h-12 lg:h-16 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
               />
             </div> */}
-            
-            <div className="absolute inset-0 flex items-center justify-center">
-  <div className="bg-white p-4 rounded-lg shadow-md">
-    <Image
-      src={LogoNoname}
-      alt="Toprise logo"
-      className="h-12 lg:h-16 w-auto"
-    />
-  </div>
-</div>
 
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-white p-4 rounded-lg shadow-md">
+                <Image
+                  src={LogoNoname}
+                  alt="Toprise logo"
+                  className="h-12 lg:h-16 w-auto"
+                />
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

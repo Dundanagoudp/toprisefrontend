@@ -618,7 +618,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleDownload}
-                className="max-sm:flex-1 max-sm:text-xs max-sm:hidden"
+                className="max-sm:flex-1 max-sm:text-xs"
               >
                 <Download className="w-4 h-4 mr-2 max-sm:w-3 max-sm:h-3 max-sm:mr-1" />
                 Download Invoice

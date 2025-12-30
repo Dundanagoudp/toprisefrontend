@@ -10,12 +10,14 @@ interface OrderConfirmationDialogProps {
   open: boolean;
   onClose: () => void;
   orderId?: string;
+  displayOrderId?: string;
 }
 
 export default function OrderConfirmationDialog({
   open,
   onClose,
-  orderId
+  orderId,
+  displayOrderId
 }: OrderConfirmationDialogProps) {
   const router = useRouter();
   const userId = useAppSelector((state) => state.auth.user?._id);
@@ -109,9 +111,9 @@ export default function OrderConfirmationDialog({
           <p className="text-sm text-gray-500 mb-4">
             Your order has been placed successfully.
           </p>
-          {(orderId || recentOrderId) && (
+          {(displayOrderId || orderId || recentOrderId) && (
             <p className="text-sm text-gray-500 mb-4">
-              Order ID: <span className="font-medium">{orderId || recentOrderId || "N/A"}</span>
+              Order ID: <span className="font-medium">{displayOrderId || recentOrderId || orderId || "N/A"}</span>
             </p>
           )}
           <p className="text-sm text-gray-500">
