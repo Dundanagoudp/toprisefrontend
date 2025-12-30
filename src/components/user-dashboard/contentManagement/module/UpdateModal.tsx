@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import DynamicButton from "@/components/common/button/button";
 import { useToast as GlobalToast } from "@/components/ui/toast";
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
@@ -45,7 +46,8 @@ export default function UpdateModal({
     category: '',
     brand: '',
     model: '',
-    years: [] as string[]
+    years: [] as string[],
+    featured_brand: false
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -135,7 +137,8 @@ export default function UpdateModal({
         category: categoryValue,
         brand: (typeof item.brand_ref === 'object' ? item.brand_ref?._id : item.brand_ref) || item.brand_id || (typeof item.brand === 'object' ? item.brand?._id : item.brand) || '',
         model: modelValue,
-        years: yearValues
+        years: yearValues,
+        featured_brand: item.featured_brand || false
       });
       
       console.log("UpdateModal - Form data set:", { name, code, status, vehicleType, category: categoryValue, brand: (typeof item.brand_ref === 'object' ? item.brand_ref?._id : item.brand_ref) || item.brand_id || (typeof item.brand === 'object' ? item.brand?._id : item.brand) || '', model: modelValue, years: yearValues });
@@ -232,6 +235,7 @@ export default function UpdateModal({
         if (formData.code) submitFormData.append('brand_code', formData.code);
         if (formData.vehicleType) submitFormData.append('type', formData.vehicleType);
         submitFormData.append('status', formData.status);
+        submitFormData.append('featured_brand', String(formData.featured_brand));
       } else if (type === 'model') {
         submitFormData.append('model_name', formData.name);
         if (formData.code) submitFormData.append('model_code', formData.code);
@@ -272,7 +276,8 @@ export default function UpdateModal({
         category: '',
         brand: '',
         model: '',
-        years: []
+        years: [],
+        featured_brand: false
       });
       setImageFile(null);
       setImagePreview('');
@@ -432,6 +437,27 @@ export default function UpdateModal({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Featured Brand Toggle (only for brands) */}
+          {type === 'brand' && (
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="featured_brand" className="text-sm font-medium">
+                    Featured Brand
+                  </Label>
+                  <p className="text-xs text-gray-500">
+                    Mark this brand as featured to highlight it on the platform
+                  </p>
+                </div>
+                <Switch
+                  id="featured_brand"
+                  checked={formData.featured_brand}
+                  onCheckedChange={(checked) => handleInputChange('featured_brand', checked as any)}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Image Upload Field - Hide for Variants */}
           {type !== 'variant' && (
