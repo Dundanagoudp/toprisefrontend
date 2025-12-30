@@ -226,9 +226,9 @@ export default function FeaturedProducts() {
                 {model && (
                   <p className="text-sm text-gray-500 mb-3">{model}</p>
                 )}
-                {variant && (
+                {/* {variant && (
                   <p className="text-xs text-gray-400 mb-3">{variant}</p>
-                )}
+                )} */}
 
                 <DynamicButton
                   className="w-full bg-red-600 text-white py-2 px-4 rounded font-medium transition-colors cursor-pointer hover:bg-red-700"
