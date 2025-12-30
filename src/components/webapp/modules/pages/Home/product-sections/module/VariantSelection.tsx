@@ -212,18 +212,18 @@ const VariantSelection: React.FC<VariantSelectionProps> = ({ modelId }) => {
               {filteredVariants.map((variant) => (
                 <div
                   key={variant._id}
-                  className="bg-card rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group"
+                  className="bg-card h=50 rounded-lg border border-border p-4 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group"
                   onClick={() => handleVariantClick(variant._id, variant.variant_name)}
                 >
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center">
                       <img
                         src={buildImageUrl(variant.model.model_image)}
                         alt={variant.variant_name}
                         className="w-full h-full object-contain rounded-lg"
                       />
                     </div>
-                    <div className="text-center">
+
                       <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight mb-1">
                         {variant.variant_name}
                       </h4>
@@ -232,7 +232,7 @@ const VariantSelection: React.FC<VariantSelectionProps> = ({ modelId }) => {
                           Year: {variant.Year.join(", ")}
                         </p>
                       )} */}
-                    </div>
+           
                   </div>
                 </div>
               ))}
