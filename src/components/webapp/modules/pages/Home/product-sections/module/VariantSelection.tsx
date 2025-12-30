@@ -223,16 +223,16 @@ const VariantSelection: React.FC<VariantSelectionProps> = ({ modelId }) => {
                         className="w-full h-full object-contain rounded-lg"
                       />
                     </div>
-                    {/* <div className="text-center">
+                    <div className="text-center">
                       <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight mb-1">
                         {variant.variant_name}
                       </h4>
-                      {variant.Year && variant.Year.length > 0 && (
+                      {/* {variant.Year && variant.Year.length > 0 && (
                         <p className="text-xs text-muted-foreground">
                           Year: {variant.Year.join(", ")}
                         </p>
-                      )}
-                    </div> */}
+                      )} */}
+                    </div>
                   </div>
                 </div>
               ))}
