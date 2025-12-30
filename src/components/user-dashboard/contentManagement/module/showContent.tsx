@@ -25,9 +25,11 @@ import { getContentStats } from "@/service/product-Service";
 import { Skeleton } from "@/components/ui/skeleton";
 import ShowYear from "./TabComponent/showYear";
 import CreateYearModal from "./CreateYearModal";
+import ShowPopularVehicle from "./TabComponent/showPopularVehicle";
+import CreatePopularVehicleModal from "./CreatePopularVehicleModal";
 
 // Tab types
-type TabType = "Model" | "Brand" | "Variant" | "Category" | "Subcategory" | "Banner" | "year";
+type TabType = "Model" | "Brand" | "Variant" | "Category" | "Subcategory" | "Banner" | "year" | "PopularVehicle";
 
 // Tab configuration interface for scalability
 interface TabConfig {
@@ -55,7 +57,7 @@ export default function ShowContent() {
   // Get initial tab from URL or default to "Category"
   const getInitialTab = (): TabType => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner","year"];
+    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner","year", "PopularVehicle"];
     return validTabs.includes(tabFromUrl) ? tabFromUrl : "Category";
   };
   
@@ -77,6 +79,7 @@ export default function ShowContent() {
   const [openVariant, setOpenVariant] = useState(false);
   const [openBanner, setOpenBanner] = useState(false);
   const [openYear, setOpenYear] = useState(false);
+  const [openPopularVehicle, setOpenPopularVehicle] = useState(false);
   const [openBulkUpload, setOpenBulkUpload] = useState(false);
   const [uploadBulkLoading, setUploadBulkLoading] = useState(false);
   const { showToast } = useGlobalToast();
@@ -99,7 +102,7 @@ export default function ShowContent() {
   // Sync tab state with URL changes (browser back/forward)
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner" ,"year"];
+    const validTabs: TabType[] = ["Model", "Brand", "Variant", "Category", "Subcategory", "Banner" ,"year", "PopularVehicle"];
     if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
@@ -157,7 +160,7 @@ export default function ShowContent() {
     setSearchQuery("");
     setIsSearching(false);
   };
-    const searchPlaceholders: Record<TabType, string> = {
+    const     searchPlaceholders: Record<TabType, string> = {
     Model: "Search Models...",
     Brand: "Search Brands...",
     Variant: "Search Variants...",
@@ -165,6 +168,7 @@ export default function ShowContent() {
     Subcategory: "Search Subcategories...",
     Banner: "Search Banners...",
     year: "Search Years...",
+    PopularVehicle: "Search Popular Vehicles...",
   };
 
   // Add your subcategory-specific logic here
@@ -184,6 +188,10 @@ export default function ShowContent() {
   }, []);
   const handleYearAction = useCallback(() => {
     setOpenYear(true);
+  }, []);
+
+  const handlePopularVehicleAction = useCallback(() => {
+    setOpenPopularVehicle(true);
   }, []);
 
   const handleUploadBulk = useCallback(() => {
@@ -275,8 +283,16 @@ export default function ShowContent() {
     refreshContentStats();
   }, [activeTab, refreshContentStats]);
 
+  const handlePopularVehicleSuccess = useCallback(() => {
+    // Trigger refresh for popular vehicles tab
+    if (activeTab === "PopularVehicle") {
+      setRefreshKey(prev => prev + 1);
+    }
+    // Refresh content stats
+    refreshContentStats();
+  }, [activeTab, refreshContentStats]);
   // Get content type for bulk upload based on active tab
-  const getContentTypeForBulkUpload = useCallback((tabType: TabType) => {
+  const getContentTypeForBulkUpload = useCallback((tabType: TabType): string => {
     switch (tabType) {
       case 'Category':
         return 'Category';
@@ -292,6 +308,8 @@ export default function ShowContent() {
         return 'Banner';
       case 'year':
         return 'Year';
+      case 'PopularVehicle':
+        return 'Product'; // Popular vehicles don't support bulk upload, fallback to Product
       default:
         return 'Product';
     }
@@ -362,6 +380,15 @@ export default function ShowContent() {
           text: "Add Year",
           action: handleYearAction,
         }
+      },
+      {
+        id: "PopularVehicle",
+        label: "Popular Vehicle",
+        component: ShowPopularVehicle,
+        buttonConfig: {
+          text: "Add Popular Vehicle",
+          action: handlePopularVehicleAction,
+        },
       }
     ],
     [
@@ -371,6 +398,7 @@ export default function ShowContent() {
       handleBrandAction,
       handleBannerAction,
       handleYearAction,
+      handlePopularVehicleAction,
     ]
   );
 
@@ -410,19 +438,21 @@ export default function ShowContent() {
                 className="bg-[#C72920] text-white hover:bg-[#C72920]/90"
                 disabled={currentTabConfig.buttonConfig.disabled}
               />
-                             {/* Bulk Upload Button */}
-               <DynamicButton
-                 variant="default"
-                 customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center font-[Poppins]"
-                 onClick={handleUploadBulk}
-                 disabled={uploadBulkLoading}
-                 loading={uploadBulkLoading}
-                 loadingText={`Uploading ${activeTab}...`}
-                 icon={
-                   <Image src="/assets/uploadFile.svg" alt="Upload" width={16} height={16} className="h-4 w-4" />
-                 }
-                 text={`Upload ${activeTab}`}
-               />
+              {/* Bulk Upload Button - Hide for Popular Vehicle tab */}
+              {activeTab !== "PopularVehicle" && (
+                <DynamicButton
+                  variant="default"
+                  customClassName="flex items-center text-[#408EFD] border-[#408EFD] gap-3 bg-[#408EFD1A] border-[#408EFD] hover:bg-[#408ffd3a] rounded-[8px] px-4 py-2 min-w-[120px] justify-center font-[Poppins]"
+                  onClick={handleUploadBulk}
+                  disabled={uploadBulkLoading}
+                  loading={uploadBulkLoading}
+                  loadingText={`Uploading ${activeTab}...`}
+                  icon={
+                    <Image src="/assets/uploadFile.svg" alt="Upload" width={16} height={16} className="h-4 w-4" />
+                  }
+                  text={`Upload ${activeTab}`}
+                />
+              )}
             </div>
           </div>
         </CardHeader>
@@ -519,13 +549,19 @@ export default function ShowContent() {
         isOpen={openBulkUpload}
         onClose={() => setOpenBulkUpload(false)}
         mode="upload"
-        contentType={getContentTypeForBulkUpload(activeTab)}
+        contentType={getContentTypeForBulkUpload(activeTab) as 'Category' | 'Subcategory' | 'Brand' | 'Model' | 'Variant' | 'Banner' | 'Year' | 'Product'}
       />
       <CreateYearModal
         open={openYear}
         onClose={() => setOpenYear(false)}
         onSuccess={handleYearSuccess}
       />
+      <CreatePopularVehicleModal
+        open={openPopularVehicle}
+        onClose={() => setOpenPopularVehicle(false)}
+        onSuccess={handlePopularVehicleSuccess}
+      />
+
     </div>
   );
 }
