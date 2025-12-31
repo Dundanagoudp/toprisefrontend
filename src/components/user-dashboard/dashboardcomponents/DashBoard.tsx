@@ -487,8 +487,8 @@ export default function Dashboard() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                   Order Status
                 </h3>
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-auto">
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full">
+                  <div className="relative w-full md:flex-1 min-w-0">
                     <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
                       <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
                       <input
@@ -500,7 +500,7 @@ export default function Dashboard() {
                       />
                     </div>
                   </div>
-                  <div className="relative w-full sm:w-auto">
+                  <div className="relative w-full md:flex-1 min-w-0">
                     <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
                       <Calendar className="h-4 w-4 text-neutral-500 flex-shrink-0" />
                       <input

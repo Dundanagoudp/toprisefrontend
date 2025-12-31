@@ -371,7 +371,7 @@ export default function BannerSection() {
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
-                    placeholder="e.g., ABC123"
+                    placeholder="eg: DL 01 AB 1234 "
                     value={numberPlate}
                     onChange={(e) => setNumberPlate(e.target.value)}
                     onKeyPress={(e) => {
