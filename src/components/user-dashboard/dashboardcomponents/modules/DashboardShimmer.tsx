@@ -19,14 +19,14 @@ export default function DashboardShimmer({ className = "" }: DashboardShimmerPro
             <Skeleton className="h-4 w-32" />
           </div>
         </div> */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-          <div className="relative w-full sm:w-auto">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto">
+          <div className="relative w-full md:flex-1 min-w-0">
             <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
               <Calendar className="h-4 w-4 text-neutral-300 flex-shrink-0" />
               <Skeleton className="h-4 w-24" />
             </div>
           </div>
-          <div className="relative w-full sm:w-auto">
+          <div className="relative w-full md:flex-1 min-w-0">
             <div className="flex items-center gap-2 h-10 rounded-lg bg-white border border-neutral-200 px-4 py-0 shadow-sm">
               <Calendar className="h-4 w-4 text-neutral-300 flex-shrink-0" />
               <Skeleton className="h-4 w-24" />
