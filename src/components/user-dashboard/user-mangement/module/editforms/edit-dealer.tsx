@@ -602,7 +602,7 @@ export default function EditDealer() {
                 name="assigned_Toprise_employee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assigned Fulfilment Staff</FormLabel>
+                    <FormLabel>Assigned Fulfillment Staff</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange([{ assigned_user: value, status: "Active" }])
@@ -611,7 +611,7 @@ export default function EditDealer() {
                     >
                       <FormControl>
                         <SelectTrigger className="bg-gray-50 border-gray-200">
-                          <SelectValue placeholder="Select a Fulfilment Staff" />
+                          <SelectValue placeholder="Select a Fulfillment Staff" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

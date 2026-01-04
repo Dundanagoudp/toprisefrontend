@@ -214,7 +214,7 @@ export function UserLoginForm({
                   Welcome <span className="text-primary-red">back</span>
                 </h1>
                 <p className="text-muted-foreground text-balance text-sm">
-                  User Login - Sign In to your Account
+                  User Login - Sign in to your Account
                 </p>
               </div>
 

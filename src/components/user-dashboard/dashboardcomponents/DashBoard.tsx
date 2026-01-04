@@ -176,7 +176,7 @@ export default function Dashboard() {
       return [
         { label: "Total Employees", value: "-", color: "#3B82F6" },
         { label: "Recently Active", value: "-", color: "#10B981" },
-        { label: "Fulfilment Team", value: "-", color: "#F59E0B" },
+        { label: "Fulfillment Team", value: "-", color: "#F59E0B" },
         { label: "Inventory Team", value: "-", color: "#EF4444" },
       ];
     }
@@ -197,7 +197,7 @@ export default function Dashboard() {
         color: "#10B981",
       },
       {
-        label: "Fulfilment Team",
+        label: "Fulfillment Team",
         value: String(fulfilmentTeam),
         color: "#F59E0B",
       },

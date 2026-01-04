@@ -637,7 +637,7 @@ export default function AddDealer() {
                 name="assigned_Toprise_employee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assigned Fulfilment Staff</FormLabel>
+                    <FormLabel>Assigned Fulfillment Staff</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange([{ assigned_user: value, status: "Active" }])

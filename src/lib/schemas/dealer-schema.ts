@@ -31,7 +31,7 @@ export const dealerSchema = z.object({
   upload_access_enabled: z.boolean().default(true),
   default_margin: z.number().min(0, "Margin must be positive").max(100, "Margin cannot exceed 100%"),
   last_fulfillment_date: z.string(),
-  assigned_Toprise_employee: z.array(assignedEmployeeSchema).length(1, "Exactly one Fulfilment Staff must be assigned"),
+  assigned_Toprise_employee: z.array(assignedEmployeeSchema).length(1, "Exactly one Fulfillment Staff must be assigned"),
   SLA_type: z.string().min(1, "SLA type is required"),
   onboarding_date: z.string(),
   remarks: z.string().optional(),

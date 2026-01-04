@@ -64,7 +64,7 @@ export default function ShippingReturn() {
                 </ul>
               </li>
               <li><strong>Return Conditions:</strong> Product must be unused, uninstalled, and in original condition with original box, tags, packing, all accessories/manuals, and invoice copy. Returns failing these criteria may be rejected or processed with partial refund.</li>
-              <li><strong>Non-Returnable Items:</strong> Oils, lubricants, coolants, sprays, electrical sensors or opened packaging, items marked “non-returnable” at sale, products installed or damaged by user.</li>
+              <li><strong>Non-Returnable Items:</strong>Oils, lubricants, coolants, sprays, electrical sensors, opened packaging.</li>
               <li><strong>Return Pickup:</strong> Return pickup will be arranged by Toprise via our logistics partner. If pickup is not serviceable, we may request you to self-ship and reimburse standard courier charges.</li>
             </ul>
           </section>
@@ -106,7 +106,7 @@ export default function ShippingReturn() {
             <div className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 pl-1 text-justify">
               <p className="text-[#61656A] text-xl font-sans leading-relaxed">
                 For shipping, delivery, return or refund queries:<br />
-                Email: info@Toprise.in<br />
+                Email: info@toprise.in<br />
                 Phone: +91 9122221804<br />
                 Registered Office: A-924, Tower 3, NX One, Gaur Chowk, Plot No. 17, Tech Zone IV, Amrapali Dream Valley, Greater Noida, Uttar Pradesh 201301
               </p>
