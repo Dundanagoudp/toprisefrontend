@@ -161,7 +161,7 @@ const data = {
     },
     {
       title: "SLA Violations ",
-      url: "/user/dashboard/slavoilation",
+      url: "/user/dashboard/slaviolation",
       icon: TicketIcon,
     },
     {
