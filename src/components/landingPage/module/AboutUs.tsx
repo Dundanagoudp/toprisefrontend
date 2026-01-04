@@ -178,7 +178,7 @@ export default function AboutUs() {
     {
       title: "What We Do",
       content:
-        "Toprise makes it easy for dealers and retailers to find exact-fit parts through advanced filters by vehicle make, model, and variant—eliminating guesswork. We operate a curated, verified network of manufacturers and distributors to ensure quality, competitive pricing, and consistent supply. With real-time inventory visibility, multi-location stocking, and intelligent order routing, we enable swift fulfilment and reduced downtime. Our dealer-centric, mobile-first tools let partners manage orders, returns, claims, and logistics seamlessly from a unified dashboard.",
+        "Toprise makes it easy for dealers and retailers to find exact-fit parts through advanced filters by vehicle make, model, and variant—eliminating guesswork. We operate a curated, verified network of manufacturers and distributors to ensure quality, competitive pricing, and consistent supply. With real-time inventory visibility, multi-location stocking, and intelligent order routing, we enable swift fulfillment and reduced downtime. Our dealer-centric, mobile-first tools let partners manage orders, returns, claims, and logistics seamlessly from a unified dashboard.",
       imageSrc: "/assets/Engineers.jpg",
       imageAlt: "Team collaboration",
       imagePosition: "right" as const,

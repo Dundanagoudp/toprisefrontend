@@ -354,7 +354,7 @@ export default function ViewDealer() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-gray-700">Last Fulfilment Date</span>
+              <span className="text-sm font-medium text-gray-700">Last Fulfillment Date</span>
               <span className="text-gray-900">{dealer.last_fulfillment_date ? dealer.last_fulfillment_date.split("T")[0] : "-"}</span>
             </div>
             <div className="flex flex-col">

@@ -54,7 +54,7 @@ export default function TermsAndConditions() {
           {/* Second Section */}
           <section>
             <h2 className="text-3xl font-semibold font-sans text-[#131920] mb-4">
-              2.Eligibility to Use
+              2. Eligibility to Use
             </h2>
            
               <ul className="text-[#61656A] text-xl font-sans leading-relaxed mb-4 list-disc pl-6 text-justify">
@@ -68,11 +68,6 @@ export default function TermsAndConditions() {
                   You must be an authorized representative of the business you
                   are registering on behalf of and have the authority to bind
                   that business to these terms.
-                </li>
-                <li>
-                  {" "}
-                  Any item listed on the Toprise platform available for
-                  purchase.
                 </li>
                 <li>
                   {" "}
@@ -384,7 +379,7 @@ export default function TermsAndConditions() {
   <div className="text-[#61656A] text-lg font-sans leading-relaxed mb-4 pl-1 text-justify">
     <p className="text-[#61656A] text-lg font-sans leading-relaxed">
       You may submit feedback or complaints to:<br />
-      Email: info@Toprise.in<br />
+      Email: info@toprise.in<br />
       Phone: +91 9122221804<br />
       Registered Office: A-924, Tower 3, NX One, Gaur Chowk, Plot No. 17, Tech Zone IV, Amrapali Dream Valley, Greater Noida, Uttar Pradesh 201301
     </p>

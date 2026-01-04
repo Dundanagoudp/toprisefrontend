@@ -376,7 +376,7 @@ export default function ProductPopupModal({ isOpen, onClose, productId = "", dea
                             <p className="text-base font-semibold text-gray-900">{product?.no_of_stock ?? "-"}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">Fulfilment Priority</p>
+                            <p className="text-xs text-gray-500">Fulfillment Priority</p>
                             <p className="text-base font-semibold text-gray-900">{product?.fulfillment_priority ?? "-"}</p>
                           </div>
                           <div>
@@ -417,7 +417,7 @@ export default function ProductPopupModal({ isOpen, onClose, productId = "", dea
                       <p className="text-base font-semibold text-gray-900">{product?.no_of_stock ?? "-"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Fulfilment Priority</p>
+                      <p className="text-xs text-gray-500">Fulfillment Priority</p>
                       <p className="text-base font-semibold text-gray-900">{product?.fulfillment_priority ?? "-"}</p>
                     </div>
                     <div>

@@ -275,7 +275,7 @@ export default function BannerSection() {
               Delivery{" "}
             </h1>
             <p className="font-sans text-white/90 text-lg md:text-xl">
-              Seach thousands of parts for bikes, scooters and cars – Get it
+              Search thousands of parts for bikes, scooters and cars – Get it
               delivered pan India (Same day in NCR)
             </p>
           </div>

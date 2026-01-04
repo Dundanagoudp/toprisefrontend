@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
         {/* Background image for header */}
         <Image src="/assets/HeroBg.jpg" alt="Background" fill className="object-cover" priority />
         <div className="relative container mx-auto px-4">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold">Privacy and Policy</h1>
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold">Privacy Policy</h1>
         </div>
       </div>
 
