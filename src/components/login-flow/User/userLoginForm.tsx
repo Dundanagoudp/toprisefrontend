@@ -316,7 +316,7 @@ export function UserLoginForm({
                           id="otp"
                           type="text"
                           inputMode="numeric"
-                          placeholder="Enter OTP"
+                          placeholder="Enter 6-digit OTP"
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
                           maxLength={6}

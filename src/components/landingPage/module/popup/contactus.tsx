@@ -59,8 +59,8 @@ export default function ContactPage() {
             as possible.
           </p>
           <div className="space-y-2">
-            <p className="b3 text-neutral-800">📞 +91 98765 43210</p>
-            <p className="b3 text-neutral-800">✉️ support@example.com</p>
+            <p className="b3 text-neutral-800">📞 +91 91222 21804</p>
+            <p className="b3 text-neutral-800">✉️ support@toprise.in</p>
           </div>
         </section>
 

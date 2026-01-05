@@ -1828,7 +1828,7 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="nick_name">Address Nickname *</Label>
+                      <Label htmlFor="nick_name">Add address type *</Label>
                       <Select
                         value={newAddress.nick_name || ""}
                         onValueChange={(value) => {
