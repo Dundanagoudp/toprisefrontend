@@ -265,7 +265,7 @@ export default function BillingAddressForm({
                 htmlFor="nick_name"
                 className="block text-sm font-medium text-gray-700"
               >
-                Nick Name
+                Add address type
               </label>
               <Controller
                 name="nick_name"
@@ -273,7 +273,7 @@ export default function BillingAddressForm({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger className="mt-1 w-full">
-                      <SelectValue placeholder="Select a nick name" />
+                      <SelectValue placeholder="Select a address type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Home">Home</SelectItem>

@@ -111,7 +111,7 @@ const createInvoiceElement = (order: any, products: any[]) => {
 
     <div style="margin-top:20px;font-size:12px;color:#6b7280">
       <div>Thank you for your order!</div>
-      <div style="margin-top:8px">If you have any questions, contact us at support@example.com</div>
+      <div style="margin-top:8px">If you have any questions, contact us at support@toprise.in</div>
     </div>
   `;
 
