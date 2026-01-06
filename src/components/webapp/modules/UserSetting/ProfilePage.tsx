@@ -351,6 +351,7 @@ export default function ProfilePage() {
         productId: productId,
       });
 
+
       if (response.success) {
         const wishlistResponse = await getWishlistByUser(userId);
         if (wishlistResponse.success) {
@@ -359,12 +360,23 @@ export default function ProfilePage() {
             : wishlistResponse.data?.items || [];
           setUserWishlist(wishlistData);
         }
+        console.log("Move to cart response:", response);
+      } else {
+        const message = response.message || "";
+        if (message.toLowerCase().includes("product out of stock") || message.toLowerCase().includes("insufficient")) {
+          showToast("Product is out of stock", "error");
+        } else {
+          showToast("Failed to move item to cart", "error");
+        }
+      }
+    } catch (error: any) {
+      console.error("Failed to move item to cart:", error);
+      const message = error.response?.data?.message || (error instanceof Error ? error.message : "");
+      if (message.toLowerCase().includes("out of stock") || message.toLowerCase().includes("insufficient")) {
+        showToast("Product is out of stock", "error");
       } else {
         showToast("Failed to move item to cart", "error");
       }
-    } catch (error) {
-      console.error("Failed to move item to cart:", error);
-      showToast("Failed to move item to cart", "error");
     } finally {
       setMovingToCart((prev) => prev.filter((id) => id !== productId));
     }
@@ -1707,12 +1719,17 @@ export default function ProfilePage() {
                                     product.name ||
                                     "Unnamed Product"}
                                 </CardTitle>
-                                <Badge
+                                {/* <Badge
                                   variant="outline"
                                   className="text-xs bg-red-50 text-red-700 border-red-200 font-medium px-2 py-0.5 max-sm:text-[10px] max-sm:px-1.5"
                                 >
                                   {product.sku_code || product.sku || "No SKU"}
-                                </Badge>
+                                </Badge> */}
+{product.out_of_stock && (
+  <Badge variant="destructive" className="text-xs bg-red-50 text-red-700 border-red-200 font-medium px-2 py-0.5 max-sm:text-[10px] max-sm:px-1.5">
+    Out of Stock
+  </Badge>
+)}
                               </div>
                             </div>
 
@@ -1778,7 +1795,7 @@ export default function ProfilePage() {
                                 size="sm"
                                 className="px-2"
                                 onClick={() => handleMoveToCart(product._id)}
-                                disabled={movingToCart.includes(product._id)}
+                                disabled={movingToCart.includes(product._id) || product.out_of_stock}
                               >
                                 {movingToCart.includes(product._id) ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />

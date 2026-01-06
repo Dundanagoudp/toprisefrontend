@@ -23,7 +23,7 @@ type Props = {
    * Optional handler called with form data when user submits.
    * Return false to keep dialog open, true/undefined to close.
    */
-  onSubmit?: (payload: { files: File[]; description: string }) => Promise<boolean | void> | boolean | void;
+  onSubmit?: (payload: { files: File[]; description: string; vehicleDetails: string }) => Promise<boolean | void> | boolean | void;
 };
 
 export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props) {
@@ -34,6 +34,7 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [pincode, setPincode] = useState("");
+  const [vehicleDetails, setVehicleDetails] = useState<string>("");
   const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([]);
   const [userInfo, setUserInfo] = useState<UserProfile | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -53,6 +54,7 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
       setDescription("");
       setAddress("");
       setPincode("");
+      setVehicleDetails("");
       setPreviews([]);
       setSubmitting(false);
       setUserInfo(null);
@@ -134,9 +136,11 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
     const name = userInfo.username || "";
     setSubmitting(true);
     try {
-      await uploadPurchaseOrder(files, description, userId, name, email, phone, address, pincode);
+      await uploadPurchaseOrder(files, description, vehicleDetails, userId, name, email, phone, address, pincode);
+      
       showToast("Purchase order uploaded successfully", "success");
-      const result = onSubmit ? await onSubmit({ files, description }) : undefined;
+      const result = onSubmit ? await onSubmit({ files, description , vehicleDetails }) : undefined;
+
       if (result === false) {
         setSubmitting(false);
         return;
@@ -241,7 +245,25 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
               placeholder="Enter pincode"
             />
           </div>
-
+            {/* Vehicle Details */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Vehicle Details * <span className="text-xs text-muted-foreground font-normal">(Max 50 words)</span>
+            </label>
+            <input
+              type="text"
+              value={vehicleDetails}
+              onChange={(e) => {
+                const val = e.target.value;
+                const wordCount = val.trim() ? val.trim().split(/\s+/).length : 0;
+                if (wordCount <= 50) {
+                  setVehicleDetails(val);
+                }
+              }}
+              className="w-full rounded-lg border border-input p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Enter vehicle details such as brand, model, year etc."
+            />
+          </div>
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Brief about the purchase request</label>
@@ -250,14 +272,14 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               className="w-full rounded-lg border border-input p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Add any details that would help (optional)"
+              placeholder="Add any details that would help"
             />
           </div>
         </div>
 
         <DialogFooter className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
-          <Button className="bg-red-600 text-white" onClick={handleSubmit} disabled={submitting}>
+          <Button className="bg-red-600 text-white" onClick={handleSubmit} disabled={submitting || !vehicleDetails.trim() || !description.trim()}>
             {submitting ? "Submitting..." : "Rise Purchase Order"}
           </Button>
         </DialogFooter>

@@ -1,4 +1,5 @@
 "use client"
+import { Plus, X, Check, ChevronsUpDown } from "lucide-react"
 
 import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -19,6 +20,7 @@ import { getAllFulfillmentStaffWithoutPagination, getFulfillmentStaffByDealer } 
 import { useAppSelector } from "@/store/hooks"
 import { useBreadcrumb } from "@/contexts/BreadcrumbContext"
 import { getBrand } from "@/service/product-Service"
+import { getPincodeByDealerId } from "@/service/pincodeServices"
 
 export default function EditDealer() {
   const { showToast } = useGlobalToast();
@@ -30,6 +32,7 @@ export default function EditDealer() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [submitLoading, setSubmitLoading] = useState(false)
+  const [pincodeOptions, setPincodeOptions] = useState<any[]>([])
   const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
   const allowedRoles = ["Super-admin", "Inventory-Admin"];
   const auth = useAppSelector((state) => state.auth.user);
@@ -69,12 +72,45 @@ export default function EditDealer() {
   })
 
   useEffect(() => {
-    fetchUsers()
-    fetchBrands()
-    fetchDealer()
-    fetchSlaTypes()
+    const loadData = async () => {
+      fetchUsers()
+      fetchBrands()
+      fetchSlaTypes()
+      await fetchDealer()
+      fetchPincodes()
+    }
+    loadData()
     // eslint-disable-next-line
   }, [dealerId])
+
+  const fetchPincodes = async () => {
+    try {
+      if (!dealerId) return
+      const response: any = await getPincodeByDealerId(dealerId)
+      if (response && response.success) {
+        const mapped = response.mapped || []
+        const unmapped = response.unmapped || []
+        
+        // Combine for dropdown options with custom label to indicate assignment
+        const mappedOptions = mapped.map((p: any) => ({
+           ...p, 
+           customLabel: `${p.pincode} - ${p.city} (Assigned)` 
+        }))
+        const unmappedOptions = unmapped.map((p: any) => ({
+           ...p, 
+           customLabel: `${p.pincode} - ${p.city}` 
+        }))
+        
+        setPincodeOptions([...mappedOptions, ...unmappedOptions])
+        
+        // Pre-select mapped pincodes by ID
+        const mappedIds = mapped.map((p: any) => p._id)
+        form.setValue("serviceable_pincodes", mappedIds)
+      }
+    } catch (error) {
+      console.error("Failed to load pincodes", error)
+    }
+  }
 
 
   const fetchSlaTypes = async () => {
@@ -293,6 +329,27 @@ export default function EditDealer() {
                         {...field}
                         readOnly
                         className="bg-gray-100 border-gray-200 cursor-not-allowed"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* multiDropwdown to show mapped pincode and dropdown to add new pincode to dealer */}
+              <FormField
+                control={form.control}
+                name="serviceable_pincodes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Serviceable Pincodes</FormLabel>
+                    <FormControl>
+                      <MultiSelectDropdown
+                        options={pincodeOptions}
+                        selected={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Select Pincodes"
+                        labelKey="customLabel"
+                        valueKey="_id"
                       />
                     </FormControl>
                     <FormMessage />
@@ -660,10 +717,20 @@ export default function EditDealer() {
   )
 }
 
-function MultiSelectDropdown({ options, selected, onChange }: {
+function MultiSelectDropdown({ 
+  options, 
+  selected, 
+  onChange,
+  labelKey = "brand_name",
+  valueKey = "_id",
+  placeholder = "Select..."
+}: {
   options: any[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  labelKey?: string;
+  valueKey?: string;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -678,66 +745,86 @@ function MultiSelectDropdown({ options, selected, onChange }: {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [open])
 
-  const filtered = options.filter(brand => brand.brand_name.toLowerCase().includes(search.toLowerCase()))
+  const getLabel = (item: any) => item?.[labelKey] || "";
+  const getValue = (item: any) => item?.[valueKey];
+
+  const filtered = options.filter(item => 
+    String(getLabel(item)).toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div className="relative" ref={ref}>
       <div
-        className="flex flex-wrap gap-2 border border-gray-200 rounded px-2 py-1 bg-white min-h-[42px] cursor-pointer"
+        className={`flex items-center justify-between min-h-[42px] px-3 py-2 border rounded-md cursor-pointer transition-colors bg-white hover:bg-gray-50
+          ${open ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}
+        `}
         onClick={() => setOpen(v => !v)}
       >
-        {selected.length === 0 && <span className="text-gray-400">Select brands...</span>}
-        {selected.map(id => {
-          const brand = options.find(b => b._id === id)
-          return brand ? (
-            <span key={id} className="flex items-center bg-red-600 text-white rounded px-2 py-0.5 text-xs">
-              {brand.brand_name}
-              <button
-                type="button"
-                className="ml-1 text-white hover:text-gray-200"
-                onClick={e => {
-                  e.stopPropagation()
-                  onChange(selected.filter(sid => sid !== id))
-                }}
-              >
-                ×
-              </button>
-            </span>
-          ) : null
-        })}
+        <div className="flex flex-wrap gap-1.5 max-w-[calc(100%-24px)]">
+          {selected.length === 0 && <span className="text-gray-400 text-sm">{placeholder}</span>}
+          {selected.map(val => {
+            const item = options.find(o => getValue(o) === val)
+            return (
+              <div key={val} className="flex items-center mr-1 mb-1 bg-red-50 text-red-700 border border-red-200 rounded px-2 py-0.5 text-xs font-medium">
+                {item ? getLabel(item) : val}
+                <button
+                  type="button"
+                  className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-red-500 hover:bg-red-200 p-0.5"
+                  onClick={e => {
+                    e.stopPropagation()
+                    onChange(selected.filter(s => s !== val))
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
       </div>
+
       {open && (
-        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-60 overflow-auto">
-          <input
-            className="w-full px-2 py-1 border-b border-gray-100 focus:outline-none"
-            placeholder="Search brands..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            autoFocus
-          />
-          {filtered.length === 0 && <div className="p-2 text-gray-400">No brands found</div>}
-          {filtered.map(brand => (
-            <div
-              key={brand._id}
-              className={`px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center ${selected.includes(brand._id) ? "bg-gray-100" : ""}`}
-              onClick={e => {
-                e.stopPropagation()
-                if (selected.includes(brand._id)) {
-                  onChange(selected.filter(id => id !== brand._id))
-                } else {
-                  onChange([...selected, brand._id])
-                }
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={selected.includes(brand._id)}
-                readOnly
-                className="mr-2"
-              />
-              {brand.brand_name}
-            </div>
-          ))}
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95">
+          <div className="p-2 border-b border-gray-100">
+            <input
+              className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+              placeholder="Search..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+          
+          <div className="max-h-60 overflow-y-auto p-1">
+            {filtered.length === 0 && <div className="p-2 text-center text-gray-400 text-sm">No options found</div>}
+            {filtered.map(item => {
+              const val = getValue(item);
+              const label = getLabel(item);
+              const isSelected = selected.includes(val);
+              
+              return (
+                <div
+                  key={val}
+                  className={`
+                    flex items-center justify-between px-2 py-2 text-sm rounded-sm cursor-pointer select-none
+                    ${isSelected ? 'bg-red-50 text-red-900' : 'hover:bg-gray-100 text-gray-900'}
+                  `}
+                  onClick={e => {
+                    e.stopPropagation()
+                    if (isSelected) {
+                      onChange(selected.filter(s => s !== val))
+                    } else {
+                      onChange([...selected, val])
+                    }
+                  }}
+                >
+                  <span>{label}</span>
+                  {isSelected && <Check className="h-4 w-4 text-red-600" />}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -22,6 +22,7 @@ export const dealerSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
   phone_Number: z.string().min(10, "Phone number must be at least 10 digits"),
+  serviceable_pincodes: z.array(z.string()).min(1, "At least one serviceable pincode is required"),
   legal_name: z.string().min(1, "Legal name is required"),
   trade_name: z.string().min(1, "Trade name is required"),
   GSTIN: z.string().min(15, "GSTIN must be 15 characters").max(15, "GSTIN must be 15 characters"),
@@ -35,6 +36,7 @@ export const dealerSchema = z.object({
   SLA_type: z.string().min(1, "SLA type is required"),
   onboarding_date: z.string(),
   remarks: z.string().optional(),
+
   brands_allowed: z.array(z.string()).min(1, "At least one brand must be selected"),
 })
 

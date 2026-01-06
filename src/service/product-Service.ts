@@ -1586,6 +1586,7 @@ export async function getPurchaseOrders(): Promise<PurchaseOrdersResponse> {
 export async function uploadPurchaseOrder(
   files: File[],
   description: string,
+  vehicleDetails: string,
   userId: string,
   name: string,
   email: string,
@@ -1596,6 +1597,7 @@ export async function uploadPurchaseOrder(
   try {
     const formData = new FormData();
     formData.append('description', description);
+    formData.append('vehicle_details', vehicleDetails);
     formData.append('user_id', userId);
     formData.append('name', name);
     formData.append('email', email);

@@ -147,6 +147,31 @@ export async function getPincodes(
   }
 }
 
+
+// get  pincode by dealer id 
+export async function getPincodeByDealerId(
+  dealerId: string
+): Promise<PincodeResponse> {
+  try {
+    const response = await apiClient.get(`/users/api/users/get/servicable/pincodes/${dealerId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch pincode by dealer id:", error);
+    throw error;
+  }
+}
+
+//get all pincodes
+export async function getAllPincodes(): Promise<PincodeResponse> {
+  try {
+    const response = await apiClient.get('/category/api/pincodes/get/all');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch pincodes:', error);
+    throw error;
+  }
+}
+
 // Get a single pincode by ID
 export async function getPincodeById(
   pincodeId: string
