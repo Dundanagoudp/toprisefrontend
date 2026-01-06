@@ -21,7 +21,8 @@ import {
   FileText,
   ExternalLink,
   MoreHorizontal,
-  XCircle
+  XCircle,
+  EyeClosed
 } from "lucide-react"
 import SearchInput from "@/components/common/search/SearchInput"
 import { useAppSelector } from "@/store/hooks"
@@ -47,6 +48,11 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface PurchaseDocument {
   _id: string
@@ -59,6 +65,7 @@ interface PurchaseDocument {
     _id: string
   }[]
   description: string
+  vehicle_details?: string
   customer_details: {
     user_id: string
     name: string
@@ -267,6 +274,7 @@ export default function PurchaseRequestsPage() {
         })
         
         setPurchaseRequests(sortedData)
+        
         // console.log("Purchase requests:", sortedData)
         setPagination(response.data.data.pagination)
       } else {
@@ -587,7 +595,7 @@ export default function PurchaseRequestsPage() {
                   <TableHead className="font-semibold">Request Date</TableHead>
                   <TableHead className="font-semibold">Customer Name</TableHead>
                   <TableHead className="font-semibold">Contact</TableHead>
-                  <TableHead className="font-semibold">Description</TableHead>
+                  <TableHead className="font-semibold">Description / Vehicle Details</TableHead>
                   <TableHead className="font-semibold">Est. Value</TableHead>
                   <TableHead className="font-semibold">Files</TableHead>
                   {/* <TableHead className="font-semibold">Priority</TableHead> */}
@@ -639,9 +647,29 @@ export default function PurchaseRequestsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="max-w-xs">
-                        <div className="truncate" title={request.description}>
-                          {request.description || "No description"}
-                        </div>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-4" align="start">
+                            <div className="space-y-4">
+                              <div className="space-y-1">
+                                <h4 className="font-medium text-sm leading-none bg-gray-50 p-2 rounded-md">Description</h4>
+                                <p className="text-sm text-gray-600 px-2 leading-relaxed">
+                                  {request.description || "No description provided."}
+                                </p>
+                              </div>
+                              <div className="space-y-1">
+                                <h4 className="font-medium text-sm leading-none bg-gray-50 p-2 rounded-md">Vehicle Details</h4>
+                                <p className="text-sm text-gray-600 px-2 leading-relaxed">
+                                  {request.vehicle_details || "No vehicle details provided."}
+                                </p>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell className="font-medium">
                         ₹{request.estimated_order_value?.toLocaleString() || 0}

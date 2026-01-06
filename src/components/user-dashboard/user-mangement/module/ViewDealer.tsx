@@ -12,6 +12,7 @@ import type { Dealer, User as UserType } from "@/types/dealer-types"
 import type { SlaType } from "@/types/sla-types"
 import { getBrand } from "@/service/product-Service"
 import { Brand } from "@/types/product-Types"
+import { getPincodeByDealerId } from "@/service/pincodeServices"
 
 // Utility function to format role for display
 // Maps "Fulfillment-Admin" -> "Fullfillment-Admin" and "Fulfillment-Staff" -> "Fullfillment-Staff"
@@ -31,6 +32,7 @@ export default function ViewDealer() {
   const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pincode, setPincode] = useState<string | null>(null)
   const [showBrandModal, setShowBrandModal] = useState(false)
 
   useEffect(() => {
@@ -42,20 +44,27 @@ export default function ViewDealer() {
     setLoading(true)
     setError(null)
     try {
-      const [dealerRes, brandRes, userRes, slaRes] = await Promise.all([
+      const [dealerRes, brandRes, userRes, slaRes, pincodeRes] = await Promise.all([
         getDealerById(dealerId),
         getBrand(),
         getAllUsers(),
         getAllCSlaTypes(),
+        getPincodeByDealerId(dealerId)
       ])
+
       if (dealerRes.success && brandRes.success && userRes.success) {
         setDealer(dealerRes.data)
-        console.log("🔍 Dealer data:", dealerRes.data)
         setBrands(brandRes.data as unknown as Brand[])
         setUsers(userRes.data)
         // Handle SLA types response
         if (slaRes.success && slaRes.data) {
           setSlaTypes(slaRes.data)
+        }
+        // Handle Pincodes
+        const pincodeData = pincodeRes as any;
+        if (pincodeData.success && pincodeData.mapped) {
+           const codes = pincodeData.mapped.map((p: any) => p.pincode);
+           setPincode(codes);
         }
       } else {
         setError("Failed to load dealer details.")
@@ -94,8 +103,8 @@ export default function ViewDealer() {
   }
 
   // Helper: get category names
-  const brandNames = dealer.brands_allowed?.map(bid => {
-    const brand = brands.find(b => b._id === bid)
+  const brandNames = dealer.brands_allowed?.map((bid: any) => {
+    const brand = brands.find((b: any) => b._id === bid)
     return brand ? brand.brand_name : bid
   }) || []
 
@@ -131,6 +140,9 @@ export default function ViewDealer() {
       return dateString
     }
   }
+  // get pincode by dealer id 
+
+  
 
   // Helper: get assigned employee information
   const getAssignedEmployees = () => {
@@ -139,8 +151,8 @@ export default function ViewDealer() {
     }
     
     return dealer.assigned_Toprise_employee
-      .filter(assignment => assignment.assigned_user && assignment.assigned_user._id)
-      .map(assignment => {
+      .filter((assignment: any) => assignment.assigned_user && assignment.assigned_user._id)
+      .map((assignment: any) => {
         const employee = assignment.assigned_user
         const employeeDetails = assignment.employee_details || employee
         
@@ -196,6 +208,12 @@ export default function ViewDealer() {
             <div className="flex flex-col sm:col-span-2">
               <span className="text-sm font-medium text-gray-700">Trade Name</span>
               <span className="text-gray-900">{dealer.trade_name}</span>
+            </div>
+            <div className="flex flex-col sm:col-span-2">
+              <span className="text-sm font-medium text-gray-700">Serviceable Pincodes</span>
+              <span className="text-gray-900">
+                {pincode && pincode.length > 0 ? (Array.isArray(pincode) ? pincode.join(", ") : pincode) :  "No key pincodes assigned"}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -383,7 +401,7 @@ export default function ViewDealer() {
               
               {assignedEmployees.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {assignedEmployees.map((employee, index) => (
+                  {assignedEmployees.map((employee: any, index: number) => (
                     <div key={employee.id || index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                       {/* Employee Header */}
                       <div className="flex items-start justify-between mb-3">

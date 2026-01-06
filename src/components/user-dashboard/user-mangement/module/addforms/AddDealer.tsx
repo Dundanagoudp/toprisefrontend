@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Badge } from "@/components/ui/badge"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Check, ChevronsUpDown } from "lucide-react"
 import { createDealer, getAllCategories, getAllSlaTypes } from "@/service/dealerServices"
+import { getPincodes, Pincode } from "@/service/pincodeServices"
 import { getAllFulfillmentStaff, getAllFulfillmentStaffWithoutPagination } from "@/service/employeeServices"
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useState, useEffect, Fragment, useRef } from "react"
@@ -29,6 +30,7 @@ export default function AddDealer() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [allBrands, setAllBrands] = useState<any[]>([])
+  const [pincodes, setPincodes] = useState<Pincode[]>([])
   const [slaTypes, setSlaTypes] = useState<SlaType[]>([])
   const [submitLoading, setSubmitLoading] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -38,10 +40,11 @@ export default function AddDealer() {
 
   const form = useForm<DealerFormValues>({
     resolver: zodResolver(dealerSchema) as any, 
-    defaultValues: {
+    defaultValues: {  
       email: "",
       password: "",
       phone_Number: "",
+      serviceable_pincodes: [],
       legal_name: "",
       trade_name: "",
       GSTIN: "",
@@ -72,6 +75,7 @@ export default function AddDealer() {
     fetchUsers()
     fetchBrands()
     fetchSlaTypes()
+    fetchPincodes()
   }, [])
 
   // Ensure form is properly reset when component mounts
@@ -80,6 +84,7 @@ export default function AddDealer() {
       email: "",
       password: "",
       phone_Number: "",
+      serviceable_pincodes: [],
       legal_name: "",
       trade_name: "",
       GSTIN: "",
@@ -151,6 +156,17 @@ export default function AddDealer() {
       setSlaTypes(item)
     } catch (error) {
       showToast("Failed to load SLA types. Please refresh the page.", "error");
+    }
+  }
+
+  const fetchPincodes = async () => {
+    try {
+      const response = await getPincodes({ limit: 1000 });
+      if (response.success && response.data?.pincodes) {
+        setPincodes(response.data.pincodes);
+      }
+    } catch (error) {
+      console.error("Failed to fetch pincodes:", error);
     }
   }
 
@@ -304,6 +320,28 @@ export default function AddDealer() {
                           field.onChange(digitsOnly);
                         }}
                         className="bg-gray-50 border-gray-200"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* servicesble pincode dropdown */}
+
+              <FormField
+                control={form.control}
+                name="serviceable_pincodes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pincode (Serviceable)</FormLabel>
+                    <FormControl>
+                      <MultiSelectDropdown
+                        options={pincodes}
+                        selected={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Select Pincodes"
+                        labelKey="pincode"
+                        valueKey="_id"
                       />
                     </FormControl>
                     <FormMessage />
@@ -739,10 +777,20 @@ export default function AddDealer() {
   )
 }
 
-function MultiSelectDropdown({ options, selected, onChange }: {
+function MultiSelectDropdown({ 
+  options, 
+  selected, 
+  onChange,
+  labelKey = "brand_name",
+  valueKey = "_id",
+  placeholder = "Select..."
+}: {
   options: any[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  labelKey?: string;
+  valueKey?: string;
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -757,66 +805,86 @@ function MultiSelectDropdown({ options, selected, onChange }: {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [open])
 
-  const filtered = options.filter(brand => brand.brand_name.toLowerCase().includes(search.toLowerCase()))
+  const getLabel = (item: any) => item[labelKey] || "";
+  const getValue = (item: any) => item[valueKey];
+
+  const filtered = options.filter(item => 
+    String(getLabel(item)).toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div className="relative" ref={ref}>
       <div
-        className="flex flex-wrap gap-2 border border-gray-200 rounded px-2 py-1 bg-white min-h-[42px] cursor-pointer"
+        className={`flex items-center justify-between min-h-[42px] px-3 py-2 border rounded-md cursor-pointer transition-colors bg-white hover:bg-gray-50
+          ${open ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}
+        `}
         onClick={() => setOpen(v => !v)}
       >
-        {selected.length === 0 && <span className="text-gray-400">Select brands...</span>}
-        {selected.map(id => {
-          const brand = options.find(b => b._id === id)
-          return brand ? (
-            <span key={id} className="flex items-center bg-red-600 text-white rounded px-2 py-0.5 text-xs">
-              {brand.brand_name}
-              <button
-                type="button"
-                className="ml-1 text-white hover:text-gray-200"
-                onClick={e => {
-                  e.stopPropagation()
-                  onChange(selected.filter(sid => sid !== id))
-                }}
-              >
-                ×
-              </button>
-            </span>
-          ) : null
-        })}
+        <div className="flex flex-wrap gap-1.5 max-w-[calc(100%-24px)]">
+          {selected.length === 0 && <span className="text-gray-400 text-sm">{placeholder}</span>}
+          {selected.map(val => {
+            const item = options.find(o => getValue(o) === val)
+            return (
+              <Badge key={val} variant="default" className="mr-1 mb-1 bg-red-50 text-red-700 hover:bg-red-100 border-red-200">
+                {item ? getLabel(item) : val}
+                <button
+                  type="button"
+                  className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-red-200"
+                  onClick={e => {
+                    e.stopPropagation()
+                    onChange(selected.filter(s => s !== val))
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )
+          })}
+        </div>
+        <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
       </div>
+
       {open && (
-        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-60 overflow-auto">
-          <input
-            className="w-full px-2 py-1 border-b border-gray-100 focus:outline-none"
-            placeholder="Search brands..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            autoFocus
-          />
-          {filtered.length === 0 && <div className="p-2 text-gray-400">No brands found</div>}
-          {filtered.map(brand => (
-            <div
-              key={brand._id}
-              className={`px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center ${selected.includes(brand._id) ? "bg-gray-100" : ""}`}
-              onClick={e => {
-                e.stopPropagation()
-                if (selected.includes(brand._id)) {
-                  onChange(selected.filter(id => id !== brand._id))
-                } else {
-                  onChange([...selected, brand._id])
-                }
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={selected.includes(brand._id)}
-                readOnly
-                className="mr-2"
-              />
-              {brand.brand_name}
-            </div>
-          ))}
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95">
+          <div className="p-2 border-b border-gray-100">
+            <input
+              className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+              placeholder="Search..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+          
+          <div className="max-h-60 overflow-y-auto p-1">
+            {filtered.length === 0 && <div className="p-2 text-center text-gray-400 text-sm">No options found</div>}
+            {filtered.map(item => {
+              const val = getValue(item);
+              const label = getLabel(item);
+              const isSelected = selected.includes(val);
+              
+              return (
+                <div
+                  key={val}
+                  className={`
+                    flex items-center justify-between px-2 py-2 text-sm rounded-sm cursor-pointer select-none
+                    ${isSelected ? 'bg-red-50 text-red-900' : 'hover:bg-gray-100 text-gray-900'}
+                  `}
+                  onClick={e => {
+                    e.stopPropagation()
+                    if (isSelected) {
+                      onChange(selected.filter(s => s !== val))
+                    } else {
+                      onChange([...selected, val])
+                    }
+                  }}
+                >
+                  <span>{label}</span>
+                  {isSelected && <Check className="h-4 w-4 text-red-600" />}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
