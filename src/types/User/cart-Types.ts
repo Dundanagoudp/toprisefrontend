@@ -21,6 +21,7 @@ export interface Cart {
   items: CartItem[];
   itemTotal: number;
   totalPrice: number;
+  is_available: boolean;
   handlingCharge: number;
   deliveryCharge: number;
   delivery_type?: string;
@@ -29,6 +30,8 @@ export interface Cart {
   total_mrp_gst_amount: number;
   total_mrp_with_gst: number;
   grandTotal: number;
+  success: boolean;
+  message: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -38,6 +41,19 @@ export interface CartResponse {
   success: boolean;
   message: string;
   data: Cart;
+}
+
+export interface AddToCartResponse {
+  success: boolean;
+  message: string;
+  data: Cart | CartServiceabilityError;
+}
+
+export interface CartServiceabilityError {
+  success: false;
+  productId: string;
+  serviceable: false;
+  message: string;
 }
 
 export interface AddToCartPayload {

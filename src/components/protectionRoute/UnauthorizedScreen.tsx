@@ -37,13 +37,14 @@ const UnauthorizedScreen: React.FC<UnauthorizedScreenProps> = ({
        
 
    
-       Cookies.remove("token");
-       Cookies.remove("role");
-       Cookies.remove("lastlogin");
-       localStorage.clear();
-       sessionStorage.clear();
-       dispatch(logoutAction());
-       persistor.purge();
+      Cookies.remove("token");
+      Cookies.remove("role");
+      Cookies.remove("lastlogin");
+      localStorage.clear();
+      sessionStorage.clear();
+ 
+      dispatch(logoutAction());
+      persistor.purge();
        window.location.href = "/";
      
    

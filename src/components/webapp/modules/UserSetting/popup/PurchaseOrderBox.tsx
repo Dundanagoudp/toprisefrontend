@@ -156,8 +156,8 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-2xl w-full">
-        <DialogHeader className="flex items-start justify-between">
+      <DialogContent className="sm:max-w-2xl w-full max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex items-start justify-between shrink-0">
           <div>
             <DialogTitle className="text-lg font-semibold">Upload Purchase Request</DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">Attach photos of the purchase order and add a brief note.</p>
@@ -165,7 +165,7 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
     
         </DialogHeader>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4 overflow-y-auto flex-1 min-h-0 pr-2">
           {/* Image upload area */}
           <div
             onClick={() => inputRef.current?.click()}
@@ -277,7 +277,7 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
           </div>
         </div>
 
-        <DialogFooter className="mt-4 flex justify-end gap-2">
+        <DialogFooter className="mt-4 flex justify-end gap-2 shrink-0">
           <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
           <Button className="bg-red-600 text-white" onClick={handleSubmit} disabled={submitting || !vehicleDetails.trim() || !description.trim()}>
             {submitting ? "Submitting..." : "Rise Purchase Order"}

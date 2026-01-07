@@ -3,7 +3,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/components/ui/toast';
+import { usePincode } from '@/hooks/use-pincode';
+import { PincodeDialog } from '@/components/webapp/common/PincodeDialog';
 import { ShoppingCart, Eye, Loader2 } from 'lucide-react';
+import { useAppSelector } from '@/store/hooks';
 
 interface Product {
   available_dealers?: AvailableDealer[];
@@ -42,9 +45,12 @@ const ProductListing = ({
 }: ProductListingProps) => {
   const [displayLimit, setDisplayLimit] = useState<number>(12);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [showPincodeDialog, setShowPincodeDialog] = useState(false);
+  const [pendingCartAction, setPendingCartAction] = useState<{ productId: string; productName: string } | null>(null);
   const router = useRouter();
   const { addItemToCart } = useCart();
   const { showToast } = useToast();
+  const { shouldShowPincodeDialog } = usePincode();
 
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = React.useMemo(() => apiBase.replace(/\/api$/, ""), [apiBase]);
@@ -60,20 +66,55 @@ const ProductListing = ({
   };
 
   const handleAddToCart = async (productId: string, productName: string) => {
+    // Check if pincode is saved, show dialog if not
+    if (shouldShowPincodeDialog()) {
+      setPendingCartAction({ productId, productName });
+      setShowPincodeDialog(true);
+      return;
+    }
+
     try {
       setAddingToCart(productId);
-      await addItemToCart(productId, 1);
-      // showToast(`${productName} has been added to your cart.`, "success");
+     await addItemToCart(productId, 1);
+ 
+
     } catch (error: any) {
       if (error.message === 'User not authenticated') {
         showToast("Please login to add items to cart", "error");
         router.push("/login");
+      } else if (error.message?.includes('not serviceable')) {
+        showToast("Product not serviceable at this location", "error");
       } else {
         showToast("Failed to add product to cart", "error");
         console.error("Error adding to cart:", error);
       }
     } finally {
       setAddingToCart(null);
+    }
+  };
+
+  const handlePincodeSaved = async () => {
+    // Execute the pending cart action now that pincode is saved
+    if (pendingCartAction) {
+      const { productId, productName } = pendingCartAction;
+      try {
+        setAddingToCart(productId);
+        await addItemToCart(productId, 1);
+        showToast(`${productName} has been added to your cart.`, "success");
+      } catch (error: any) {
+        if (error.message === 'User not authenticated') {
+          showToast("Please login to add items to cart", "error");
+          router.push("/login");
+        } else if (error.message?.includes('not serviceable')) {
+          showToast("Product not serviceable at this location", "error");
+        } else {
+          showToast("Failed to add product to cart", "error");
+          console.error("Error adding to cart:", error);
+        }
+      } finally {
+        setAddingToCart(null);
+        setPendingCartAction(null);
+      }
     }
   };
 
@@ -208,6 +249,12 @@ const ProductListing = ({
           </button>
         </div>
       )}
+
+      <PincodeDialog
+        open={showPincodeDialog}
+        onOpenChange={setShowPincodeDialog}
+        onPincodeSaved={handlePincodeSaved}
+      />
     </div>
   );
 };

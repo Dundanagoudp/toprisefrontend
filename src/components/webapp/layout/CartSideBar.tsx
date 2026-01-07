@@ -33,6 +33,8 @@ export const CartSidebar = ({
   const router = useRouter();
   const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
 
+  const cartItemsCount = cart?.items?.length ?? 0;
+
   const handleCheckout = () => {
     setCartOpen(false);
     router.push('/shop/checkout');

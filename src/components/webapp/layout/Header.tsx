@@ -35,6 +35,7 @@ import { useToast } from "@/components/ui/toast";
 import TOPRISELOGOHQ from "../../../../public/assets/TOPRISELOGOHQ.svg";
 import Image from "next/image";
 import { LogOut } from "@/store/slice/auth/authSlice";
+import { clearPincode } from "@/store/slice/pincode/pincodeSlice";
 import SearchInputWithVehicles from "@/components/common/search/SearchInputWithVehicles";
 import { UserVehicleDetails } from "@/service/user/userService";
 import { Switch } from "@/components/ui/switch";
@@ -66,6 +67,8 @@ export const Header = () => {
     removeItemFromCart,
   } = useCart();
 
+
+
   useEffect(() => {
     fetchCart();
   }, [fetchCart]);
@@ -76,6 +79,7 @@ export const Header = () => {
     Cookies.remove("lastlogin");
     localStorage.clear();
     sessionStorage.clear();
+    dispatch(clearPincode());
     dispatch(LogOut());
     router.replace("/");
     window.location.reload();

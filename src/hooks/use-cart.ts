@@ -17,7 +17,7 @@ export const useCart = () => {
   const dispatch = useAppDispatch();
   const { cartData, loading, error, itemCount } = useAppSelector((state) => state.cart);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-
+  const pincode = useAppSelector((state) => state.pincode.value);
   const fetchCart = useCallback(async () => {
     if (!isAuthenticated || !user?._id) {
       dispatch(clearCart());
@@ -26,8 +26,10 @@ export const useCart = () => {
 
     try {
       dispatch(setCartLoading(true));
-      const response = await getCart(user._id);
+      const response = await getCart(user._id, pincode || '');
+
       if (response.success && response.data) {
+   
         dispatch(setCartData(response.data));
       }
     } catch (err: any) {
@@ -36,7 +38,7 @@ export const useCart = () => {
     } finally {
       dispatch(setCartLoading(false));
     }
-  }, [dispatch, isAuthenticated, user?._id]);
+  }, [dispatch, isAuthenticated, user?._id, pincode]);
 
   const addItemToCart = useCallback(async (productId: string, quantity: number = 1) => {
     if (!isAuthenticated || !user?._id) {
@@ -45,20 +47,50 @@ export const useCart = () => {
 
     try {
       dispatch(addToCartRequest());
-      const response = await addToCart({ userId: user._id, productId, quantity });
       
-      if (response.success && response.data) {
-        dispatch(addToCartSuccess(response.data));
-        return response.data;
+      // Make API call
+      const response = await addToCart({ userId: user._id, productId, quantity, pincode: pincode });
+      
+      // Check if response indicates failure or non-serviceability
+      // API can return: { success: true, cart: {...} } or { success: false, message: "..." }
+      if (!response.success) {
+        const errorMessage = response.message || 'Failed to add item to cart';
+        dispatch(addToCartFailure(errorMessage));
+        throw new Error(errorMessage);
+      }
+      
+      // Check for serviceability error
+      if ('serviceable' in response.data && response.data.serviceable === false) {
+        const errorMessage = response.data?.message || 'Product not serviceable';
+        dispatch(addToCartFailure(errorMessage));
+        throw new Error(errorMessage);
       } else {
-        throw new Error(response.message || 'Failed to add item to cart');
+        // Extract the actual cart data from the response
+        // API returns: { success: true, cart: { actual cart data } }
+
+        const responseData: any = response.data;
+        const cartData = responseData.cart || responseData as Cart;
+
+        
+        // Validate response structure
+        if (!cartData || !cartData.items || !Array.isArray(cartData.items)) {
+
+          dispatch(addToCartFailure("Invalid cart data received"));
+          throw new Error("Invalid cart data received from server");
+        }
+        
+        // Update Redux state with the full cart data from API
+        dispatch(addToCartSuccess(cartData));
+        
+        return cartData;
       }
     } catch (err: any) {
+ 
       const errorMessage = err.message || 'Failed to add item to cart';
       dispatch(addToCartFailure(errorMessage));
       throw err;
     }
-  }, [dispatch, isAuthenticated, user?._id]);
+  }, [dispatch, isAuthenticated, user?._id, pincode]);
 
   const increaseItemQuantity = useCallback(async (productId: string) => {
     if (!isAuthenticated || !user?._id) {

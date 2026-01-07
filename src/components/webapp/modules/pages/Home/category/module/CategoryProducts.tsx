@@ -7,6 +7,8 @@ import SearchInput from '@/components/common/search/SearchInput';
 import { getCategories, getProducts, getProductsByCategory, getProductsByPage, getSubCategoriesByCategory, getTypes, getBrandsByType } from '@/service/product-Service';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/components/ui/toast';
+import { usePincode } from '@/hooks/use-pincode';
+import { PincodeDialog } from '@/components/webapp/common/PincodeDialog';
 import type { SubCategory } from '@/types/product-Types';
 
 interface FilterSection {
@@ -37,7 +39,10 @@ const ProductListing = () => {
   const [loadingSubCategories, setLoadingSubCategories] = useState<boolean>(false)
   const [vehicleTypes, setVehicleTypes] = useState<any[]>([])
   const [availableBrands, setAvailableBrands] = useState<any[]>([])
-  
+  const [showPincodeDialog, setShowPincodeDialog] = useState(false)
+  const [pendingCartAction, setPendingCartAction] = useState<{ productId: string; productName: string } | null>(null)
+  const { shouldShowPincodeDialog } = usePincode()
+
   useEffect(()=>{
     const fetchSubCategories = async()=>{
         if (!categoryId) {
@@ -154,6 +159,13 @@ const ProductListing = () => {
   }
 
   const handleAddToCart = async (productId: string, productName: string) => {
+    // Check if pincode is saved, show dialog if not
+    if (shouldShowPincodeDialog()) {
+      setPendingCartAction({ productId, productName });
+      setShowPincodeDialog(true);
+      return;
+    }
+
     try {
       setAddingToCart(productId)
       await addItemToCart(productId, 1)
@@ -169,7 +181,30 @@ const ProductListing = () => {
     } finally {
       setAddingToCart(null)
     }
-  }
+  };
+
+  const handlePincodeSaved = async () => {
+    // Execute the pending cart action now that pincode is saved
+    if (pendingCartAction) {
+      const { productId, productName } = pendingCartAction;
+      try {
+        setAddingToCart(productId);
+        await addItemToCart(productId, 1);
+        showToast(`${productName} has been added to your cart.`, "success");
+      } catch (error: any) {
+        if (error.message === 'User not authenticated') {
+          showToast("Please login to add items to cart", "error");
+          router.push("/login");
+        } else {
+          showToast("Failed to add product to cart", "error");
+          console.error("Error adding to cart:", error);
+        }
+      } finally {
+        setAddingToCart(null);
+        setPendingCartAction(null);
+      }
+    }
+  };
 
   const handleViewProduct = (productId: string) => {
     router.push(`/shop/product/${productId}`)
@@ -628,6 +663,12 @@ const ProductListing = () => {
           </main>
         </div>
       </div>
+
+      <PincodeDialog
+        open={showPincodeDialog}
+        onOpenChange={setShowPincodeDialog}
+        onPincodeSaved={handlePincodeSaved}
+      />
     </div>
   );
 };

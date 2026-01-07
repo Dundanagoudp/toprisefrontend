@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { clearPincode } from "../pincode/pincodeSlice";
 
 interface AuthState {
   isAuthenticated: boolean;

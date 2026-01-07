@@ -1,7 +1,7 @@
 // utils/order-helpers.ts
 
 import { AppUser } from "@/types/user-types";
-import { Cart } from "@/types/User/cart-Types";
+import { Cart, CartItem } from "@/types/User/cart-Types";
 
 // maps UI deliveryType to API delivery_type
 export const mapDeliveryTypeForApi = (
@@ -35,10 +35,11 @@ export const prepareOrderBody = (
     orderSource: "Web",
     order_Amount: Math.round(cart.grandTotal || 0),
     deliveryCharges: cart.deliveryCharge ?? 0,
-    skus: cart.items.map((item) => ({
+    skus: cart.items.map((item: any) => ({
       sku: item.sku || "",
       quantity: item.quantity,
       productId: item.productId || item._id,
+      is_available: item.is_available,
       productName: item.product_name,
       mrp: item.mrp || item.selling_price || 0,
       mrp_gst_amount: item.mrp_gst_amount || 0,
