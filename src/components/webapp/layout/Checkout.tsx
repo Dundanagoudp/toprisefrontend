@@ -39,6 +39,7 @@ import {
 } from "@/service/user/cartService";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { clearCart } from "@/store/slice/cart/cartSlice";
+import { setPincode as setPincodeRedux } from "@/store/slice/pincode/pincodeSlice";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { getUserById, UpdateAddressRequest } from "@/service/user/userService";
 import { Cart, CartItem, CartResponse } from "@/types/User/cart-Types";
@@ -89,6 +90,13 @@ export default function CheckoutPage() {
   );
   const quantityUpdateTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const RAZORPAY_KEY_ID = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+
+
+
+// log the cart data
+
+
+
 
   // Load Razorpay dynamically
   const loadRazorpay = () => {
@@ -210,10 +218,10 @@ export default function CheckoutPage() {
         const apiDeliveryType = type.startsWith("express") ? "express" : type;
         await updateDeliveryType(cart._id, apiDeliveryType);
         await fetchCart();
-        showToast(
-          `Delivery type updated to ${type.replace("-", " ")}`,
-          "success"
-        );
+        // showToast(
+        //   `Delivery type updated to ${type.replace("-", " ")}`,
+        //   "success"
+        // );
       } catch (error) {
         console.error("Failed to update delivery type:", error);
         setDeliveryError("Failed to update delivery type. Please try again.");
@@ -223,6 +231,7 @@ export default function CheckoutPage() {
   };
 
   const userId = useAppSelector((state) => state.auth.user?._id);
+  const reduxPincode = useAppSelector((state) => state.pincode.value);
 
   const fetchData = async () => {
     if (!userId) {
@@ -236,12 +245,17 @@ export default function CheckoutPage() {
       const [userResponse] = await Promise.all([getUserById(userId)]);
       console.log("User response:", userResponse);
       setUser(userResponse.data);
+      // Only set selectedAddress if not already set (preserves user's selection)
       if (userResponse.data?.address && userResponse.data.address.length > 0) {
-        setSelectedAddress(userResponse.data.address[0]);
-        console.log(
-          "Auto-selected first address:",
-          userResponse.data.address[0]
-        );
+        if (!selectedAddress) {
+          setSelectedAddress(userResponse.data.address[0]);
+          console.log(
+            "Auto-selected first address:",
+            userResponse.data.address[0]
+          );
+        } else {
+          console.log("Preserving existing selected address:", selectedAddress);
+        }
       } else {
         console.log("No addresses found for user");
       }
@@ -256,7 +270,7 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = async () => {
-    console.log("🔔 handlePayment called");
+  
     try {
       if (isPlacingOrder) {
         console.log("Payment already in progress, ignoring click");
@@ -378,7 +392,8 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchData();
     console.log(" response of cart", cart);
-  }, [userId, fetchCart]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -397,11 +412,22 @@ export default function CheckoutPage() {
   // Auto-check pincode when address is selected
   useEffect(() => {
     if (selectedAddress?.pincode && selectedAddress.pincode !== pincode) {
+      // Update local state
       setPincode(selectedAddress.pincode);
+      // Update Redux state
+      dispatch(setPincodeRedux(selectedAddress.pincode));
+      // Check delivery availability
       handlePincodeCheck(selectedAddress.pincode);
-
     }
-  }, [selectedAddress]);
+  }, [selectedAddress, pincode, dispatch]);
+
+  // Re-fetch cart when Redux pincode changes
+  useEffect(() => {
+    if (reduxPincode && userId) {
+      fetchCart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reduxPincode, userId]);
 
   // Auto-select default delivery type when pincode data is available
   useEffect(() => {
@@ -430,6 +456,8 @@ export default function CheckoutPage() {
       // Delivery step
       // Block Standard delivery since it's coming soon
       await fetchCart();
+      
+
       if (deliveryType === "Standard") {
         setDeliveryError(
           "Standard delivery coming soon - not available at this time"
@@ -506,6 +534,8 @@ export default function CheckoutPage() {
     // }
 
     // Only create order for COD payments
+    // passing the isAvailable flag to the order body
+
     setIsPlacingOrder(true);
     const orderBody = prepareOrderBody(
       user,
@@ -513,7 +543,8 @@ export default function CheckoutPage() {
       deliveryType,
       selectedPaymentMethod,
       selectedAddress,
-      pincodeData
+      pincodeData,
+      
     );
 
     try {
@@ -588,7 +619,7 @@ export default function CheckoutPage() {
       await fetchCart(); // Refresh the cart data
       showToast("Item removed from cart", "success");
 
-      const updatedCart = await getCart(userId); // Get the very latest cart
+      const updatedCart = await getCart(userId, pincode || ''); // Get the very latest cart
       if (!updatedCart.data.items || updatedCart.data.items.length === 0) {
         showToast(
           "Your cart is empty. Redirecting you to the shop.",
@@ -1284,7 +1315,11 @@ export default function CheckoutPage() {
                         {cart.items.map((item: any) => (
                           <div
                             key={item._id}
-                            className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 border border-gray-200 rounded-lg"
+                            className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 border rounded-lg ${
+                              item.is_available === false
+                                ? "opacity-50 bg-gray-50 border-gray-300"
+                                : "border-gray-200"
+                            }`}
                           >
                             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-md shrink-0 mx-auto sm:mx-0">
                               {item.product_image && item.product_image[0] && (
@@ -1302,6 +1337,11 @@ export default function CheckoutPage() {
                               <p className="text-xs sm:text-sm text-gray-500">
                                 SKU: {item.sku}
                               </p>
+                              {item.is_available === false && (
+                                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
+                                  Product cannot be delivered to selected address
+                                </div>
+                              )}
                               <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
                                 <span className="text-xs sm:text-sm text-gray-500 font-medium">
                                   Qty:
@@ -1319,7 +1359,8 @@ export default function CheckoutPage() {
                                     }
                                     disabled={
                                       item.quantity <= 1 ||
-                                      updatingQuantities.has(item.productId)
+                                      updatingQuantities.has(item.productId) ||
+                                      item.is_available === false
                                     }
                                   >
                                     {updatingQuantities.has(item.productId) ? (
@@ -1338,9 +1379,10 @@ export default function CheckoutPage() {
                                     onClick={() =>
                                       handleIncreaseQuantity(item.productId)
                                     }
-                                    disabled={updatingQuantities.has(
-                                      item.productId
-                                    )}
+                                    disabled={
+                                      updatingQuantities.has(item.productId) ||
+                                      item.is_available === false
+                                    }
                                   >
                                     {updatingQuantities.has(item.productId) ? (
                                       <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
@@ -1605,7 +1647,11 @@ export default function CheckoutPage() {
                     {cart.items.map((item: any) => (
                       <div
                         key={item._id}
-                        className="p-2 border-b border-gray-100 last:border-b-0"
+                        className={`p-2 border-b last:border-b-0 ${
+                          item.is_available === false
+                            ? "opacity-50 bg-gray-50 border-gray-200"
+                            : "border-gray-100"
+                        }`}
                       >
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2 sm:gap-3">
@@ -1622,6 +1668,11 @@ export default function CheckoutPage() {
                               <h4 className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                                 {item.product_name}
                               </h4>
+                              {item.is_available === false && (
+                                <p className="text-xs text-red-600 mt-1">
+                                  Not deliverable
+                                </p>
+                              )}
                               <div className="text-xs text-gray-600">
                                 {item.mrp && item.mrp > item.selling_price ? (
                                   <div className="flex items-center gap-1">
@@ -1663,7 +1714,8 @@ export default function CheckoutPage() {
                                 }
                                 disabled={
                                   item.quantity <= 1 ||
-                                  updatingQuantities.has(item.productId)
+                                  updatingQuantities.has(item.productId) ||
+                                  item.is_available === false
                                 }
                               >
                                 {updatingQuantities.has(item.productId) ? (
@@ -1682,9 +1734,10 @@ export default function CheckoutPage() {
                                 onClick={() =>
                                   handleIncreaseQuantity(item.productId)
                                 }
-                                disabled={updatingQuantities.has(
-                                  item.productId
-                                )}
+                                disabled={
+                                  updatingQuantities.has(item.productId) ||
+                                  item.is_available === false
+                                }
                               >
                                 {updatingQuantities.has(item.productId) ? (
                                   <Loader2 className="h-2 w-2 animate-spin" />
@@ -1816,7 +1869,7 @@ export default function CheckoutPage() {
                       (currentStep === 3 &&
                         (!user || !cart || !selectedAddress)) ||
                       ((currentStep === 1 || currentStep === 2) &&
-                        !isDeliveryValid)
+                        !isDeliveryValid) 
                     }
                   >
                     {(currentStep === 1 || currentStep === 2) &&
@@ -1834,6 +1887,7 @@ export default function CheckoutPage() {
                           pincode
                         </span>
                       )}
+             
                     {isPlacingOrder ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />

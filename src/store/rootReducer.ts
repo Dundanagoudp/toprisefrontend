@@ -12,6 +12,7 @@ import cartReducer from "./slice/cart/cartSlice"
 import searchReducer from "./slice/search/searchSlice"
 import vehicleReducer from "./slice/vehicle/vehicleSlice"
 import dealerProductByIdReducer from "./slice/dealer-product/dealerProductByIdSlice"
+import pincodeReducer from "./slice/pincode/pincodeSlice"
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -27,6 +28,7 @@ const rootReducer = combineReducers({
   search: searchReducer,
   vehicle: vehicleReducer,
   dealerProductById: dealerProductByIdReducer,
+  pincode: pincodeReducer,
 });
 
 export default rootReducer;

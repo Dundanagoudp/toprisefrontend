@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {LogOut as logoutAction } from "../store/slice/auth/authSlice"
+
 import { NavMain } from "@/components/nav-main"
 import { TeamSwitcher } from "@/components/team-switcher"
 import Cookies from "js-cookie"
@@ -97,8 +98,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   Cookies.remove('lastlogin');
   localStorage.clear();
   sessionStorage.clear();
+ 
   dispatch(logoutAction());
-  persistor.purge(); 
+  persistor.purge();
   router.replace('/login');
   window.location.reload();
   }

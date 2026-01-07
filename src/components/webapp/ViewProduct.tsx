@@ -8,6 +8,7 @@ import {
   Minus,
   Plus,
   Loader2,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,8 @@ import { useAppSelector } from "@/store/hooks";
 import type { AppUser } from "@/types/user-types";
 import { getDealerById } from "@/service/dealerServices";
 import type { Dealer } from "@/types/dealer-types";
+import { usePincode } from "@/hooks/use-pincode";
+import { PincodeDialog } from "@/components/webapp/common/PincodeDialog";
 
 export default function ProductPage() {
   const [selectedImage, setSelectedImage] = useState(0);
@@ -74,6 +77,24 @@ export default function ProductPage() {
   const { addItemToCart, cartData } = useCart();
   const { showToast } = useToast();
   const router = useRouter();
+  const {
+    pincode: savedPincode,
+    pincodeData,
+    loading: pincodeLoading,
+    error: pincodeError,
+    validatePincode,
+    clearPincodeData,
+    hasSavedPincode,
+    shouldShowPincodeDialog
+  } = usePincode();
+  const [showPincodeDialog, setShowPincodeDialog] = useState(false);
+  // Pincode input state (separate from Redux state)
+  const [pincodeInput, setPincodeInput] = useState(savedPincode || "");
+
+  // Sync local input with saved pincode
+  useEffect(() => {
+    setPincodeInput(savedPincode || "");
+  }, [savedPincode]);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = React.useMemo(
     () => apiBase.replace(/\/api$/, ""),
@@ -262,17 +283,27 @@ export default function ProductPage() {
   const handleBuyNow = async () => {
     if (!product?._id) return;
 
+    // Check if pincode is saved, show dialog if not
+    if (shouldShowPincodeDialog()) {
+      setShowPincodeDialog(true);
+      return;
+    }
+
     try {
       setBuyingNow(true);
       await addItemToCart(product._id, quantity);
-      // showToast("Product added to cart successfully", "success");
+      showToast("Product added to cart successfully", "success");
       // Navigate to checkout page
       router.push("/shop/checkout");
     } catch (error: any) {
       if (error.message === "User not authenticated") {
         showToast("Please login to buy products", "error");
         router.push("/login");
-      } else {
+      }
+      else if (error.message?.includes('not serviceable')) {
+        showToast("Product not serviceable at this location", "error");
+      }
+      else {
         showToast("Failed to add product to cart", "error");
         console.error("Error adding to cart:", error);
       }
@@ -338,20 +369,47 @@ export default function ProductPage() {
   const handleAddToCart = async () => {
     if (!product?._id) return;
 
+    // Check if pincode is saved, show dialog if not
+    if (shouldShowPincodeDialog()) {
+      setShowPincodeDialog(true);
+      return;
+    }
+
     try {
       setAddingToCart(true);
       await addItemToCart(product._id, quantity);
-      // showToast("Product added to cart successfully", "success");
+      showToast("Product added to cart successfully", "success");
     } catch (error: any) {
       if (error.message === "User not authenticated") {
         showToast("Please login to add items to cart", "error");
         router.push("/login");
-      } else {
+      } 
+      else if (error.message?.includes('not serviceable')) {
+        showToast("Product not serviceable at this location", "error");
+      }
+      else {
         showToast("Failed to add product to cart", "error");
         console.error("Error adding to cart:", error);
       }
     } finally {
       setAddingToCart(false);
+    }
+  };
+
+  const handlePincodeSaved = () => {
+    // Pincode is now saved, proceed with the intended action
+    // The dialog will automatically close, and the user can retry their action
+  };
+
+  const handlePincodeValidation = async () => {
+    if (pincodeInput.length !== 6) return;
+
+    const result = await validatePincode(pincodeInput);
+
+    if (result.success) {
+      showToast("Pincode validated successfully!", "success");
+    } else {
+      showToast(result.message || "Invalid pincode", "error");
     }
   };
 
@@ -631,7 +689,64 @@ export default function ProductPage() {
                   </div>
                 </div>
               )}
+            {/* Pincode Section */}
+            <div>
+              <p className="font-semibold mb-3">Pincode</p>
 
+              {/* Display saved pincode if available */}
+              {hasSavedPincode && pincodeData && (
+                <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      Delivery available at {savedPincode} - {pincodeData.city}, {pincodeData.state}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs text-green-700">
+                    {pincodeData.delivery_available && (
+                      <>
+                        ✓ Delivery available • ₹{pincodeData.delivery_charges} • {pincodeData.estimated_delivery_days} days
+                        {pincodeData.cod_available && " • COD available"}
+                      </>
+                    ) }
+                  </div>
+                </div>
+              )}
+
+              {/* Pincode input and validation */}
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="Enter 6-digit pincode"
+                  value={pincodeInput}
+                  onChange={(e) => setPincodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="flex-1"
+                  maxLength={6}
+                />
+                <Button
+                  onClick={handlePincodeValidation}
+                  disabled={pincodeLoading || pincodeInput.length !== 6}
+                  variant="outline"
+                  size="default"
+                >
+                  {pincodeLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Check"
+                  )}
+                </Button>
+              </div>
+
+              {/* Error message */}
+              {pincodeError && (
+                <p className="text-sm text-red-600 mt-2">{pincodeError}</p>
+              )}
+
+              {/* Help text */}
+              <p className="text-xs text-muted-foreground mt-2">
+                Enter your pincode to check delivery availability and charges
+              </p>
+            </div>
               <div>
                 <p className="font-semibold mb-3">Quantity</p>
                 <div className="flex items-center gap-4">
@@ -667,7 +782,7 @@ export default function ProductPage() {
                   product.out_of_stock ||
                   (Array.isArray(product.available_dealers) &&
                     product.available_dealers.length > 0 &&
-                    !product.available_dealers[0].inStock) ||
+                    !product.available_dealers.some((dealer) => dealer.inStock)) ||
                   addingToCart
                 }
               >
@@ -686,7 +801,7 @@ export default function ProductPage() {
                   product.out_of_stock ||
                   (Array.isArray(product.available_dealers) &&
                     product.available_dealers.length > 0 &&
-                    !product.available_dealers[0].inStock) ||
+                    !product.available_dealers.some((dealer) => dealer.inStock)) ||
                   buyingNow
                 }
                 onClick={handleBuyNow}
@@ -1045,6 +1160,12 @@ export default function ProductPage() {
           )}
         </div>
       </div>
+
+      <PincodeDialog
+        open={showPincodeDialog}
+        onOpenChange={setShowPincodeDialog}
+        onPincodeSaved={handlePincodeSaved}
+      />
     </div>
   );
 }

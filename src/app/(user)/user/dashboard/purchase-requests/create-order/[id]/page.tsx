@@ -96,7 +96,7 @@ export default function CreateOrderPage() {
         
         if (response.data.success && response.data.data) {
           setDocumentData(response.data.data)
-          
+          console.log("Document data:", response.data.data)
           // Set customer details from document
           if (response.data.data.customer_details) {
             setCustomerDetails({
@@ -235,7 +235,7 @@ export default function CreateOrderPage() {
   // Calculate totals
   const subtotal = selectedProducts.reduce((sum, p) => sum + p.totalPrice, 0)
   const totalGST = selectedProducts.reduce((sum, p) => sum + p.gst_amount, 0)
-  const grandTotal = subtotal + totalGST + deliveryCharges
+  const grandTotal = subtotal  + deliveryCharges
 
   // Create order
   const handleCreateOrder = async () => {
@@ -263,13 +263,16 @@ export default function CreateOrderPage() {
         created_by: auth._id,
         type_of_delivery: "Express",
         delivery_type: expressDeliveryOption,
+        GST: totalGST.toString(),
+        purchaseOrderId: documentData._id,
         order_Amount: grandTotal.toString(),
-        skus: selectedProducts.map(product => ({
+        skus: selectedProducts.map((product: any) => ({
           sku: product.sku,
           quantity: product.quantity,
           productId: product.productId,
           productName: product.productName,
           mrp: product.mrp,
+          is_available: product.is_available,
           mrp_gst_amount: parseFloat(((product.mrp * product.quantity * product.gst_percentage) / 100).toFixed(2)),
           gst_percentage: product.gst_percentage.toString(),
           gst_amount: product.gst_amount,
@@ -645,7 +648,7 @@ export default function CreateOrderPage() {
                 <span className="font-medium">₹{deliveryCharges.toFixed(2)}</span>
               </div>
               <div className="border-t pt-3 flex justify-between">
-                <span className="font-semibold">Grand Total</span>
+                <span className="font-semibold">Grand Total (including GST)</span>
                 <span className="font-bold text-lg text-[#C72920]">₹{grandTotal.toFixed(2)}</span>
               </div>
 

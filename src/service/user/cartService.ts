@@ -1,19 +1,19 @@
 import apiClient from "@/apiClient";
-import { CartResponse } from "@/types/User/cart-Types";
+import { CartResponse, AddToCartResponse } from "@/types/User/cart-Types";
 
-export async function addToCart(data: any): Promise<CartResponse> {
+export async function addToCart(data: any): Promise<AddToCartResponse> {
   try {
-    const response = await apiClient.post(`/orders/api/carts/addProduct`, data);
+    const response = await apiClient.post(`/orders/api/carts/v1/addProduct`, data);
     return response.data;
   } catch (error) {
     console.error("Failed to add product to cart:", error);
     throw error;
   }
 }
-
-export async function getCart(id: string): Promise<CartResponse> {
+// call cart from pincode
+export async function getCart(id: string, pincode: string): Promise<CartResponse> {
   try {
-    const response = await apiClient.get(`orders/api/carts/getCart/${id}`);
+    const response = await apiClient.get(`/orders/api/carts/v1/getCart/${id}/${pincode}`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch cart:", error);

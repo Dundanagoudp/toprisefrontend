@@ -255,6 +255,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     Cookies.remove("lastlogin");
     localStorage.clear();
     sessionStorage.clear();
+
     dispatch(logoutAction());
     persistor.purge();
     router.replace("/admin/login");

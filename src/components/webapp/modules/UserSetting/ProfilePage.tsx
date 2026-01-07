@@ -374,7 +374,11 @@ export default function ProfilePage() {
       const message = error.response?.data?.message || (error instanceof Error ? error.message : "");
       if (message.toLowerCase().includes("out of stock") || message.toLowerCase().includes("insufficient")) {
         showToast("Product is out of stock", "error");
-      } else {
+      }
+      else if (message.toLowerCase().includes("not serviceable")) {
+        showToast("Product not serviceable at this location", "error");
+      }
+      else {
         showToast("Failed to move item to cart", "error");
       }
     } finally {

@@ -24,10 +24,12 @@ const cartSlice = createSlice({
       state.error = null;
     },
     addToCartSuccess(state, action: PayloadAction<Cart>) {
+      const itemsCount = action.payload.items?.length || 0;
+  
       state.cartData = action.payload;
       state.loading = false;
       state.error = null;
-      state.itemCount = action.payload.items?.length || 0;
+      state.itemCount = itemsCount;
     },
     addToCartFailure(state, action: PayloadAction<string>) {
       state.loading = false;
