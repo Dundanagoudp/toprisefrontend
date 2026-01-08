@@ -24,6 +24,7 @@ interface AssignDealersPerSkuModalProps {
   orderId?: string
   products?: ProductItem[] | null
   onSuccess?: () => void
+  pincode: string
 }
 
 const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
@@ -32,6 +33,8 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
   orderId = "",
   products = [],
   onSuccess,
+  pincode,
+
 }) => {
   const { showToast } = GlobalToast()
   const [dealers, setDealers] = useState<Dealer[]>([])
@@ -65,7 +68,8 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
       try {
         setLoadingDealers(true)
         const productIds = (products || []).map(p => p?.productId).filter(Boolean) as string[]
-        const res = await getDealersForAssignedProducts(productIds as any)
+   
+        const res = await getDealersForAssignedProducts(productIds as any, pincode as string)
         setDealers(((res as any)?.data || []) as Dealer[])
       } catch {
         setDealers([])
@@ -104,7 +108,7 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
             </div>
             <div>
               <DialogTitle className="text-xl font-semibold">Assign Dealers to SKUs</DialogTitle>
-              <p className="text-sm text-gray-600 mt-1">Match each SKU with the appropriate dealer</p>
+              <p className="text-sm text-gray-600 mt-1">Match each SKU with the appropriate dealer based on the pincode</p>
             </div>
           </div>
         </DialogHeader>
@@ -164,14 +168,21 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
                           <SelectValue placeholder={loadingDealers ? "Loading dealers..." : "Select dealer"} />
                         </SelectTrigger>
                         <SelectContent>
-                          {dealers.map((d) => (
-                            <SelectItem key={(d as any)._id as any} value={(d as any)._id as string}>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{d.trade_name || d.legal_name}</span>
-                                <span className="text-xs text-gray-500">{(d.user_id as any)?.email}</span>
-                              </div>
+                          {dealers.length === 0 ? (
+                            <SelectItem value="no-dealers" disabled>
+                              No dealers available for this pincode
                             </SelectItem>
-                          ))}
+                          ) : (
+                            dealers.map((d) => (
+                            <SelectItem key={(d as any)._id as any} value={(d as any).dealerId as string}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{(d as any)?.dealer_details?.trade_name || (d as any)?.dealer_details?.legal_name}</span>
+                                <span className="text-xs text-gray-500">{(d as any)?.dealer_details?.contact_person?.email}</span>
+                              </div>
+                            
+                            </SelectItem>
+                          ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>

@@ -77,6 +77,22 @@ export async function getProducts(): Promise<ProductResponse> {
   }
 }
 
+// get product by search query for purchase request
+export async function getProductsBySearchQuery(
+  pincode?: string,
+  query?: string,
+): Promise<ProductResponse> {
+  try {
+    const response = await apiClient.get(`/category/products/v1/get/products/for/purchase-order?pincode=${pincode}&query=${query}`);
+    return response.data;
+  }
+  catch (error) {
+    console.error(" Failed to fetch products:", error);
+    throw error;
+  }
+}
+
+
 export async function getProductsByPage(
   page: number,
   limit: number,

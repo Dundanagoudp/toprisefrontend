@@ -40,7 +40,7 @@ import SearchInput from "@/components/common/search/SearchInput"
 import apiClient from "@/apiClient"
 import { useToast } from "@/components/ui/toast"
 import { useAppSelector } from "@/store/hooks"
-import { getProductsByPage } from "@/service/product-Service"
+import { getProductsByPage, getProductsBySearchQuery } from "@/service/product-Service"
 
 interface SelectedProduct {
   sku: string
@@ -73,7 +73,7 @@ export default function CreateOrderPage() {
   const [loading, setLoading] = useState(false)
   const [documentData, setDocumentData] = useState<any>(null)
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null)
-  
+  const [pincode, setPincode] = useState<string>("")
   // Product search and selection
   const [searchQuery, setSearchQuery] = useState("")
   const [products, setProducts] = useState<any[]>([])
@@ -99,13 +99,14 @@ export default function CreateOrderPage() {
           console.log("Document data:", response.data.data)
           // Set customer details from document
           if (response.data.data.customer_details) {
+            setPincode(response.data.data.customer_details.pincode.toString())
             setCustomerDetails({
               userId: response.data.data.customer_details.user_id,
               name: response.data.data.customer_details.name,
               phone: response.data.data.customer_details.phone,
               email: response.data.data.customer_details.email,
               address: response.data.data.customer_details.address,
-              pincode: response.data.data.customer_details.pincode
+              pincode: response.data.data.customer_details.pincode,
             })
           }
         }
@@ -133,16 +134,12 @@ export default function CreateOrderPage() {
     try {
       // console.log("Searching for products with query:", searchQuery.trim())
       
-      const response = await getProductsByPage(
-        1,                      // page
-        50,                     // limit - increased to get more results
-        "Approved",             // status - only approved products
-        searchQuery.trim(),     // searchQuery
-        undefined,              // categoryFilter
-        undefined               // subCategoryFilter
+      const response = await getProductsBySearchQuery(
+        pincode.toString(),
+        searchQuery.trim()
       )
 
-      // console.log("Product search response:", response)
+      console.log("Product search response:", response)
       // console.log("Response structure check:", {
       //   hasResponse: !!response,
       //   hasData: !!response?.data,
@@ -177,6 +174,12 @@ export default function CreateOrderPage() {
 
   // Add product to order
   const addProductToOrder = (product: any, quantity: number = 1) => {
+    // Check if product is serviceable
+    if (product.is_serviceable === false) {
+      showToast("This product is not deliverable to the selected pincode", "error")
+      return
+    }
+    
     // Check if product already added
     if (selectedProducts.find(p => p.productId === product._id)) {
       showToast("Product already added to order", "warning")
@@ -472,32 +475,45 @@ export default function CreateOrderPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {products.map((product) => (
-                        <TableRow key={product._id}>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium text-sm">{product.product_name}</span>
-                              <span className="text-xs text-gray-500">
-                                {product.category?.category_name || "N/A"}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">{product.sku_code || product.sku || product.SKU}</TableCell>
-                          <TableCell className="font-medium">₹{product.selling_price || product.dealer_price || 0}</TableCell>
-                          <TableCell className="text-gray-600">₹{product.mrp || 0}</TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => addProductToOrder(product)}
-                              disabled={selectedProducts.some(p => p.productId === product._id)}
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {products.map((product) => {
+                        const isServiceable = product.is_serviceable !== false
+                        return (
+                          <TableRow 
+                            key={product._id}
+                            className={!isServiceable ? "opacity-50 bg-gray-50" : ""}
+                          >
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-sm">{product.product_name}</span>
+                                <span className="text-xs text-gray-500">
+                                  {product.category?.category_name || "N/A"}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">{product.sku_code || product.sku || product.SKU}</TableCell>
+                            <TableCell className="font-medium">₹{product.selling_price || product.dealer_price || 0}</TableCell>
+                            <TableCell className="text-gray-600">₹{product.mrp || 0}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {!isServiceable && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Not Deliverable
+                                  </Badge>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => addProductToOrder(product)}
+                                  disabled={selectedProducts.some(p => p.productId === product._id) || !isServiceable}
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>
