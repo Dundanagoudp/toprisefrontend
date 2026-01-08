@@ -694,7 +694,7 @@ export default function ProductPage() {
               <p className="font-semibold mb-3">Pincode</p>
 
               {/* Display saved pincode if available */}
-              {hasSavedPincode && pincodeData && (
+              {/* {hasSavedPincode && pincodeData && (
                 <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
                   <div className="flex items-center gap-2 text-green-800">
                     <CheckCircle className="w-4 h-4" />
@@ -711,7 +711,7 @@ export default function ProductPage() {
                     ) }
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* Pincode input and validation */}
               <div className="flex gap-2">
@@ -738,8 +738,10 @@ export default function ProductPage() {
               </div>
 
               {/* Error message */}
-              {pincodeError && (
-                <p className="text-sm text-red-600 mt-2">{pincodeError}</p>
+              {pincodeError ? (
+                <p className="text-sm text-red-600 mt-2">Delivery not available for this pincode</p>
+              ) : (
+                <p className="text-sm text-green-600 mt-2">Delivery available at {pincodeData?.city}, {pincodeData?.state}</p>
               )}
 
               {/* Help text */}

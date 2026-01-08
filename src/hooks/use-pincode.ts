@@ -44,11 +44,12 @@ export const usePincode = () => {
           message: response.message || "Pincode validated successfully"
         };
       } else {
+        dispatch(setPincode(pincode));
         dispatch(setPincodeError(response.message || "Delivery not available for this pincode"));
         return {
           success: false,
           data: null,
-          message: response.message || "Delivery not available for this pincode"
+          message: "Delivery not available for this pincode"
         };
       }
     } catch (error: any) {

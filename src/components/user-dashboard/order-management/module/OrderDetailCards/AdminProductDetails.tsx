@@ -359,7 +359,7 @@ export default function AdminProductDetails({
   const [dealerInfoMap, setDealerInfoMap] = useState<
     Record<string, { trade_name: string; legal_name: string }>
   >({});
-
+  const [pincode, setPincode] = useState<string>("");
   // Group products by dealerId -> array of sku + quantity
   const dealerSkuGroups: Record<
     string,
@@ -406,6 +406,8 @@ export default function AdminProductDetails({
         .then((res: any) => {
           const status = res?.data?.status || "";
           setOrderStatus(status);
+     
+          setPincode(res?.data?.customerDetails?.pincode || "");
         })
 
         .catch(() => {
@@ -603,6 +605,7 @@ export default function AdminProductDetails({
               productId: p.productId,
             }))}
             onSuccess={() => refreshAllData()}
+            pincode={pincode}
           />
           <MarkPackedModal
             open={activeAction === "markPacked"}
