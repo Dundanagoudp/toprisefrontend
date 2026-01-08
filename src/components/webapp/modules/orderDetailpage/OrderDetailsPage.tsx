@@ -936,7 +936,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                                 <div className="flex gap-4 items-center flex-1 max-sm:gap-3">
                                   <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 max-sm:w-12 max-sm:h-12">
                                     <img
-                                      src={buildImageUrl(product.images?.[0])}
+                                      src={orderSku?.product_image?.[0] || product?.images?.[0] || "/placeholder.svg"}
                                       alt={product.product_name}
                                       className="w-full h-full object-cover"
                                     />
@@ -1487,7 +1487,7 @@ export default function OrderDetailsPage({ order }: OrderDetailsPageProps) {
                         {/* Product Image */}
                         <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                           <img
-                            src={buildImageUrl(product?.images?.[0])}
+                            src={sku?.product_image?.[0] || product?.images?.[0] || "/placeholder.svg"}
                             alt={product?.product_name || sku.productName}
                             className="w-full h-full object-cover"
                           />

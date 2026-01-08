@@ -41,6 +41,7 @@ export const prepareOrderBody = (
       productId: item.productId || item._id,
       is_available: item.is_available,
       productName: item.product_name,
+      product_image: item.product_image[0] || "",
       mrp: item.mrp || item.selling_price || 0,
       mrp_gst_amount: item.mrp_gst_amount || 0,
       gst_percentage: item.gst_percentage ?? "0",
