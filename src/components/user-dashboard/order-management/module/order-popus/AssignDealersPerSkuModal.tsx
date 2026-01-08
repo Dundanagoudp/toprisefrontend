@@ -68,7 +68,8 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
       try {
         setLoadingDealers(true)
         const productIds = (products || []).map(p => p?.productId).filter(Boolean) as string[]
-   
+        console.log("productIds", productIds);
+        console.log("pincode", pincode);
         const res = await getDealersForAssignedProducts(productIds as any, pincode as string)
         setDealers(((res as any)?.data || []) as Dealer[])
       } catch {
