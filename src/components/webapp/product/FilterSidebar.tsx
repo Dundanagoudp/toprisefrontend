@@ -364,11 +364,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
           <button
             type="button"
             onClick={handleReset}
-            className={cn(
-              "flex-1 rounded-md px-3 py-2 text-sm font-medium border",
-              isDirty ? "border-border bg-white text-foreground hover:shadow-sm" : "border-muted text-muted-foreground opacity-60 cursor-not-allowed"
-            )}
-            disabled={!isDirty}
+            className="flex-1 rounded-md px-3 py-2 text-sm font-medium border border-border bg-white text-foreground hover:shadow-sm"
           >
             Reset
           </button>

@@ -700,11 +700,30 @@ const SearchResults = () => {
               <main>
                 {/* Page Header */}
                 <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                  {/* show this based on the flags */}
+                  {isBrand && (
+                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                    Select a Brand to see available models
+                    </h1>
+                  )}
+                  {isModel && (
+                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                      Select a Model to see available variants
+                    </h1>
+                  )}
+                  {isVariant && (
+                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                      Select a Variant to see available products
+                    </h1>
+                  )}
+         
+                 { !isBrand && !isModel && !isVariant && (
                   <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                    {isCategory && categoryName
+                    {/* {isCategory && categoryName
                       ? `Brands in "${categoryName}" Category`
-                      : `Search Results for "${query}"`}
-                  </h1>
+                      : `Search Results for "${query}"`} */}
+                      Product Search Results
+                  </h1>)}
 
                   {/* Search Bar */}
                   {/* <div className="relative max-w-md ml-4">

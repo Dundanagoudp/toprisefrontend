@@ -320,9 +320,9 @@ export default function ApprovedProduct({
           .filter((dealer: any) => dealer.dealers_Ref)
           .map((dealer: any) => ({
             dealers_Ref: dealer.dealers_Ref,
-            quantity_per_dealer: dealer.quantity_per_dealer || 10,
-            dealer_margin: dealer.dealer_margin || 20,
-            dealer_priority_override: dealer.dealer_priority_override || 10,
+            quantity_per_dealer: dealer.quantity_per_dealer ,
+            dealer_margin: dealer.dealer_margin ,
+            dealer_priority_override: dealer.dealer_priority_override ,
           }));
 
         setDealerAssignments(existingAssignments);
@@ -351,9 +351,9 @@ export default function ApprovedProduct({
           ...prev,
           {
             dealers_Ref: dealerId,
-            quantity_per_dealer: 10,
-            dealer_margin: 20,
-            dealer_priority_override: 10,
+            quantity_per_dealer: 0,
+            dealer_margin: 0,
+            dealer_priority_override: 0,
           },
         ];
       }
@@ -910,15 +910,22 @@ export default function ApprovedProduct({
                       <div key={dealer._id} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-3">
-                            <Checkbox
-                              checked={isAssigned}
-                              onCheckedChange={() =>
-                                handleDealerToggle(dealer._id)
-                              }
-                            />
+                            {!isAssigned ? (
+                              <Checkbox
+                                checked={isAssigned}
+                                onCheckedChange={() =>
+                                  handleDealerToggle(dealer._id)
+                                }
+                              />
+                            ) : (
+                              <div className="w-4 h-4 bg-green-100 rounded border-2 border-green-500 flex items-center justify-center">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              </div>
+                            )}
                             <div>
-                              <h3 className="font-medium text-gray-900">
+                              <h3 className="font-medium text-gray-900 flex items-center gap-2">
                                 {dealer.trade_name}
+                                {isAssigned && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Assigned</span>}
                               </h3>
                               <p className="text-sm text-gray-500">
                                 {dealer.legal_name}
@@ -943,7 +950,7 @@ export default function ApprovedProduct({
                               <Input
                                 id={`quantity-${dealer._id}`}
                                 type="number"
-                                min="1"
+                                min="0"
                                 value={assignment.quantity_per_dealer}
                                 onChange={(e) =>
                                   updateDealerAssignment(
@@ -989,6 +996,7 @@ export default function ApprovedProduct({
                                 id={`priority-${dealer._id}`}
                                 type="number"
                                 min="1"
+                                max="10"
                                 value={assignment.dealer_priority_override}
                                 onChange={(e) =>
                                   updateDealerAssignment(

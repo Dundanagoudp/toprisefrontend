@@ -247,7 +247,7 @@ export default function ProductPage() {
       const response = await getSimilarProducts(product._id, {
         count: 5,
         brand: product.brand._id,
-        model: product.model?._id,
+        model: product.model._id,
         variant: variantIds,
       });
 

@@ -200,7 +200,7 @@ const ProductListing = ({
                       {product.sku_code}
                     </span> */}
                   </div>
-                  <div className="flex gap-2">
+                 {/* <div className="flex gap-2">
                     {/* <button
                       onClick={(event) => {
                         event.stopPropagation();
@@ -211,7 +211,7 @@ const ProductListing = ({
                       <Eye className="w-3 h-3" />
                       View
                     </button> */}
-                    <button
+                    {/* <button
                       onClick={(event) => {
                         event.stopPropagation();
                         handleAddToCart(product._id, product.product_name);
@@ -230,7 +230,7 @@ const ProductListing = ({
                       )}
                       {addingToCart === product._id ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                     </button>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>

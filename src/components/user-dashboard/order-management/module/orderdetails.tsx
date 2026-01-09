@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, use, useMemo } from "react";
+import React, { useState, useEffect, use, useMemo } from "react";
 import {
   ChevronDown,
   Edit,
@@ -25,6 +25,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Select,
   SelectTrigger,
@@ -98,46 +104,47 @@ interface ProductItem {
 }
 type Params = { id: string };
 
-function buildTrackingSteps(orderData: any) {
-  if (!orderData) return [];
+function buildTrackingSteps(sku: any, orderData: any) {
+  if (!sku || !orderData) return [];
 
-  const firstSku = orderData?.skus?.[0] || {};
-  const skuTracking = firstSku?.tracking_info || {};
+  const skuTracking = sku?.tracking_info || {};
   const skuTimestamps = skuTracking?.timestamps || {};
+  const borzo = skuTracking || {};
+  const skuStatus = (skuTracking?.status || "").toLowerCase();
+  const orderStatusLower = (orderData?.status || "").toLowerCase();
   const orderTimestamps = orderData?.timestamps || {};
-  const borzo = orderData?.order_track_info || skuTracking || {};
-  const orderStatus = (orderData?.status || "").toLowerCase();
 
-  // Get timestamps with proper fallbacks
-  const confirmedAt = skuTimestamps?.confirmedAt || orderTimestamps?.createdAt || orderData?.createdAt;
-  const assignedAt = skuTimestamps?.assignedAt || orderTimestamps?.assignedAt;
-  const packedAt = skuTimestamps?.packedAt || orderTimestamps?.packedAt;
-  const shippedAt = skuTimestamps?.shippedAt || orderTimestamps?.shippedAt;
-  const deliveredAt = skuTimestamps?.deliveredAt || orderTimestamps?.deliveredAt;
-  const cancelledAt = skuTimestamps?.cancelledAt || orderTimestamps?.cancelledAt; 
-  // Check if any dealer mapping has "packed" status
-  const hasPackedStatus = orderData?.dealerMapping?.some((m: any) => 
-    (m?.status || "").toLowerCase() === "packed"
-  );
+  // Define statuses that indicate the package has been shipped or is in transit/delivery
+  const shippedStatuses = ["shipped", "on_the_way_to_next_delivery_point", "out_for_delivery", "delivered", "completed"];
 
-  // SIMPLIFIED LOGIC: Only show steps as completed based on actual order status
-  // This ensures tracking matches the backend status exactly
-  
-  // Confirmed: Always true if order exists
+  // Get timestamps: Use order-level timestamps for assigned and packed steps
+  const confirmedAt = skuTimestamps?.confirmedAt || orderTimestamps?.createdAt;
+  const assignedAt = orderTimestamps?.assignedAt; // Use order-level timestamp for assigned
+  const packedAt = orderTimestamps?.packedAt; // Use order-level timestamp for packed
+  const shippedAt = skuTimestamps?.shippedAt || (shippedStatuses.includes(skuStatus) ? skuTracking?.borzo_last_updated : undefined);
+  const deliveredAt = skuTimestamps?.deliveredAt;
+  const cancelledAt = skuTimestamps?.cancelledAt; 
+  // Use SKU-specific status for step completion, with order status as fallback for higher-level steps
+  // Confirmed: Always true if SKU exists
   const isConfirmed = true;
-  // Cancelled: Only if order status is cancelled or canceled
-  const isCancelled = ["cancelled", "canceled"].includes(orderStatus);
-  // Assigned: Only if order status is assigned or higher
-  const isAssigned = ["assigned", "packed", "shipped", "delivered", "completed"].includes(orderStatus);
-  
-  // Packed: Only if order status is packed or higher
-  const isPacked = ["packed", "shipped", "delivered", "completed"].includes(orderStatus);
-  
-  // Shipped: Only if order status is shipped or higher
-  const isShipped = ["shipped", "delivered", "completed"].includes(orderStatus);
-  
-  // Delivered: Only if order status is delivered or completed
-  const isDelivered = ["delivered", "completed"].includes(orderStatus);
+  // Cancelled: Check both SKU and order status
+  const isCancelled = ["cancelled", "canceled"].includes(skuStatus) || ["cancelled", "canceled"].includes(orderStatusLower);
+  // Assigned: Check SKU status first, then order status
+  const isAssigned = ["assigned", "packed", "shipped", "delivered", "completed"].includes(skuStatus) ||
+                    ["assigned", "packed", "shipped", "delivered", "completed"].includes(orderStatusLower);
+
+  // Packed: Check SKU status first, then order status
+  const isPacked = ["packed", "shipped", "delivered", "completed"].includes(skuStatus) ||
+                  ["packed", "shipped", "delivered", "completed"].includes(orderStatusLower);
+
+  // Shipped: Check if SKU tracking status indicates it has been shipped or is in transit/delivery
+  const isShipped = shippedStatuses.includes(skuStatus) ||
+                   skuTimestamps?.shippedAt !== undefined ||
+                   ["shipped", "delivered", "completed"].includes(orderStatusLower);
+
+  // Delivered: Check SKU status first, then order status
+  const isDelivered = ["delivered", "completed"].includes(skuStatus) ||
+                     ["delivered", "completed"].includes(orderStatusLower);
 
   const borzoStatus = borzo?.borzo_order_status || "";
   const borzoUrl = borzo?.borzo_tracking_url;
@@ -200,6 +207,81 @@ function buildTrackingSteps(orderData: any) {
   return allSteps;
 }
 
+// Component to render tracking timeline for individual products
+const TrackingTimeline = ({ sku, orderData }: { sku: any; orderData: any }) => {
+  const trackingSteps = buildTrackingSteps(sku, orderData);
+
+  return (
+    <div className="relative">
+      {trackingSteps.map((step, index) => {
+        const isLast = index === trackingSteps.length - 1;
+        const isCancelled = step.status === "cancelled";
+        const isCompleted = step.status === "completed";
+        const nextStep = trackingSteps[index + 1];
+        const nextCompleted = nextStep && nextStep.status === "completed";
+
+        // Determine connector color based on current and next step status
+        let connectorColor = "bg-gray-200";
+        if (isCompleted && nextCompleted) {
+          connectorColor = "bg-green-500";
+        } else if (isCompleted && !nextCompleted) {
+          connectorColor = "bg-green-500";
+        }
+
+        const circleColor = isCompleted ? "bg-green-500" : "bg-gray-300";
+
+        return (
+          <div key={index} className="relative flex items-start gap-3">
+            {/* Vertical Line - Only show if not the last step */}
+            {!isLast && (
+              <div
+                className={`absolute left-1.5 top-4 w-0.5 h-full ${connectorColor}`}
+              ></div>
+            )}
+
+            {/* Progress Circle */}
+            <div
+              className={`w-3 h-3 rounded-full shrink-0 mt-1 relative z-10 ${circleColor}`}
+            ></div>
+
+            {/* Step Content */}
+            <div className="flex-1 min-w-0 pb-4">
+              <div className="flex items-center gap-1 mb-1">
+                <h4 className={`font-medium text-sm ${isCompleted ? 'text-green-700' : isCancelled ? 'text-red-700' : 'text-gray-900'}`}>
+                  {step.title}
+                </h4>
+              </div>
+              <p className={`text-xs mb-1 ${isCompleted ? 'text-green-600' : isCancelled ? 'text-red-600' : 'text-gray-600'}`}>
+                {step.description}
+              </p>
+              {step.time && (
+                <p className={`text-xs ${isCompleted ? 'text-green-500' : isCancelled ? 'text-red-500' : 'text-gray-500'}`}>
+                  {step.time}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Track Button for Confirmed SKUs with Tracking URL */}
+      { sku?.tracking_info?.borzo_tracking_url && (
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <a
+            href={sku.tracking_info.borzo_tracking_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Track Package
+          </a>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function OrderDetailsView() {
   const [loading, setLoading] = useState(true);
   const [dealerModalOpen, setDealerModalOpen] = useState(false);
@@ -246,28 +328,7 @@ export default function OrderDetailsView() {
     fetchOrder();
   }, [orderId]);
 
-  // Compute tracking steps from live order data
-  const trackingSteps = useMemo(() => {
-    console.log("Order data for tracking:", {
-      status: orderById?.status,
-      dealerMapping: orderById?.dealerMapping,
-      timestamps: orderById?.timestamps,
-      skus: orderById?.skus?.map((s: any) => ({
-        tracking_info: s.tracking_info,
-        timestamps: s.tracking_info?.timestamps
-      }))
-    });
-    const steps = buildTrackingSteps(orderById);
-    console.log("Computed tracking steps:", steps);
-    console.log("Current order status:", orderById?.status, "Steps that should be completed based on status:", {
-      confirmed: true, // Always true if order exists
-      assigned: ["assigned", "packed", "shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
-      packed: ["packed", "shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
-      shipped: ["shipped", "delivered", "completed"].includes(orderById?.status?.toLowerCase()),
-      delivered: ["delivered", "completed"].includes(orderById?.status?.toLowerCase())
-    });
-    return steps;
-  }, [orderById]);
+  // Note: trackingSteps is now computed per SKU in ProductDetailsForOrder component
 
   // Loading Skeleton Component
   const LoadingSkeleton = () => (
@@ -318,32 +379,6 @@ export default function OrderDetailsView() {
             </CardContent>
           </Card>
 
-          {/* Tracking Information Skeleton */}
-          <Card className="border border-gray-200 shadow-sm">
-            <CardHeader className="pb-3 lg:pb-4">
-              <Skeleton className="h-5 lg:h-6 w-36 lg:w-44 mb-2" />
-              <Skeleton className="h-3 lg:h-4 w-28 lg:w-36" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 lg:space-y-6">
-                {[...Array(4)].map((_, index) => (
-                  <div
-                    key={index}
-                    className="relative flex items-start gap-3 lg:gap-4"
-                  >
-                    <Skeleton className="w-3 h-3 lg:w-4 lg:h-4 rounded-full shrink-0 mt-1" />
-                    <div className="flex-1 min-w-0 pb-4 lg:pb-6">
-                      <Skeleton className="h-4 lg:h-5 w-24 lg:w-32 mb-1" />
-                      <Skeleton className="h-3 lg:h-4 w-36 lg:w-48 mb-1" />
-                      <Skeleton className="h-3 w-32 lg:w-40 mb-2" />
-                      <Skeleton className="h-3 lg:h-4 w-44 lg:w-56 mb-1" />
-                      <Skeleton className="h-3 w-28 lg:w-36" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Right Column - Product Details Skeleton */}
@@ -389,29 +424,55 @@ export default function OrderDetailsView() {
                   </thead>
                   <tbody>
                     {[...Array(4)].map((_, idx) => (
-                      <tr key={idx} className="border-b border-gray-100">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="w-8 h-8 rounded" />
-                            <Skeleton className="h-3 w-32" />
-                          </div>
-                        </td>
-                        <td className="py-3 px-2">
-                          <Skeleton className="h-3 w-16" />
-                        </td>
-                        <td className="py-3 px-2">
-                          <Skeleton className="h-3 w-12" />
-                        </td>
-                        <td className="py-3 px-2">
-                          <Skeleton className="h-3 w-8" />
-                        </td>
-                        <td className="py-3 px-2">
-                          <Skeleton className="h-3 w-16" />
-                        </td>
-                        <td className="py-3 px-2">
-                          <Skeleton className="h-6 w-16 rounded" />
-                        </td>
-                      </tr>
+                      <React.Fragment key={idx}>
+                        <tr className="border-b border-gray-100">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="w-8 h-8 rounded" />
+                              <Skeleton className="h-3 w-32" />
+                            </div>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Skeleton className="h-3 w-16" />
+                          </td>
+                          <td className="py-3 px-2">
+                            <Skeleton className="h-3 w-12" />
+                          </td>
+                          <td className="py-3 px-2">
+                            <Skeleton className="h-3 w-8" />
+                          </td>
+                          <td className="py-3 px-2">
+                            <Skeleton className="h-3 w-16" />
+                          </td>
+                          <td className="py-3 px-2">
+                            <Skeleton className="h-6 w-16 rounded" />
+                          </td>
+                        </tr>
+                        {/* Accordion tracking skeleton */}
+                        {idx === 0 && ( // Show expanded tracking for first item as example
+                          <tr>
+                            <td colSpan={6} className="px-4 py-4 bg-gray-50 border-b border-gray-100">
+                              <div className="flex items-center gap-2 mb-4">
+                                <Skeleton className="w-4 h-4 rounded" />
+                                <Skeleton className="h-4 w-32" />
+                              </div>
+                              <div className="space-y-4">
+                                {[...Array(4)].map((_, stepIdx) => (
+                                  <div key={stepIdx} className="relative flex items-start gap-3">
+                                    <Skeleton className="w-3 h-3 rounded-full shrink-0 mt-1" />
+                                    <div className="flex-1 min-w-0 pb-4">
+                                      <Skeleton className="h-4 w-24 mb-1" />
+                                      <Skeleton className="h-3 w-36 mb-1" />
+                                      <Skeleton className="h-3 w-32 mb-2" />
+                                      <Skeleton className="h-3 w-44" />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -654,120 +715,42 @@ export default function OrderDetailsView() {
             </CardContent>
           </Card>
 
-          {/* Tracking Information */}
+          {/* Product-Specific Tracking Information */}
           <Card className="border border-gray-200 shadow-sm">
             <CardHeader className="pb-3 lg:pb-4">
               <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Truck className="h-5 w-5 text-gray-600" />
-                Tracking Information
+                Product Tracking
               </CardTitle>
               <p className="text-xs sm:text-sm text-gray-600">
-                Check the order status
+                Track individual products in this order
               </p>
             </CardHeader>
             <CardContent>
-              {/* Vertical Progress Bar */}
-              <div className="relative">
-                {trackingSteps.map((step, index) => {
-                  const isLast = index === trackingSteps.length - 1;
-                  const isCancelled = step.status === "cancelled";
-                  const isCompleted = step.status === "completed";
-                  const nextStep = trackingSteps[index + 1];
-                  const nextCompleted = nextStep && nextStep.status === "completed";
-                  
-                  // Determine connector color based on current and next step status
-                  let connectorColor = "bg-gray-200";
-                  if (isCompleted && nextCompleted) {
-                    connectorColor = "bg-green-500";
-                  } else if (isCompleted && !nextCompleted) {
-                    connectorColor = "bg-green-500";
-                  }
-                  
-                  const circleColor = isCompleted ? "bg-green-500" : "bg-gray-300";
-                  
-                  return (
-                    <div key={index} className="relative flex items-start gap-4">
-                      {/* Vertical Line - Only show if not the last step */}
-                      {!isLast && (
-                        <div
-                          className={`absolute left-2 top-4 w-0.5 h-full ${connectorColor}`}
-                        ></div>
-                      )}
-
-                      {/* Progress Circle */}
-                      <div
-                        className={`w-4 h-4 rounded-full shrink-0 mt-1 relative z-10 ${circleColor}`}
-                      ></div>
-
-                      {/* Step Content */}
-                      <div className="flex-1 min-w-0 pb-6">
-                        <div className="flex items-center gap-1 mb-1">
-                          <h3 className={`font-semibold ${isCompleted ? 'text-green-700' : isCancelled ? 'text-red-700' : 'text-gray-900'}`}>
-                            {step.title}
-                          </h3>
-                        </div>
-                        <p className={`text-sm mb-1 ${isCompleted ? 'text-green-600' : isCancelled ? 'text-red-600' : 'text-gray-700'}`}>
-                          {step.description}
-                        </p>
-                        {step.time && (
-                          <p className={`text-xs mb-2 ${isCompleted ? 'text-green-500' : isCancelled ? 'text-red-500' : 'text-gray-500'}`}>
-                            {step.time}
+              <Accordion type="single" collapsible className="w-full">
+                {product(orderById)?.map((sku: any, index: number) => (
+                  <AccordionItem key={sku._id || index} value={`item-${index}`}>
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-start gap-3 text-left w-full pr-4">
+                        <Package className="h-4 w-4 text-gray-600 mt-1 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-gray-900 truncate">
+                            {sku.productName}
                           </p>
-                        )}
-
-                        {/* Additional Details */}
-                        {step.details.map((detail, detailIndex) => (
-                          <div key={detailIndex} className="mb-1">
-                            <p className="text-sm text-gray-600">{detail}</p>
-                            <p className="text-xs text-gray-500">
-                              Sun, 16 Jun '24 - 7:51 pm
-                            </p>
-                          </div>
-                        ))}
+                          <p className="text-xs text-gray-500">
+                            SKU: {sku.sku} • Qty: {sku.quantity}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Borzo Tracking Information */}
-              {orderById?.order_track_info && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <ExternalLink className="h-4 w-4" />
-                    Courier Tracking
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">Status</p>
-                      <p className="font-medium text-gray-900 text-sm">
-                        {orderById.order_track_info.borzo_order_status || "-"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">Last Updated</p>
-                      <p className="font-medium text-gray-900 text-sm">
-                        {orderById.order_track_info.borzo_last_updated ? 
-                          formatDate(orderById.order_track_info.borzo_last_updated, { includeTime: true }) : "-"}
-                      </p>
-                    </div>
-                    {orderById.order_track_info.borzo_tracking_url && (
-                      <div className="sm:col-span-2">
-                        <p className="text-xs text-gray-600 mb-1">Tracking URL</p>
-                        <a 
-                          href={orderById.order_track_info.borzo_tracking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
-                        >
-                          Track Package
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="pt-2 pl-7">
+                        <TrackingTimeline sku={sku} orderData={orderById} />
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </CardContent>
           </Card>
         </div>
