@@ -13,6 +13,7 @@ import {
 import { getVehicleInfo } from "@/service/vehicle-info-service";
 import { useToast } from "@/components/ui/toast";
 import SearchModal from "../product-sections/module/SearchModal";
+import PurchaseOrderDialog from "../../../UserSetting/popup/PurchaseOrderBox";
 import { BiLogoPlayStore, BiLogoApple } from "react-icons/bi";
 
 interface Model {
@@ -56,6 +57,7 @@ export default function BannerSection() {
   const [isVehicleSearchLoading, setIsVehicleSearchLoading] =
     useState<boolean>(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
+  const [isPODialogOpen, setIsPODialogOpen] = useState<boolean>(false);
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll);
@@ -396,6 +398,16 @@ export default function BannerSection() {
               </div>
 
 
+              {/* Purchase Order Upload */}
+              <div className="pt-4 border-t border-white/20">
+                <button
+                  onClick={() => setIsPODialogOpen(true)}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  Upload Purchase Order
+                </button>
+              </div>
+
               {/* App Download CTA */}
               <div className="pt-4 border-t border-white/20">
                 <div className="flex justify-center lg:justify-end gap-4">
@@ -442,6 +454,11 @@ export default function BannerSection() {
           vehicleType="Vehicle"
         />
       )}
+
+      <PurchaseOrderDialog 
+        isOpen={isPODialogOpen} 
+        onClose={() => setIsPODialogOpen(false)} 
+      />
     </section>
   );
 }
