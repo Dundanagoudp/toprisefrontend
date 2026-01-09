@@ -213,6 +213,19 @@ export async function removeWishlistByUser(data: { userId: string; productId: st
     throw err;
   }
 }
+// pincode validation by product id and pincode
+export async function validatePincodeByProductId(productId: string, pincode: string): Promise<ApiResponse<any>> {
+  try {
+    const res = await apiClient.get(
+      `/category/products/v1/get-ProductById/${productId}?pincode=${pincode}`,
+    );
+    return res.data;
+  } catch (err) {
+    console.error("Failed to validate pincode:", err);
+    throw err;
+  }
+}
+
 export async function addWishlistByUser(data: { userId: string; productId: string }): Promise<ApiResponse<any>> {
   try {
     const res = await apiClient.post(

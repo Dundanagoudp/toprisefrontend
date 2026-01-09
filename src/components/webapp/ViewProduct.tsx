@@ -33,6 +33,7 @@ import {
   addWishlistByUser,
   getWishlistByUser,
   removeWishlistByUser,
+  validatePincodeByProductId,
 } from "@/service/user/orderService";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -61,6 +62,7 @@ export default function ProductPage() {
   const [buyingNow, setBuyingNow] = useState(false);
   const [addingToWishlist, setAddingToWishlist] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isProductDeliverable, setIsProductDeliverable] = useState<boolean | null>(null);
   // Recommended products state
   const [recommendedProducts, setRecommendedProducts] = useState<ProductType[]>(
     []
@@ -95,6 +97,11 @@ export default function ProductPage() {
   useEffect(() => {
     setPincodeInput(savedPincode || "");
   }, [savedPincode]);
+
+  // Reset delivery status when pincode input changes
+  useEffect(() => {
+    setIsProductDeliverable(null);
+  }, [pincodeInput]);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = React.useMemo(
     () => apiBase.replace(/\/api$/, ""),
@@ -404,12 +411,36 @@ export default function ProductPage() {
   const handlePincodeValidation = async () => {
     if (pincodeInput.length !== 6) return;
 
-    const result = await validatePincode(pincodeInput);
+    try {
+      const result = await validatePincode(pincodeInput);
+      const response = await validatePincodeByProductId(product?._id as string, pincodeInput);
 
-    if (result.success) {
-      showToast("Pincode validated successfully!", "success");
-    } else {
-      showToast(result.message || "Invalid pincode", "error");
+      console.log("Product validation response:", response); // Debug log
+
+      // Check if is_serviceable property exists in response
+      const isServiceableDefined = response.data && response.data.is_serviceable !== undefined;
+      const serviceable = response.data?.is_serviceable;
+
+      // If is_serviceable is not present (invalid pincode) or API failed
+      if (!isServiceableDefined || !response.success) {
+        setIsProductDeliverable(false);
+        showToast("Delivery not available for this pincode", "error");
+        return;
+      }
+
+      // Set deliverable status based on serviceable value
+      setIsProductDeliverable(serviceable);
+
+      // Show appropriate message based on deliverable status
+      if (serviceable) {
+        showToast("Product is deliverable to this pincode!", "success");
+      } else {
+        showToast("Delivery not available for this pincode", "error");
+      }
+    } catch (error) {
+      console.error("Pincode validation error:", error);
+      setIsProductDeliverable(false);
+      showToast("Delivery not available for this pincode", "error");
     }
   };
 
@@ -737,10 +768,11 @@ export default function ProductPage() {
                 </Button>
               </div>
 
-              {/* Error message */}
-              {pincodeError ? (
+              {/* Delivery status message */}
+              {isProductDeliverable === false && (
                 <p className="text-sm text-red-600 mt-2">Delivery not available for this pincode</p>
-              ) : (
+              )}
+              {isProductDeliverable === true && (
                 <p className="text-sm text-green-600 mt-2">Delivery available at {pincodeData?.city}, {pincodeData?.state}</p>
               )}
 
