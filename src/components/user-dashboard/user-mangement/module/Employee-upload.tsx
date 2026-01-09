@@ -65,15 +65,18 @@ export default function FileUploadModal ({ isOpen, onClose }: UploadBulkCardProp
 
       try {
         const response = await uploadDealerBulk(formData);
-        showToast("Uploaded successfully", "success");
+   
 
         if (response) {
-          setUploadMessage(response.message || 'Dealer files uploaded successfully!');
+          console.log("response in  uploadDealerBulk", response);
+          setUploadMessage(response.message || 'Dealer files uploaded ');
+          showToast(response.message || 'Dealer files uploaded ', "success");
           setCsvFile(null);
           handleClose();
           route.push(`/user/dashboard/user`);
         } else {
           setUploadMessage('Dealer upload failed. Please try again.');
+          showToast('Dealer upload failed. Please try again.', "error");
         }
       } catch (error: any) {
         showToast( 'An error occurred during upload. Please check the console.', "error");
