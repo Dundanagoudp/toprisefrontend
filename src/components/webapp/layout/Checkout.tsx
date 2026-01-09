@@ -1133,7 +1133,7 @@ export default function CheckoutPage() {
                                 {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${cart.deliveryCharge}`}
                               </p>
                               <p className="text-sm text-gray-600">
-                                 Arrival EOD  or Next Day
+                                 {new Date().getHours() >= 18 ? "Arrival Next Day" : "Arrival EOD or Next Day"}
                               </p>
                             </div>
                           </div>
