@@ -473,6 +473,13 @@ export default function CheckoutPage() {
       goToNextStep();
     } else if (currentStep === 2) {
       // Review step -> Payment
+      // Check cart availability before proceeding
+      const hasUnavailableItems = cart?.items?.some((item: any) => !item.is_available);
+  
+      if (hasUnavailableItems) {
+        showToast("Some items in your cart are no longer available", "error");
+        await fetchCart();
+      }
       goToNextStep();
     } else if (currentStep === 3) {
       // Payment step -> Place order
