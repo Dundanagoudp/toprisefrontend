@@ -6,12 +6,14 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/dealer-sidebar";
 import { DynamicBreadcrumb } from "@/components/dealer-dashboard/DynamicBreadcrumbdealer";
 import { usePathname } from "next/navigation";
+import { useSessionTimeoutAdmin } from "@/hooks/use-session-timeout-admin";
 
 const DEALER_ONLY_ROLES = ["Dealer"];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   // const shouldHideBreadcrumb = pathname?.includes("/product/") || false;
+  useSessionTimeoutAdmin();
 
   return (
     <WithProtectionRoute
