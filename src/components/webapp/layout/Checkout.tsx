@@ -1013,14 +1013,14 @@ export default function CheckoutPage() {
                               {cart?.deliveryCharge === 0 || !cart?.deliveryCharge ? "Free Delivery" : `₹${cart.deliveryCharge}`}
                             </p>
                           )}
-                          <p>
+                          {/* <p>
                             <strong>Estimated Delivery:</strong>{" "}
                             {pincodeData.estimated_delivery_days} days
-                          </p>
-                          <p>
+                          </p> */}
+                          {/* <p>
                             <strong>COD Available:</strong>{" "}
                             {pincodeData.cod_available ? "Yes" : "No"}
-                          </p>
+                          </p> */}
                         </>
                       )}
                     </div>
