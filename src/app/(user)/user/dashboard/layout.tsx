@@ -16,6 +16,7 @@ import { getAllNotifications } from "@/service/notificationServices";
 import { getUserIdFromToken } from "@/utils/auth";
 import { BreadcrumbProvider, useBreadcrumb } from "@/contexts/BreadcrumbContext";
 import { useAppSelector } from "@/store/hooks";
+import { useSessionTimeoutAdmin } from "@/hooks/use-session-timeout-admin";
 
 const ADMIN_DASHBOARD_ROLES = [
   "Fulfillment-Admin",
@@ -56,7 +57,7 @@ function BreadcrumbWithContext() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
-
+  useSessionTimeoutAdmin();
   // Background poll for unread count so the bell shows counts even when the panel is closed
   const refreshUnreadCount = useCallback(async () => {
     try {
