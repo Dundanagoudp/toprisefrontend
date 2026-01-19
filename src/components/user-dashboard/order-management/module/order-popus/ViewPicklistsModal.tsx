@@ -10,7 +10,13 @@ import type { DealerPickList } from "@/types/dealerOrder-types"
 import { fetchPicklistByOrderId, getOrderById } from "@/service/order-service"
 import { markPicklistAsPacked } from "@/service/picklist-service"
 import { DynamicButton } from "@/components/common/button"
-import { Package } from "lucide-react"
+import { MoreVertical, Package } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import MarkPackedForPicklistId from "./MarkPackedForPicklistId"
 
 interface ViewPicklistsModalProps {
@@ -288,14 +294,36 @@ useEffect(() => {
                                 Cancelled
                               </span>
                             ) : (
-                              // Render Mark as Packed Button (Blue, clickable) if not all SKUs are packed
-                              <Button
+                              // Render dropdown menu with delivery options
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
                                 onClick={() => handleMarkAsPacked(pl._id)}
-                                size="sm"
-                                className="text-xs px-2 py-1 h-7 bg-blue-600 text-white hover:bg-blue-700"
-                              >
-                                Mark as Packed
-                              </Button>
+                                  >
+                                   Initiate Borzo Delivery
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      console.log('Manual delivery selected for picklist:', pl._id);
+                                      // Add your Manual delivery logic here
+                                    }}
+                                  >
+                                    Manual delivery
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              // <Button
+                              //   onClick={() => handleMarkAsPacked(pl._id)}
+                              //   size="sm"
+                              //   className="text-xs px-2 py-1 h-7 bg-blue-600 text-white hover:bg-blue-700"
+                              // >
+                              //   Mark as Packed
+                              // </Button>
                             )}
                           </TableCell>
                         </TableRow>

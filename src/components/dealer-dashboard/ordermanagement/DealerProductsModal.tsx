@@ -20,6 +20,7 @@ interface DealerProduct {
   quantity: number;
   productId: string;
   productName: string;
+  manufacturer_part_name: string;
   dealerMapped: any[];
   _id: string;
 }
