@@ -296,6 +296,29 @@ export async function markOrderAsPacked(data: any): Promise<any> {
     throw error;
   }
 }
+
+// mark as manual delivery
+export async function markOrderAsManualDelivery(data: any): Promise<any> {
+  try {
+    const response = await apiClient.put(`/orders/api/orders/update/order-status-by-dealer/by-sku/manual/deliveryStarted`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to mark order as manual delivery:", error);
+    throw error;
+  }
+}
+
+// set mark as delivery
+export async function setMarkAsDelivery(data: any): Promise<any> {
+  try {
+    const response = await apiClient.put(`/orders/api/orders/update/order-status-by-dealer/by-sku/manual/deliveryEnded`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to set mark as delivery:", error);
+    throw error;
+  }
+}
+
 // Get all orders from the specified endpoint
 export async function getAllOrders(): Promise<{
   success: boolean;
@@ -350,3 +373,4 @@ export async function cancelOrder(orderId: string, reason: string): Promise<{ su
     throw error;
   }
 }
+

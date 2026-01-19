@@ -39,6 +39,7 @@ import {
 import { getAuthToken } from "@/utils/auth";
 import MarkPackedForPicklistId from "../order-popus/MarkPackedForPicklistId";
 import ViewPicklistsModal from "../order-popus/ViewPicklistsModal";
+import ManualDeliveryModal from "../order-popus/ManualDeliveryModal";
 
 interface ProductItem {
   _id?: string;
@@ -382,7 +383,7 @@ export default function StaffProductDetails({
   const [orderStatus, setOrderStatus] = useState<string>("");
   const [currentPicklistId, setCurrentPicklistId] = useState<string>("");
   const [currentDealerId, setCurrentDealerId] = useState<string>("");
-
+  const [manualDeliveryModalOpen, setManualDeliveryModalOpen] = useState(false);
   // get employee details
   const fetchEmployeeDetails = async () => {
     try {
@@ -575,6 +576,11 @@ export default function StaffProductDetails({
       .filter((item) => item.sku);
   }, [staffAssignedProducts]);
 
+  const handleManualDelivery = (picklistId: string) => {
+    console.log("Manual delivery selected for picklist:", picklistId);
+    setManualDeliveryModalOpen(true);
+  };
+
   return (
     <>
       <Card className="border border-gray-200 shadow-sm">
@@ -665,7 +671,16 @@ export default function StaffProductDetails({
                   className="px-6 py-2"
                   disabled={!currentPicklistId}
                 >
-                  Mark as Packed
+                 Initiate Borzo Delivery
+                </DynamicButton>
+              </div>
+              <div className="flex justify-end w-full">
+                <DynamicButton
+                  onClick={() => handleManualDelivery(currentPicklistId)}
+                  className="px-6 py-2"
+                  disabled={!currentPicklistId}
+                >
+                  Manual delivery
                 </DynamicButton>
               </div>
             </CardFooter>
@@ -686,6 +701,18 @@ export default function StaffProductDetails({
         onSuccess={() => {
           refreshAllData();
           setMarkPackedModalOpen(false);
+        }}
+      />
+      <ManualDeliveryModal
+        open={manualDeliveryModalOpen}
+        onOpenChange={setManualDeliveryModalOpen}
+        orderId={orderId}
+        dealerId={currentDealerId}
+        picklistId={currentPicklistId}
+        items={modalItems}
+        onSuccess={() => {
+          refreshAllData();
+          setManualDeliveryModalOpen(false);
         }}
       />
     </>
