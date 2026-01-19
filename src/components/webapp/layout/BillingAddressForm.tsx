@@ -14,6 +14,7 @@ import { useForm, Controller } from "react-hook-form";
 import { useAppSelector } from "@/store/hooks";
 import { getUserById, UpdateAddressRequest } from "@/service/user/userService";
 import { useState, useEffect } from "react";
+import { useCart } from "@/hooks/use-cart";
 
 // Define the schema for the address form
 const addressSchema = z.object({
@@ -51,6 +52,7 @@ export default function BillingAddressForm({
   const [user, setUser] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showAllAddresses, setShowAllAddresses] = useState(false);
+  const { fetchCart } = useCart();
   const {
     register,
     handleSubmit,
@@ -69,6 +71,14 @@ export default function BillingAddressForm({
     },
   });
   const userId = useAppSelector((state)=> state.auth.user?._id)
+
+  const handleAddressSelection = async (address: any) => {
+    if (onAddressSelect) {
+      onAddressSelect(address);
+      // Fetch cart after address selection
+      await fetchCart();
+    }
+  };
 
   const handleFormSubmit = async (data: AddressFormValues) => {
     try {
@@ -170,7 +180,7 @@ export default function BillingAddressForm({
                       ? 'border-red-500 bg-red-50 shadow-md' 
                       : 'border-gray-200 hover:border-red-300'
                   } ${showSelection ? 'cursor-pointer' : ''}`}
-                  onClick={() => showSelection && onAddressSelect?.(address)}
+                  onClick={() => showSelection && handleAddressSelection(address)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1">
@@ -180,7 +190,7 @@ export default function BillingAddressForm({
                             type="radio"
                             name="selectedAddress"
                             checked={isSelected}
-                            onChange={() => onAddressSelect?.(address)}
+                            onChange={() => handleAddressSelection(address)}
                             className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
                           />
                         </div>
