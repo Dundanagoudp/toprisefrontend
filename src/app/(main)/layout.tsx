@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/store/hooks";
 import AdminLayoutWrapper from "../applayout/AdminLayoutWrapper";
-import { useSessionTimeout } from "@/hooks/use-session-timeout";
 
 const ADMIN_ROLES = [
   "Fulfillment-Admin",
@@ -19,7 +18,6 @@ const ADMIN_ROLES = [
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-  useSessionTimeout();
 
   useEffect(() => {
     if (isAuthenticated && user?.role && ADMIN_ROLES.includes(user.role)) {

@@ -603,9 +603,11 @@ export default function AdminProductDetails({
               sku: p.sku,
               dealerId: getResolvedDealerId(p),
               productId: p.productId,
+              quantity: p.quantity || 1,
             }))}
             onSuccess={() => refreshAllData()}
             pincode={pincode}
+            
           />
           <MarkPackedModal
             open={activeAction === "markPacked"}

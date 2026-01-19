@@ -38,6 +38,7 @@ export default function DealerProductsModal({
   orderId
 }: DealerProductsModalProps) {
   const { showToast } = useToast();
+  console.log("products", products);
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -63,6 +64,9 @@ export default function DealerProductsModal({
                     Product Name
                   </TableHead>
                   <TableHead className="text-gray-700 font-medium px-4 py-3 text-left">
+                    MPN
+                  </TableHead>
+                  <TableHead className="text-gray-700 font-medium px-4 py-3 text-left">
                     Product ID
                   </TableHead>
                   <TableHead className="text-gray-700 font-medium px-4 py-3 text-left">
@@ -83,8 +87,12 @@ export default function DealerProductsModal({
                       {product.productName}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-600 font-mono text-sm">
+                      {product.manufacturer_part_name}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-600 font-mono text-sm">
                       {product.productId}
                     </TableCell>
+                
                     <TableCell className="px-4 py-3 text-gray-900 font-semibold">
                       {product.quantity}
                     </TableCell>
