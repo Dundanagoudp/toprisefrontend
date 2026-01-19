@@ -1,30 +1,45 @@
-"use client"
-import type React from "react"
-import { useEffect, useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DynamicButton } from "@/components/common/button"
-import { useToast as GlobalToast } from "@/components/ui/toast"
-import { assignDealersToOrder } from "@/service/order-service"
-import { getAllDealers, getDealersForAssignedProducts } from "@/service/dealerServices"
-import type { Dealer } from "@/types/dealer-types"
-import { Package, Users, ArrowRight } from "lucide-react"
+"use client";
+import type React from "react";
+import { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DynamicButton } from "@/components/common/button";
+import { useToast as GlobalToast } from "@/components/ui/toast";
+import { assignDealersToOrder } from "@/service/order-service";
+import {
+  getAllDealers,
+  getDealersForAssignedProducts,
+} from "@/service/dealerServices";
+import type { Dealer } from "@/types/dealer-types";
+import { Package, Users, ArrowRight } from "lucide-react";
 
 interface ProductItem {
-  sku?: string
-  dealerId: any
-  productId?: string
+  sku?: string;
+  dealerId: any;
+  productId?: string;
+  quantity?: number;
 }
 
 interface AssignDealersPerSkuModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  orderId?: string
-  products?: ProductItem[] | null
-  onSuccess?: () => void
-  pincode: string
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  orderId?: string;
+  products?: ProductItem[] | null;
+  onSuccess?: () => void;
+  pincode: string;
 }
 
 const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
@@ -34,70 +49,91 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
   products = [],
   onSuccess,
   pincode,
-
 }) => {
-  const { showToast } = GlobalToast()
-  const [dealers, setDealers] = useState<Dealer[]>([])
-  const [loadingDealers, setLoadingDealers] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [assignments, setAssignments] = useState<Array<{ sku: string; dealerId: string }>>([])
+  const { showToast } = GlobalToast();
+  const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [loadingDealers, setLoadingDealers] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [assignments, setAssignments] = useState<
+    Array<{ sku: string; dealerId: string }>
+  >([]);
 
   const isPlaceholderString = (value: string) => {
-    const v = (value || "").trim().toLowerCase()
-    return v === "n/a" || v === "na" || v === "null" || v === "undefined" || v === "-"
-  }
+    const v = (value || "").trim().toLowerCase();
+    return (
+      v === "n/a" ||
+      v === "na" ||
+      v === "null" ||
+      v === "undefined" ||
+      v === "-"
+    );
+  };
 
   const safeDealerId = (dealer: any): string => {
-    if (dealer == null) return ""
-    if (typeof dealer === "string") return isPlaceholderString(dealer) ? "" : dealer
-    if (typeof dealer === "number") return Number.isFinite(dealer) ? String(dealer) : ""
-    const id = dealer._id || dealer.id
-    if (typeof id === "string" && isPlaceholderString(id)) return ""
-    return id ? String(id) : ""
-  }
+    if (dealer == null) return "";
+    if (typeof dealer === "string")
+      return isPlaceholderString(dealer) ? "" : dealer;
+    if (typeof dealer === "number")
+      return Number.isFinite(dealer) ? String(dealer) : "";
+    const id = dealer._id || dealer.id;
+    if (typeof id === "string" && isPlaceholderString(id)) return "";
+    return id ? String(id) : "";
+  };
 
   const initializeAssignments = () => {
-    const initial = (products || []).map((p) => ({ sku: p?.sku || "", dealerId: safeDealerId(p?.dealerId) }))
-    setAssignments(initial)
-  }
+    const initial = (products || []).map((p) => ({
+      sku: p?.sku || "",
+      dealerId: safeDealerId(p?.dealerId),
+    }));
+    setAssignments(initial);
+  };
 
   useEffect(() => {
-    if (!open) return
-    initializeAssignments()
+    if (!open) return;
+    initializeAssignments();
     const loadDealers = async () => {
       try {
-        setLoadingDealers(true)
-        const productIds = (products || []).map(p => p?.productId).filter(Boolean) as string[]
+        setLoadingDealers(true);
+        const productIds = (products || [])
+          .map((p) => p?.productId)
+          .filter(Boolean) as string[];
         console.log("productIds", productIds);
         console.log("pincode", pincode);
-        const res = await getDealersForAssignedProducts(productIds as any, pincode as string)
-        setDealers(((res as any)?.data || []) as Dealer[])
+        // Use quantity from the first product or default to 1
+        const totalQuantity = products?.[0]?.quantity || 1;
+        const res = await getDealersForAssignedProducts(
+          productIds as any,
+          pincode as string,
+          totalQuantity
+        );
+        setDealers(((res as any)?.data || []) as Dealer[]);
+        console.log("res dealers", res);
       } catch {
-        setDealers([])
+        setDealers([]);
       } finally {
-        setLoadingDealers(false)
+        setLoadingDealers(false);
       }
-    }
-    loadDealers()
-  }, [open])
+    };
+    loadDealers();
+  }, [open]);
 
   const onAssign = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const payload = {
         orderId,
         assignments: assignments.filter((a) => a.sku && a.dealerId),
-      }
-      await assignDealersToOrder(payload as any)
-      showToast("Dealers assigned", "success")
-      onSuccess?.()
-      onOpenChange(false)
+      };
+      await assignDealersToOrder(payload as any);
+      showToast("Dealers assigned", "success");
+      onSuccess?.();
+      onOpenChange(false);
     } catch (e) {
-      showToast("Failed to assign dealers", "error")
+      showToast("Failed to assign dealers", "error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,8 +144,12 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
               <Package className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-semibold">Assign Dealers to SKUs</DialogTitle>
-              <p className="text-sm text-gray-600 mt-1">Match each SKU with the appropriate dealer based on the pincode</p>
+              <DialogTitle className="text-xl font-semibold">
+                Assign Dealers to SKUs
+              </DialogTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                Match each SKU with the appropriate dealer based on the pincode
+              </p>
             </div>
           </div>
         </DialogHeader>
@@ -118,11 +158,11 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
           <div className="bg-gray-50 rounded-lg p-4 border">
             <div className="flex items-center gap-2 mb-2">
               <Package className="h-4 w-4 text-red-600" />
-               <p className="text-xs text-gray-600">
-              {(products || []).length} SKU{(products || []).length !== 1 ? "s" : ""} to assign
-            </p>
+              <p className="text-xs text-gray-600">
+                {(products || []).length} SKU
+                {(products || []).length !== 1 ? "s" : ""} to assign
+              </p>
             </div>
-           
           </div>
 
           <div className="space-y-4">
@@ -143,7 +183,11 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
                         <Package className="h-3 w-3 text-red-600" />
                         SKU
                       </Label>
-                      <Input readOnly value={p?.sku || ""} className="mt-1 bg-gray-50 font-mono text-sm" />
+                      <Input
+                        readOnly
+                        value={p?.sku || ""}
+                        className="mt-1 bg-gray-50 font-mono text-sm"
+                      />
                     </div>
 
                     <div className="col-span-1 flex justify-center">
@@ -159,14 +203,20 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
                         value={assignments[idx]?.dealerId || ""}
                         onValueChange={(val) => {
                           setAssignments((prev) => {
-                            const next = [...prev]
-                            next[idx] = { sku: p?.sku || "", dealerId: val }
-                            return next
-                          })
+                            const next = [...prev];
+                            next[idx] = { sku: p?.sku || "", dealerId: val };
+                            return next;
+                          });
                         }}
                       >
                         <SelectTrigger className="w-full mt-1 focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                          <SelectValue placeholder={loadingDealers ? "Loading dealers..." : "Select dealer"} />
+                          <SelectValue
+                            placeholder={
+                              loadingDealers
+                                ? "Loading dealers..."
+                                : "Select dealer"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {dealers.length === 0 ? (
@@ -175,14 +225,24 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
                             </SelectItem>
                           ) : (
                             dealers.map((d) => (
-                            <SelectItem key={(d as any)._id as any} value={(d as any).dealerId as string}>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{(d as any)?.dealer_details?.trade_name || (d as any)?.dealer_details?.legal_name}</span>
-                                <span className="text-xs text-gray-500">{(d as any)?.dealer_details?.contact_person?.email}</span>
-                              </div>
-                            
-                            </SelectItem>
-                          ))
+                              <SelectItem
+                                key={(d as any)._id as any}
+                                value={(d as any).dealerId as string}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">
+                                    {(d as any)?.dealer_details?.trade_name ||
+                                      (d as any)?.dealer_details?.legal_name}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {
+                                      (d as any)?.dealer_details?.contact_person
+                                        ?.email
+                                    }
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))
                           )}
                         </SelectContent>
                       </Select>
@@ -215,7 +275,7 @@ const AssignDealersPerSkuModal: React.FC<AssignDealersPerSkuModalProps> = ({
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default AssignDealersPerSkuModal
+export default AssignDealersPerSkuModal;
