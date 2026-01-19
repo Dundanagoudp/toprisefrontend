@@ -391,7 +391,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     fetchData();
-    console.log(" response of cart", cart);
+   
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -715,7 +715,6 @@ export default function CheckoutPage() {
           : deliveryType;
         await updateDeliveryType(cart._id, apiDeliveryType);
         await fetchCart();
-
       }
     } catch (error) {
       console.error("Failed to decrease quantity:", error);

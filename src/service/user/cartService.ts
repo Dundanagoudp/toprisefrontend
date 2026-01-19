@@ -118,7 +118,7 @@ export async function checkPincode(pincode: string): Promise<{
 // Update delivery type and charges
 export async function updateDeliveryType(cartId: string, deliveryType: string): Promise<CartResponse> {
   try {
-    const response = await apiClient.put(`/orders/api/carts/updateDelivery`, {
+    const response = await apiClient.put(`/orders/api/carts/v1/updateDelivery`, {
       cartId,
       deliveryType
     });
