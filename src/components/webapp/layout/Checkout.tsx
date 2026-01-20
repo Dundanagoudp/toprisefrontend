@@ -422,18 +422,33 @@ export default function CheckoutPage() {
   // Auto-check pincode when address is selected
   useEffect(() => {
     const handleAddressSelection = async () => {
-      if (selectedAddress?.pincode && selectedAddress.pincode !== pincode) {
-        // Update local state
-        setPincode(selectedAddress.pincode);
-        // Update Redux state
-        dispatch(setPincodeRedux(selectedAddress.pincode));
+      if (selectedAddress?.pincode) {
+        const newPincode = selectedAddress.pincode;
         
-        // Fetch cart with updated pincode immediately after state update
-        await fetchCart();
+        // Reset delivery validation states when address changes
+        setServiceablePincode(null);
+        setIsDeliveryValid(false);
+        setDeliveryError(null);
+        setExpressAvailable(false);
+        setPincodeData(null);
+        
+        // Only update pincode if it changed
+        if (newPincode !== pincode) {
+          // Update local state
+          setPincode(newPincode);
+          // Update Redux state
+          dispatch(setPincodeRedux(newPincode));
+          
+          // Wait a tick for Redux state to update before fetching cart
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        
+        // Fetch cart with the new pincode directly (bypass stale closure)
+        await fetchCart(newPincode);
 
         try {
           // Call getServiceablePincode API and save result in useState
-          const serviceableResponse = await getServiceablePincode(selectedAddress.pincode);
+          const serviceableResponse = await getServiceablePincode(newPincode);
           if (serviceableResponse.success) {
             console.log("Serviceable pincode response:", serviceableResponse.data);
             setServiceablePincode(serviceableResponse.data);
@@ -446,7 +461,7 @@ export default function CheckoutPage() {
         }
 
         // Check delivery availability
-        handlePincodeCheck(selectedAddress.pincode);
+        handlePincodeCheck(newPincode);
       }
     };
 
@@ -1639,8 +1654,8 @@ export default function CheckoutPage() {
                           ₹{Math.round(cart?.gst_amount || 0)}
                         </span>
                       </div>
-                      {/* Only show delivery charge if cart has items and item total > 0 */}
-                      {cart?.items && cart.items.length > 0 && cart?.itemTotal && cart.itemTotal > 0 && (
+                      {/* Only show delivery charge if cart has items and item total > 0 AND delivery type is selected */}
+                      {cart?.items && cart.items.length > 0 && cart?.itemTotal && cart.itemTotal > 0 && deliveryType && currentStep >= 2 && (
                         <div className="flex justify-between">
                           <span className="text-gray-600">
                             Delivery Charge ({cart?.delivery_type || "Standard"}):
@@ -1831,8 +1846,8 @@ export default function CheckoutPage() {
                       ₹{Math.round(cart?.gst_amount || 0)}
                     </span>
                   </div>
-                  {/* Only show delivery charge if cart has items and item total > 0 */}
-                  {cart?.items && cart.items.length > 0 && cart?.itemTotal && cart.itemTotal > 0 && (
+                  {/* Only show delivery charge if cart has items and item total > 0 AND delivery type is selected */}
+                  {cart?.items && cart.items.length > 0 && cart?.itemTotal && cart.itemTotal > 0 && deliveryType && currentStep >= 2 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">
                         Delivery Charge ({cart?.delivery_type || "Standard"}):
