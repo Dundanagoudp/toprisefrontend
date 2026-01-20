@@ -104,6 +104,26 @@ export async function createPincode(
   }
 }
 
+//check delivery availability by pincode
+export async function getServiceablePincode(
+  pincode: string
+): Promise<{
+  success: boolean;
+  message: string;
+  data: {
+    serviceable: boolean;
+  };
+}> {
+  try {
+    const response = await apiClient.get(`/category/api/pincodes/get/serviceable/${pincode}`);
+    return response.data;
+  }
+ catch (error) {
+    console.error("Failed to get serviceable pincode:", error);
+    throw error;
+  }
+}
+
 // Get all pincodes with pagination and filters
 export async function getPincodes(
   filters: PincodeFilters = {}

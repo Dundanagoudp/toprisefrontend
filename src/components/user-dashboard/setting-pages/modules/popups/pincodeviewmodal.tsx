@@ -9,7 +9,8 @@ import {
   Truck, 
   Package, 
   CheckCircle2, 
-  XCircle
+  XCircle,
+  Settings
 } from "lucide-react"
 import { type Pincode } from "@/service/pincodeServices"
 
@@ -131,7 +132,34 @@ export function PincodeViewModal({ pincode, loading = false, onClose }: PincodeV
           </div>
         </CardContent>
       </Card>
-
+                {/* COD Avalibilty */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings className="w-5 h-5 text-[#C72920]" />
+            COD Avalibilty
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between py-2 border-b">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium">COD</span>
+            </div>
+            <Badge 
+              variant={pincode.cod_available ? "default" : "secondary"}
+              className={pincode.cod_available ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-gray-100 text-gray-600"}
+            >
+              {pincode.cod_available ? (
+                <><CheckCircle2 className="w-3 h-3 mr-1" /> Available</>
+              ) : (
+                <><XCircle className="w-3 h-3 mr-1" /> Not Available</>
+              )}
+            </Badge>
+          </div>
+ 
+        </CardContent>
+      </Card>
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t">
         <Button

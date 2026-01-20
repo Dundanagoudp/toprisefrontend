@@ -320,7 +320,7 @@ export const Header = () => {
           className="cursor-pointer"
         >
           <Settings className="mr-2 h-4 w-4" />
-          Settings
+          My Profile
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
