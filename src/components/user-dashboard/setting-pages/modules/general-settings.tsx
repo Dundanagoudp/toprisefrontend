@@ -30,7 +30,7 @@ export function GeneralSettings() {
   const [loading, setLoading] = useState(true)
   const [isSmtpModalOpen, setIsSmtpModalOpen] = useState(false)
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false)
-
+  const [isDeliveryChargeModalOpen, setIsDeliveryChargeModalOpen] = useState(false)
   const fetchSettings = async () => {
     setLoading(true)
     try {
@@ -194,7 +194,41 @@ export function GeneralSettings() {
           </div>
         </CardContent>
       </Card>
-
+{/* Delivery Charge Settings */}
+<Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Delivery Charge Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-700">Delivery Charge</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {settings.deliveryCharge || 0}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-700">Minimum Order Value</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {settings.minimumOrderValue || 0}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeliveryChargeModalOpen(true)}
+              className="border-[#C72920] text-[#C72920] hover:bg-[#C72920] hover:text-white"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Update Delivery Charge Settings
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       {/* SMTP Update Modal */}
       <Dialog open={isSmtpModalOpen} onOpenChange={setIsSmtpModalOpen}>
         <DialogContent className="max-w-2xl" aria-describedby={undefined}>
@@ -220,6 +254,14 @@ export function GeneralSettings() {
             onSubmit={handlePolicyUpdate}
             onCancel={() => setIsPolicyModalOpen(false)}
           />
+        </DialogContent>
+      </Dialog>
+      {/* Delivery Charge Update Modal */}
+      <Dialog open={isDeliveryChargeModalOpen} onOpenChange={setIsDeliveryChargeModalOpen}>
+        <DialogContent className="max-w-2xl" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Update Delivery Charge Settings</DialogTitle>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </div>

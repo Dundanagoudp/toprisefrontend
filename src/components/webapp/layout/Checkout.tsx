@@ -54,6 +54,7 @@ import {
   preparePaymentBody,
 } from "../common/PaymentBodyType";
 import { getOrderById } from "@/service/order-service";
+import { getServiceablePincode } from "@/service/pincodeServices";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -74,17 +75,24 @@ export default function CheckoutPage() {
 
   // Delivery type state - express delivery has two options: fast and regular
   const [deliveryType, setDeliveryType] = useState<
-    "Standard" | "express-fast" | "express-regular"
-  >("express-fast");
+    "Standard" | "express-fast" | "express-regular" | null
+  >(null);
   const [pincode, setPincode] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     "COD" | "Prepaid"
   >("COD");
   const [pincodeData, setPincodeData] = useState<any>(null);
   const [checkingPincode, setCheckingPincode] = useState(false);
+  const [serviceablePincode, setServiceablePincode] = useState<any>(null);
   const [expressAvailable, setExpressAvailable] = useState(false);
   const [isDeliveryValid, setIsDeliveryValid] = useState(false);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
+
+  // Availability flags from serviceablePincode (corrected mapping)
+  //endOfDay is the next day delivery
+  const isEodAvailable = serviceablePincode?.borzo_availability?.endOfDay === true;
+  //standar is the 2-3 hours delivery
+  const isStandardAvailable = serviceablePincode?.borzo_availability?.standard === true;
   const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(
     new Set()
   );
@@ -193,21 +201,23 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Validate express delivery options based on pincode data
+    // Validate express delivery options based on serviceablePincode (corrected mapping)
+    // express-fast (Regular Delivery) checks borzo_standard
+    // express-regular (Fast Delivery) checks borzo_endOfDay
     if (type === "express-fast") {
-      if (pincodeData?.borzo_endOfDay === true) {
+      if (isEodAvailable) {
+        setIsDeliveryValid(true);
+      } else {
+        setIsDeliveryValid(false);
+        showToast("Regular delivery not available", "error");
+        return; // Don't proceed with API call if not available
+      }
+    } else if (type === "express-regular") {
+      if (isStandardAvailable) {
         setIsDeliveryValid(true);
       } else {
         setIsDeliveryValid(false);
         showToast("Fast delivery not available", "error");
-        return; // Don't proceed with API call if not available
-      }
-    } else if (type === "express-regular") {
-      if (pincodeData?.borzo_standard === true) {
-        setIsDeliveryValid(true);
-      } else {
-        setIsDeliveryValid(false);
-        showToast("No delivery available", "error");
         return; // Don't proceed with API call if not available
       }
     }
@@ -298,7 +308,7 @@ export default function CheckoutPage() {
       const paymentBody = preparePaymentBody(
         user,
         cart,
-        deliveryType,
+        deliveryType!,
         selectedAddress,
         pincodeData
       );
@@ -411,14 +421,33 @@ export default function CheckoutPage() {
 
   // Auto-check pincode when address is selected
   useEffect(() => {
-    if (selectedAddress?.pincode && selectedAddress.pincode !== pincode) {
-      // Update local state
-      setPincode(selectedAddress.pincode);
-      // Update Redux state
-      dispatch(setPincodeRedux(selectedAddress.pincode));
-      // Check delivery availability
-      handlePincodeCheck(selectedAddress.pincode);
-    }
+    const handleAddressSelection = async () => {
+      if (selectedAddress?.pincode && selectedAddress.pincode !== pincode) {
+        // Update local state
+        setPincode(selectedAddress.pincode);
+        // Update Redux state
+        dispatch(setPincodeRedux(selectedAddress.pincode));
+
+        try {
+          // Call getServiceablePincode API and save result in useState
+          const serviceableResponse = await getServiceablePincode(selectedAddress.pincode);
+          if (serviceableResponse.success) {
+            console.log("Serviceable pincode response:", serviceableResponse.data);
+            setServiceablePincode(serviceableResponse.data);
+          } else {
+            setServiceablePincode({ serviceable: false });
+          }
+        } catch (error) {
+          console.error("Failed to get serviceable pincode:", error);
+          setServiceablePincode({ serviceable: false });
+        }
+
+        // Check delivery availability
+        handlePincodeCheck(selectedAddress.pincode);
+      }
+    };
+
+    handleAddressSelection();
   }, [selectedAddress, pincode, dispatch]);
 
   // Re-fetch cart when Redux pincode changes
@@ -429,13 +458,13 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduxPincode, userId]);
 
-  // Auto-select default delivery type when pincode data is available
-  useEffect(() => {
-    if (pincodeData && selectedAddress) {
-      // Automatically select express-fast delivery type when pincode data is available
-      handleDeliveryTypeSelect("express-fast");
-    }
-  }, [pincodeData, selectedAddress]);
+  // Removed auto-selection of delivery type - users must select manually
+  // useEffect(() => {
+  //   if (pincodeData && selectedAddress) {
+  //     // Automatically select express-fast delivery type when pincode data is available
+  //     handleDeliveryTypeSelect("express-fast");
+  //   }
+  // }, [pincodeData, selectedAddress]);
 
   const handleProceed = async () => {
     console.log("=== HANDLE PROCEED DEBUG ===");
@@ -456,7 +485,12 @@ export default function CheckoutPage() {
       // Delivery step
       // Block Standard delivery since it's coming soon
       await fetchCart();
-      
+
+
+      if (!deliveryType) {
+        setDeliveryError("Please select a delivery type");
+        return;
+      }
 
       if (deliveryType === "Standard") {
         setDeliveryError(
@@ -547,11 +581,11 @@ export default function CheckoutPage() {
     const orderBody = prepareOrderBody(
       user,
       cart,
-      deliveryType,
+      deliveryType!,
       selectedPaymentMethod,
       selectedAddress,
       pincodeData,
-      
+
     );
 
     try {
@@ -680,7 +714,7 @@ export default function CheckoutPage() {
       await fetchCart();
 
       // Update delivery type after quantity change
-      if (cart?._id) {
+      if (cart?._id && deliveryType) {
         const apiDeliveryType = deliveryType.startsWith("express")
           ? "express"
           : deliveryType;
@@ -709,7 +743,7 @@ export default function CheckoutPage() {
       await fetchCart();
 
       // Update delivery type after quantity change
-      if (cart?._id) {
+      if (cart?._id && deliveryType) {
         const apiDeliveryType = deliveryType.startsWith("express")
           ? "express"
           : deliveryType;
@@ -1017,10 +1051,10 @@ export default function CheckoutPage() {
                             <strong>Estimated Delivery:</strong>{" "}
                             {pincodeData.estimated_delivery_days} days
                           </p> */}
-                          {/* <p>
+                          <p>
                             <strong>COD Available:</strong>{" "}
-                            {pincodeData.cod_available ? "Yes" : "No"}
-                          </p> */}
+                            {serviceablePincode?.cod_available ? "Yes" : "No"}
+                          </p>
                         </>
                       )}
                     </div>
@@ -1054,12 +1088,12 @@ export default function CheckoutPage() {
                       <div className="flex items-center gap-3">
                         <div
                           className={`w-4 h-4 rounded-full border-2 ${
-                            deliveryType.startsWith("express")
+                            deliveryType?.startsWith("express")
                               ? "border-[#C72920] bg-[#C72920]"
                               : "border-gray-300"
                           }`}
                         >
-                          {deliveryType.startsWith("express") && (
+                          {deliveryType?.startsWith("express") && (
                             <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
                           )}
                         </div>
@@ -1080,13 +1114,15 @@ export default function CheckoutPage() {
                     {expressAvailable && (
                       <div className="ml-7 space-y-2">
                         <div
-                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                          className={`border rounded-lg p-3 transition-all ${
                             deliveryType === "express-regular"
-                              ? "border-[#C72920] bg-red-50"
-                              : "border-gray-200 hover:border-gray-300"
+                              ? "border-[#C72920] bg-red-50 cursor-pointer"
+                              : isStandardAvailable
+                              ? "border-gray-200 hover:border-gray-300 cursor-pointer"
+                              : "border-gray-200 opacity-50 cursor-not-allowed"
                           }`}
                           onClick={() =>
-                            handleDeliveryTypeSelect("express-regular")
+                            isStandardAvailable && handleDeliveryTypeSelect("express-regular")
                           }
                         >
                           <div className="flex items-center justify-between">
@@ -1110,13 +1146,15 @@ export default function CheckoutPage() {
                         </div>
 
                         <div
-                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                          className={`border rounded-lg p-3 transition-all ${
                             deliveryType === "express-fast"
-                              ? "border-[#C72920] bg-red-50"
-                              : "border-gray-200 hover:border-gray-300"
+                              ? "border-[#C72920] bg-red-50 cursor-pointer"
+                              : isEodAvailable
+                              ? "border-gray-200 hover:border-gray-300 cursor-pointer"
+                              : "border-gray-200 opacity-50 cursor-not-allowed"
                           }`}
                           onClick={() =>
-                            handleDeliveryTypeSelect("express-fast")
+                            isEodAvailable && handleDeliveryTypeSelect("express-fast")
                           }
                         >
                           <div className="flex items-center justify-between">
@@ -1210,7 +1248,12 @@ export default function CheckoutPage() {
                     {/* <Button
                       onClick={() => goToStep(2)}
                       className="bg-[#C72920] hover:bg-[#A0221A] text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
-                      disabled={deliveryType === 'Standard' || (deliveryType.startsWith('express') && !expressAvailable)}
+                      disabled={
+                        deliveryType === 'Standard' ||
+                        (deliveryType === 'express-fast' && !isStandardAvailable) ||
+                        (deliveryType === 'express-regular' && !isEodAvailable) ||
+                        !deliveryType
+                      }
                     >
                       Continue to Review
                     </Button> */}
@@ -1220,13 +1263,13 @@ export default function CheckoutPage() {
                         time
                       </p>
                     )}
-                    {deliveryType.startsWith("express") &&
-                      !expressAvailable && (
+                    {/* {((deliveryType === 'express-fast' && !isStandardAvailable) ||
+                      (deliveryType === 'express-regular' && !isEodAvailable)) && (
                         <p className="text-xs text-red-600 text-right">
-                          Express delivery not available for your selected
+                          EOD delivery not available for your selected
                           pincode
                         </p>
-                      )}
+                      )} */}
                   </div>
                 </div>
               </div>
@@ -1463,11 +1506,19 @@ export default function CheckoutPage() {
                         }
                         className="space-y-3"
                       >
-                        <div className="flex items-center space-x-3">
-                          <RadioGroupItem value="COD" id="COD" />
+                        <div className={`flex items-center space-x-3 ${
+                          serviceablePincode?.cod_available === false ? 'opacity-50' : ''
+                        }`}>
+                          <RadioGroupItem
+                            value="COD"
+                            id="COD"
+                            disabled={serviceablePincode?.cod_available === false}
+                          />
                           <Label
                             htmlFor="cod"
-                            className="flex-1 cursor-pointer"
+                            className={`flex-1 ${
+                              serviceablePincode?.cod_available === false ? 'cursor-not-allowed' : 'cursor-pointer'
+                            }`}
                           >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -1478,7 +1529,9 @@ export default function CheckoutPage() {
                                   Cash on Delivery (COD)
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                  Pay when your order is delivered
+                                  {serviceablePincode?.cod_available === false
+                                    ? "Not available for this location"
+                                    : "Pay when your order is delivered"}
                                 </p>
                               </div>
                             </div>
@@ -1886,15 +1939,15 @@ export default function CheckoutPage() {
                           time
                         </span>
                       )}
-                    {(currentStep === 1 || currentStep === 2) &&
-                      deliveryType.startsWith("express") &&
-                      !expressAvailable && (
+                    {/* {(currentStep === 1 || currentStep === 2) &&
+                      ((deliveryType === 'express-fast' && !isStandardAvailable) ||
+                      (deliveryType === 'express-regular' && !isEodAvailable)) && (
                         <span className="text-xs block mb-1">
                           Express delivery not available for your selected
                           pincode
                         </span>
                       )}
-             
+              */}
                     {isPlacingOrder ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />

@@ -218,6 +218,20 @@ export function PincodeModal({ pincode, onSubmit, onCancel }: PincodeModalProps)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* COD Section */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">COD</Label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="cod_available"
+                checked={watch("cod_available")}
+                onCheckedChange={(checked) => setValue("cod_available", checked as boolean)}
+              />
+              <Label htmlFor="cod_available">
+                COD Available
+              </Label>
+            </div>
+          </div>
           {/* ShipRocket Section */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">ShipRocket</Label>
