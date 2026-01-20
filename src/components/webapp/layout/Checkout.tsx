@@ -427,6 +427,9 @@ export default function CheckoutPage() {
         setPincode(selectedAddress.pincode);
         // Update Redux state
         dispatch(setPincodeRedux(selectedAddress.pincode));
+        
+        // Fetch cart with updated pincode immediately after state update
+        await fetchCart();
 
         try {
           // Call getServiceablePincode API and save result in useState

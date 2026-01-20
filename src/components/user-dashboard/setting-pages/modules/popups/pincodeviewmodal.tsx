@@ -40,7 +40,8 @@ export function PincodeViewModal({ pincode, loading = false, onClose }: PincodeV
   }
 
   return (
-    <div className="space-y-6">
+    
+    <div className="space-y-6 min-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
       {/* Location Information */}
       <Card>
         <CardHeader className="pb-3">

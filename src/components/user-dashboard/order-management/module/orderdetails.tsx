@@ -14,6 +14,7 @@ import {
   MapPin,
   Phone,
   Mail,
+  Star,
 } from "lucide-react";
 // Removed unused shadcn Button import; using shared DynamicButton where needed
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -755,6 +756,45 @@ console.log("order by id", orderById);
                   </AccordionItem>
                 ))}
               </Accordion>
+            </CardContent>
+          </Card>
+          {/* Order Rating */}
+          <Card className="border border-gray-200 shadow-sm">
+            <CardHeader className="pb-3 lg:pb-4">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Star className="h-5 w-5 text-gray-600" />
+                Order Rating
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {orderById?.ratting ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-5 w-5 ${
+                          star <= (orderById.ratting || 0)
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "fill-gray-200 text-gray-300"
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-2 text-sm text-gray-600">
+                      {orderById.ratting} {orderById.ratting === 1 ? "star" : "stars"}
+                    </span>
+                  </div>
+                  {orderById?.review && (
+                    <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {orderById.review}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic">No rating provided yet</p>
+              )}
             </CardContent>
           </Card>
         </div>
