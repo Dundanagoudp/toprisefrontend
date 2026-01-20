@@ -208,7 +208,7 @@ export default function FulfillmentReturnClaims() {
       if (response.success && response.data) {
         setReturnRequests(response.data.returnRequests);
 
-        setTotalPages(response.data.pagination.pages);
+        setTotalPages(response.data.pagination.totalPages);
         setTotalItems(response.data.pagination.total);
       }
     } catch (error) {

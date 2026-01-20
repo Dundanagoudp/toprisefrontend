@@ -143,8 +143,8 @@ export default function AdminReturnClaims() {
       if (response.success && response.data) {
         console.log(response.data.returnRequests);
         setReturnRequests(response.data.returnRequests);
-
-        setTotalPages(response.data.pagination.pages);
+     
+        setTotalPages(response.data.pagination.totalPages);
         setTotalItems(response.data.pagination.total);
       }
     } catch (error) {
@@ -433,13 +433,13 @@ export default function AdminReturnClaims() {
             <Table className="min-w-full table-fixed">
               <TableHeader>
                 <TableRow className="border-b border-[#E5E5E5] bg-gray-50/50">
-                  <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
+                  {/* <TableHead className="px-4 py-4 w-8 font-[Red Hat Display]">
                     <Checkbox
                       checked={allSelected}
                       onCheckedChange={handleSelectAll}
                       aria-label="Select all"
                     />
-                  </TableHead>
+                  </TableHead> */}
                   <TableHead className="b2 text-gray-700 font-medium px-6 py-4 text-left font-[Red Hat Display] w-[120px]">
                     Return ID
                   </TableHead>
@@ -517,7 +517,7 @@ export default function AdminReturnClaims() {
                           className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${zebra} cursor-pointer`}
                           onClick={() => handleOpenDetails(request._id)}
                         >
-                          <TableCell className="px-4 py-4 w-8 font-[Poppins]" onClick={(e) => e.stopPropagation()}>
+                          {/* <TableCell className="px-4 py-4 w-8 font-[Poppins]" onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               checked={selectedClaims.includes(rowId)}
                               onCheckedChange={() =>
@@ -525,7 +525,7 @@ export default function AdminReturnClaims() {
                               }
                               aria-label="Select row"
                             />
-                          </TableCell>
+                          </TableCell> */}
                           <TableCell className="px-6 py-4 font-[Poppins] whitespace-nowrap">
                             <span className="text-gray-900 b2 font-mono text-sm">
                               {request._id.slice(-8)}
