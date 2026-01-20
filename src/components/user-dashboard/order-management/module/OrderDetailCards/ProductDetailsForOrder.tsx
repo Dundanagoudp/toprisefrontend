@@ -14,6 +14,6 @@ interface ProductDetailsForOrderProps {
 export default function ProductDetailsForOrder(props: ProductDetailsForOrderProps) {
   const auth = useAppSelector((state) => state.auth.user);
   const isAdmin = ["Super-admin", "Fulfillment-Admin", "Fullfillment-Admin"].includes(auth?.role);
-
+  console.log("products", props.products);
   return isAdmin ? <AdminProductDetails {...props} /> : <StaffProductDetails {...props} />;
 }

@@ -14,6 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Edit,
   Eye,
@@ -35,6 +42,7 @@ import {
   fetchEmployeeByUserId,
   fetchPicklistsByEmployee,
   getOrderById,
+  setMarkAsDelivery,
 } from "@/service/order-service";
 import { getAuthToken } from "@/utils/auth";
 import MarkPackedForPicklistId from "../order-popus/MarkPackedForPicklistId";
@@ -64,6 +72,8 @@ interface ProductItem {
   inspectionStarted?: boolean;
   inspectionCompleted?: boolean;
   markAsPacked?: boolean;
+  delivery_chanel?: string;
+  markAsDelivered?: boolean;
 }
 
 interface StaffProductDetailsProps {
@@ -384,6 +394,11 @@ export default function StaffProductDetails({
   const [currentPicklistId, setCurrentPicklistId] = useState<string>("");
   const [currentDealerId, setCurrentDealerId] = useState<string>("");
   const [manualDeliveryModalOpen, setManualDeliveryModalOpen] = useState(false);
+  const [markAsDeliveryModal, setMarkAsDeliveryModal] = useState<{
+    open: boolean;
+    picklistId?: string;
+    dealerId?: string;
+  }>({ open: false });
   // get employee details
   const fetchEmployeeDetails = async () => {
     try {
@@ -558,13 +573,34 @@ export default function StaffProductDetails({
       picklistSkus.has(product.sku || "")
     );
   }, [products, isFulfillmentStaff, employeeId, picklistSkus]);
-
+  console.log("staffAssignedProducts", staffAssignedProducts);
+  console.log("products", products);
   // Determine if all products are marked as packed
   const allScanCompleted = staffAssignedProducts?.length
     ? staffAssignedProducts.every(
         (p) => p.markAsPacked === true
       )
     : false;
+
+  const shouldShowMarkDelivered = React.useMemo(() => {
+    return (
+      staffAssignedProducts.length > 0 &&
+      staffAssignedProducts.every(
+        (p) =>
+          p.delivery_chanel === "Manual_Rapido" &&
+          p.markAsPacked === true &&
+          p.markAsDelivered !== true
+      )
+    );
+  }, [staffAssignedProducts]);
+
+  // Determine if all products have inspection completed
+  const allInspectionCompleted = React.useMemo(() => {
+    return staffAssignedProducts?.length > 0 &&
+           staffAssignedProducts.every(
+             (p) => p.inspectionCompleted === true
+           );
+  }, [staffAssignedProducts]);
 
   // Prepare items array for the MarkPackedForPicklistId modal
   const modalItems = React.useMemo(() => {
@@ -579,6 +615,44 @@ export default function StaffProductDetails({
   const handleManualDelivery = (picklistId: string) => {
     console.log("Manual delivery selected for picklist:", picklistId);
     setManualDeliveryModalOpen(true);
+  };
+
+  const handleMarkAsDelivered = (picklistId: string) => {
+    if (!picklistId || !orderId) {
+      showToast("Missing required information", "error");
+      return;
+    }
+    if (!currentDealerId) {
+      showToast("Dealer ID not found", "error");
+      return;
+    }
+    setMarkAsDeliveryModal({ open: true, picklistId, dealerId: currentDealerId });
+  };
+
+  const handleMarkAsDeliveryConfirm = async () => {
+    const { picklistId, dealerId } = markAsDeliveryModal;
+    if (!picklistId || !dealerId || !orderId) {
+      showToast("Missing required information", "error");
+      return;
+    }
+    try {
+      const requestBody = {
+        orderId,
+        dealerId,
+        picklistId,
+      };
+      const response = await setMarkAsDelivery(requestBody);
+      if (response?.success !== false) {
+        showToast("Order marked as delivered successfully", "success");
+        await refreshAllData();
+        setMarkAsDeliveryModal({ open: false });
+      } else {
+        showToast(response?.message || "Failed to mark as delivered", "error");
+      }
+    } catch (error) {
+      console.error("Failed to mark as delivered:", error);
+      showToast("Failed to mark as delivered", "error");
+    }
   };
 
   return (
@@ -662,29 +736,43 @@ export default function StaffProductDetails({
 
         {/* Footer with Mark as Packed button for fulfillment staff */}
         {isFulfillmentStaff &&
-          staffAssignedProducts.length > 0 &&
-          !allScanCompleted && (
+          (shouldShowMarkDelivered ||
+            (allInspectionCompleted && !allScanCompleted)) && (
             <CardFooter className="border-t bg-gray-50">
-              <div className="flex justify-end w-full">
-                <DynamicButton
-                  onClick={() => setMarkPackedModalOpen(true)}
-                  className="px-6 py-2"
-                  disabled={!currentPicklistId}
-                >
-                 Initiate Borzo Delivery
-                </DynamicButton>
+              <div className="flex justify-end gap-3 w-full">
+                {!shouldShowMarkDelivered && (
+                  <>
+                    <DynamicButton
+                      onClick={() => setMarkPackedModalOpen(true)}
+                      className="px-6 py-2"
+                      disabled={!currentPicklistId}
+                    >
+                      Initiate Borzo Delivery
+                    </DynamicButton>
+                    <DynamicButton
+                      onClick={() => handleManualDelivery(currentPicklistId)}
+                      className="px-6 py-2"
+                      disabled={!currentPicklistId}
+                    >
+                      Manual delivery
+                    </DynamicButton>
+                  </>
+                )}
+
+                {shouldShowMarkDelivered && (
+                  <DynamicButton
+                    onClick={() => handleMarkAsDelivered(currentPicklistId)}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white"
+                    disabled={!currentPicklistId}
+                  >
+                    Mark as Delivered
+                  </DynamicButton>
+                )}
               </div>
-              <div className="flex justify-end w-full">
-                <DynamicButton
-                  onClick={() => handleManualDelivery(currentPicklistId)}
-                  className="px-6 py-2"
-                  disabled={!currentPicklistId}
-                >
-                  Manual delivery
-                </DynamicButton>
-              </div>
+         
             </CardFooter>
           )}
+         
       </Card>
 
       {/* Mark as Packed Modal */}
@@ -715,6 +803,57 @@ export default function StaffProductDetails({
           setManualDeliveryModalOpen(false);
         }}
       />
+
+      {/* Mark as Delivery Confirmation Modal */}
+      <Dialog
+        open={markAsDeliveryModal.open}
+        onOpenChange={(open) => setMarkAsDeliveryModal({ open, picklistId: open ? markAsDeliveryModal.picklistId : undefined, dealerId: open ? markAsDeliveryModal.dealerId : undefined })}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Mark as Delivered</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to mark this picklist as delivered?
+            </p>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2">
+              <div className="text-xs font-semibold text-gray-700 mb-2">Request Details:</div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Order ID:</span>
+                  <span className="font-mono text-gray-900">{orderId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Dealer ID:</span>
+                  <span className="font-mono text-gray-900">{markAsDeliveryModal.dealerId || currentDealerId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Picklist ID:</span>
+                  <span className="font-mono text-gray-900">{markAsDeliveryModal.picklistId}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setMarkAsDeliveryModal({ open: false })}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleMarkAsDeliveryConfirm}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Confirm Delivery
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </>
   );
 }

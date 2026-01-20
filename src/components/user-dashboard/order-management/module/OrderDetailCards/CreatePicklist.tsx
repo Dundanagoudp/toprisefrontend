@@ -263,7 +263,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
               <div className="grid grid-cols-12 gap-3 text-xs font-medium text-gray-600 px-1">
                 <div className="col-span-5">SKU Code</div>
                 <div className="col-span-2">Quantity</div>
-                <div className="col-span-4">Barcode (Optional)</div>
+              
                 <div className="col-span-1"></div>
               </div>
 
@@ -290,7 +290,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
                       className="border-gray-200 focus:border-gray-400 focus:ring-1 focus:ring-gray-400"
                     />
                   </div>
-                  <div className="col-span-4">
+                  {/* <div className="col-span-4">
                     {barcodeVisible[idx] || (row.barcode && row.barcode.length > 0) ? (
                       <Input
                         placeholder="Enter barcode"
@@ -308,7 +308,7 @@ const CreatePicklist: React.FC<CreatePicklistProps> = ({
                         + Add Barcode
                       </DynamicButton>
                     )}
-                  </div>
+                  </div> */}
                   <div className="col-span-1 flex justify-end">
                     {skuRows.length > 1 && (
                       <DynamicButton
