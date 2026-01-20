@@ -23,6 +23,7 @@ import type { AppSettings } from "@/types/deliverycharge-Types"
 import { useToast } from "@/components/ui/toast"
 import { SmtpUpdateModal } from "./popups/smtp-update-modal"
 import { PolicyUpdateModal } from "./popups/policy-update-modal"
+import { DeliveryChargeUpdateModal } from "./popups/delivery-charge-update-modal"
 
 export function GeneralSettings() {
   const { showToast } = useToast()
@@ -72,6 +73,18 @@ export function GeneralSettings() {
     } catch (error) {
       console.error("Error updating policy settings:", error)
       showToast("Failed to update policy settings. Please try again.", "error")
+    }
+  }
+
+  const handleDeliveryChargeUpdate = async (deliveryData: {
+    deliveryCharge?: number
+    minimumOrderValue?: number
+  }) => {
+    const response = await updateAppSettings(deliveryData)
+    if (response?.data) {
+      setSettings(response.data)
+      showToast("Delivery settings updated successfully!", "success")
+      setIsDeliveryChargeModalOpen(false)
     }
   }
 
@@ -258,10 +271,15 @@ export function GeneralSettings() {
       </Dialog>
       {/* Delivery Charge Update Modal */}
       <Dialog open={isDeliveryChargeModalOpen} onOpenChange={setIsDeliveryChargeModalOpen}>
-        <DialogContent className="max-w-2xl" aria-describedby={undefined}>
+        <DialogContent className="max-w-lg" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Update Delivery Charge Settings</DialogTitle>
           </DialogHeader>
+          <DeliveryChargeUpdateModal
+            settings={settings}
+            onSubmit={handleDeliveryChargeUpdate}
+            onCancel={() => setIsDeliveryChargeModalOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

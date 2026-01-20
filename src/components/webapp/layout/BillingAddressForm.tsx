@@ -75,8 +75,6 @@ export default function BillingAddressForm({
   const handleAddressSelection = async (address: any) => {
     if (onAddressSelect) {
       onAddressSelect(address);
-     
-      await fetchCart();
     }
   };
 
