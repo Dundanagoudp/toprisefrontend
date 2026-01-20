@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { completePickup } from "@/service/return-service"
+import { completeManualDelivery } from "@/service/return-service"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Package } from "lucide-react"
 
@@ -30,36 +30,11 @@ export default function CompletePickupDialog({
   returnId,
   returnRequest
 }: CompletePickupDialogProps) {
-  const [trackingNumber, setTrackingNumber] = useState("")
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
-  // Auto-populate tracking number when modal opens
-  useEffect(() => {
-    if (open && returnRequest) {
-      // Get tracking number from pickup request if available
-      const pickupTrackingNumber = returnRequest?.pickupRequest?.trackingNumber
-      if (pickupTrackingNumber) {
-        setTrackingNumber(pickupTrackingNumber)
-      } else {
-        // If no tracking number in pickup request, generate a default one
-        const defaultTracking = `TRK_${Date.now()}`
-        setTrackingNumber(defaultTracking)
-      }
-    }
-  }, [open, returnRequest])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!trackingNumber.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a tracking number",
-        variant: "destructive",
-      })
-      return
-    }
 
     if (!returnId) {
       toast({
@@ -70,11 +45,17 @@ export default function CompletePickupDialog({
       return
     }
 
-    // Check if return request has the correct status
-    if (returnRequest && returnRequest.returnStatus !== "Pickup_Scheduled") {
+    // Check if return request has the correct status for delivery completion
+    const isValidStatus = returnRequest &&
+      returnRequest.returnStatus === "Shipment_Intiated" &&
+      returnRequest.delivery_chanel === "Manual_Rapido" &&
+      returnRequest.shipment_started === true &&
+      returnRequest.shipment_completed === false;
+
+    if (returnRequest && !isValidStatus) {
       toast({
         title: "Invalid Status",
-        description: "Only returns with 'Pickup Scheduled' status can be completed.",
+        description: "Only Manual Rapido deliveries with 'Shipment Initiated' status can be completed.",
         variant: "destructive",
       })
       return
@@ -82,29 +63,27 @@ export default function CompletePickupDialog({
 
     try {
       setLoading(true)
-      const response = await completePickup(returnId, {
-        trackingNumber: trackingNumber.trim()
-      })
+      const response = await completeManualDelivery(returnId)
 
       if (response.success) {
         toast({
           title: "Success",
-          description: "Pickup completed successfully",
+          description: "Delivery completed successfully",
         })
         onComplete(true)
         handleClose()
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to complete pickup",
+          description: response.message || "Failed to complete delivery",
           variant: "destructive",
         })
       }
     } catch (error: any) {
-      
+
       // Better error handling for different types of errors
-      let errorMessage = "Failed to complete pickup. Please try again."
-      
+      let errorMessage = "Failed to complete delivery. Please try again."
+
       if (error.response) {
         // Server responded with error status
         if (error.response.status === 500) {
@@ -121,7 +100,7 @@ export default function CompletePickupDialog({
         // Something else happened
         errorMessage = error.message || "An unexpected error occurred."
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -143,30 +122,14 @@ export default function CompletePickupDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-blue-600" />
-            Complete Pickup
+            Complete Delivery
           </DialogTitle>
           <DialogDescription>
-            Complete pickup for return with "Pickup Scheduled" status. Tracking number has been auto-populated.
+            Confirm completion of Manual Rapido delivery for this return request.
           </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="trackingNumber">Tracking Number *</Label>
-            <Input
-              id="trackingNumber"
-              value={trackingNumber}
-              onChange={(e) => setTrackingNumber(e.target.value)}
-              placeholder="Enter tracking number"
-              disabled={loading}
-              required
-              className="bg-gray-50"
-            />
-            <p className="text-xs text-gray-500">
-              This tracking number was automatically populated from the pickup request.
-            </p>
-          </div>
 
+        <div className="space-y-4">
           {returnRequest && (
             <div className="bg-gray-50 p-3 rounded-lg space-y-2">
               <p className="text-sm font-medium text-gray-700">Return Details:</p>
@@ -174,9 +137,7 @@ export default function CompletePickupDialog({
                 <p>SKU: {returnRequest.sku}</p>
                 <p>Quantity: {returnRequest.quantity}</p>
                 <p>Customer: {returnRequest.orderId?.customerDetails?.name || 'N/A'}</p>
-                {returnRequest?.pickupRequest?.logisticsPartner && (
-                  <p>Logistics Partner: {returnRequest.pickupRequest.logisticsPartner}</p>
-                )}
+                <p>Delivery Channel: {returnRequest.delivery_chanel || 'N/A'}</p>
               </div>
             </div>
           )}
@@ -191,8 +152,8 @@ export default function CompletePickupDialog({
               Cancel
             </Button>
             <Button
-              type="submit"
-              disabled={loading || !trackingNumber.trim()}
+              onClick={handleSubmit}
+              disabled={loading}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {loading ? (
@@ -201,11 +162,11 @@ export default function CompletePickupDialog({
                   Completing...
                 </>
               ) : (
-                "Complete Pickup"
+                "Complete Delivery"
               )}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

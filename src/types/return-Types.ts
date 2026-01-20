@@ -50,7 +50,9 @@ export interface ReturnRequest {
   isOverdue?: boolean;
   daysSinceRequest?: number | null;
   statusDisplay?: string | null;
-
+  delivery_chanel?: string | null;
+  shipment_started?: boolean | null;
+  shipment_completed?: boolean | null;
 
 }
 
@@ -194,18 +196,21 @@ export interface ReturnNote {
 }
 
 // Enums and Type Unions
-export type ReturnStatus = 
+export type ReturnStatus =
   | "Requested"
-  | "Validated" 
-  | "Pickup_Scheduled" 
-  | "Pickup_Completed" 
+  | "Validated"
+  | "Pickup_Scheduled"
+  | "Pickup_Completed"
   | "Inspection_Started"
   | "Inspection_Completed"
   | "Approved"
   | "Rejected"
   | "Refund_Initiated"
   | "Refund_Completed"
-  | "Completed";
+  | "Completed"
+  | "Shipment_Intiated"
+  | "Shipment_Completed"
+  | "Under_Inspection";
 
 export type ReturnAction = 
   | "Pending" 

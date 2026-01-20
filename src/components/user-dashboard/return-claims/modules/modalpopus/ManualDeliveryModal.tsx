@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Truck, Loader2 } from 'lucide-react'
 import { useToast } from "@/components/ui/toast"
+import { initiateManualDelivery } from '@/service/return-service'
 
 interface ManualDeliveryModalProps {
   open: boolean;
@@ -36,22 +37,21 @@ export default function ManualDeliveryModal({
     try {
       setLoading(true)
 
-      // TODO: Implement the actual API call for manual delivery
-      // For now, just show success and close
-      console.log('Manual delivery for return:', returnId, {
-        trackingUrl: trackingUrl.trim(),
-        deliveryNotes: deliveryNotes.trim()
-      })
-
-      showToast("Manual delivery marked successfully", "success")
-      onComplete?.(true)
-      handleClose()
+      const response = await initiateManualDelivery(returnId, trackingUrl)
+      if (response?.success !== false) {
+        showToast("Manual delivery marked successfully", "success")
+        onComplete?.(true)
+        onClose()
+      } else {
+        showToast(response?.message || "Failed to mark manual delivery", "error")
+      }
     } catch (error) {
       console.error("Failed to mark manual delivery:", error)
       showToast("Failed to mark manual delivery", "error")
     } finally {
       setLoading(false)
     }
+   
   }
 
   const handleClose = () => {
@@ -81,7 +81,7 @@ export default function ManualDeliveryModal({
               className="bg-gray-50 cursor-default"
             />
           </div>
-
+{/* 
           <div className="space-y-2">
             <Label htmlFor="sku">SKU</Label>
             <Input
@@ -90,10 +90,10 @@ export default function ManualDeliveryModal({
               readOnly
               className="bg-gray-50 cursor-default"
             />
-          </div>
+          </div> */}
 
           <div className="space-y-2">
-            <Label htmlFor="trackingUrl">Tracking URL (Optional)</Label>
+            <Label htmlFor="trackingUrl">Tracking URL </Label>
             <Input
               id="trackingUrl"
               type="url"
@@ -103,7 +103,7 @@ export default function ManualDeliveryModal({
             />
           </div>
 
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="deliveryNotes">Delivery Notes (Optional)</Label>
             <Textarea
               id="deliveryNotes"
@@ -112,7 +112,7 @@ export default function ManualDeliveryModal({
               placeholder="Enter delivery notes..."
               rows={3}
             />
-          </div>
+          </div> */}
         </div>
 
         <DialogFooter>

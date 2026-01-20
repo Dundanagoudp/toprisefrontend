@@ -440,6 +440,21 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
           variant: "default" as const,
         });
         break;
+      case "Shipment_Intiated":
+        // Check for Manual_Rapido delivery channel with shipment started but not completed
+        if (
+          returnRequest.delivery_chanel === "Manual_Rapido" &&
+          returnRequest.shipment_started === true &&
+          returnRequest.shipment_completed === false
+        ) {
+          actions.push({
+            label: "Complete Delivery",
+            icon: <CheckCircle className="h-4 w-4" />,
+            onClick: () => setCompletePickupDialog(true),
+            variant: "default" as const,
+          });
+        }
+        break;
       case "Pickup_Scheduled":
         actions.push({
           label: "Complete Pickup",

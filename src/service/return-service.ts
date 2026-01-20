@@ -134,6 +134,32 @@ export const initiateBorzoPickup = async (returnId: string , data: any) : Promis
     }
   };
 
+// manual delivery
+export const initiateManualDelivery = async (returnId: string, trackURL: string) : Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(
+      `/orders/api/returns/Intiate-Rapido-Return/${returnId}`,{trackURL}
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error initiating manual delivery:", error);
+    throw error;
+  }
+};
+
+// complete manual delivery
+export const completeManualDelivery = async (returnId: string) : Promise<ReturnRequestsResponse> => {
+  try {
+    const response = await apiClient.put(
+      `/orders/api/returns/Deliver-Rapido-Return/${returnId}  `
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error completing manual delivery:", error);
+    throw error;
+  }
+};
+
 //start inspection
 export const startInspection = async (
   returnId: string,
