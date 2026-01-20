@@ -18,7 +18,7 @@ export const useCart = () => {
   const { cartData, loading, error, itemCount } = useAppSelector((state) => state.cart);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const pincode = useAppSelector((state) => state.pincode.value);
-  const fetchCart = useCallback(async () => {
+  const fetchCart = useCallback(async (overridePincode?: string) => {
     if (!isAuthenticated || !user?._id) {
       dispatch(clearCart());
       return;
@@ -26,15 +26,17 @@ export const useCart = () => {
 
     try {
       dispatch(setCartLoading(true));
-      const response = await getCart(user._id, pincode || '');
+      // Use override pincode if provided, otherwise fall back to Redux state
+      const pincodeToUse = overridePincode || pincode || '';
+      const response = await getCart(user._id, pincodeToUse);
 
       if (response.success && response.data) {
-   
+
         dispatch(setCartData(response.data));
       }
     } catch (err: any) {
       console.error('Failed to fetch cart:', err);
-     
+
     } finally {
       dispatch(setCartLoading(false));
     }
