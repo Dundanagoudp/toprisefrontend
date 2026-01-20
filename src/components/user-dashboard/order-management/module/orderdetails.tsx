@@ -301,8 +301,8 @@ export default function OrderDetailsView() {
   const orderById = useAppSelector(
     (state: any) => state.orderById.orders as any
   ); // Ensure it's treated as an object
-  const loadingById = useAppSelector((state: any) => state.orderById.loading);
-  const errorById = useAppSelector((state: any) => state.orderById.error);
+  // const loadingById = useAppSelector((state: any) => state.orderById.loading);
+  // const errorById = useAppSelector((state: any) => state.orderById.error);
 
   const auth = useAppSelector((state: any) => state.auth.user);
   const isAuthorized = ["Super-admin", "Fulfillment-Admin"].includes(auth?.role);
@@ -327,7 +327,8 @@ export default function OrderDetailsView() {
   useEffect(() => {
     fetchOrder();
   }, [orderId]);
-
+//log order by id
+console.log("order by id", orderById);
   // Note: trackingSteps is now computed per SKU in ProductDetailsForOrder component
 
   // Loading Skeleton Component
@@ -507,6 +508,7 @@ export default function OrderDetailsView() {
 
   // Function to extract product data from orderById
   const product = (orderData: any) => {
+    console.log("orderData", orderData);
     if (!orderData || !orderData.skus) {
       return [];
     }
@@ -533,6 +535,8 @@ export default function OrderDetailsView() {
       // Add status boolean flags
       piclistGenerated: sku.piclistGenerated || false,
       markAsPacked: sku.markAsPacked || false,
+      delivery_chanel: sku.delivery_chanel || "",
+      markAsDelivered: sku.markAsDelivered || false,
       inspectionStarted: sku.inspectionStarted || false,
       inspectionCompleted: sku.inspectionCompleted || false,
     }));

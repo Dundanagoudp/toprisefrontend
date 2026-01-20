@@ -75,6 +75,7 @@ import CompleteInspectionDialog from "./modules/modalpopus/CompleteInspectionDia
 import OnlineRefundDialog from "./modules/modalpopus/OnlineRefundDialog";
 import CODRefundDialog from "./modules/modalpopus/CODRefundDialog";
 import RejectReturnDialog from "./modules/modalpopus/RejectReturnDialog";
+import ManualDeliveryModal from "./modules/modalpopus/ManualDeliveryModal";
 import { useAppSelector } from "@/store/hooks";
 import { useToast as useGlobalToast } from "@/components/ui/toast";
 import { useSelector } from "react-redux";
@@ -109,6 +110,7 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
   const [onlineRefundDialog, setOnlineRefundDialog] = useState(false);
   const [manualRefundDialog, setManualRefundDialog] = useState(false);
   const [codRefundDialog, setCodRefundDialog] = useState(false);
+  const [manualDeliveryDialog, setManualDeliveryDialog] = useState(false);
   const [borzoConfirmDialog, setBorzoConfirmDialog] = useState<{
     open: boolean;
     returnId: string | null;
@@ -429,6 +431,12 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
           icon: <Truck className="h-4 w-4" />,
           onClick: () =>
             setBorzoConfirmDialog({ open: true, returnId: returnId, securePackageAmount: "" }),
+          variant: "default" as const,
+        });
+        actions.push({
+          label: "Manual Delivery",
+          icon: <CheckCircle className="h-4 w-4" />,
+          onClick: () => setManualDeliveryDialog(true),
           variant: "default" as const,
         });
         break;
@@ -1484,6 +1492,19 @@ export default function ReturnDetails({ returnId }: ReturnDetailsProps) {
           setCodRefundDialog(false);
         }}
         returnId={returnId ?? undefined}
+        returnRequest={returnRequest}
+      />
+
+      <ManualDeliveryModal
+        open={manualDeliveryDialog}
+        onClose={() => setManualDeliveryDialog(false)}
+        onComplete={(success) => {
+          if (success) {
+            fetchReturnDetails();
+          }
+          setManualDeliveryDialog(false);
+        }}
+        returnId={returnId}
         returnRequest={returnRequest}
       />
 
