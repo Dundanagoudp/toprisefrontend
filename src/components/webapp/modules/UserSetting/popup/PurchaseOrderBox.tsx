@@ -119,10 +119,10 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
   };
 
   const handleSubmit = async () => {
-    if (files.length === 0) {
-      alert("Please upload at least one image.");
-      return;
-    }
+    // if (files.length === 0) {
+    //   alert("Please upload at least one image.");
+    //   return;
+    // }
     if (!userId || !userInfo) {
       alert("User not authenticated. Please log in again.");
       return;

@@ -478,8 +478,10 @@ export default function DealerPermissions({ className }: DealerPermissionsProps)
                 onClick={() => toggleDealerSelection(dealer._id)}
               >
                 <Checkbox
+                className="cursor-pointer"
                   checked={selectedDealers.includes(dealer._id)}
                   onCheckedChange={() => toggleDealerSelection(dealer._id)}
+                  onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{dealer.trade_name || dealer.legal_name}</p>
