@@ -19,7 +19,7 @@ import { auth } from "@/lib/firebase";
 import { registerUser, registerUserWithPhone } from "@/service/auth-service";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
-import LogoNoname from "../../../public/assets/logo.png";
+import TOPRISELOGOHQ from "../../../public/assets/TOPRISELOGOHQ.svg";
 export function PhoneSignUpForm({
   className,
   ...props
@@ -537,7 +537,7 @@ export function PhoneSignUpForm({
                      {/* Centered logo */}
                      {/* <div className="absolute inset-0 flex items-center justify-center">
                        <Image
-                         src={LogoNoname}
+                         src={TOPRISELOGOHQ}
                          alt="Toprise logo"
                          className="h-12 lg:h-16 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
                        />
@@ -546,7 +546,7 @@ export function PhoneSignUpForm({
                      <div className="absolute inset-0 flex items-center justify-center">
            <div className="bg-white p-4 rounded-lg shadow-md">
              <Image
-               src={LogoNoname}
+               src={TOPRISELOGOHQ}
                alt="Toprise logo"
                className="h-12 lg:h-16 w-auto"
              />

@@ -13,7 +13,7 @@ import { loginSuccess } from "@/store/slice/auth/authSlice";
 import { useToast } from "@/components/ui/toast";
 import { Eye, EyeOff } from "lucide-react";
 import { getDealerById } from "@/service/dealerServices";
-import LogoNoname from "../../../public/assets/logo.png";
+import TOPRISELOGOHQ from "../../../public/assets/TOPRISELOGOHQ.svg";
 import Image from "next/image";
 
 const sidebarVisibilityConfig = {
@@ -227,7 +227,7 @@ export function LoginForm({
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <Image
-                  src={LogoNoname}
+                  src={TOPRISELOGOHQ}
                   alt="Toprise logo"
                   className="h-12 lg:h-16 w-auto"
                 />
