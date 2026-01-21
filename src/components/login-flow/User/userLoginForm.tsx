@@ -19,7 +19,7 @@ import { loginWithFirebaseToken } from "@/service/phone-login-service";
 import { ConfirmationResult } from "firebase/auth";
 import { ArrowLeft, RefreshCcw } from "lucide-react";
 import Image from "next/image";
-import LogoNoname from "../../../../public/assets/logo.png";
+import TOPRISELOGOHQ from "../../../../public/assets/TOPRISELOGOHQ.svg";
 import { DynamicButton } from "@/components/common/button";
 export function UserLoginForm({
   className,
@@ -411,7 +411,7 @@ export function UserLoginForm({
             {/* Centered logo */}
             {/* <div className="absolute inset-0 flex items-center justify-center">
               <Image
-                src={LogoNoname}
+                src={TOPRISELOGOHQ}
                 alt="Toprise logo"
                 className="h-12 lg:h-16 w-auto transition-all duration-300 ease-in-out group-hover:opacity-90 group-hover:scale-105"
               />
@@ -420,7 +420,7 @@ export function UserLoginForm({
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <Image
-                  src={LogoNoname}
+                  src={TOPRISELOGOHQ}
                   alt="Toprise logo"
                   className="h-12 lg:h-16 w-auto"
                 />
