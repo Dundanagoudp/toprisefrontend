@@ -280,7 +280,7 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
         <DialogFooter className="mt-4 flex justify-end gap-2 shrink-0">
           <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
           <Button className="bg-red-600 text-white" onClick={handleSubmit} disabled={submitting || !vehicleDetails.trim() || !description.trim()}>
-            {submitting ? "Submitting..." : "Upload Purchase Order"}
+            {submitting ? "Submitting..." : "Upload Purchase Request"}
           </Button>
         </DialogFooter>
       </DialogContent>
