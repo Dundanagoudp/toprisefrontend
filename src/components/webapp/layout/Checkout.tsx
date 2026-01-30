@@ -754,7 +754,7 @@ export default function CheckoutPage() {
     productId: string,
     currentQuantity: number
   ) => {
-    if (currentQuantity <= 1) return;
+    if (currentQuantity <= 0) return;
     setUpdatingQuantities((prev) => new Set(prev).add(productId));
     try {
       await decreaseCartQuantity(userId!, productId);
@@ -1426,7 +1426,7 @@ export default function CheckoutPage() {
                                       )
                                     }
                                     disabled={
-                                      item.quantity <= 1 ||
+                                      item.quantity <= 0 ||
                                       updatingQuantities.has(item.productId) ||
                                       item.is_available === false
                                     }
@@ -1791,7 +1791,7 @@ export default function CheckoutPage() {
                                   )
                                 }
                                 disabled={
-                                  item.quantity <= 1 ||
+                                  item.quantity <= 0 ||
                                   updatingQuantities.has(item.productId) ||
                                   item.is_available === false
                                 }

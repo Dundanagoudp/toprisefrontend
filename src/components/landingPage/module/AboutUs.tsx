@@ -271,6 +271,71 @@ export default function AboutUs() {
           </motion.p>
         </motion.div>
 
+        {/* Why Us Section */}
+        <motion.div 
+          className="mb-20"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.8 }}
+        >
+          <motion.h2 
+            className="text-4xl md:text-5xl font-bold text-gray-900 mb-12 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            Why Us?
+          </motion.h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Asli Parts. Full Stop.",
+                description: "Genuine parts sourced from authorised distributors—no fakes, no compromises."
+              },
+              {
+                title: "No Wrong Turns. Just Right Parts.",
+                description: "Search by brand/model/variant to get the right fit, first time and then every time."
+              },
+              {
+                title: "No Markup Natak.",
+                description: "Transparent pricing on genuine spares. No last-minute surprises!"
+              },
+              {
+                title: "Your Quick Fix.",
+                description: "Fast delivery across India, with same-day delivery in NCR."
+              },
+              {
+                title: "All Parts. No Hunt.",
+                description: "Thousands of spares for bikes, scooters & cars. Everything from regular replacements to urgent fixes."
+              },
+              {
+                title: "Got Your Back (and Front).",
+                description: "Track all deliveries, dispatches and queries in real time for every single parts."
+              }
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              >
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  {item.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed text-base">
+                  {item.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
         {/* Dynamic About Sections */}
         <div>
           {aboutSections.map((section, index) => (

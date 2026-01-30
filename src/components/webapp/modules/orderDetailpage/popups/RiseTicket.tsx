@@ -116,7 +116,7 @@ export default function RiseTicket({ open, onClose, orderId, showOrderSelection 
        }
        }
        catch(error: any){
-        console.error("Failed to rise ticket:", error);
+        console.error("Failed to raise ticket:", error);
         const errorMessage = error?.response?.data?.message || error?.message;
         if (errorMessage?.toLowerCase().includes('already')) {
            // showToast('Ticket already raised', 'error');

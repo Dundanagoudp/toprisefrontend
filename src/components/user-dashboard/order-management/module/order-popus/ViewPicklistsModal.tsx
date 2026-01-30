@@ -369,7 +369,7 @@ useEffect(() => {
                                 size="sm"
                                 className="text-xs px-3 py-1 h-7 bg-blue-600 text-white hover:bg-blue-700"
                               >
-                                Mark as delivery
+                                Mark as Delivered
                               </Button>
                             ) : isAllPacked ? (
                               // Render Packed Badge (Green, static) if all SKUs are packed
