@@ -11,8 +11,8 @@ const vehicleTypeIds = {
 };
 
 const initialState: VehicleState = {
-  vehicleType: "car",
-  typeId: vehicleTypeIds.car,
+  vehicleType: "bike",
+  typeId: vehicleTypeIds.bike,
 };
 
 const vehicleSlice = createSlice({
@@ -24,7 +24,7 @@ const vehicleSlice = createSlice({
       state.typeId = vehicleTypeIds[action.payload];
     },
     toggleVehicleType: (state) => {
-      const newType = state.vehicleType === "car" ? "bike" : "car";
+      const newType = state.vehicleType === "bike" ? "car" : "bike";
       state.vehicleType = newType;
       state.typeId = vehicleTypeIds[newType];
     },

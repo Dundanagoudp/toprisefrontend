@@ -128,3 +128,21 @@ export async function updateDeliveryType(cartId: string, deliveryType: string): 
     throw error;
   }
 }
+
+export async function syncGuestCartToUser(
+  userId: string, 
+  pincode: string, 
+  products: { productId: string; quantity: number }[]
+): Promise<any> {
+  try {
+    const response = await apiClient.post(`/orders/api/carts/v1/add/newLoggedInUser`, {
+      userId,
+      pincode,
+      products
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to sync guest cart:", error);
+    throw error;
+  }
+}

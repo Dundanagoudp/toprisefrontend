@@ -102,6 +102,20 @@ export default function ProductPage() {
   useEffect(() => {
     setIsProductDeliverable(null);
   }, [pincodeInput]);
+
+  // Ensure quantity respects max limit based on existing cart quantity
+  useEffect(() => {
+    if (product?._id && cartData?.items) {
+      const existingItem = cartData.items.find(item => item.productId === product._id);
+      const existingQty = existingItem?.quantity || 0;
+      const maxAllowed = 10 - existingQty;
+      
+      if (quantity > maxAllowed) {
+        setQuantity(Math.max(1, maxAllowed));
+      }
+    }
+  }, [product?._id, cartData?.items, quantity]);
+
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const filesOrigin = React.useMemo(
     () => apiBase.replace(/\/api$/, ""),
@@ -254,7 +268,7 @@ export default function ProductPage() {
       const response = await getSimilarProducts(product._id, {
         count: 5,
         brand: product.brand._id,
-        model: product.model._id,
+        model: product.model?.[0]?._id,
         variant: variantIds,
       });
 
@@ -296,6 +310,13 @@ export default function ProductPage() {
       return;
     }
 
+    // Require login for Buy Now
+    if (!userId) {
+      showToast("Please login to buy products", "error");
+      router.push("/login");
+      return;
+    }
+
     try {
       setBuyingNow(true);
       await addItemToCart(product._id, quantity);
@@ -303,11 +324,7 @@ export default function ProductPage() {
       // Navigate to checkout page
       router.push("/shop/checkout");
     } catch (error: any) {
-      if (error.message === "User not authenticated") {
-        showToast("Please login to buy products", "error");
-        router.push("/login");
-      }
-      else if (error.message?.includes('not serviceable')) {
+      if (error.message?.includes('not serviceable')) {
         showToast("Product not serviceable at this location", "error");
       }
       else {
@@ -387,11 +404,7 @@ export default function ProductPage() {
       await addItemToCart(product._id, quantity);
       showToast("Product added to cart successfully", "success");
     } catch (error: any) {
-      if (error.message === "User not authenticated") {
-        showToast("Please login to add items to cart", "error");
-        router.push("/login");
-      } 
-      else if (error.message?.includes('not serviceable')) {
+      if (error.message?.includes('not serviceable')) {
         showToast("Product not serviceable at this location", "error");
       }
       else {
@@ -797,12 +810,34 @@ export default function ProductPage() {
                     </span>
                     <button
                       className="p-2 hover:bg-muted transition-colors disabled:opacity-50"
-                      onClick={() => setQuantity(quantity + 1)}
-                      disabled={product.out_of_stock}
+                      onClick={() => {
+                        // Check existing quantity in cart
+                        const existingItem = cartData?.items?.find(item => item.productId === product._id);
+                        const existingQty = existingItem?.quantity || 0;
+                        const maxAllowed = Math.max(0, 10 - existingQty);
+                        setQuantity(Math.min(maxAllowed, quantity + 1));
+                      }}
+                      disabled={product.out_of_stock || (() => {
+                        const existingItem = cartData?.items?.find(item => item.productId === product._id);
+                        const existingQty = existingItem?.quantity || 0;
+                        return quantity >= (10 - existingQty);
+                      })()}
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
+                  {(() => {
+                    const existingItem = cartData?.items?.find(item => item.productId === product._id);
+                    const existingQty = existingItem?.quantity || 0;
+                    if (existingQty > 0) {
+                      return (
+                        <p className="text-sm text-muted-foreground">
+                          {existingQty} already in cart (max 10 per product)
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
             </div>
@@ -1141,18 +1176,10 @@ export default function ProductPage() {
                                 "success"
                               );
                             } catch (error: any) {
-                              if (error.message === "User not authenticated") {
-                                showToast(
-                                  "Please login to add items to cart",
-                                  "error"
-                                );
-                                router.push("/login");
-                              } else {
-                                showToast(
-                                  "Failed to add product to cart",
-                                  "error"
-                                );
-                              }
+                              showToast(
+                                "Failed to add product to cart",
+                                "error"
+                              );
                             } finally {
                               setAddingRecommendedToCart(null);
                             }

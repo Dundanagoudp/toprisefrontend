@@ -12,6 +12,8 @@ import { ShoppingCart, Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import DynamicButton from "@/components/common/button/button";
 import { Button } from "@/components/ui/button";
 import { CartItem } from "@/types/User/cart-Types";
+import { useAppSelector } from "@/store/hooks";
+import { useToast } from "@/components/ui/toast";
 
 interface CartSidebarProps {
   cart: any;
@@ -32,11 +34,20 @@ export const CartSidebar = ({
 }: CartSidebarProps) => {
   const router = useRouter();
   const [updatingQuantities, setUpdatingQuantities] = useState<Set<string>>(new Set());
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { showToast } = useToast();
 
   const cartItemsCount = cart?.items?.length ?? 0;
 
   const handleCheckout = () => {
     setCartOpen(false);
+    
+    if (!isAuthenticated) {
+      showToast("Please login to proceed to checkout", "error");
+      router.push('/login');
+      return;
+    }
+
     router.push('/shop/checkout');
   };
 
