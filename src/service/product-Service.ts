@@ -1667,7 +1667,7 @@ export async function riseTicket(data: any): Promise<TicketResponse> {
     return res.data
   }
   catch(error: any){
-    console.error("Failed to rise ticket:", error);
+    console.error("Failed to raise ticket:", error);
     throw error;
   }
 }

@@ -320,7 +320,7 @@ export const Header = () => {
           className="cursor-pointer"
         >
           <Settings className="mr-2 h-4 w-4" />
-          My Profile
+          My Account
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -493,7 +493,7 @@ export const Header = () => {
                       className="flex items-center w-full py-2 text-sm text-gray-700 hover:text-gray-900"
                     >
                       <Settings className="mr-2 h-4 w-4" />
-                      Settings
+                      My Account
                     </button>
                     <button
                       onClick={() => {

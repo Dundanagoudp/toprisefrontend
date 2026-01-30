@@ -273,12 +273,10 @@ export default function BannerSection() {
           {/* Left Side - Text Content */}
           <div className="text-white space-y-6">
             <h1 className="font-sans font-bold text-white text-4xl md:text-5xl lg:text-6xl leading-tight">
-              Get Genuine Spare Parts of your Vehicle – Quick Shopping & Rapid
-              Delivery{" "}
+            The right parts. The right price. Right on time.{" "}
             </h1>
             <p className="font-sans text-white/90 text-lg md:text-xl">
-              Search thousands of parts for bikes, scooters and cars – Get it
-              delivered pan India (Same day in NCR)
+            Thousands of spares for bikes, scooters & cars. We deliver trust with genuine parts from authorised distributors at genuine prices, with pan-India shipping and same-day in NCR. 
             </p>
           </div>
 

@@ -67,9 +67,9 @@ export default function DealerProductsModal({
                   <TableHead className="text-gray-700 font-medium px-4 py-3 text-left">
                     MPN
                   </TableHead>
-                  <TableHead className="text-gray-700 font-medium px-4 py-3 text-left">
+                  {/* <TableHead className="text-gray-700 font-medium px-4 py-3 text-left">
                     Product ID
-                  </TableHead>
+                  </TableHead> */}
                   <TableHead className="text-gray-700 font-medium px-4 py-3 text-left">
                     Quantity
                   </TableHead>
@@ -90,9 +90,9 @@ export default function DealerProductsModal({
                     <TableCell className="px-4 py-3 text-gray-600 font-mono text-sm">
                       {product.manufacturer_part_name}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-600 font-mono text-sm">
+                    {/* <TableCell className="px-4 py-3 text-gray-600 font-mono text-sm">
                       {product.productId}
-                    </TableCell>
+                    </TableCell> */}
                 
                     <TableCell className="px-4 py-3 text-gray-900 font-semibold">
                       {product.quantity}

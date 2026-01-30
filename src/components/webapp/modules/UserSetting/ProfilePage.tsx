@@ -1166,7 +1166,7 @@ export default function ProfilePage() {
         <div className="container mx-auto px-4 py-6 max-sm:px-3 max-sm:py-4">
           <div className="flex items-center justify-between max-sm:flex-col max-sm:gap-3 max-sm:items-start">
             <div className="max-sm:w-full">
-              <h1 className="text-2xl font-bold text-foreground max-sm:text-xl max-sm:text-left">My Profile</h1>
+              <h1 className="text-2xl font-bold text-foreground max-sm:text-xl max-sm:text-left">My Account</h1>
               <p className="text-sm text-muted-foreground mt-1 max-sm:text-xs max-sm:text-left">
                 Manage your account settings and preferences
               </p>
