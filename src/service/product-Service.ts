@@ -1632,7 +1632,7 @@ export async function uploadPurchaseOrder(
     });
     return res.data;
   } catch (error) {
-    console.error("Failed to upload purchase order:", error);
+    console.error("Failed to upload purchase request:", error);
     throw error;
   }
 }

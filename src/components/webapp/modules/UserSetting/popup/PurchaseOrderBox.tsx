@@ -148,7 +148,7 @@ export default function PurchaseOrderDialog({ isOpen, onClose, onSubmit }: Props
       onClose();
     } catch (err) {
       console.error("Submit failed:", err);
-      showToast("Failed to upload purchase order. Please try again.", "error");
+      showToast("Failed to upload purchase request. Please try again.", "error");
     } finally {
       setSubmitting(false);
     }
